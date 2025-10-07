@@ -236,15 +236,6 @@ export default function ComingSoon() {
           </p>
         </footer>
       </div>
-
-      {/* Cookie Widget */}
-      <button 
-        className="fixed bottom-4 left-4 w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center cursor-pointer hover:bg-white/20 transition border border-white/20 focus:outline-none focus:ring-2 focus:ring-cyan-400 z-50"
-        aria-label="Cookie instellingen"
-        type="button"
-      >
-        <span className="text-2xl" role="img" aria-label="cookie">🍪</span>
-      </button>
     </div>
   );
 }
