@@ -1,6 +1,14 @@
 import "./globals.css";
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { Nunito } from 'next/font/google';
+
+const nunito = Nunito({ 
+  subsets: ['latin'],
+  weight: ['400', '600', '700'],
+  display: 'swap',
+  variable: '--font-nunito'
+});
 
 export const metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://preview.teun.ai'),
@@ -29,18 +37,18 @@ export const metadata = {
   publisher: 'TEUN.AI',
   
   robots: {
+    index: process.env.NEXT_PUBLIC_SITE_URL?.includes('preview') ? false : true,
+    follow: process.env.NEXT_PUBLIC_SITE_URL?.includes('preview') ? false : true,
+    noindex: process.env.NEXT_PUBLIC_SITE_URL?.includes('preview') ? true : false,
+    nofollow: process.env.NEXT_PUBLIC_SITE_URL?.includes('preview') ? true : false,
+    googleBot: {
       index: process.env.NEXT_PUBLIC_SITE_URL?.includes('preview') ? false : true,
       follow: process.env.NEXT_PUBLIC_SITE_URL?.includes('preview') ? false : true,
-      noindex: process.env.NEXT_PUBLIC_SITE_URL?.includes('preview') ? true : false,
-      nofollow: process.env.NEXT_PUBLIC_SITE_URL?.includes('preview') ? true : false,
-      googleBot: {
-        index: process.env.NEXT_PUBLIC_SITE_URL?.includes('preview') ? false : true,
-        follow: process.env.NEXT_PUBLIC_SITE_URL?.includes('preview') ? false : true,
-        'max-video-preview': -1,
-        'max-image-preview': 'large',
-        'max-snippet': -1,
-                },
-          },
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   
   openGraph: {
     type: 'website',
@@ -85,19 +93,19 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="nl">
+    <html lang="nl" className={nunito.variable}>
       <head>
-      {/* Preconnect to external domains for performance */}
-      <link rel="preconnect" href="https://wordpress-988065-5905039.cloudwaysapps.com" />
-      <link rel="dns-prefetch" href="https://wordpress-988065-5905039.cloudwaysapps.com" />
+        {/* Preconnect to external domains for performance */}
+        <link rel="preconnect" href="https://wordpress-988065-5905039.cloudwaysapps.com" />
+        <link rel="dns-prefetch" href="https://wordpress-988065-5905039.cloudwaysapps.com" />
 
-      {/* Favicons */}
-      <link rel="icon" href="/favicon.ico" sizes="any" />
-      <link rel="icon" href="/favicon-66x66.png" type="image/png" sizes="66x66" />
-      <link rel="icon" href="/favicon-200x200.png" type="image/png" sizes="200x200" />
-      <link rel="icon" href="/favicon-300x300.png" type="image/png" sizes="300x300" />
-      <link rel="apple-touch-icon" href="/favicon-300x300.png" />
-    </head>
+        {/* Favicons */}
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon-66x66.png" type="image/png" sizes="66x66" />
+        <link rel="icon" href="/favicon-200x200.png" type="image/png" sizes="200x200" />
+        <link rel="icon" href="/favicon-300x300.png" type="image/png" sizes="300x300" />
+        <link rel="apple-touch-icon" href="/favicon-300x300.png" />
+      </head>
       <body className="antialiased">
         {children}
         <Analytics />

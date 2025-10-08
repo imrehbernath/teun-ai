@@ -1,0 +1,76 @@
+.blogContent p {
+  font-size: 17px;
+  line-height: 1.7em;
+  margin-bottom: 20px;
+  color: rgb(51, 51, 51);
+}
+
+.blogContent p:first-of-type {
+  font-family: var(--font-nunito), sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 29px;
+  color: rgb(51, 51, 51);
+}
+
+.blogContent h2 {
+  font-size: 26px;
+  font-weight: 700;
+  background: linear-gradient(90deg, #1A7DFF, #6C3FF2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-top: 40px;
+  margin-bottom: 25px;
+}
+
+.blogContent h3 {
+  font-size: 22px;
+  font-weight: 600;
+  color: rgb(51, 51, 51);
+  margin-top: 32px;
+  margin-bottom: 16px;
+}
+
+.blogContent a {
+  color: #1A7DFF;
+  text-decoration: none;
+}
+
+.blogContent a:hover {
+  text-decoration: underline;
+}
+
+.blogContent strong {
+  font-weight: 700;
+  color: rgb(51, 51, 51);
+}
+
+.blogContent ul,
+.blogContent ol {
+  margin: 24px 0;
+  padding-left: 24px;
+}
+
+.blogContent li {
+  font-size: 17px;
+  line-height: 1.7em;
+  margin-bottom: 12px;
+  color: rgb(51, 51, 51);
+}
+
+.blogContent img {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  margin: 32px 0;
+  max-width: 100%;
+  height: auto;
+}
+
+.blogContent blockquote {
+  border-left: 4px solid #1A7DFF;
+  padding-left: 24px;
+  margin: 24px 0;
+  font-style: italic;
+  color: rgb(85, 85, 85);
+}
