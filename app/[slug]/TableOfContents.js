@@ -63,10 +63,10 @@ export default function TableOfContents({ headings }) {
 
   return (
     <div className="lg:sticky lg:top-24 bg-gray-50 rounded-xl p-6">
-      <h2 className="toc-heading font-bold text-lg mb-3">
+    <h2 className="toc-heading-underline">
         Inhoudsopgave
-      </h2>
-      <nav className="space-y-1">
+    </h2>
+      <nav className="space-y-3">
         {headings.map((heading, index) => (
           <a
             key={index}

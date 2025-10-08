@@ -131,13 +131,46 @@
   background: linear-gradient(135deg, #1A7DFF, #6C3FF2);
 }
 
-/* Images */
+/* ============================================
+   IMAGES & CAPTIONS
+   ============================================ */
+
+/* Figure wrapper (WordPress gebruikt dit voor images met captions) */
+.blogContent figure {
+  margin: 32px 0; /* Ruimte rondom hele figure */
+}
+
+/* Image styling */
 .blogContent img {
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   margin: 32px 0;
   max-width: 100%;
   height: auto;
+}
+
+/* Image binnen figure - aangepaste margin voor caption */
+.blogContent figure img {
+  margin: 0 0 8px 0; /* Kleine ruimte onder image voor caption */
+}
+
+/* Caption styling - alle WordPress caption formaten */
+.blogContent figcaption,
+.blogContent .wp-caption-text,
+.blogContent .wp-element-caption {
+  font-size: 14px;
+  font-style: italic;
+  color: #666;
+  text-align: left;
+  margin: 8px 0 0 0; /* Caption zit dicht op image */
+  padding: 0;
+  line-height: 1.6;
+}
+
+/* Gecentreerde images met caption */
+.blogContent figure.aligncenter figcaption,
+.blogContent figure.wp-block-image figcaption {
+  text-align: center;
 }
 
 /* Blockquotes */
@@ -173,7 +206,15 @@
 .toc-heading:hover {
   background-size: 100% 60%;
 }
-
+:global(.toc-heading-underline) {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1E1E1E;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 3px solid;
+  border-image: linear-gradient(90deg, #1A7DFF, #6C3FF2) 1;
+}
 /* TOC Links */
 :global(.toc-link) {
   color: #6366F1;

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import styles from './blog-post.module.css';
 import TableOfContents from './TableOfContents';
 import FAQAccordion from './FAQAccordion';
+import EmailSignup from './EmailSignup';  // ← Relatieve import, net als de anderen!
 
 async function getPost(slug) {
   const query = `
@@ -282,11 +283,19 @@ export default async function BlogPost({ params }) {
       {/* Main Content - 1200px container met 30% / 70% verdeling */}
       <article className="bg-white">
         <div className="mx-auto px-4 py-12" style={{ maxWidth: '1200px' }}>
-          <div className="grid grid-cols-12 gap-8">
+          <div className="grid grid-cols-12 gap-12">
 
             {headings.length > 0 && (
               <div className="col-span-12 lg:col-span-4">
-                <TableOfContents headings={headings} />
+                <div className="sticky top-24">
+                  <TableOfContents headings={headings} />
+                  
+                  {/* EMAIL SIGNUP ONDER TOC */}
+                  <EmailSignup 
+                    title="Blijf op de hoogte van GEO-updates"
+                    compact={true}
+                  />
+                </div>
               </div>
             )}
 

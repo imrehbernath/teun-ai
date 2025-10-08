@@ -1,0 +1,116 @@
+.emailSignup {
+  background: linear-gradient(135deg, #7C3AED 0%, #6366F1 100%);
+  border-radius: 24px;
+  padding: 32px 28px;
+  margin: 24px 0;
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.15);
+}
+
+.compact {
+  padding: 24px 20px;
+  border-radius: 16px;
+}
+
+.title {
+  color: white;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 20px 0;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.compact .title {
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.input {
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  background: white;
+  color: #1E1E1E;
+  transition: all 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+}
+
+.input::placeholder {
+  color: #999;
+}
+
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.button {
+  width: 100%;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #06B6D4 0%, #0EA5E9 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4);
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.success,
+.error {
+  margin: 12px 0 0 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.success {
+  background: rgba(34, 197, 94, 0.2);
+  color: #BBF7D0;
+}
+
+.error {
+  background: rgba(239, 68, 68, 0.2);
+  color: #FCA5A5;
+}
+
+/* Responsive */
+@media (min-width: 640px) {
+  .emailSignup {
+    padding: 36px 32px;
+  }
+  
+  .title {
+    font-size: 22px;
+  }
+}
