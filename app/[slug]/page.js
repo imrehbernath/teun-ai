@@ -281,30 +281,32 @@ export default async function BlogPost({ params }) {
       </div>
 
       {/* Main Content - 1200px container met 30% / 70% verdeling */}
-      <article className="bg-white">
-        <div className="mx-auto px-4 py-12" style={{ maxWidth: '1200px' }}>
-          <div className="grid grid-cols-12 gap-12">
+   <article className="bg-white">
+  <div className="mx-auto px-4 py-12 max-w-[1200px]">
+    <div className="grid grid-cols-12 gap-6 lg:gap-12">
 
-            {headings.length > 0 && (
-              <div className="col-span-12 lg:col-span-4">
-                <div className="sticky top-24">
-                  <TableOfContents headings={headings} />
-                  
-                  {/* EMAIL SIGNUP ONDER TOC */}
-                  <EmailSignup 
-                    title="Blijf op de hoogte van GEO-updates"
-                    compact={true}
-                  />
-                </div>
-              </div>
-            )}
+      {headings.length > 0 && (
+        <div className="col-span-12 lg:col-span-5">
+          <div className="lg:sticky lg:top-24">
+            <TableOfContents headings={headings} />
+            
+            {/* EMAIL SIGNUP ONDER TOC */}
+            <EmailSignup 
+              title="Blijf op de hoogte van GEO-updates"
+              compact={true}
+            />
+          </div>
+        </div>
+      )}
 
-            <div className={headings.length > 0 ? 'col-span-12 lg:col-span-8' : 'col-span-12'}>
-              
-              <div 
-                className={styles.blogContent}
-                dangerouslySetInnerHTML={{ __html: contentWithIds }}
-              />
+      <div className={headings.length > 0 ? 'col-span-12 lg:col-span-7' : 'col-span-12'}>
+        
+        <div 
+          className={styles.blogContent}
+          dangerouslySetInnerHTML={{ __html: contentWithIds }}
+        />
+
+        {/* Rest van content... */}
 
               {/* FAQ Accordion */}
               <FAQAccordion faqs={faqs} />

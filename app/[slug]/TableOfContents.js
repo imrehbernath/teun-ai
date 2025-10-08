@@ -62,7 +62,7 @@ export default function TableOfContents({ headings }) {
   };
 
   return (
-    <div className="lg:sticky lg:top-24 bg-gray-50 rounded-xl p-6">
+    <div className="lg:sticky lg:top-24 bg-gray-50 rounded-xl p-4 lg:p-7">
     <h2 className="toc-heading-underline">
         Inhoudsopgave
     </h2>
