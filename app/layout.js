@@ -1,13 +1,20 @@
 import "./globals.css";
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
-import { Nunito } from 'next/font/google';
+import { Nunito, Montserrat } from 'next/font/google';
 
 const nunito = Nunito({ 
   subsets: ['latin'],
   weight: ['400', '600', '700'],
   display: 'swap',
   variable: '--font-nunito'
+});
+
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
+  variable: '--font-montserrat'
 });
 
 export const metadata = {
@@ -93,7 +100,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="nl" className={nunito.variable}>
+    <html lang="nl" className={`${nunito.variable} ${montserrat.variable}`}>
       <head>
         {/* Preconnect to external domains for performance */}
         <link rel="preconnect" href="https://wordpress-988065-5905039.cloudwaysapps.com" />
