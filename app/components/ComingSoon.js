@@ -93,51 +93,48 @@ export default function ComingSoon() {
         </header>
 
         {/* Launch Card */}
-        <section className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-8 mb-8" aria-labelledby="launch-heading">
+        <section className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 mb-8" aria-labelledby="launch-heading">
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 px-4 py-2 rounded-full border border-blue-400/30 mb-6">
-              <span className="text-2xl" role="img" aria-label="raket">🚀</span>
-              <span className="text-sm font-semibold">
-                Op <time dateTime="2026-01-01"><strong>1 januari 2026</strong></time> gaat Teun.ai live
+            {/* Compacte badge voor mobiel */}
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 px-3 py-1.5 md:px-4 md:py-2 rounded-full border border-blue-400/30 mb-6">
+              <span className="text-lg md:text-2xl" role="img" aria-label="raket">🚀</span>
+              <span className="text-xs md:text-sm font-semibold">
+                Launch: <time dateTime="2026-01-01"><strong>1 januari 2026</strong></time>
               </span>
             </div>
 
-            <p className="text-gray-300 mb-2">
+            <p className="text-gray-300 mb-2 text-sm md:text-base">
               Hét platform voor <strong className="text-white">AI-SEO analyse</strong> en slimme{' '}
               <strong className="text-white">GEO optimalisatie</strong>.
             </p>
-            <p className="text-gray-400 text-sm">
+            <p className="text-gray-400 text-xs md:text-sm">
               Word zichtbaar in{' '}
               <span className="text-blue-300">ChatGPT</span>,{' '}
               <span className="text-blue-300">Google AI</span>,{' '}
               <span className="text-blue-300">Bing AI</span>,{' '}
               <span className="text-blue-300">Claude</span> en{' '}
               <span className="text-blue-300">Perplexity</span>. Lees alvast meer over{' '}
-              <a 
-                href="https://teun.ai/blog" 
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link 
+                href="/wat-is-generative-engine-optimisation-geo"
                 className="text-cyan-400 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-400 rounded"
               >
                 GEO optimalisatie
-              </a>{' '}
+              </Link>{' '}
               in ons{' '}
-              <a 
-                href="/wat-is-generative-engine-optimisation-geo" 
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link 
+                href="/blog"
                 className="text-cyan-400 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-400 rounded"
               >
                 blogoverzicht
-              </a>{' '}
+              </Link>{' '}
               en ontdek hoe bedrijven zich nu al voorbereiden op AI-gedreven zoekresultaten.
             </p>
           </div>
         </section>
 
-        {/* Email Signup - MEER PAARS */}
-        <section className="backdrop-blur-md bg-gradient-to-br from-purple-600/30 via-purple-500/20 to-indigo-600/30 border border-purple-400/30 rounded-2xl p-8 mb-8 shadow-xl" aria-labelledby="signup-heading">
-          <h2 id="signup-heading" className="text-center text-lg mb-6 text-purple-100 font-semibold">
+        {/* Email Signup */}
+        <section className="backdrop-blur-md bg-gradient-to-br from-purple-600/30 via-purple-500/20 to-indigo-600/30 border border-purple-400/30 rounded-2xl p-6 md:p-8 mb-8 shadow-xl" aria-labelledby="signup-heading">
+          <h2 id="signup-heading" className="text-center text-base md:text-lg mb-6 text-purple-100 font-semibold">
             Meld je aan voor updates & ontvang exclusieve early access
           </h2>
           
@@ -176,7 +173,7 @@ export default function ComingSoon() {
           )}
         </section>
 
-        {/* Countdown - RESPONSIVE FIXES */}
+        {/* Countdown */}
         <section className="grid grid-cols-5 gap-2 sm:gap-4 mb-12" aria-label="Countdown tot lancering">
           <CountdownBox value={timeLeft.weeks} label="WEKEN" />
           <CountdownBox value={timeLeft.days} label="DAGEN" />
@@ -186,10 +183,10 @@ export default function ComingSoon() {
         </section>
 
         {/* Why Section */}
-        <section className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-8" aria-labelledby="why-heading">
-          <h2 id="why-heading" className="text-3xl font-bold text-center mb-6">Waarom Teun.ai?</h2>
+        <section className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8" aria-labelledby="why-heading">
+          <h2 id="why-heading" className="text-2xl md:text-3xl font-bold text-center mb-6">Waarom Teun.ai?</h2>
           
-          <div className="space-y-4 text-gray-300">
+          <div className="space-y-4 text-gray-300 text-sm md:text-base">
             <p>
               Teun.ai is de eerste{' '}
               <strong className="text-white">SEO tool voor AI zoekmachines</strong> in Nederland. 
@@ -204,14 +201,12 @@ export default function ComingSoon() {
             <p>
               Daarmee helpen we je om niet alleen beter gevonden te worden, maar ook vaker aanbevolen te worden door 
               generatieve zoekmachines.{' '}
-              <a 
-                href="https://teun.ai/blog" 
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link 
+                href="/blog"
                 className="text-cyan-400 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-400 rounded"
               >
                 SEO voor AI
-              </a>{' '}
+              </Link>{' '}
               wordt zo concreet en haalbaar.
             </p>
 
@@ -240,7 +235,7 @@ export default function ComingSoon() {
   );
 }
 
-// Countdown Box - RESPONSIVE + PAARSE GRADIENT
+// Countdown Box
 function CountdownBox({ value, label }) {
   return (
     <div className="backdrop-blur-sm border-2 border-purple-400/40 rounded-xl p-2 sm:p-4 text-center bg-gradient-to-br from-purple-500/10 to-indigo-500/10">
