@@ -56,8 +56,29 @@ async function getPosts() {
 }
 
 export const metadata = {
-  title: 'Blog - GEO Insights & AI-SEO Tips | Teun.ai',
-  description: 'Ontdek de laatste inzichten over Generative Engine Optimization (GEO), AI-zichtbaarheid en SEO voor AI-zoekmachines.',
+  title: 'GEO Blog – AI & SEO Inzichten 2025 | Teun.ai',
+  description: 'Lees wekelijks nieuwe blogs over GEO, AI-SEO en zichtbaarheid in ChatGPT en Google AI. Praktische inzichten, tips en trends in 2025.',
+  openGraph: {
+    title: 'GEO Blog – AI & SEO Inzichten 2025 | Teun.ai',
+    description: 'Lees wekelijks nieuwe blogs over GEO, AI-SEO en zichtbaarheid in ChatGPT en Google AI. Praktische inzichten, tips en trends in 2025.',
+    url: 'https://teun.ai/blog',
+    siteName: 'Teun.ai',
+    locale: 'nl_NL',
+    images: [
+      {
+        url: '/GEO-insights-en-AI-SEO.webp',
+        width: 1200,
+        height: 675,
+        alt: 'GEO optimalisatie',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'GEO Blog – AI & SEO Inzichten 2025 | Teun.ai',
+    description: 'Lees wekelijks nieuwe blogs over GEO, AI-SEO en zichtbaarheid in ChatGPT en Google AI. Praktische inzichten, tips en trends in 2025.',
+    images: ['/GEO-insights-en-AI-SEO.webp'],
+  },
 };
 
 export default async function BlogOverview() {
@@ -107,7 +128,7 @@ export default async function BlogOverview() {
       </section>
 
       {/* Category Filters */}
-      <section className="bg-white py-8 shadow-sm">
+      <section className="bg-white py-8 shadow-sm relative z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap gap-3 justify-center items-center">
             {mainCategories.map((category) => {
@@ -118,7 +139,7 @@ export default async function BlogOverview() {
                   <Link
                     key={category.slug}
                     href={`/blog${category.slug === 'all' ? '' : `/category/${category.slug}`}`}
-                    className="group flex items-center gap-2.5 px-5 py-3 bg-gray-50 rounded-full border-2 border-gray-200 hover:border-purple-500 hover:bg-purple-50 hover:shadow-lg transition-all font-medium text-sm"
+                    className="group flex items-center gap-2.5 px-5 py-3 bg-gray-50 rounded-full border-2 border-gray-200 hover:border-purple-500 hover:bg-purple-50 hover:shadow-lg transition-all font-medium text-sm relative z-10"
                   >
                     <span className="text-xl group-hover:scale-110 transition-transform">{category.icon}</span>
                     <span className="text-gray-700 group-hover:text-purple-700">{category.name}</span>
@@ -130,17 +151,17 @@ export default async function BlogOverview() {
               return (
                 <div
                   key={category.slug}
-                  className="group relative flex items-center gap-2.5 px-5 py-3 bg-gray-100 rounded-full border-2 border-gray-200 opacity-60 cursor-not-allowed font-medium text-sm"
+                  className="group relative flex items-center gap-2.5 px-5 py-3 bg-gray-100 rounded-full border-2 border-gray-200 cursor-not-allowed font-medium text-sm"
                   title="Binnenkort beschikbaar"
                 >
-                  <span className="text-xl grayscale">{category.icon}</span>
-                  <span className="text-gray-500">{category.name}</span>
+                  <span className="text-xl grayscale opacity-40">{category.icon}</span>
+                  <span className="text-gray-400">{category.name}</span>
                   
-                  {/* Tooltip */}
-                  <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                    <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap">
-                      Binnenkort een blog in deze categorie
-                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
+                  {/* Tooltip - maximum z-index and fully opaque */}
+                  <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100]">
+                    <div className="bg-gray-950 text-white text-xs font-semibold rounded-lg px-4 py-2 whitespace-nowrap shadow-2xl">
+                      Binnenkort
+                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-gray-950"></div>
                     </div>
                   </div>
                 </div>
