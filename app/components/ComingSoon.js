@@ -96,11 +96,13 @@ export default function ComingSoon() {
         <section className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 mb-8" aria-labelledby="launch-heading">
           <div className="text-center">
             {/* Compacte badge voor mobiel */}
-            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 px-3 py-1.5 md:px-4 md:py-2 rounded-full border border-blue-400/30 mb-6">
-              <span className="text-lg md:text-2xl" role="img" aria-label="raket">🚀</span>
-              <span className="text-xs md:text-sm font-semibold">
-                Launch: <time dateTime="2026-01-01"><strong>1 januari 2026</strong></time>
-              </span>
+            <div className="inline-flex flex-col sm:flex-row items-center gap-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 px-3 py-2 md:px-4 md:py-2 rounded-full border border-blue-400/30 mb-6">
+              <div className="flex items-center gap-2">
+                <span className="text-xl md:text-2xl" role="img" aria-label="raket">🚀</span>
+                <span className="text-xs md:text-sm font-semibold whitespace-nowrap">
+                  Launch: <time dateTime="2026-01-01"><strong>1 jan 2026</strong></time>
+                </span>
+              </div>
             </div>
 
             <p className="text-gray-300 mb-2 text-sm md:text-base">
