@@ -114,3 +114,13 @@
     font-size: 22px;
   }
 }
+/* Extra ruimte aan onderkant op desktop */
+@media (min-width: 1024px) {
+  .emailSignup {
+    margin-bottom: 60px;
+  }
+}
+/* Chrome sticky fix - extra margin in compact mode */
+.compact.emailSignup {
+  margin-bottom: 80px;
+}
