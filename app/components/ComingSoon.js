@@ -123,7 +123,7 @@ export default function ComingSoon() {
               </a>{' '}
               in ons{' '}
               <a 
-                href="https://teun.ai/blog" 
+                href="/wat-is-generative-engine-optimisation-geo" 
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-cyan-400 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-400 rounded"
@@ -135,9 +135,9 @@ export default function ComingSoon() {
           </div>
         </section>
 
-        {/* Email Signup */}
-        <section className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-8 mb-8" aria-labelledby="signup-heading">
-          <h2 id="signup-heading" className="text-center text-lg mb-6">
+        {/* Email Signup - MEER PAARS */}
+        <section className="backdrop-blur-md bg-gradient-to-br from-purple-600/30 via-purple-500/20 to-indigo-600/30 border border-purple-400/30 rounded-2xl p-8 mb-8 shadow-xl" aria-labelledby="signup-heading">
+          <h2 id="signup-heading" className="text-center text-lg mb-6 text-purple-100 font-semibold">
             Meld je aan voor updates & ontvang exclusieve early access
           </h2>
           
@@ -151,38 +151,38 @@ export default function ComingSoon() {
               placeholder="Vul je emailadres in *"
               required
               disabled={status === 'loading'}
-              className="flex-1 px-6 py-4 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 disabled:opacity-50"
+              className="flex-1 px-6 py-4 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-400 disabled:opacity-50"
               aria-required="true"
             />
             <button
               type="submit"
               disabled={status === 'loading'}
-              className="px-8 py-4 bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-bold rounded-lg hover:from-cyan-500 hover:to-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-transparent"
+              className="px-8 py-4 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold rounded-lg hover:from-purple-600 hover:to-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-transparent shadow-lg"
             >
               {status === 'loading' ? 'VERZENDEN...' : 'VERZENDEN'}
             </button>
           </form>
 
           {status === 'success' && (
-            <div className="mt-4 text-center text-green-400 font-semibold" role="status">
+            <div className="mt-4 text-center text-green-300 font-semibold" role="status">
               ✅ Bedankt voor je aanmelding! Check je inbox.
             </div>
           )}
           
           {status === 'error' && (
-            <div className="mt-4 text-center text-red-400 font-semibold" role="alert">
+            <div className="mt-4 text-center text-red-300 font-semibold" role="alert">
               ❌ Er ging iets mis. Probeer het opnieuw.
             </div>
           )}
         </section>
 
-        {/* Countdown - ONLY BORDERS */}
-        <section className="grid grid-cols-5 gap-4 mb-12" aria-label="Countdown tot lancering">
-          <CountdownBox value={timeLeft.weeks} label="Weken" />
-          <CountdownBox value={timeLeft.days} label="Dagen" />
-          <CountdownBox value={timeLeft.hours} label="Uur" />
-          <CountdownBox value={timeLeft.minutes} label="Min" />
-          <CountdownBox value={timeLeft.seconds} label="Sec" />
+        {/* Countdown - RESPONSIVE FIXES */}
+        <section className="grid grid-cols-5 gap-2 sm:gap-4 mb-12" aria-label="Countdown tot lancering">
+          <CountdownBox value={timeLeft.weeks} label="WEKEN" />
+          <CountdownBox value={timeLeft.days} label="DAGEN" />
+          <CountdownBox value={timeLeft.hours} label="UUR" />
+          <CountdownBox value={timeLeft.minutes} label="MIN" />
+          <CountdownBox value={timeLeft.seconds} label="SEC" />
         </section>
 
         {/* Why Section */}
@@ -226,7 +226,7 @@ export default function ComingSoon() {
           <p>
             © 2025 Teun.ai | Powered by{' '}
             <a 
-              href="https://onlinelabs.nl" 
+              href="https://www.onlinelabs.nl" 
               target="_blank" 
               rel="noopener noreferrer" 
               className="text-cyan-400 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-400 rounded"
@@ -240,14 +240,17 @@ export default function ComingSoon() {
   );
 }
 
-// Countdown Box - ONLY BORDER VERSION
+// Countdown Box - RESPONSIVE + PAARSE GRADIENT
 function CountdownBox({ value, label }) {
   return (
-    <div className="backdrop-blur-sm border-2 border-white/30 rounded-xl p-4 text-center bg-transparent">
-      <div className="text-3xl md:text-4xl font-bold mb-1" aria-label={`${value} ${label}`}>
+    <div className="backdrop-blur-sm border-2 border-purple-400/40 rounded-xl p-2 sm:p-4 text-center bg-gradient-to-br from-purple-500/10 to-indigo-500/10">
+      <div 
+        className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 bg-gradient-to-br from-purple-300 via-blue-300 to-purple-200 bg-clip-text text-transparent" 
+        aria-label={`${value} ${label}`}
+      >
         {String(value).padStart(2, '0')}
       </div>
-      <div className="text-xs md:text-sm text-gray-300 uppercase tracking-wider">
+      <div className="text-[10px] sm:text-xs md:text-sm text-purple-200 uppercase tracking-wider font-semibold">
         {label}
       </div>
     </div>

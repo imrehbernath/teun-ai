@@ -285,18 +285,20 @@ export default async function BlogPost({ params }) {
   <div className="mx-auto px-4 py-12 max-w-[1200px]">
     <div className="grid grid-cols-12 gap-6 lg:gap-12">
 
-      {headings.length > 0 && (
-        <div className="col-span-12 lg:col-span-5">
-          <div className="lg:sticky lg:top-24">
-            <TableOfContents headings={headings} />
-            
-            {/* EMAIL SIGNUP ONDER TOC */}
+    {headings.length > 0 && (
+      <div className="col-span-12 lg:col-span-5">
+        <div className="lg:sticky lg:top-24">
+          <TableOfContents headings={headings} />
+          
+          {/* EMAIL SIGNUP ONDER TOC - ALLEEN DESKTOP */}
+          <div className="hidden lg:block">
             <EmailSignup 
               title="Blijf op de hoogte van GEO-updates"
               compact={true}
             />
           </div>
         </div>
+      </div>
       )}
 
       <div className={headings.length > 0 ? 'col-span-12 lg:col-span-7' : 'col-span-12'}>
@@ -309,7 +311,15 @@ export default async function BlogPost({ params }) {
         {/* Rest van content... */}
 
               {/* FAQ Accordion */}
-              <FAQAccordion faqs={faqs} />
+                <FAQAccordion faqs={faqs} />
+
+                {/* EMAIL SIGNUP - ALLEEN MOBIEL (onderaan content) */}
+                <div className="lg:hidden mt-8">
+                  <EmailSignup 
+                    title="Blijf op de hoogte van GEO-updates"
+                    compact={false}
+                  />
+                </div>
 
               <div className="mt-16 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-8 text-center text-white">
                 <h3 className="text-2xl font-bold mb-4">

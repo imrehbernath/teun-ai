@@ -1,54 +1,68 @@
+import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
-import { isValidEmail } from '@/app/lib/utils';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request) {
   try {
     const { email } = await request.json();
-    
-    // Validation
-    if (!email || !isValidEmail(email)) {
+
+    if (!email || !email.includes('@')) {
       return NextResponse.json(
-        { error: 'Ongeldig email adres' },
+        { error: 'Invalid email address' },
         { status: 400 }
       );
     }
 
-    // Rate limiting (simple implementation)
-    // In production: use proper rate limiting with Redis/Upstash
-    
-    // Log subscription (in production: save to database)
-    console.log('[SUBSCRIPTION]', {
-      email,
-      timestamp: new Date().toISOString(),
-      ip: request.headers.get('x-forwarded-for') || 'unknown',
-      userAgent: request.headers.get('user-agent')
+    // Send notification to you
+    await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || 'noreply@teun.ai',
+      to: process.env.RESEND_TO_EMAIL,
+      subject: '🎉 Nieuwe Teun.ai Early Access Aanmelding',
+      html: `
+        <h2>Nieuwe aanmelding voor Early Access!</h2>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Datum:</strong> ${new Date().toLocaleString('nl-NL')}</p>
+        <hr>
+        <p><em>Via Teun.ai Coming Soon pagina</em></p>
+      `,
     });
 
-    // TODO: Integrate with email service
-    // - Mailchimp
-    // - SendGrid
-    // - ConvertKit
-    // Example:
-    // await mailchimp.lists.addListMember(LIST_ID, { email_address: email });
-    
-    return NextResponse.json({ 
-      success: true,
-      message: 'Successfully subscribed!' 
+    // Send confirmation to subscriber
+    await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || 'noreply@teun.ai',
+      to: email,
+      subject: 'Welkom bij Teun.ai Early Access 🚀',
+      html: `
+        <h2>Bedankt voor je aanmelding!</h2>
+        <p>Hoi daar! 👋</p>
+        <p>Je bent aangemeld voor early access tot <strong>Teun.ai</strong> - het eerste GEO optimalisatie platform van Nederland.</p>
+        <p>We houden je op de hoogte van:</p>
+        <ul>
+          <li>De officiële lancering op 1 januari 2026</li>
+          <li>Exclusieve early access mogelijkheden</li>
+          <li>GEO tips & best practices</li>
+          <li>Nieuwe features en updates</li>
+        </ul>
+        <p>Tot snel!</p>
+        <p><strong>Team Teun.ai</strong></p>
+        <hr>
+        <p style="font-size: 12px; color: #666;">
+          Wil je geen emails meer ontvangen? Stuur een reply met "Uitschrijven".
+        </p>
+      `,
     });
-    
-  } catch (error) {
-    console.error('[SUBSCRIPTION ERROR]', error);
+
     return NextResponse.json(
-      { error: 'Er ging iets mis. Probeer het later opnieuw.' },
+      { success: true, message: 'Subscription successful' },
+      { status: 200 }
+    );
+
+  } catch (error) {
+    console.error('Resend Error:', error);
+    return NextResponse.json(
+      { error: 'Failed to send email' },
       { status: 500 }
     );
   }
-}
-
-// Security: Only allow POST
-export async function GET() {
-  return NextResponse.json(
-    { error: 'Method not allowed' },
-    { status: 405 }
-  );
 }
