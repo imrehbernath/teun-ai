@@ -2,6 +2,7 @@ import "./globals.css";
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Nunito, Montserrat } from 'next/font/google';
+import GoogleTagManager from './components/GoogleTagManager';
 
 const nunito = Nunito({ 
   subsets: ['latin'],
@@ -116,6 +117,9 @@ export default function RootLayout({ children }) {
         <link rel="apple-touch-icon" href="/favicon-300x300.png" />
       </head>
       <body className="antialiased">
+        {/* Google Tag Manager - direct na body tag */}
+        <GoogleTagManager />
+        
         {children}
         <Analytics />
         <SpeedInsights />
