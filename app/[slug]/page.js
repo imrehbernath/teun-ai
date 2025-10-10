@@ -53,6 +53,22 @@ async function getPost(slug) {
     
     if (!post) return null;
     
+    // Transform featured image URL to assets.teun.ai
+    if (post.featuredImage?.node?.sourceUrl) {
+      post.featuredImage.node.sourceUrl = post.featuredImage.node.sourceUrl.replace(
+        'https://wordpress-988065-5905039.cloudwaysapps.com',
+        'https://assets.teun.ai'
+      );
+    }
+    
+    // Transform author avatar URL to assets.teun.ai
+    if (post.author?.node?.avatar?.url) {
+      post.author.node.avatar.url = post.author.node.avatar.url.replace(
+        'https://wordpress-988065-5905039.cloudwaysapps.com',
+        'https://assets.teun.ai'
+      );
+    }
+    
     // Fetch Rank Math SEO data via REST API
     const siteUrl = 'https://wordpress-988065-5905039.cloudwaysapps.com';
     const postUrl = `${siteUrl}${post.uri}`;
@@ -102,7 +118,12 @@ export async function generateMetadata({ params }) {
     
     // Extract OG image
     const ogImageMatch = post.rankMathHead.match(/<meta property="og:image" content="([^"]*)"/);
-    if (ogImageMatch) ogImage = ogImageMatch[1];
+    if (ogImageMatch) {
+      ogImage = ogImageMatch[1].replace(
+        'https://wordpress-988065-5905039.cloudwaysapps.com',
+        'https://assets.teun.ai'
+      );
+    }
   }
 
   return {
@@ -205,7 +226,7 @@ export default async function BlogPost({ params }) {
   // Clean excerpt for display
   const cleanExcerpt = post.excerpt?.replace(/<[^>]*>/g, '') || '';
 
-  // Replace WordPress URLs with assets.teun.ai in content
+  // Transform all WordPress URLs to assets.teun.ai in content
   const transformedContent = contentWithIds.replace(
     /https:\/\/wordpress-988065-5905039\.cloudwaysapps\.com/g,
     'https://assets.teun.ai'
@@ -300,7 +321,7 @@ export default async function BlogPost({ params }) {
               
               <div 
                 className={styles.blogContent}
-                dangerouslySetInnerHTML={{ __html: contentWithIds }}
+                dangerouslySetInnerHTML={{ __html: transformedContent }}
               />
 
               <FAQAccordion faqs={faqs} />
