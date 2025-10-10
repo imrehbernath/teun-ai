@@ -114,10 +114,9 @@ export default async function BlogOverview() {
             alt=""
             fill
             priority
-            fetchPriority="high"
             className="object-cover"
-            quality={90}
-            sizes="100vw"
+            quality={75}
+            sizes="(max-width: 640px) 640px, (max-width: 750px) 750px, (max-width: 1080px) 1080px, (max-width: 1920px) 1920px, 100vw"
           />
           {/* Stronger Overlay */}
           <div className="absolute inset-0 bg-gradient-to-b from-[#001233]/90 via-[#1a0b3d]/85 to-[#2d1654]/90"></div>
