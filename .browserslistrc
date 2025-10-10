@@ -1,0 +1,15 @@
+# Modern browsers only - no polyfills needed
+# This removes transpilation for Array.at, Object.fromEntries, etc.
+
+chrome >= 90
+firefox >= 88
+safari >= 14
+edge >= 90
+and_chr >= 90
+and_ff >= 88
+ios_saf >= 14
+
+# Exclude old browsers
+not IE 11
+not dead
+not op_mini all

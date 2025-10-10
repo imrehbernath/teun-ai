@@ -35,6 +35,14 @@ const nextConfig = {
     qualities: [75, 90, 100],
   },
 
+  // Modern JavaScript output - remove polyfills
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+
+  // Optimize with SWC
+  swcMinify: true,
+
   // Headers voor security & performance
   async headers() {
     return [
