@@ -359,11 +359,19 @@
     border-radius: 8px;
     position: relative;
     width: 100%;
+    max-width: 100%;
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
+    display: block !important;
     /* Force scrollbar to be visible */
     scrollbar-width: thin;
     scrollbar-color: #cbd5e1 #f1f5f9;
+  }
+  
+  /* Override WordPress fixed layout */
+  .blogContent table.has-fixed-layout {
+    table-layout: auto !important;
+    width: auto !important;
   }
   
   /* Webkit scrollbar styling - make it more visible */
