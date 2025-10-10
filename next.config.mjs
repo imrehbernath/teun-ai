@@ -5,6 +5,10 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
+        hostname: 'assets.teun.ai',
+      },
+      {
+        protocol: 'https',
         hostname: 'wordpress-988065-5905039.cloudwaysapps.com',
       },
       {
@@ -18,6 +22,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'teun.ai',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.onlinelabs.nl',
       },
     ],
     formats: ['image/avif', 'image/webp'],

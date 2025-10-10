@@ -104,8 +104,8 @@ export default function RootLayout({ children }) {
     <html lang="nl" className={`${nunito.variable} ${montserrat.variable}`}>
       <head>
         {/* Preconnect to external domains for performance */}
-        <link rel="preconnect" href="https://wordpress-988065-5905039.cloudwaysapps.com" />
-        <link rel="dns-prefetch" href="https://wordpress-988065-5905039.cloudwaysapps.com" />
+        <link rel="preconnect" href="https://assets.teun.ai" />
+        <link rel="dns-prefetch" href="https://assets.teun.ai" />
 
         {/* Favicons */}
         <link rel="icon" href="/favicon.ico" sizes="any" />
