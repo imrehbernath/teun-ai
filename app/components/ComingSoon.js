@@ -188,7 +188,7 @@ export default function ComingSoon() {
         <section className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8" aria-labelledby="why-heading">
           <h2 id="why-heading" className="text-2xl md:text-3xl font-bold text-center mb-6">Waarom Teun.ai?</h2>
           
-          <div className="space-y-4 text-gray-300 text-sm md:text-base">
+          <div className="space-y-4 text-gray-300 text-base md:text-lg leading-relaxed">
             <p>
               Teun.ai is de eerste{' '}
               <strong className="text-white">SEO tool voor AI zoekmachines</strong> in Nederland. 
@@ -204,7 +204,7 @@ export default function ComingSoon() {
               Daarmee helpen we je om niet alleen beter gevonden te worden, maar ook vaker aanbevolen te worden door 
               generatieve zoekmachines.{' '}
               <Link 
-                href="/blog"
+                href="/waarom-geo-generative-engine-optimisation-de-opvolger-is-van-seo"
                 className="text-cyan-400 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-400 rounded"
               >
                 SEO voor AI
@@ -212,7 +212,7 @@ export default function ComingSoon() {
               wordt zo concreet en haalbaar.
             </p>
 
-            <p className="text-center italic pt-4">
+            <p className="text-center italic pt-4 text-base md:text-lg">
               <span role="img" aria-label="vinkje">✓</span> Met Teun.ai ben je straks <strong className="text-white">zichtbaar in ChatGPT</strong> en andere AI-zoekmachines.
             </p>
           </div>

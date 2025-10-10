@@ -17,15 +17,18 @@ const montserrat = Montserrat({
   variable: '--font-montserrat'
 });
 
+// Check if we're on production
+const isProduction = process.env.NEXT_PUBLIC_SITE_URL === 'https://teun.ai';
+
 export const metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://preview.teun.ai'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://teun.ai'),
   
   title: {
-    default: 'TEUN.AI - GEO Audits & AI-SEO Tools',
+    default: 'Teun.ai – GEO Audits & AI-SEO Analyse | Live 1 januari 2026',
     template: '%s | TEUN.AI'
   },
   
-  description: 'Het eerste SEO tool platform voor AI zoekmachines in Nederland. GEO Audits, AI-SEO analyse en optimalisatie voor ChatGPT, Google AI, Perplexity en meer.',
+  description: 'Teun.ai: hét platform voor GEO Audits, AI-SEO analyse & AI-gedreven optimalisatie. Word zichtbaar in ChatGPT, Google AI, Bing AI & meer.',
   
   keywords: [
     'GEO',
@@ -43,14 +46,13 @@ export const metadata = {
   creator: 'TEUN.AI',
   publisher: 'TEUN.AI',
   
+  // Conditional robots - alleen productie wordt geïndexeerd
   robots: {
-    index: process.env.NEXT_PUBLIC_SITE_URL?.includes('preview') ? false : true,
-    follow: process.env.NEXT_PUBLIC_SITE_URL?.includes('preview') ? false : true,
-    noindex: process.env.NEXT_PUBLIC_SITE_URL?.includes('preview') ? true : false,
-    nofollow: process.env.NEXT_PUBLIC_SITE_URL?.includes('preview') ? true : false,
+    index: isProduction,
+    follow: isProduction,
     googleBot: {
-      index: process.env.NEXT_PUBLIC_SITE_URL?.includes('preview') ? false : true,
-      follow: process.env.NEXT_PUBLIC_SITE_URL?.includes('preview') ? false : true,
+      index: isProduction,
+      follow: isProduction,
       'max-video-preview': -1,
       'max-image-preview': 'large',
       'max-snippet': -1,
@@ -62,11 +64,11 @@ export const metadata = {
     locale: 'nl_NL',
     url: process.env.NEXT_PUBLIC_SITE_URL,
     siteName: 'TEUN.AI',
-    title: 'TEUN.AI - GEO Audits & AI-SEO Tools',
-    description: 'Het eerste SEO tool platform voor AI zoekmachines in Nederland',
+    title: 'Teun.ai – GEO Audits & AI-SEO Analyse | Live 1 januari 2026',
+    description: 'Teun.ai: hét platform voor GEO Audits, AI-SEO analyse & AI-gedreven optimalisatie. Word zichtbaar in ChatGPT, Google AI, Bing AI & meer.',
     images: [
       {
-        url: '/Teun.ai-socials.jpg',
+        url: '/GEO-insights-en-AI-SEO.webp',
         width: 1200,
         height: 630,
         alt: 'TEUN.AI - GEO Audits & AI-SEO Tools',
@@ -76,9 +78,9 @@ export const metadata = {
   
   twitter: {
     card: 'summary_large_image',
-    title: 'TEUN.AI - GEO Audits & AI-SEO Tools',
-    description: 'Het eerste SEO tool platform voor AI zoekmachines in Nederland',
-    images: ['/og-image.png'],
+    title: 'Teun.ai – GEO Audits & AI-SEO Analyse | Live 1 januari 2026',
+    description: 'Teun.ai: hét platform voor GEO Audits, AI-SEO analyse & AI-gedreven optimalisatie. Word zichtbaar in ChatGPT, Google AI, Bing AI & meer.',
+    images: ['/GEO-insights-en-AI-SEO.webp'],
   },
   
   alternates: {

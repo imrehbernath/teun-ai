@@ -1,19 +1,21 @@
 export default function robots() {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://preview.teun.ai';
-  const isPreview = baseUrl.includes('preview');
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://teun.ai';
   
-  if (isPreview) {
-    // Preview: Block everything
+  // Check if NOT on production (any Vercel preview URL or non-production domain)
+  const isProduction = baseUrl === 'https://teun.ai';
+  
+  if (!isProduction) {
+    // Preview/Staging: Block everything
     return {
       rules: {
         userAgent: '*',
         disallow: '/',
       },
-      sitemap: null, // No sitemap for preview
+      sitemap: null,
     };
   }
   
-  // Production: Allow everything
+  // Production: Allow everything with special AI bot rules
   return {
     rules: [
       {
@@ -26,7 +28,19 @@ export default function robots() {
         allow: '/',
       },
       {
+        userAgent: 'ChatGPT-User',
+        allow: '/',
+      },
+      {
         userAgent: 'PerplexityBot',
+        allow: '/',
+      },
+      {
+        userAgent: 'Claude-Web',
+        allow: '/',
+      },
+      {
+        userAgent: 'anthropic-ai',
         allow: '/',
       },
     ],

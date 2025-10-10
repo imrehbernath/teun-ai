@@ -268,3 +268,89 @@
 :global(#rank-math-faq) {
   display: none !important;
 }
+
+/* Voeg dit toe aan je blog-post.module.css */
+
+/* Table Styling */
+.blogContent .wp-block-table {
+  margin: 2rem 0;
+  overflow-x: auto;
+}
+
+.blogContent table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.blogContent table thead {
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+}
+
+.blogContent table thead th {
+  padding: 1rem 1.25rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: white;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.blogContent table tbody tr {
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.2s ease;
+}
+
+.blogContent table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.blogContent table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.blogContent table tbody td {
+  padding: 1rem 1.25rem;
+  font-size: 0.9375rem;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.blogContent table tbody td:first-child {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+/* Responsive table op mobiel */
+@media (max-width: 768px) {
+  .blogContent .wp-block-table {
+    margin: 1.5rem -1rem;
+  }
+  
+  .blogContent table {
+    font-size: 0.875rem;
+  }
+  
+  .blogContent table thead th,
+  .blogContent table tbody td {
+    padding: 0.75rem 0.875rem;
+  }
+  
+  .blogContent table thead th {
+    font-size: 0.75rem;
+  }
+}
+
+/* Alternating row colors variant (optioneel) */
+.blogContent table.striped tbody tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+.blogContent table.striped tbody tr:hover {
+  background-color: #f3f4f6;
+}
