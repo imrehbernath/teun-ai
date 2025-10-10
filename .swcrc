@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json.schemastore.org/swcrc",
+  "jsc": {
+    "parser": {
+      "syntax": "ecmascript",
+      "jsx": true
+    },
+    "target": "es2020",
+    "transform": {
+      "react": {
+        "runtime": "automatic"
+      }
+    },
+    "externalHelpers": false,
+    "keepClassNames": true
+  },
+  "minify": true,
+  "env": {
+    "targets": {
+      "chrome": "91",
+      "firefox": "90",
+      "safari": "15",
+      "edge": "91"
+    },
+    "mode": "entry",
+    "coreJs": false
+  }
+}
