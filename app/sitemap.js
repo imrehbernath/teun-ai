@@ -16,7 +16,7 @@ export default async function sitemap() {
   let posts = [];
 
   try {
-    const res = await fetch(process.env.WORDPRESS_GRAPHQL_URL, {
+    const res = await fetch(process.env.WORDPRESS_GRAPHQL_URL || 'https://assets.teun.ai/graphql', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query }),
