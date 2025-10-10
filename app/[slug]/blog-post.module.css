@@ -206,6 +206,7 @@
 .toc-heading:hover {
   background-size: 100% 60%;
 }
+
 :global(.toc-heading-underline) {
   font-size: 20px;
   font-weight: 700;
@@ -215,6 +216,7 @@
   border-bottom: 3px solid;
   border-image: linear-gradient(90deg, #1A7DFF, #6C3FF2) 1;
 }
+
 /* TOC Links */
 :global(.toc-link) {
   color: #6366F1;
@@ -350,38 +352,86 @@
 }
 
 @media (max-width: 768px) {
-  /* Ensure all tables are scrollable on mobile */
+  /* Table wrapper - MUST scroll horizontally */
   .blogContent .wp-block-table,
   .blogContent figure.wp-block-table {
-    margin: 1.5rem -1rem;
-    border-radius: 0;
+    margin: 1.5rem 0;
+    border-radius: 8px;
     position: relative;
-    width: calc(100% + 2rem);
+    width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    /* Force scrollbar to be visible */
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
   }
   
+  /* Webkit scrollbar styling - make it more visible */
+  .blogContent .wp-block-table::-webkit-scrollbar,
+  .blogContent figure.wp-block-table::-webkit-scrollbar {
+    height: 8px;
+  }
+  
+  .blogContent .wp-block-table::-webkit-scrollbar-track,
+  .blogContent figure.wp-block-table::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+  
+  .blogContent .wp-block-table::-webkit-scrollbar-thumb,
+  .blogContent figure.wp-block-table::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  
+  .blogContent .wp-block-table::-webkit-scrollbar-thumb:hover,
+  .blogContent figure.wp-block-table::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+  
+  /* Direct table zonder wrapper */
   .blogContent > table {
-    margin: 1.5rem -1rem;
-    width: calc(100% + 2rem);
-    border-radius: 0;
+    margin: 1.5rem 0;
+    width: 100%;
+    border-radius: 8px;
+    overflow-x: auto !important;
+    display: block;
   }
   
+  /* Scroll hint gradient - meer prominent */
   .blogContent .wp-block-table::after {
     opacity: 1;
+    width: 40px;
+    background: linear-gradient(to left, rgba(255,255,255,0.95), transparent);
   }
   
+  /* Table zelf - kleinere font, meer compacte padding */
   .blogContent table {
-    font-size: 0.875rem;
-    border-radius: 0;
-    min-width: 600px; /* Verhoog minimum breedte op mobiel */
+    font-size: 0.8125rem; /* 13px */
+    border-radius: 8px;
+    min-width: 600px;
   }
   
   .blogContent table thead th,
   .blogContent table tbody td {
-    padding: 0.75rem 0.875rem;
+    padding: 0.625rem 0.75rem; /* Nog compacter */
   }
   
   .blogContent table thead th {
-    font-size: 0.75rem;
+    font-size: 0.6875rem; /* 11px */
+    letter-spacing: 0.03em;
+  }
+  
+  /* Scroll hint tekst - NIEUWE toevoeging */
+  .blogContent .wp-block-table::before {
+    content: '← Scroll →';
+    position: absolute;
+    bottom: -20px;
+    right: 0;
+    font-size: 11px;
+    color: #94a3b8;
+    font-style: italic;
+    pointer-events: none;
   }
 }
 
