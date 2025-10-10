@@ -66,7 +66,7 @@ export const metadata = {
     locale: 'nl_NL',
     images: [
       {
-        url: '/GEO-insights-en-AI-SEO.webp',
+        url: 'https://teun.ai/GEO-insights-en-AI-SEO.webp',
         width: 1200,
         height: 675,
         alt: 'GEO optimalisatie',
@@ -77,7 +77,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'GEO Blog – AI & SEO Inzichten 2025 | Teun.ai',
     description: 'Lees wekelijks nieuwe blogs over GEO, AI-SEO en zichtbaarheid in ChatGPT en Google AI. Praktische inzichten, tips en trends in 2025.',
-    images: ['/GEO-insights-en-AI-SEO.webp'],
+    images: ['https://teun.ai/GEO-insights-en-AI-SEO.webp'],
   },
 };
 
@@ -233,7 +233,7 @@ export default async function BlogOverview() {
 
                     {/* Excerpt */}
                     <div 
-                      className="text-gray-600 text-sm line-clamp-3 mb-6 flex-grow"
+                      className="text-gray-600 text-base leading-relaxed line-clamp-3 mb-6 flex-grow"
                       dangerouslySetInnerHTML={{ 
                         __html: post.excerpt?.replace(/<[^>]*>/g, '') || '' 
                       }}

@@ -7,6 +7,18 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'wordpress-988065-5905039.cloudwaysapps.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'gravatar.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.gravatar.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'teun.ai',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],

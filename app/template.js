@@ -11,7 +11,7 @@ function Header() {
   const pathname = usePathname();
 
   const navigation = [
-    { name: 'Home', href: '/home' },
+    { name: 'Home', href: '/' },
     {
       name: 'Over GEO',
       href: '/over-geo',
@@ -52,7 +52,7 @@ function Header() {
         <div className="flex w-full items-center justify-between py-4">
           
           <div className="flex items-center">
-            <Link href="/home" className="flex items-center">
+            <Link href="/" className="flex items-center">
               <span className="text-white font-montserrat font-semibold text-[22px] leading-[24px] hover:opacity-90 transition-opacity">
                 TEUN.AI
               </span>
@@ -206,7 +206,7 @@ function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           
           <div className="lg:col-span-1">
-            <Link href="/home" className="inline-block mb-4">
+            <Link href="/" className="inline-block mb-4">
               <span className="text-white font-montserrat font-semibold text-[22px] leading-[24px]">
                 TEUN.AI
               </span>

@@ -105,11 +105,11 @@ export default function ComingSoon() {
               </div>
             </div>
 
-            <p className="text-gray-300 mb-2 text-sm md:text-base">
+            <p className="text-gray-300 mb-3 text-base md:text-lg leading-relaxed">
               Hét platform voor <strong className="text-white">AI-SEO analyse</strong> en slimme{' '}
               <strong className="text-white">GEO optimalisatie</strong>.
             </p>
-            <p className="text-gray-400 text-xs md:text-sm">
+            <p className="text-gray-400 text-sm md:text-base leading-relaxed">
               Word zichtbaar in{' '}
               <span className="text-blue-300">ChatGPT</span>,{' '}
               <span className="text-blue-300">Google AI</span>,{' '}
