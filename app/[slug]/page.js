@@ -4,7 +4,7 @@ import Link from 'next/link';
 import styles from './blog-post.module.css';
 import TableOfContents from './TableOfContents';
 import FAQAccordion from './FAQAccordion';
-import EmailSignup from './EmailSignup';  // ← Relatieve import, net als de anderen!
+import EmailSignup from './EmailSignup';
 
 async function getPost(slug) {
   const query = `
@@ -234,17 +234,20 @@ export default async function BlogPost({ params }) {
               dangerouslySetInnerHTML={{ __html: post.excerpt }}
             />
 
-            {/* Meta info */}
+            {/* Meta info - Met link naar auteur pagina */}
             <div className="flex items-center gap-6 text-sm text-purple-200">
               {post.author?.node?.avatar && (
-                <div className="flex items-center gap-2">
+                <Link 
+                  href="/auteur/imre" 
+                  className="flex items-center gap-2 hover:text-white transition-colors"
+                >
                   <img 
                     src={post.author.node.avatar.url} 
                     alt={post.author.node.name}
                     className="w-8 h-8 rounded-full"
                   />
                   <span>{post.author.node.name}</span>
-                </div>
+                </Link>
               )}
               <time dateTime={post.date}>
                 {new Date(post.date).toLocaleDateString('nl-NL', {
@@ -281,45 +284,43 @@ export default async function BlogPost({ params }) {
       </div>
 
       {/* Main Content - 1200px container met 30% / 70% verdeling */}
-   <article className="bg-white">
-  <div className="mx-auto px-4 py-12 max-w-[1200px]">
-    <div className="grid grid-cols-12 gap-6 lg:gap-12">
+      <article className="bg-white">
+        <div className="mx-auto px-4 py-12 max-w-[1200px]">
+          <div className="grid grid-cols-12 gap-6 lg:gap-12">
 
-    {headings.length > 0 && (
-      <div className="col-span-12 lg:col-span-5">
-        <div className="lg:sticky lg:top-24 lg:pb-28">
-          <TableOfContents headings={headings} />
-          
-          {/* EMAIL SIGNUP ONDER TOC - ALLEEN DESKTOP */}
-          <div className="hidden lg:block">
-            <EmailSignup 
-              title="Blijf op de hoogte van GEO-updates"
-              compact={true}
-            />
-          </div>
-        </div>
-      </div>
-      )}
+            {headings.length > 0 && (
+              <div className="col-span-12 lg:col-span-5">
+                <div className="lg:sticky lg:top-24 lg:pb-28">
+                  <TableOfContents headings={headings} />
+                  
+                  {/* EMAIL SIGNUP ONDER TOC - ALLEEN DESKTOP */}
+                  <div className="hidden lg:block">
+                    <EmailSignup 
+                      title="Blijf op de hoogte van GEO-updates"
+                      compact={true}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
-      <div className={headings.length > 0 ? 'col-span-12 lg:col-span-7' : 'col-span-12'}>
-        
-        <div 
-          className={styles.blogContent}
-          dangerouslySetInnerHTML={{ __html: contentWithIds }}
-        />
-
-        {/* Rest van content... */}
+            <div className={headings.length > 0 ? 'col-span-12 lg:col-span-7' : 'col-span-12'}>
+              
+              <div 
+                className={styles.blogContent}
+                dangerouslySetInnerHTML={{ __html: contentWithIds }}
+              />
 
               {/* FAQ Accordion */}
-                <FAQAccordion faqs={faqs} />
+              <FAQAccordion faqs={faqs} />
 
-                {/* EMAIL SIGNUP - ALLEEN MOBIEL (onderaan content) */}
-                <div className="lg:hidden mt-8">
-                  <EmailSignup 
-                    title="Blijf op de hoogte van GEO-updates"
-                    compact={false}
-                  />
-                </div>
+              {/* EMAIL SIGNUP - ALLEEN MOBIEL (onderaan content) */}
+              <div className="lg:hidden mt-8">
+                <EmailSignup 
+                  title="Blijf op de hoogte van GEO-updates"
+                  compact={false}
+                />
+              </div>
 
               <div className="mt-16 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-8 text-center text-white">
                 <h3 className="text-2xl font-bold mb-4">
@@ -352,26 +353,93 @@ export default async function BlogPost({ params }) {
         </div>
       </article>
 
+      {/* Complete Schema.org structured data - zoals live site */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Article',
-            headline: post.title,
-            description: post.excerpt?.replace(/<[^>]*>/g, '').substring(0, 160),
-            image: post.featuredImage?.node?.sourceUrl,
-            datePublished: post.date,
-            dateModified: post.modified,
-            author: {
-              '@type': 'Person',
-              name: post.author?.node?.name,
-            },
-            publisher: {
-              '@type': 'Organization',
-              name: 'Teun.ai',
-            },
-          }),
+            '@graph': [
+              {
+                '@type': 'Organization',
+                '@id': 'https://teun.ai/#organization',
+                'name': 'teun.ai',
+                'logo': {
+                  '@type': 'ImageObject',
+                  '@id': 'https://teun.ai/#logo',
+                  'url': 'https://teun.ai/wp-content/uploads/2025/10/Teun-ai-logo-light.png',
+                  'contentUrl': 'https://teun.ai/wp-content/uploads/2025/10/Teun-ai-logo-light.png',
+                  'caption': 'Teun.ai',
+                  'inLanguage': 'nl-NL',
+                  'width': '512',
+                  'height': '512'
+                }
+              },
+              {
+                '@type': 'WebSite',
+                '@id': 'https://teun.ai/#website',
+                'url': 'https://teun.ai',
+                'name': 'Teun.ai',
+                'alternateName': 'Teun.ai',
+                'publisher': { '@id': 'https://teun.ai/#organization' },
+                'inLanguage': 'nl-NL'
+              },
+              {
+                '@type': 'ImageObject',
+                '@id': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp',
+                'url': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp',
+                'width': '1200',
+                'height': '675',
+                'caption': post.featuredImage?.node?.altText || post.title,
+                'inLanguage': 'nl-NL'
+              },
+              {
+                '@type': 'WebPage',
+                '@id': `https://teun.ai/${resolvedParams.slug}#webpage`,
+                'url': `https://teun.ai/${resolvedParams.slug}`,
+                'name': post.title,
+                'datePublished': post.date,
+                'dateModified': post.modified,
+                'isPartOf': { '@id': 'https://teun.ai/#website' },
+                'primaryImageOfPage': { '@id': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp' },
+                'inLanguage': 'nl-NL'
+              },
+              {
+                '@type': 'Person',
+                '@id': 'https://teun.ai/auteur/imre',
+                'name': 'Imre Bernáth',
+                'description': 'Imre Bernáth deelt inzichten over SEO, AI visibility en GEO-optimalisatie. Oprichter van Teun.ai en OnlineLabs. 15+ jaar ervaring in strategische online groei.',
+                'url': 'https://teun.ai/auteur/imre',
+                'image': {
+                  '@type': 'ImageObject',
+                  '@id': post.author?.node?.avatar?.url || 'https://gravatar.com/avatar/35c26275319f1c247e76cd36518ee34a?size=96',
+                  'url': post.author?.node?.avatar?.url || 'https://gravatar.com/avatar/35c26275319f1c247e76cd36518ee34a?size=96',
+                  'caption': 'Imre Bernáth',
+                  'inLanguage': 'nl-NL'
+                },
+                'sameAs': ['https://teun.ai', 'https://nl.linkedin.com/in/imrebernath'],
+                'worksFor': { '@id': 'https://teun.ai/#organization' }
+              },
+              {
+                '@type': 'BlogPosting',
+                'headline': post.title,
+                'datePublished': post.date,
+                'dateModified': post.modified,
+                'author': {
+                  '@id': 'https://teun.ai/auteur/imre',
+                  'name': 'Imre Bernáth'
+                },
+                'publisher': { '@id': 'https://teun.ai/#organization' },
+                'description': post.excerpt?.replace(/<[^>]*>/g, '').substring(0, 160),
+                'name': post.title,
+                '@id': `https://teun.ai/${resolvedParams.slug}#richSnippet`,
+                'isPartOf': { '@id': `https://teun.ai/${resolvedParams.slug}#webpage` },
+                'image': { '@id': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp' },
+                'inLanguage': 'nl-NL',
+                'mainEntityOfPage': { '@id': `https://teun.ai/${resolvedParams.slug}#webpage` }
+              }
+            ]
+          })
         }}
       />
     </>
