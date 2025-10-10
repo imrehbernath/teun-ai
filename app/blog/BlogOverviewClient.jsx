@@ -117,77 +117,85 @@ export default function BlogOverviewClient({ posts, categories }) {
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredPosts.map((post) => (
-                <article
-                  key={post.id}
-                  className="group bg-white rounded-2xl overflow-hidden border-2 border-gray-200 hover:border-purple-500 hover:shadow-xl transition-all duration-300 flex flex-col h-full"
-                >
-                  {/* Featured Image */}
-                  <Link href={`/${post.slug}`} className="block relative h-56 bg-gradient-to-br from-purple-100 to-blue-100 overflow-hidden flex-shrink-0">
-                    {post.featuredImage?.node?.sourceUrl ? (
-                      <Image
-                        src={post.featuredImage.node.sourceUrl}
-                        alt={post.featuredImage.node.altText || post.title}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+              {filteredPosts.map((post, index) => {
+                // First 3 posts get priority loading for LCP optimization
+                const isAboveFold = index < 3;
+                
+                return (
+                  <article
+                    key={post.id}
+                    className="group bg-white rounded-2xl overflow-hidden border-2 border-gray-200 hover:border-purple-500 hover:shadow-xl transition-all duration-300 flex flex-col h-full"
+                  >
+                    {/* Featured Image */}
+                    <Link href={`/${post.slug}`} className="block relative h-56 bg-gradient-to-br from-purple-100 to-blue-100 overflow-hidden flex-shrink-0">
+                      {post.featuredImage?.node?.sourceUrl ? (
+                        <Image
+                          src={post.featuredImage.node.sourceUrl}
+                          alt={post.featuredImage.node.altText || post.title}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          priority={isAboveFold}
+                          loading={isAboveFold ? undefined : 'lazy'}
+                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <svg className="w-16 h-16 text-purple-300" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" />
+                          </svg>
+                        </div>
+                      )}
+                      
+                      {/* Category Badge */}
+                      {post.categories?.nodes?.[0] && (
+                        <div className="absolute top-3 left-3">
+                          <span className="inline-block bg-purple-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg">
+                            {post.categories.nodes[0].name}
+                          </span>
+                        </div>
+                      )}
+                    </Link>
+
+                    {/* Content */}
+                    <div className="p-6 flex flex-col flex-grow">
+                      {/* Date */}
+                      <time className="text-sm text-gray-500 mb-3 block">
+                        {new Date(post.date).toLocaleDateString('nl-NL', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric'
+                        })}
+                      </time>
+
+                      {/* Title */}
+                      <Link href={`/${post.slug}`}>
+                        <h2 className="text-xl font-bold text-gray-900 mb-4 group-hover:text-purple-600 transition-colors leading-tight">
+                          {post.title}
+                        </h2>
+                      </Link>
+
+                      {/* Excerpt */}
+                      <div 
+                        className="text-gray-600 text-base leading-relaxed line-clamp-3 mb-6 flex-grow"
+                        dangerouslySetInnerHTML={{ 
+                          __html: post.excerpt?.replace(/<[^>]*>/g, '') || '' 
+                        }}
                       />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <svg className="w-16 h-16 text-purple-300" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" />
+
+                      {/* Read More */}
+                      <Link 
+                        href={`/${post.slug}`}
+                        className="inline-flex items-center gap-2 text-purple-600 font-semibold text-sm hover:gap-3 transition-all mt-auto"
+                      >
+                        Lees meer
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                      </div>
-                    )}
-                    
-                    {/* Category Badge */}
-                    {post.categories?.nodes?.[0] && (
-                      <div className="absolute top-3 left-3">
-                        <span className="inline-block bg-purple-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg">
-                          {post.categories.nodes[0].name}
-                        </span>
-                      </div>
-                    )}
-                  </Link>
-
-                  {/* Content */}
-                  <div className="p-6 flex flex-col flex-grow">
-                    {/* Date */}
-                    <time className="text-sm text-gray-500 mb-3 block">
-                      {new Date(post.date).toLocaleDateString('nl-NL', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric'
-                      })}
-                    </time>
-
-                    {/* Title */}
-                    <Link href={`/${post.slug}`}>
-                      <h2 className="text-xl font-bold text-gray-900 mb-4 group-hover:text-purple-600 transition-colors leading-tight">
-                        {post.title}
-                      </h2>
-                    </Link>
-
-                    {/* Excerpt */}
-                    <div 
-                      className="text-gray-600 text-base leading-relaxed line-clamp-3 mb-6 flex-grow"
-                      dangerouslySetInnerHTML={{ 
-                        __html: post.excerpt?.replace(/<[^>]*>/g, '') || '' 
-                      }}
-                    />
-
-                    {/* Read More */}
-                    <Link 
-                      href={`/${post.slug}`}
-                      className="inline-flex items-center gap-2 text-purple-600 font-semibold text-sm hover:gap-3 transition-all mt-auto"
-                    >
-                      Lees meer
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </Link>
-                  </div>
-                </article>
-              ))}
+                      </Link>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )}
         </div>

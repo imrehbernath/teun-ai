@@ -114,8 +114,10 @@ export default async function BlogOverview() {
             alt=""
             fill
             priority
+            fetchPriority="high"
             className="object-cover"
             quality={90}
+            sizes="100vw"
           />
           {/* Stronger Overlay */}
           <div className="absolute inset-0 bg-gradient-to-b from-[#001233]/90 via-[#1a0b3d]/85 to-[#2d1654]/90"></div>
@@ -163,4 +165,4 @@ export default async function BlogOverview() {
   );
 }
 
-export const revalidate = 3600;
+export const revalidate = 86400; // 24 uur cache

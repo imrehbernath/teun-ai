@@ -283,6 +283,8 @@ export default async function BlogPost({ params }) {
                   fill
                   className="object-cover"
                   priority
+                  fetchPriority="high"
+                  sizes="(max-width: 768px) 100vw, 50vw"
                 />
               </div>
             ) : (
