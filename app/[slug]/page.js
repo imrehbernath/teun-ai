@@ -9,6 +9,7 @@ import ReadingProgressBar from './ReadingProgressBar';
 import ReadingTime from './ReadingTime';
 import SocialShareButtons from './SocialShareButtons';
 import AuthorBio from './AuthorBio';
+import GeoAuditCTA from './GeoAuditCTA';
 
 async function getPost(slug) {
   const query = `
@@ -368,20 +369,8 @@ export default async function BlogPost({ params }) {
                 />
               </div>
 
-              <div className="mt-16 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-8 text-center text-white">
-                <h3 className="text-2xl font-bold mb-4">
-                  Klaar om je GEO te verbeteren?
-                </h3>
-                <p className="text-purple-100 mb-6 text-lg">
-                  Start vandaag nog met een gratis GEO audit en ontdek hoe zichtbaar jouw merk is in AI-antwoorden.
-                </p>
-                <a 
-                  href="#"
-                  className="inline-block bg-white text-purple-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition shadow-lg cursor-pointer"
-                >
-                  Start Gratis GEO Audit
-                </a>
-              </div>
+              {/* GEO Audit CTA met popup */}
+              <GeoAuditCTA />
 
               <div className="mt-12 text-center">
                 <Link 
