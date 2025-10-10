@@ -338,17 +338,21 @@
    ============================================ */
 
 @media (max-width: 768px) {
+  /* FORCE scroll on ANY wrapper around table */
+  .blogContent figure,
   .blogContent .wp-block-table,
-  .blogContent figure.wp-block-table {
-    margin: 1.5rem 0;
-    border-radius: 8px;
-    width: 100%;
-    max-width: 100%;
+  .blogContent figure.wp-block-table,
+  .blogContent div:has(> table) {
+    margin: 1.5rem 0 !important;
+    border-radius: 8px !important;
+    width: 100% !important;
+    max-width: 100% !important;
     overflow-x: scroll !important;
-    -webkit-overflow-scrolling: touch;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch !important;
     display: block !important;
-    scrollbar-width: thin;
-    scrollbar-color: #1A7DFF #f1f5f9;
+    scrollbar-width: thin !important;
+    scrollbar-color: #1A7DFF #f1f5f9 !important;
   }
   
   .blogContent .wp-block-table::-webkit-scrollbar,
