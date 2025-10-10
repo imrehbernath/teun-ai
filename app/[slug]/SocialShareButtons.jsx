@@ -14,7 +14,7 @@ export default function SocialShareButtons({ title, url }) {
   };
 
   const handleShare = (platform, link) => {
-    // Track share event (optional - werkt als je GTM hebt)
+    // Track share event (optional)
     if (typeof window !== 'undefined' && window.gtag) {
       window.gtag('event', 'share', {
         method: platform,
@@ -33,42 +33,42 @@ export default function SocialShareButtons({ title, url }) {
 
   return (
     <div className="flex items-center gap-3">
-      <span className="text-sm font-semibold">Delen:</span>
+      <span className="text-sm font-semibold text-gray-700">Delen:</span>
       
       {/* Facebook */}
       <button
         onClick={() => handleShare('facebook', shareLinks.facebook)}
-        className="group flex items-center justify-center w-10 h-10 rounded-full bg-white/20 hover:bg-blue-600 transition-all duration-200"
+        className="group flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-blue-600 transition-all duration-200"
         aria-label="Deel op Facebook"
       >
-        <Facebook className="w-5 h-5 group-hover:text-white transition-colors" />
+        <Facebook className="w-5 h-5 text-gray-600 group-hover:text-white transition-colors" />
       </button>
 
       {/* Twitter/X */}
       <button
         onClick={() => handleShare('twitter', shareLinks.twitter)}
-        className="group flex items-center justify-center w-10 h-10 rounded-full bg-white/20 hover:bg-black transition-all duration-200"
+        className="group flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-black transition-all duration-200"
         aria-label="Deel op X (Twitter)"
       >
-        <Twitter className="w-5 h-5 group-hover:text-white transition-colors" />
+        <Twitter className="w-5 h-5 text-gray-600 group-hover:text-white transition-colors" />
       </button>
 
       {/* WhatsApp */}
       <button
         onClick={() => handleShare('whatsapp', shareLinks.whatsapp)}
-        className="group flex items-center justify-center w-10 h-10 rounded-full bg-white/20 hover:bg-green-500 transition-all duration-200"
+        className="group flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-green-500 transition-all duration-200"
         aria-label="Deel via WhatsApp"
       >
-        <MessageCircle className="w-5 h-5 group-hover:text-white transition-colors" />
+        <MessageCircle className="w-5 h-5 text-gray-600 group-hover:text-white transition-colors" />
       </button>
 
       {/* Email */}
       <button
         onClick={() => handleShare('email', shareLinks.email)}
-        className="group flex items-center justify-center w-10 h-10 rounded-full bg-white/20 hover:bg-gray-700 transition-all duration-200"
+        className="group flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-700 transition-all duration-200"
         aria-label="Deel via e-mail"
       >
-        <Mail className="w-5 h-5 group-hover:text-white transition-colors" />
+        <Mail className="w-5 h-5 text-gray-600 group-hover:text-white transition-colors" />
       </button>
     </div>
   );

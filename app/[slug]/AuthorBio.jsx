@@ -41,87 +41,27 @@ export default function AuthorBio() {
         {/* Bio Content */}
         <div className="flex-1">
           <Link href="/auteur/imre" className="group">
-            <h4 className="text-xl font-bold text-gray-900 mb-1 group-hover:text-purple-600 transition-colors">
+            <p className="text-xl font-bold text-gray-900 mb-1 group-hover:text-purple-600 transition-colors">
               Imre Bernáth
-            </h4>
+            </p>
           </Link>
           <p className="text-sm text-purple-600 font-semibold mb-4">
             Eigenaar van OnlineLabs & oprichter van Teun.ai
           </p>
           
-          <div className="prose prose-sm text-gray-600 leading-relaxed space-y-3">
+          <div className="prose prose-sm text-gray-600 leading-relaxed mb-4">
             <p>
-              Imre Bernáth is een ervaren SEO- en AI-visibility specialist uit Nederland met meer dan 15 jaar bewezen expertise in online marketing, technische SEO en contentstrategie. Hij helpt bedrijven groeien via strategisch advies, duurzame optimalisatie en AI-zichtbaarheid in systemen zoals ChatGPT, Google AI, Gemini en Perplexity.
+              Imre Bernáth is een ervaren SEO- en AI-visibility specialist uit Nederland met meer dan 15 jaar bewezen expertise in online marketing, technische SEO en contentstrategie. Hij helpt bedrijven groeien via strategisch advies, duurzame optimalisatie en AI-zichtbaarheid.
             </p>
-            <p>
-              Als oprichter van <a href="https://www.onlinelabs.nl" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-700 font-medium">OnlineLabs</a> en initiatiefnemer van <Link href="/" className="text-purple-600 hover:text-purple-700 font-medium">Teun.ai</Link> – het eerste Nederlandse platform voor GEO-audits (Generative Engine Optimisation) – ontwikkelt hij strategieën waarmee merken zichtbaar worden in zowel zoekmachines als AI-gegenereerde antwoorden.
-            </p>
-          </div>
-
-          {/* Expertise Grid */}
-          <div className="mt-6 grid sm:grid-cols-2 gap-4">
-            {/* Specialisaties */}
-            <div className="bg-white rounded-xl p-4 shadow-sm">
-              <h5 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <span className="text-purple-600">🎯</span> Specialisaties
-              </h5>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-500 mt-1">•</span>
-                  <span>GEO-optimalisatie (Generative Engine Optimization)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-500 mt-1">•</span>
-                  <span>Technische SEO & site audits</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-500 mt-1">•</span>
-                  <span>AI visibility in ChatGPT, Gemini & Perplexity</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-500 mt-1">•</span>
-                  <span>Contentstrategie & E-E-A-T</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-500 mt-1">•</span>
-                  <span>Structured data & Schema.org</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Projecten */}
-            <div className="bg-white rounded-xl p-4 shadow-sm">
-              <h5 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <span className="text-purple-600">🚀</span> Projecten
-              </h5>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-500 mt-1">•</span>
-                  <span><strong>Teun.ai</strong> - Platform voor GEO-audits</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-500 mt-1">•</span>
-                  <span><strong>OnlineLabs</strong> - SEO & AI-visibility bureau</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-500 mt-1">•</span>
-                  <span>150+ organisaties geholpen met digitale autoriteit</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-500 mt-1">•</span>
-                  <span>Diepgaande kennis van WordPress, structured data en AI-overviews</span>
-                </li>
-              </ul>
-            </div>
           </div>
 
           {/* CTA */}
-          <div className="mt-6">
+          <div>
             <Link 
               href="/auteur/imre"
               className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-700 font-semibold text-sm group"
             >
-              Meer over Imre lezen
+              Lees verder
               <span className="group-hover:translate-x-1 transition-transform">→</span>
             </Link>
           </div>
