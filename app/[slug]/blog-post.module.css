@@ -261,29 +261,37 @@
 }
 
 /* ============================================
-   UTILITIES
+   TABLES
    ============================================ */
 
-/* Hide Rank Math FAQ block (we render our own) */
-:global(#rank-math-faq) {
-  display: none !important;
-}
-
-/* Voeg dit toe aan je blog-post.module.css */
-
-/* Table Styling */
-.blogContent .wp-block-table {
+/* Table wrapper - alle varianten ondersteunen */
+.blogContent .wp-block-table,
+.blogContent figure.wp-block-table {
   margin: 2rem 0;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: block;
 }
 
+/* Direct table zonder wrapper - maak eigen scroll container */
 .blogContent table {
   width: 100%;
+  min-width: 500px;
   border-collapse: collapse;
   background: white;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: table;
+}
+
+/* Als tabel geen wrapper heeft, voeg scroll toe aan parent */
+.blogContent > table {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
 }
 
 .blogContent table thead {
@@ -299,6 +307,7 @@
   letter-spacing: 0.05em;
   color: white;
   border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  white-space: nowrap; /* Voorkom line breaks in headers */
 }
 
 .blogContent table tbody tr {
@@ -326,14 +335,44 @@
   color: #1f2937;
 }
 
-/* Responsive table op mobiel */
+/* Scroll indicator hint */
+.blogContent .wp-block-table::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 30px;
+  background: linear-gradient(to left, rgba(255,255,255,0.9), transparent);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
 @media (max-width: 768px) {
-  .blogContent .wp-block-table {
+  /* Ensure all tables are scrollable on mobile */
+  .blogContent .wp-block-table,
+  .blogContent figure.wp-block-table {
     margin: 1.5rem -1rem;
+    border-radius: 0;
+    position: relative;
+    width: calc(100% + 2rem);
+  }
+  
+  .blogContent > table {
+    margin: 1.5rem -1rem;
+    width: calc(100% + 2rem);
+    border-radius: 0;
+  }
+  
+  .blogContent .wp-block-table::after {
+    opacity: 1;
   }
   
   .blogContent table {
     font-size: 0.875rem;
+    border-radius: 0;
+    min-width: 600px; /* Verhoog minimum breedte op mobiel */
   }
   
   .blogContent table thead th,
@@ -353,4 +392,13 @@
 
 .blogContent table.striped tbody tr:hover {
   background-color: #f3f4f6;
+}
+
+/* ============================================
+   UTILITIES
+   ============================================ */
+
+/* Hide Rank Math FAQ block (we render our own) */
+:global(#rank-math-faq) {
+  display: none !important;
 }
