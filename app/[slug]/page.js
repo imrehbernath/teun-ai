@@ -276,7 +276,7 @@ export default async function BlogPost({ params }) {
           <div className="grid grid-cols-12 gap-6 lg:gap-12">
 
             {headings.length > 0 && (
-              <div className="col-span-12 lg:col-span-5">
+              <div className="col-span-12 lg:col-span-4">
                 <div className="lg:sticky lg:top-24 lg:pb-28">
                   <TableOfContents headings={headings} />
                   
@@ -290,7 +290,7 @@ export default async function BlogPost({ params }) {
               </div>
             )}
 
-            <div className={headings.length > 0 ? 'col-span-12 lg:col-span-7' : 'col-span-12'}>
+            <div className={headings.length > 0 ? 'col-span-12 lg:col-span-8' : 'col-span-12'}>
               
               <div 
                 className={styles.blogContent}
