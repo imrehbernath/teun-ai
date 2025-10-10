@@ -324,7 +324,7 @@ function Footer() {
           <div className="mt-12 pt-8 border-t border-white/10">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
               <p className="text-white/60 text-xs">
-                Powered by <a href="https://onlinelabs.nl" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">OnlineLabs</a>
+                Powered by <a href="https://www.onlinelabs.nl" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">OnlineLabs</a>
               </p>
               
               <div className="flex gap-4">
