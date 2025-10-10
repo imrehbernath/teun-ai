@@ -114,6 +114,7 @@ export default async function BlogOverview() {
             alt=""
             fill
             priority
+            fetchPriority="high"
             className="object-cover"
             quality={75}
             sizes="(max-width: 640px) 640px, (max-width: 750px) 750px, (max-width: 1080px) 1080px, (max-width: 1920px) 1920px, 100vw"
