@@ -6,7 +6,7 @@
 .blogContent p {
   font-size: 17px;
   line-height: 1.7em;
-  margin-bottom: 16px; /* was 20px - compacter */
+  margin-bottom: 16px;
   color: rgb(51, 51, 51);
 }
 
@@ -28,7 +28,7 @@
   background-clip: text;
   margin-top: 40px;
   margin-bottom: 25px;
-  counter-reset: h3-counter; /* Reset H3 counter bij elke H2 */
+  counter-reset: h3-counter;
 }
 
 .blogContent h3 {
@@ -78,7 +78,7 @@
 /* Unordered Lists - Gradient dots */
 .blogContent ul {
   list-style: none;
-  margin: 16px 0; /* was 24px - compacter */
+  margin: 16px 0;
   padding-left: 0;
 }
 
@@ -106,7 +106,7 @@
 .blogContent ol {
   list-style: none;
   counter-reset: item;
-  margin: 16px 0; /* was 24px - compacter */
+  margin: 16px 0;
   padding-left: 0;
 }
 
@@ -135,12 +135,10 @@
    IMAGES & CAPTIONS
    ============================================ */
 
-/* Figure wrapper (WordPress gebruikt dit voor images met captions) */
 .blogContent figure {
-  margin: 32px 0; /* Ruimte rondom hele figure */
+  margin: 32px 0;
 }
 
-/* Image styling */
 .blogContent img {
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -149,12 +147,10 @@
   height: auto;
 }
 
-/* Image binnen figure - aangepaste margin voor caption */
 .blogContent figure img {
-  margin: 0 0 8px 0; /* Kleine ruimte onder image voor caption */
+  margin: 0 0 8px 0;
 }
 
-/* Caption styling - alle WordPress caption formaten */
 .blogContent figcaption,
 .blogContent .wp-caption-text,
 .blogContent .wp-element-caption {
@@ -162,12 +158,11 @@
   font-style: italic;
   color: #666;
   text-align: left;
-  margin: 8px 0 0 0; /* Caption zit dicht op image */
+  margin: 8px 0 0 0;
   padding: 0;
   line-height: 1.6;
 }
 
-/* Gecentreerde images met caption */
 .blogContent figure.aligncenter figcaption,
 .blogContent figure.wp-block-image figcaption {
   text-align: center;
@@ -186,7 +181,6 @@
    TABLE OF CONTENTS (TOC)
    ============================================ */
 
-/* TOC Heading with gradient underline */
 .toc-heading {
   --toc-text: #1E1E1E;
   --g-start: hsla(215, 100%, 55%, 0.28);
@@ -217,7 +211,6 @@
   border-image: linear-gradient(90deg, #1A7DFF, #6C3FF2) 1;
 }
 
-/* TOC Links */
 :global(.toc-link) {
   color: #6366F1;
   text-decoration: none;
@@ -244,7 +237,6 @@
   color: white !important;
 }
 
-/* TOC Arrow (SVG) */
 :global(.toc-arrow) {
   display: inline-flex;
   align-items: center;
@@ -263,10 +255,9 @@
 }
 
 /* ============================================
-   TABLES
+   TABLES - DESKTOP
    ============================================ */
 
-/* Table wrapper - alle varianten ondersteunen */
 .blogContent .wp-block-table,
 .blogContent figure.wp-block-table {
   margin: 2rem 0;
@@ -277,23 +268,20 @@
   display: block;
 }
 
-/* Direct table zonder wrapper - maak eigen scroll container */
 .blogContent table {
   width: 100%;
   min-width: 500px;
   border-collapse: collapse;
   background: white;
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
   display: table;
 }
 
-/* Als tabel geen wrapper heeft, voeg scroll toe aan parent */
 .blogContent > table {
   display: block;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  white-space: nowrap;
 }
 
 .blogContent table thead {
@@ -309,7 +297,7 @@
   letter-spacing: 0.05em;
   color: white;
   border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-  white-space: nowrap; /* Voorkom line breaks in headers */
+  white-space: nowrap;
 }
 
 .blogContent table tbody tr {
@@ -337,113 +325,6 @@
   color: #1f2937;
 }
 
-/* Scroll indicator hint */
-.blogContent .wp-block-table::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 30px;
-  background: linear-gradient(to left, rgba(255,255,255,0.9), transparent);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-@media (max-width: 768px) {
-  /* Table wrapper - MUST scroll horizontally */
-  .blogContent .wp-block-table,
-  .blogContent figure.wp-block-table {
-    margin: 1.5rem 0;
-    border-radius: 8px;
-    position: relative;
-    width: 100%;
-    max-width: 100%;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-    display: block !important;
-    /* Force scrollbar to be visible */
-    scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 #f1f5f9;
-  }
-  
-  /* Override WordPress fixed layout */
-  .blogContent table.has-fixed-layout {
-    table-layout: auto !important;
-    width: auto !important;
-  }
-  
-  /* Webkit scrollbar styling - make it more visible */
-  .blogContent .wp-block-table::-webkit-scrollbar,
-  .blogContent figure.wp-block-table::-webkit-scrollbar {
-    height: 8px;
-  }
-  
-  .blogContent .wp-block-table::-webkit-scrollbar-track,
-  .blogContent figure.wp-block-table::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
-  }
-  
-  .blogContent .wp-block-table::-webkit-scrollbar-thumb,
-  .blogContent figure.wp-block-table::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-  }
-  
-  .blogContent .wp-block-table::-webkit-scrollbar-thumb:hover,
-  .blogContent figure.wp-block-table::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-  }
-  
-  /* Direct table zonder wrapper */
-  .blogContent > table {
-    margin: 1.5rem 0;
-    width: 100%;
-    border-radius: 8px;
-    overflow-x: auto !important;
-    display: block;
-  }
-  
-  /* Scroll hint gradient - meer prominent */
-  .blogContent .wp-block-table::after {
-    opacity: 1;
-    width: 40px;
-    background: linear-gradient(to left, rgba(255,255,255,0.95), transparent);
-  }
-  
-  /* Table zelf - kleinere font, meer compacte padding */
-  .blogContent table {
-    font-size: 0.8125rem; /* 13px */
-    border-radius: 8px;
-    min-width: 600px;
-  }
-  
-  .blogContent table thead th,
-  .blogContent table tbody td {
-    padding: 0.625rem 0.75rem; /* Nog compacter */
-  }
-  
-  .blogContent table thead th {
-    font-size: 0.6875rem; /* 11px */
-    letter-spacing: 0.03em;
-  }
-  
-  /* Scroll hint tekst - NIEUWE toevoeging */
-  .blogContent .wp-block-table::before {
-    content: '← Scroll →';
-    position: absolute;
-    bottom: -20px;
-    right: 0;
-    font-size: 11px;
-    color: #94a3b8;
-    font-style: italic;
-    pointer-events: none;
-  }
-}
-
-/* Alternating row colors variant (optioneel) */
 .blogContent table.striped tbody tr:nth-child(even) {
   background-color: #f9fafb;
 }
@@ -453,10 +334,79 @@
 }
 
 /* ============================================
+   TABLES - MOBILE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .blogContent .wp-block-table,
+  .blogContent figure.wp-block-table {
+    margin: 1.5rem 0;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: scroll !important;
+    -webkit-overflow-scrolling: touch;
+    display: block !important;
+    scrollbar-width: thin;
+    scrollbar-color: #1A7DFF #f1f5f9;
+  }
+  
+  .blogContent .wp-block-table::-webkit-scrollbar,
+  .blogContent figure.wp-block-table::-webkit-scrollbar {
+    height: 10px;
+    -webkit-appearance: none;
+  }
+  
+  .blogContent .wp-block-table::-webkit-scrollbar-track,
+  .blogContent figure.wp-block-table::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 5px;
+  }
+  
+  .blogContent .wp-block-table::-webkit-scrollbar-thumb,
+  .blogContent figure.wp-block-table::-webkit-scrollbar-thumb {
+    background: #1A7DFF;
+    border-radius: 5px;
+    border: 2px solid #f1f5f9;
+  }
+  
+  .blogContent > table {
+    margin: 1.5rem 0;
+    width: 100%;
+    border-radius: 8px;
+    overflow-x: scroll !important;
+    display: block !important;
+  }
+  
+  .blogContent table {
+    font-size: 0.8125rem;
+    border-radius: 8px;
+    min-width: 600px;
+    display: table !important;
+    overflow: visible !important;
+  }
+  
+  .blogContent table.has-fixed-layout {
+    table-layout: auto !important;
+    width: auto !important;
+  }
+  
+  .blogContent table thead th,
+  .blogContent table tbody td {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.75rem;
+  }
+  
+  .blogContent table thead th {
+    font-size: 0.6875rem;
+    letter-spacing: 0.03em;
+  }
+}
+
+/* ============================================
    UTILITIES
    ============================================ */
 
-/* Hide Rank Math FAQ block (we render our own) */
 :global(#rank-math-faq) {
   display: none !important;
 }
