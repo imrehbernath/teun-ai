@@ -12,12 +12,12 @@ export default function FAQAccordion({ faqs }) {
   if (!faqs || faqs.length === 0) return null;
 
   return (
-    <div className="mt-16 mb-12">
-      <h2 className="text-3xl font-bold mb-8 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+    <div className="mt-12 mb-12">
+      <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
         Veelgestelde vragen
       </h2>
       
-      <div className="space-y-4">
+      <div className="space-y-3">
         {faqs.map((faq, index) => (
           <div 
             key={index}
@@ -27,11 +27,11 @@ export default function FAQAccordion({ faqs }) {
               onClick={() => toggleFAQ(index)}
               className="w-full px-6 py-4 text-left flex items-center justify-between gap-4 hover:bg-gray-50 transition-colors"
             >
-              <span className="font-semibold text-gray-900 text-lg">
+              <span className="font-semibold text-gray-900 text-base">
                 {faq.question}
               </span>
               <svg 
-                className={`w-6 h-6 text-purple-600 transition-transform flex-shrink-0 ${openIndex === index ? 'rotate-180' : ''}`}
+                className={`w-5 h-5 text-purple-600 transition-transform flex-shrink-0 ${openIndex === index ? 'rotate-180' : ''}`}
                 fill="none" 
                 viewBox="0 0 24 24" 
                 stroke="currentColor"
@@ -46,7 +46,7 @@ export default function FAQAccordion({ faqs }) {
               }`}
             >
               <div 
-                className="px-6 py-4 text-gray-700 border-t border-gray-100 leading-relaxed"
+                className="px-6 py-4 text-gray-700 text-sm border-t border-gray-100 leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: faq.answer }}
               />
             </div>
