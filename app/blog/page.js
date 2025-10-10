@@ -45,8 +45,24 @@ async function getPosts() {
     });
 
     const json = await res.json();
+    
+    // Transform WordPress URLs to assets.teun.ai
+    const posts = (json.data?.posts?.nodes || []).map(post => ({
+      ...post,
+      featuredImage: post.featuredImage ? {
+        ...post.featuredImage,
+        node: {
+          ...post.featuredImage.node,
+          sourceUrl: post.featuredImage.node.sourceUrl?.replace(
+            'https://wordpress-988065-5905039.cloudwaysapps.com',
+            'https://assets.teun.ai'
+          )
+        }
+      } : null
+    }));
+
     return {
-      posts: json.data?.posts?.nodes || [],
+      posts,
       categories: json.data?.categories?.nodes || []
     };
   } catch (error) {

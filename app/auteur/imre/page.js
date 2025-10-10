@@ -37,7 +37,23 @@ async function getAuthorPosts() {
     });
 
     const json = await res.json();
-    return json.data?.posts?.nodes || [];
+    
+    // Transform WordPress URLs to assets.teun.ai
+    const posts = (json.data?.posts?.nodes || []).map(post => ({
+      ...post,
+      featuredImage: post.featuredImage ? {
+        ...post.featuredImage,
+        node: {
+          ...post.featuredImage.node,
+          sourceUrl: post.featuredImage.node.sourceUrl?.replace(
+            'https://wordpress-988065-5905039.cloudwaysapps.com',
+            'https://assets.teun.ai'
+          )
+        }
+      } : null
+    }));
+
+    return posts;
   } catch (error) {
     console.error('Fetch Error:', error);
     return [];
@@ -45,14 +61,14 @@ async function getAuthorPosts() {
 }
 
 export const metadata = {
-  title: 'Imre Bernáth – pionier in SEO en AI visibility met Teun.ai',
-  description: 'Imre Bernáth – SEO & AI-visibility specialist. Oprichter van OnlineLabs en Teun.ai met 15+ jaar ervaring in strategische online groei.',
+  title: 'Imre Bernáth - SEO & AI Visibility Specialist | Teun.ai',
+  description: 'Imre Bernáth is SEO- en AI-visibility specialist uit Nederland, oprichter van Teun.ai en eigenaar van OnlineLabs. 15+ jaar ervaring in technische SEO, contentstrategie, structured data en GEO-optimalisatie.',
   alternates: {
     canonical: '/auteur/imre',
   },
   openGraph: {
-    title: 'Imre Bernáth – pionier in SEO en AI visibility met Teun.ai',
-    description: 'Imre Bernáth – SEO & AI-visibility specialist. Oprichter van OnlineLabs en Teun.ai met 15+ jaar ervaring in strategische online groei.',
+    title: 'Imre Bernáth - SEO & AI Visibility Specialist | Teun.ai',
+    description: 'Imre Bernáth is SEO- en AI-visibility specialist uit Nederland, oprichter van Teun.ai en eigenaar van OnlineLabs. 15+ jaar ervaring in technische SEO, contentstrategie, structured data en GEO-optimalisatie.',
     url: 'https://teun.ai/auteur/imre',
     siteName: 'Teun.ai',
     locale: 'nl_NL',
@@ -67,8 +83,8 @@ export const metadata = {
   },
   twitter: {
     card: 'summary',
-    title: 'Imre Bernáth – pionier in SEO en AI visibility met Teun.ai',
-    description: 'Imre Bernáth – SEO & AI-visibility specialist. Oprichter van OnlineLabs en Teun.ai met 15+ jaar ervaring in strategische online groei.',
+    title: 'Imre Bernáth - SEO & AI Visibility Specialist | Teun.ai',
+    description: 'Imre Bernáth is SEO- en AI-visibility specialist uit Nederland, oprichter van Teun.ai en eigenaar van OnlineLabs. 15+ jaar ervaring in technische SEO, contentstrategie, structured data en GEO-optimalisatie.',
     images: ['https://gravatar.com/avatar/35c26275319f1c247e76cd36518ee34a?size=512'],
   },
 };

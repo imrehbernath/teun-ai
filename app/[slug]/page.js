@@ -205,6 +205,12 @@ export default async function BlogPost({ params }) {
   // Clean excerpt for display
   const cleanExcerpt = post.excerpt?.replace(/<[^>]*>/g, '') || '';
 
+  // Replace WordPress URLs with assets.teun.ai in content
+  const transformedContent = contentWithIds.replace(
+    /https:\/\/wordpress-988065-5905039\.cloudwaysapps\.com/g,
+    'https://assets.teun.ai'
+  );
+
   return (
     <>
       {/* Hero Section */}
