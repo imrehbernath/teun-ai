@@ -70,7 +70,7 @@ async function getPost(slug) {
     }
     
     // Fetch Rank Math SEO data via REST API
-    const siteUrl = 'https://wordpress-988065-5905039.cloudwaysapps.com';
+    const siteUrl = 'https://assets.teun.ai';
     const postUrl = `${siteUrl}${post.uri}`;
     
     try {
