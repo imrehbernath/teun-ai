@@ -5,6 +5,9 @@ import styles from './blog-post.module.css';
 import TableOfContents from './TableOfContents';
 import FAQAccordion from './FAQAccordion';
 import EmailSignup from './EmailSignup';
+import ReadingProgressBar from './ReadingProgressBar';
+import ReadingTime from './ReadingTime';
+import SocialShareButtons from './SocialShareButtons';
 
 async function getPost(slug) {
   const query = `
@@ -232,8 +235,14 @@ export default async function BlogPost({ params }) {
     'https://assets.teun.ai'
   );
 
+  // Current URL for sharing
+  const currentUrl = `https://teun.ai/${resolvedParams.slug}`;
+
   return (
     <>
+      {/* Reading Progress Bar - Fixed at top */}
+      <ReadingProgressBar />
+
       {/* Hero Section */}
       <div className="bg-white py-16 lg:py-24 px-4 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-8 max-w-[1400px] mx-auto">
@@ -248,8 +257,8 @@ export default async function BlogPost({ params }) {
               {cleanExcerpt}
             </div>
 
-            {/* Meta info */}
-            <div className="flex items-center gap-6 text-sm text-purple-200">
+            {/* Meta info met Reading Time */}
+            <div className="flex flex-wrap items-center gap-4 text-sm text-purple-200 mb-6">
               {post.author?.node?.avatar && (
                 <Link 
                   href="/auteur/imre" 
@@ -270,6 +279,15 @@ export default async function BlogPost({ params }) {
                   year: 'numeric'
                 })}
               </time>
+              <ReadingTime content={post.content} />
+            </div>
+
+            {/* Social Share Buttons */}
+            <div className="pt-6 border-t border-purple-400/30">
+              <SocialShareButtons 
+                title={post.title}
+                url={currentUrl}
+              />
             </div>
           </div>
 
@@ -327,6 +345,17 @@ export default async function BlogPost({ params }) {
               />
 
               <FAQAccordion faqs={faqs} />
+
+              {/* Share buttons ook onderaan artikel */}
+              <div className="mt-12 pt-8 border-t border-gray-200">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <p className="text-gray-600 font-medium">Vond je dit artikel nuttig?</p>
+                  <SocialShareButtons 
+                    title={post.title}
+                    url={currentUrl}
+                  />
+                </div>
+              </div>
 
               <div className="lg:hidden mt-8">
                 <EmailSignup 
