@@ -8,6 +8,7 @@ import EmailSignup from './EmailSignup';
 import ReadingProgressBar from './ReadingProgressBar';
 import ReadingTime from './ReadingTime';
 import SocialShareButtons from './SocialShareButtons';
+import AuthorBio from './AuthorBio';
 
 async function getPost(slug) {
   const query = `
@@ -345,6 +346,9 @@ export default async function BlogPost({ params }) {
               />
 
               <FAQAccordion faqs={faqs} />
+
+              {/* Author Bio */}
+              <AuthorBio />
 
               {/* Share buttons ook onderaan artikel */}
               <div className="mt-12 pt-8 border-t border-gray-200">
