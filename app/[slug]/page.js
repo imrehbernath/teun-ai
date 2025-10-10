@@ -110,6 +110,9 @@ export async function generateMetadata({ params }) {
       absolute: title
     },
     description,
+    alternates: {
+      canonical: `/${resolvedParams.slug}`,
+    },
     openGraph: {
       title,
       description,
@@ -310,12 +313,12 @@ export default async function BlogPost({ params }) {
                 <p className="text-purple-100 mb-6 text-lg">
                   Start vandaag nog met een gratis GEO audit en ontdek hoe zichtbaar jouw merk is in AI-antwoorden.
                 </p>
-                <Link 
-                  href="/geo-audit"
-                  className="inline-block bg-white text-purple-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition shadow-lg"
+                <a 
+                  href="#"
+                  className="inline-block bg-white text-purple-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition shadow-lg cursor-pointer"
                 >
                   Start Gratis GEO Audit
-                </Link>
+                </a>
               </div>
 
               <div className="mt-12 text-center">

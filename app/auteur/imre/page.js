@@ -47,6 +47,9 @@ async function getAuthorPosts() {
 export const metadata = {
   title: 'Imre Bernáth - SEO & AI Visibility Specialist | Teun.ai',
   description: 'Imre Bernáth is SEO- en AI-visibility specialist uit Nederland, oprichter van Teun.ai en eigenaar van OnlineLabs. 15+ jaar ervaring in technische SEO, contentstrategie, structured data en GEO-optimalisatie.',
+  alternates: {
+    canonical: '/auteur/imre',
+  },
   openGraph: {
     title: 'Imre Bernáth - SEO & AI Visibility Specialist | Teun.ai',
     description: 'Imre Bernáth is SEO- en AI-visibility specialist uit Nederland, oprichter van Teun.ai en eigenaar van OnlineLabs. 15+ jaar ervaring in technische SEO, contentstrategie, structured data en GEO-optimalisatie.',

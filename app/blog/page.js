@@ -58,6 +58,9 @@ async function getPosts() {
 export const metadata = {
   title: 'GEO Blog – AI & SEO Inzichten 2025 | Teun.ai',
   description: 'Lees wekelijks nieuwe blogs over GEO, AI-SEO en zichtbaarheid in ChatGPT en Google AI. Praktische inzichten, tips en trends in 2025.',
+  alternates: {
+    canonical: '/blog',
+  },
   openGraph: {
     title: 'GEO Blog – AI & SEO Inzichten 2025 | Teun.ai',
     description: 'Lees wekelijks nieuwe blogs over GEO, AI-SEO en zichtbaarheid in ChatGPT en Google AI. Praktische inzichten, tips en trends in 2025.',

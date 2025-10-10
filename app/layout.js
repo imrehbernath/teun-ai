@@ -84,9 +84,7 @@ export const metadata = {
     images: ['/GEO-insights-en-AI-SEO.webp'],
   },
   
-  alternates: {
-    canonical: '/',
-  },
+  // Canonical wordt per pagina ingesteld, niet globaal
   
   verification: {
     // Add later: google, bing verification codes
