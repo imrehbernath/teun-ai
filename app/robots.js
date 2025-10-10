@@ -23,6 +23,7 @@ export default function robots() {
         allow: '/',
         disallow: ['/api/', '/admin/'],
       },
+      // OpenAI Bots
       {
         userAgent: 'GPTBot',
         allow: '/',
@@ -31,16 +32,42 @@ export default function robots() {
         userAgent: 'ChatGPT-User',
         allow: '/',
       },
+      // Google AI
       {
-        userAgent: 'PerplexityBot',
+        userAgent: 'Google-Extended',
         allow: '/',
       },
+      {
+        userAgent: 'GoogleOther',
+        allow: '/',
+      },
+      // Anthropic Claude
       {
         userAgent: 'Claude-Web',
         allow: '/',
       },
       {
         userAgent: 'anthropic-ai',
+        allow: '/',
+      },
+      // Perplexity
+      {
+        userAgent: 'PerplexityBot',
+        allow: '/',
+      },
+      // Meta AI
+      {
+        userAgent: 'FacebookBot',
+        allow: '/',
+      },
+      // Bing/Microsoft
+      {
+        userAgent: 'Bingbot',
+        allow: '/',
+      },
+      // Common Crawl (for AI training)
+      {
+        userAgent: 'CCBot',
         allow: '/',
       },
     ],
