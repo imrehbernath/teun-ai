@@ -379,8 +379,8 @@ export default async function BlogPost({ params }) {
                 '@id': `https://teun.ai/${resolvedParams.slug}#webpage`,
                 'url': `https://teun.ai/${resolvedParams.slug}`,
                 'name': post.title,
-                'datePublished': post.date,
-                'dateModified': post.modified,
+                'datePublished': new Date(post.date).toISOString(),
+                'dateModified': new Date(post.modified).toISOString(),
                 'isPartOf': { '@id': 'https://teun.ai/#website' },
                 'primaryImageOfPage': { '@id': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp' },
                 'inLanguage': 'nl-NL'
@@ -404,8 +404,8 @@ export default async function BlogPost({ params }) {
               {
                 '@type': 'BlogPosting',
                 'headline': post.title,
-                'datePublished': post.date,
-                'dateModified': post.modified,
+                'datePublished': new Date(post.date).toISOString(),
+                'dateModified': new Date(post.modified).toISOString(),
                 'author': {
                   '@id': 'https://teun.ai/auteur/imre',
                   'name': 'Imre Bernáth'
