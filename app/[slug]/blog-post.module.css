@@ -63,10 +63,15 @@
 .blogContent a {
   color: #1A7DFF;
   text-decoration: none;
+  font-weight: 500;
+  border-bottom: 1px solid rgba(26, 125, 255, 0.3);
+  transition: all 0.2s ease;
 }
 
 .blogContent a:hover {
-  text-decoration: underline;
+  color: #0D5FCC;
+  border-bottom-color: #0D5FCC;
+  background-color: rgba(26, 125, 255, 0.05);
 }
 
 /* Text formatting */
@@ -209,6 +214,15 @@
   padding-bottom: 12px;
   border-bottom: 3px solid;
   border-image: linear-gradient(90deg, #1A7DFF, #6C3FF2) 1;
+}
+
+/* TOC Container styling for better contrast */
+:global(.toc-container) {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 :global(.toc-link) {
