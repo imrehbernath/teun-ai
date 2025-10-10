@@ -45,13 +45,13 @@ async function getAuthorPosts() {
 }
 
 export const metadata = {
-  title: 'Imre Bernáth - SEO & AI Visibility Specialist | Teun.ai',
+  title: 'Imre Bernáth – pionier in SEO en AI visibility met Teun.ai',
   description: 'Imre Bernáth – SEO & AI-visibility specialist. Oprichter van OnlineLabs en Teun.ai met 15+ jaar ervaring in strategische online groei.',
   alternates: {
     canonical: '/auteur/imre',
   },
   openGraph: {
-    title: 'Imre Bernáth - SEO & AI Visibility Specialist | Teun.ai',
+    title: 'Imre Bernáth – pionier in SEO en AI visibility met Teun.ai',
     description: 'Imre Bernáth – SEO & AI-visibility specialist. Oprichter van OnlineLabs en Teun.ai met 15+ jaar ervaring in strategische online groei.',
     url: 'https://teun.ai/auteur/imre',
     siteName: 'Teun.ai',
@@ -67,7 +67,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary',
-    title: 'Imre Bernáth - SEO & AI Visibility Specialist | Teun.ai',
+    title: 'Imre Bernáth – pionier in SEO en AI visibility met Teun.ai',
     description: 'Imre Bernáth – SEO & AI-visibility specialist. Oprichter van OnlineLabs en Teun.ai met 15+ jaar ervaring in strategische online groei.',
     images: ['https://gravatar.com/avatar/35c26275319f1c247e76cd36518ee34a?size=512'],
   },
