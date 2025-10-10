@@ -10,7 +10,7 @@ export const metadata = {
   openGraph: {
     title: 'Teun.ai – GEO Audits & AI-SEO Analyse | Live 1 januari 2026',
     description: 'Teun.ai: hét platform voor GEO Audits, AI-SEO analyse & AI-gedreven optimalisatie. Word zichtbaar in ChatGPT, Google AI, Bing AI & meer.',
-    images: ['/teun-social.jpg'],
+    images: ['/GEO-insights-en-AI-SEO.webp'],
     type: 'website',
     locale: 'nl_NL',
   },
@@ -18,17 +18,53 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'Teun.ai – GEO Audits & AI-SEO Analyse | Live 1 januari 2026',
     description: 'Teun.ai: hét platform voor GEO Audits, AI-SEO analyse & AI-gedreven optimalisatie. Word zichtbaar in ChatGPT, Google AI, Bing AI & meer.',
-    images: ['/teun-social.jpg'],
+    images: ['/GEO-insights-en-AI-SEO.webp'],
   },
 };
 
 export default function Home() {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://preview.teun.ai';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://teun.ai';
   
-  // Structured Data (JSON-LD) from Rank Math
+  // Structured Data (JSON-LD)
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://www.onlinelabs.nl/#organization",
+        "name": "OnlineLabs",
+        "url": "https://www.onlinelabs.nl/",
+        "logo": {
+          "@type": "ImageObject",
+          "@id": "https://www.onlinelabs.nl/#logo",
+          "url": "https://cdn.onlinelabs.nl/wp-content/uploads/2025/01/18075444/OnlineLabs-logo.png",
+          "contentUrl": "https://cdn.onlinelabs.nl/wp-content/uploads/2025/01/18075444/OnlineLabs-logo.png",
+          "caption": "OnlineLabs",
+          "inLanguage": "nl-NL",
+          "width": "432",
+          "height": "432"
+        },
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Herengracht 221",
+          "postalCode": "1016 BG",
+          "addressLocality": "Amsterdam",
+          "addressCountry": "NL"
+        },
+        "contactPoint": [
+          {
+            "@type": "ContactPoint",
+            "telephone": "+31-20-820-2022",
+            "contactType": "customer service",
+            "email": "hallo@onlinelabs.nl",
+            "areaServed": "NL",
+            "availableLanguage": ["nl", "en"]
+          }
+        ],
+        "sameAs": [
+          "https://www.linkedin.com/company/onlinelabs"
+        ]
+      },
       {
         "@type": "Organization",
         "@id": `${siteUrl}/#organization`,
@@ -43,6 +79,9 @@ export default function Home() {
           "inLanguage": "nl-NL",
           "width": "512",
           "height": "512"
+        },
+        "parentOrganization": {
+          "@id": "https://www.onlinelabs.nl/#organization"
         }
       },
       {
@@ -63,11 +102,11 @@ export default function Home() {
       },
       {
         "@type": "ImageObject",
-        "@id": `${siteUrl}/teun-social.jpg`,
-        "url": `${siteUrl}/teun-social.jpg`,
-        "width": "1536",
-        "height": "1024",
-        "caption": "Teun.ai socials",
+        "@id": `${siteUrl}/GEO-insights-en-AI-SEO.webp`,
+        "url": `${siteUrl}/GEO-insights-en-AI-SEO.webp`,
+        "width": "1200",
+        "height": "675",
+        "caption": "GEO insights en AI-SEO",
         "inLanguage": "nl-NL"
       },
       {
@@ -84,7 +123,7 @@ export default function Home() {
           "@id": `${siteUrl}/#website`
         },
         "primaryImageOfPage": {
-          "@id": `${siteUrl}/teun-social.jpg`
+          "@id": `${siteUrl}/GEO-insights-en-AI-SEO.webp`
         },
         "inLanguage": "nl-NL"
       },
@@ -100,9 +139,9 @@ export default function Home() {
           "caption": "Imre Bernáth",
           "inLanguage": "nl-NL"
         },
-        "sameAs": [siteUrl],
+        "sameAs": [siteUrl, "https://nl.linkedin.com/in/imrebernath"],
         "worksFor": {
-          "@id": `${siteUrl}/#organization`
+          "@id": "https://www.onlinelabs.nl/#organization"
         }
       },
       {
@@ -125,7 +164,7 @@ export default function Home() {
           "@id": `${siteUrl}/#webpage`
         },
         "image": {
-          "@id": `${siteUrl}/teun-social.jpg`
+          "@id": `${siteUrl}/GEO-insights-en-AI-SEO.webp`
         },
         "inLanguage": "nl-NL",
         "mainEntityOfPage": {
