@@ -188,3 +188,6 @@ export default function Home() {
     </>
   );
 }
+
+// Static caching - homepage verandert zelden
+export const revalidate = 86400; // 24 uur cache
