@@ -43,6 +43,23 @@ const nextConfig = {
   // Optimize with SWC
   swcMinify: true,
 
+  // Redirect www to non-www
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'www.teun.ai',
+          },
+        ],
+        destination: 'https://teun.ai/:path*',
+        permanent: true,
+      },
+    ];
+  },
+
   // Headers voor security & performance
   async headers() {
     return [
