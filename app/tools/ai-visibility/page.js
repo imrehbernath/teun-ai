@@ -225,14 +225,14 @@ export default function AIVisibilityTool() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#001233] via-[#1a0b3d] to-[#2d1654]" suppressHydrationWarning>
-      <div className="max-w-5xl mx-auto px-4 py-12 text-white">
+      <div className="max-w-5xl mx-auto px-4 py-6 sm:py-12 text-white">
         
         {/* Header */}
-        <header className="text-center mb-12">
-          <h1 className="text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-white via-blue-200 to-purple-200 text-transparent bg-clip-text">
+        <header className="text-center mb-8 sm:mb-12">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-white via-blue-200 to-purple-200 text-transparent bg-clip-text leading-tight px-4">
             AI Zichtbaarheidsanalyse
           </h1>
-          <p className="text-xl text-gray-300">
+          <p className="text-base sm:text-lg md:text-xl text-gray-300 px-4">
             Ontdek hoe AI-modellen jouw bedrijf vermelden bij commerciële zoekvragen
           </p>
         </header>
@@ -591,20 +591,22 @@ export default function AIVisibilityTool() {
           )}
         </section>
 
-        {/* Bottom CTA */}
-        <div className="text-center">
-          <p className="text-gray-400 mb-4">
-            {user ? 'Ingelogd als ' + user.email : 'Meer analyses nodig?'}
-          </p>
-          {!user && (
-            <Link 
-              href="/login"
-              className="px-6 py-3 bg-white/10 border border-white/20 rounded-lg font-semibold hover:bg-white/20 transition text-white inline-block"
-            >
-              Log in voor meer scans
-            </Link>
-          )}
-        </div>
+        {/* Bottom CTA - Only show when NOT analyzing */}
+        {!analyzing && (
+          <div className="text-center">
+            <p className="text-gray-400 mb-4">
+              {user ? 'Ingelogd als ' + user.email : 'Meer analyses nodig?'}
+            </p>
+            {!user && (
+              <Link 
+                href="/signup"
+                className="px-6 py-3 bg-white/10 border border-white/20 rounded-lg font-semibold hover:bg-white/20 transition text-white inline-block"
+              >
+                Meld je aan voor meer scans
+              </Link>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
