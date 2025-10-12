@@ -247,13 +247,13 @@ export default function AIVisibilityTool() {
           ].map(({ num, label }) => (
             <div
               key={num}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+              className={'px-4 py-2 rounded-lg text-sm font-semibold transition ' + (
                 step === num
                   ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white'
                   : step > num
                   ? 'bg-purple-600/30 text-purple-200'
                   : 'bg-white/5 text-gray-400'
-              }`}
+              )}
             >
               {num}. {label}
             </div>
@@ -339,10 +339,11 @@ export default function AIVisibilityTool() {
 
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label htmlFor="companyName" className="block text-sm font-medium text-gray-300 mb-2">
                     Bedrijfsnaam *
                   </label>
                   <input
+                    id="companyName"
                     type="text"
                     value={formData.companyName}
                     onChange={(e) => setFormData({...formData, companyName: e.target.value})}
@@ -353,10 +354,11 @@ export default function AIVisibilityTool() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label htmlFor="companyCategory" className="block text-sm font-medium text-gray-300 mb-2">
                     Bedrijfscategorie *
                   </label>
                   <input
+                    id="companyCategory"
                     type="text"
                     value={formData.companyCategory}
                     onChange={(e) => setFormData({...formData, companyCategory: e.target.value})}
@@ -424,22 +426,22 @@ export default function AIVisibilityTool() {
                     <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 transition-all duration-500 ease-out"
-                        style={{ width: `${progress}%` }}
+                        style={{ width: progress + '%' }}
                       />
                     </div>
                   </div>
 
                   {/* Processing steps */}
                   <div className="space-y-2 text-sm mt-6">
-                    <div className={`flex items-center gap-2 transition-colors duration-300 ${progress >= 20 ? 'text-green-300' : progress > 5 ? 'text-purple-300' : 'text-gray-500'}`}>
+                    <div className={'flex items-center gap-2 transition-colors duration-300 ' + (progress >= 20 ? 'text-green-300' : progress > 5 ? 'text-purple-300' : 'text-gray-500')}>
                       {progress >= 20 ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border-2 border-current" />}
                       <span>AI-prompts genereren op basis van jouw zoekwoorden...</span>
                     </div>
-                    <div className={`flex items-center gap-2 transition-colors duration-300 ${progress >= 90 ? 'text-green-300' : progress > 20 ? 'text-purple-300' : 'text-gray-500'}`}>
+                    <div className={'flex items-center gap-2 transition-colors duration-300 ' + (progress >= 90 ? 'text-green-300' : progress > 20 ? 'text-purple-300' : 'text-gray-500')}>
                       {progress >= 90 ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border-2 border-current" />}
                       <span>Analyseren via geavanceerde AI-zoekmachine...</span>
                     </div>
-                    <div className={`flex items-center gap-2 transition-colors duration-300 ${progress === 100 ? 'text-green-300' : progress > 90 ? 'text-purple-300' : 'text-gray-500'}`}>
+                    <div className={'flex items-center gap-2 transition-colors duration-300 ' + (progress === 100 ? 'text-green-300' : progress > 90 ? 'text-purple-300' : 'text-gray-500')}>
                       {progress === 100 ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border-2 border-current" />}
                       <span>Resultaten verwerken en rapport genereren...</span>
                     </div>
@@ -539,11 +541,11 @@ export default function AIVisibilityTool() {
                 {results.analysis_results.map((result, idx) => (
                   <div key={idx} className="bg-white/5 border border-white/10 rounded-lg p-4">
                     <div className="flex gap-3">
-                      <div className={`w-8 h-8 rounded flex items-center justify-center flex-shrink-0 font-bold text-sm ${
+                      <div className={'w-8 h-8 rounded flex items-center justify-center flex-shrink-0 font-bold text-sm ' + (
                         result.company_mentioned
                           ? 'bg-green-500/20 text-green-300 border border-green-400/30'
                           : 'bg-white/10 text-gray-400'
-                      }`}>
+                      )}>
                         {idx + 1}
                       </div>
                       <div className="flex-1">
@@ -592,15 +594,15 @@ export default function AIVisibilityTool() {
         {/* Bottom CTA */}
         <div className="text-center">
           <p className="text-gray-400 mb-4">
-            {user ? `Ingelogd als ${user.email}` : 'Meer analyses nodig?'}
+            {user ? 'Ingelogd als ' + user.email : 'Meer analyses nodig?'}
           </p>
           {!user && (
-            <a 
+            <Link 
               href="/login"
               className="px-6 py-3 bg-white/10 border border-white/20 rounded-lg font-semibold hover:bg-white/20 transition text-white inline-block"
             >
               Log in voor meer scans
-            </a>
+            </Link>
           )}
         </div>
       </div>
