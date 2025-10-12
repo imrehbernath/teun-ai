@@ -84,8 +84,6 @@ export const metadata = {
     images: ['/GEO-insights-en-AI-SEO.webp'],
   },
   
-  // Canonical wordt per pagina ingesteld, niet globaal
-  
   verification: {
     // Add later: google, bing verification codes
     // google: 'your-verification-code',
@@ -101,7 +99,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="nl" className={`${nunito.variable} ${montserrat.variable}`}>
+    <html lang="nl" className={`${nunito.variable} ${montserrat.variable}`} suppressHydrationWarning>
       <head>
         {/* Preconnect to external domains for performance */}
         <link rel="preconnect" href="https://assets.teun.ai" />
@@ -114,7 +112,7 @@ export default function RootLayout({ children }) {
         <link rel="icon" href="/favicon-300x300.png" type="image/png" sizes="300x300" />
         <link rel="apple-touch-icon" href="/favicon-300x300.png" />
       </head>
-      <body className="antialiased">
+      <body className="antialiased" suppressHydrationWarning>
         {/* Google Tag Manager - direct na body tag */}
         <GoogleTagManager />
         

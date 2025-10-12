@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/client';
 
 // Early Access Popup Component
 function EarlyAccessPopup({ isOpen, onClose }) {
@@ -105,10 +106,31 @@ function EarlyAccessPopup({ isOpen, onClose }) {
   );
 }
 
-// Header Component - Beta versie
+// Header Component
 function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = '/';
+  };
 
   return (
     <>
@@ -133,7 +155,40 @@ function Header() {
               >
                 Blog
               </Link>
+
+              <Link
+                href="/tools/ai-visibility"
+                className="text-white/90 hover:text-white font-medium text-[15px] transition-colors flex items-center gap-2"
+              >
+                <span className="inline-flex items-center gap-1 bg-green-500/20 text-green-300 px-2 py-1 rounded text-xs font-bold">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                  BETA
+                </span>
+                AI Zichtbaarheid
+              </Link>
               
+              {user ? (
+                <div className="flex items-center gap-4">
+                  <span className="text-white/70 text-sm">{user.email}</span>
+                  <button
+                    onClick={handleLogout}
+                    className="text-white/90 hover:text-white font-medium text-[15px] transition-colors"
+                  >
+                    Uitloggen
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  className="text-white/90 hover:text-white font-medium text-[15px] transition-colors"
+                >
+                  Inloggen
+                </Link>
+              )}
+
               <button
                 onClick={() => setShowPopup(true)}
                 className="bg-gradient-to-r from-[#1A7DFF] to-[#6C3FF2] text-white px-6 py-2.5 rounded-lg font-semibold text-[15px] hover:shadow-lg hover:scale-105 transition-all"
@@ -174,6 +229,37 @@ function Header() {
                 >
                   Blog
                 </Link>
+
+                <Link
+                  href="/tools/ai-visibility"
+                  className="block px-3 py-2 text-white/90 font-medium text-[15px] hover:text-white transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <span className="bg-green-500/20 text-green-300 px-2 py-1 rounded text-xs font-bold">BETA</span>
+                    AI Zichtbaarheid
+                  </span>
+                </Link>
+
+                {user ? (
+                  <>
+                    <div className="px-3 py-2 text-white/70 text-sm">{user.email}</div>
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full text-left px-3 py-2 text-white/90 font-medium text-[15px] hover:text-white transition-colors"
+                    >
+                      Uitloggen
+                    </button>
+                  </>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="block px-3 py-2 text-white/90 font-medium text-[15px] hover:text-white transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Inloggen
+                  </Link>
+                )}
                 
                 <button
                   onClick={() => {
@@ -196,7 +282,7 @@ function Header() {
   );
 }
 
-// Footer Component - Beta versie
+// Footer Component
 function Footer() {
   const currentYear = new Date().getFullYear();
   const [showPopup, setShowPopup] = useState(false);
@@ -262,9 +348,13 @@ function Footer() {
                   </button>
                 </li>
                 <li>
-                  <span className="text-white/50 text-sm cursor-not-allowed">
-                    AI Zichtbaarheid <span className="text-xs">(binnenkort)</span>
-                  </span>
+                  <Link 
+                    href="/tools/ai-visibility"
+                    className="text-white/70 hover:text-white text-sm transition-colors flex items-center gap-2"
+                  >
+                    AI Zichtbaarheid
+                    <span className="bg-green-500/20 text-green-300 px-2 py-0.5 rounded text-xs font-bold">LIVE</span>
+                  </Link>
                 </li>
                 <li>
                   <span className="text-white/50 text-sm cursor-not-allowed">

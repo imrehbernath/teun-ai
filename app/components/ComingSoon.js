@@ -63,24 +63,24 @@ export default function ComingSoon() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden" suppressHydrationWarning>
       
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
-      <Image
-        src="/Teun.ai-GEO-audits-AI-SEO-Analyse.webp"
-        alt=""
-        fill
-        priority
-        className="object-cover"
-        quality={90} 
-      />
+        <Image
+          src="/Teun.ai-GEO-audits-AI-SEO-Analyse.webp"
+          alt=""
+          fill
+          priority
+          className="object-cover"
+          quality={90} 
+        />
         {/* Overlay for better text readability */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#001233]/80 via-[#1a0b3d]/80 to-[#2d1654]/80"></div>
       </div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-5xl mx-auto px-4 py-12 min-h-screen flex flex-col justify-center text-white">
+      <div className="relative z-10 max-w-5xl mx-auto px-4 py-12 min-h-screen flex flex-col justify-center text-white" suppressHydrationWarning>
         
         {/* Header */}
         <header className="text-center mb-12">
@@ -92,6 +92,39 @@ export default function ComingSoon() {
           </p>
         </header>
 
+        {/* 🚀 BETA LAUNCH BANNER - NIEUW! */}
+        <section className="backdrop-blur-md bg-gradient-to-r from-green-600/40 via-emerald-500/30 to-green-600/40 border-2 border-green-400/50 rounded-2xl p-6 md:p-8 mb-8 shadow-2xl animate-pulse-slow">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="flex items-center gap-2 bg-green-500/30 px-4 py-2 rounded-full border border-green-400/50">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+              </span>
+              <span className="text-sm font-bold text-green-100 uppercase tracking-wider">LIVE • BETA</span>
+            </div>
+          </div>
+          
+          <h2 className="text-2xl md:text-4xl font-bold text-center mb-3 text-white">
+            🎉 Eerste Tool Live: AI Zichtbaarheidsanalyse!
+          </h2>
+          
+          <p className="text-center text-green-50 mb-6 text-base md:text-lg leading-relaxed">
+            Test <strong>GRATIS</strong> hoe vaak jouw bedrijf wordt vermeld in AI-zoekmachines zoals ChatGPT, Perplexity en Claude.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link
+              href="/tools/ai-visibility"
+              className="px-8 py-4 bg-white text-purple-700 font-bold rounded-lg hover:bg-green-50 transition shadow-xl hover:scale-105 transform text-center w-full sm:w-auto"
+            >
+              🚀 Test Nu Gratis (BETA)
+            </Link>
+            <span className="text-green-200 text-sm">
+              Geen creditcard nodig • Direct resultaat
+            </span>
+          </div>
+        </section>
+
         {/* Launch Card */}
         <section className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 mb-8" aria-labelledby="launch-heading">
           <div className="text-center">
@@ -100,7 +133,7 @@ export default function ComingSoon() {
               <div className="flex items-center gap-2">
                 <span className="text-xl md:text-2xl" role="img" aria-label="raket">🚀</span>
                 <span className="text-xs md:text-sm font-semibold whitespace-nowrap">
-                  Launch: <time dateTime="2026-01-01"><strong>1 jan 2026</strong></time>
+                  Volledige Launch: <time dateTime="2026-01-01"><strong>1 jan 2026</strong></time>
                 </span>
               </div>
             </div>
@@ -176,7 +209,7 @@ export default function ComingSoon() {
         </section>
 
         {/* Countdown */}
-        <section className="grid grid-cols-5 gap-2 sm:gap-4 mb-12" aria-label="Countdown tot lancering">
+        <section className="grid grid-cols-5 gap-2 sm:gap-4 mb-12" aria-label="Countdown tot lancering" suppressHydrationWarning>
           <CountdownBox value={timeLeft.weeks} label="WEKEN" />
           <CountdownBox value={timeLeft.days} label="DAGEN" />
           <CountdownBox value={timeLeft.hours} label="UUR" />
@@ -243,7 +276,7 @@ function CountdownBox({ value, label }) {
     <div className="backdrop-blur-sm border-2 border-purple-400/40 rounded-xl p-2 sm:p-4 text-center bg-gradient-to-br from-purple-500/10 to-indigo-500/10">
       <div 
         className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 bg-gradient-to-br from-purple-300 via-blue-300 to-purple-200 bg-clip-text text-transparent" 
-        aria-label={`${value} ${label}`}
+        aria-label={value + ' ' + label}
       >
         {String(value).padStart(2, '0')}
       </div>
