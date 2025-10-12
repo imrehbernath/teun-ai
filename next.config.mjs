@@ -40,8 +40,7 @@ const nextConfig = {
     removeConsole: process.env.NODE_ENV === 'production',
   },
 
-  // Optimize with SWC
-  swcMinify: true,
+
 
   // Redirect www to non-www
   async redirects() {
