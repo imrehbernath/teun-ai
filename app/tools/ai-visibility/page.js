@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Search, TrendingUp, Zap, BarChart3, CheckCircle2, AlertCircle, Loader2, Eye, Award, Clock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import Link from 'next/link';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
