@@ -120,7 +120,7 @@ export default function ComingSoon() {
               🚀 Test Nu Gratis (BETA)
             </Link>
             <span className="text-green-200 text-sm">
-              Geen creditcard nodig • Direct resultaat
+              2x gratis zonder account • Direct resultaat
             </span>
           </div>
         </section>
