@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { Search, TrendingUp, Zap, BarChart3, CheckCircle2, AlertCircle, Loader2, Eye, Award, Clock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function AIVisibilityTool() {
   const [step, setStep] = useState(1);
@@ -44,95 +44,136 @@ export default function AIVisibilityTool() {
   }, []);
 
   const downloadPDF = () => {
-    if (!results) return;
-
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-
-    // Header
-    doc.setFillColor(124, 58, 237); // Purple
-    doc.rect(0, 0, pageWidth, 40, 'F');
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
-    doc.setFont('helvetica', 'bold');
-    doc.text('AI Zichtbaarheidsanalyse', 20, 25);
-
-    // Company info
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Bedrijf: ' + formData.companyName, 20, 55);
-    doc.text('Categorie: ' + formData.companyCategory, 20, 62);
-    doc.text('Datum: ' + new Date().toLocaleDateString('nl-NL'), 20, 69);
-
-    // Stats boxes
-    const stats = [
-      { label: 'Vermeldingen', value: results.total_company_mentions },
-      { label: 'Analyses', value: results.analysis_results.length },
-      { label: 'Concurrenten', value: [...new Set(results.analysis_results.flatMap(r => r.competitors_mentioned || []))].length }
-    ];
-
-    let xPos = 20;
-    stats.forEach((stat) => {
-      doc.setFillColor(237, 233, 254); // Light purple
-      doc.roundedRect(xPos, 80, 50, 30, 3, 3, 'F');
-      
-      doc.setFontSize(20);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(124, 58, 237);
-      doc.text(String(stat.value), xPos + 25, 95, { align: 'center' });
-      
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(100, 100, 100);
-      doc.text(stat.label.toUpperCase(), xPos + 25, 105, { align: 'center' });
-      
-      xPos += 60;
-    });
-
-    // Table with results
-    const tableData = results.analysis_results.map((result, idx) => [
-      idx + 1,
-      result.company_mentioned ? '✓' : '✗',
-      result.ai_prompt.substring(0, 60) + '...',
-      result.competitors_mentioned ? result.competitors_mentioned.slice(0, 3).join(', ') : '-'
-    ]);
-
-    doc.autoTable({
-      startY: 120,
-      head: [['#', 'Vermeld', 'AI Prompt', 'Concurrenten']],
-      body: tableData,
-      theme: 'grid',
-      headStyles: {
-        fillColor: [124, 58, 237],
-        textColor: [255, 255, 255],
-        fontStyle: 'bold',
-        fontSize: 10
-      },
-      bodyStyles: {
-        fontSize: 9
-      },
-      columnStyles: {
-        0: { cellWidth: 10 },
-        1: { cellWidth: 20, halign: 'center' },
-        2: { cellWidth: 90 },
-        3: { cellWidth: 60 }
-      }
-    });
-
-    // Footer
-    const finalY = doc.lastAutoTable.finalY || 120;
-    if (finalY < pageHeight - 30) {
-      doc.setFontSize(8);
-      doc.setTextColor(150, 150, 150);
-      doc.text('Gegenereerd door TEUN.AI - AI Zichtbaarheidsanalyse Tool', pageWidth / 2, pageHeight - 10, { align: 'center' });
+    if (!results) {
+      alert('Geen resultaten om te downloaden');
+      return;
     }
 
-    // Save PDF
-    const fileName = 'AI-Zichtbaarheid-' + formData.companyName.replace(/\s+/g, '-') + '-' + new Date().toISOString().split('T')[0] + '.pdf';
-    doc.save(fileName);
+    try {
+      console.log('📄 Starting PDF generation...');
+      
+      // Check if jsPDF is loaded
+      if (typeof jsPDF === 'undefined') {
+        console.error('❌ jsPDF is not loaded!');
+        alert('PDF library niet geladen. Ververs de pagina en probeer opnieuw.');
+        return;
+      }
+
+      const doc = new jsPDF();
+      console.log('✅ jsPDF instance created');
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      // Header
+      doc.setFillColor(124, 58, 237);
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(24);
+      doc.setFont('helvetica', 'bold');
+      doc.text('AI Zichtbaarheidsanalyse', 20, 25);
+      console.log('✅ Header added');
+
+      // Company info
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Bedrijf: ' + formData.companyName, 20, 55);
+      doc.text('Categorie: ' + formData.companyCategory, 20, 62);
+      doc.text('Datum: ' + new Date().toLocaleDateString('nl-NL'), 20, 69);
+      console.log('✅ Company info added');
+
+      // Stats boxes
+      const stats = [
+        { label: 'Vermeldingen', value: results.total_company_mentions },
+        { label: 'Analyses', value: results.analysis_results.length },
+        { label: 'Concurrenten', value: [...new Set(results.analysis_results.flatMap(r => r.competitors_mentioned || []))].length }
+      ];
+
+      let xPos = 20;
+      stats.forEach((stat) => {
+        doc.setFillColor(237, 233, 254);
+        doc.roundedRect(xPos, 80, 50, 30, 3, 3, 'F');
+        
+        doc.setFontSize(20);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(124, 58, 237);
+        doc.text(String(stat.value), xPos + 25, 95, { align: 'center' });
+        
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 100, 100);
+        doc.text(stat.label.toUpperCase(), xPos + 25, 105, { align: 'center' });
+        
+        xPos += 60;
+      });
+      console.log('✅ Stats boxes added');
+
+      // Table with results
+      const tableData = results.analysis_results.map((result, idx) => [
+        idx + 1,
+        result.company_mentioned ? '✓' : '✗',
+        result.ai_prompt.substring(0, 60) + '...',
+        result.competitors_mentioned ? result.competitors_mentioned.slice(0, 3).join(', ') : '-'
+      ]);
+
+      // Check if autoTable exists
+      if (typeof doc.autoTable !== 'function') {
+        console.error('❌ autoTable is not available!');
+        // Try to manually attach it
+        if (typeof autoTable === 'function') {
+          console.log('🔧 Manually attaching autoTable...');
+          doc.autoTable = autoTable;
+        } else {
+          alert('PDF table functie niet beschikbaar. Ververs de pagina en probeer opnieuw.');
+          return;
+        }
+      }
+
+      doc.autoTable({
+        startY: 120,
+        head: [['#', 'Vermeld', 'AI Prompt', 'Concurrenten']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [124, 58, 237],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 10
+        },
+        bodyStyles: {
+          fontSize: 9
+        },
+        columnStyles: {
+          0: { cellWidth: 10 },
+          1: { cellWidth: 20, halign: 'center' },
+          2: { cellWidth: 90 },
+          3: { cellWidth: 60 }
+        }
+      });
+      console.log('✅ Table added');
+
+      // Footer
+      const finalY = doc.lastAutoTable.finalY || 120;
+      if (finalY < pageHeight - 30) {
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text('Gegenereerd door TEUN.AI - AI Zichtbaarheidsanalyse Tool', pageWidth / 2, pageHeight - 10, { align: 'center' });
+      }
+      console.log('✅ Footer added');
+
+      // Save PDF
+      const fileName = 'AI-Zichtbaarheid-' + formData.companyName.replace(/\s+/g, '-') + '-' + new Date().toISOString().split('T')[0] + '.pdf';
+      console.log('💾 Saving PDF as:', fileName);
+      
+      doc.save(fileName);
+      console.log('✅ PDF download triggered!');
+      
+    } catch (error) {
+      console.error('❌ PDF Generation Error:', error);
+      alert('Er ging iets mis bij het genereren van de PDF: ' + error.message);
+    }
   };
 
   const handleAnalyze = async () => {
@@ -306,19 +347,15 @@ export default function AIVisibilityTool() {
                 <textarea
                   value={formData.queries}
                   onChange={(e) => setFormData({...formData, queries: e.target.value})}
-                  placeholder="Bijv. Linnen gordijnen, Linnen gordijnen op maat, Inbetween gordijnen&#10;&#10;Voer je belangrijkste zoekwoorden in, gescheiden door komma's of nieuwe regels (optioneel)"
+                  placeholder="Bijv. Linnen gordijnen, Linnen gordijnen op maat, Inbetween gordijnen&#10;&#10;Voer je belangrijkste zoekwoorden in, gescheiden door komma's of nieuwe regels"
                   className="w-full h-40 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none"
                   suppressHydrationWarning
                 />
 
                 <div className="flex items-center justify-between pt-4">
-                  <p className="text-sm text-gray-400 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-blue-400" />
-                    Optioneel: Laat leeg voor automatische prompts
-                  </p>
                   <button
                     onClick={() => setStep(2)}
-                    className="px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold rounded-lg hover:from-purple-600 hover:to-indigo-700 transition shadow-lg"
+                    className="px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold rounded-lg hover:from-purple-600 hover:to-indigo-700 transition shadow-lg ml-auto"
                   >
                     Volgende →
                   </button>
