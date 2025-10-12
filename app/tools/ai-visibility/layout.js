@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'AI Zichtbaarheidsanalyse – Test Gratis | TEUN.AI',
+  title: 'AI Zichtbaarheidsanalyse – Test Gratis',
   description: 'Test GRATIS hoe vaak jouw bedrijf vermeld wordt in ChatGPT, Perplexity en Claude. AI-gedreven analyse van jouw zichtbaarheid in AI-zoekmachines.',
   keywords: 'AI zichtbaarheid, ChatGPT, Perplexity, Claude, AI zoekmachines, GEO, AI analyse, bedrijf vindbaarheid',
   openGraph: {
