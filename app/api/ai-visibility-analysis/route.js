@@ -4,6 +4,79 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { canUserScan, trackScan, BETA_CONFIG } from '@/lib/beta-config'
 import Anthropic from '@anthropic-ai/sdk'
 
+// ✅ NIEUW: Slack notificatie functie
+async function sendSlackNotification(scanData) {
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+  
+  if (!webhookUrl) {
+    console.log('⚠️ Slack webhook URL niet geconfigureerd');
+    return;
+  }
+
+  try {
+    const { companyName, companyCategory, primaryKeyword, totalMentions } = scanData;
+
+    const message = {
+      blocks: [
+        {
+          type: "header",
+          text: {
+            type: "plain_text",
+            text: "🎯 Nieuwe AI Visibility Scan!",
+            emoji: true
+          }
+        },
+        {
+          type: "section",
+          fields: [
+            {
+              type: "mrkdwn",
+              text: `*Bedrijfsnaam:*\n${companyName}`
+            },
+            {
+              type: "mrkdwn",
+              text: `*Categorie:*\n${companyCategory}`
+            },
+            {
+              type: "mrkdwn",
+              text: `*Zoekwoord:*\n${primaryKeyword || 'Geen opgegeven'}`
+            },
+            {
+              type: "mrkdwn",
+              text: `*Score:*\n${totalMentions} vermeldingen`
+            }
+          ]
+        },
+        {
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: `${new Date().toLocaleString('nl-NL')}`
+            }
+          ]
+        },
+        {
+          type: "divider"
+        }
+      ]
+    };
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(message)
+    });
+
+    if (!response.ok) {
+      console.error('❌ Slack notificatie mislukt:', response.statusText);
+    } else {
+      console.log('✅ Slack notificatie verstuurd');
+    }
+  } catch (error) {
+    console.error('❌ Slack notificatie error:', error);
+  }
+}
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
@@ -21,7 +94,7 @@ export async function POST(request) {
       companyCategory, 
       identifiedQueriesSummary,
       userId,
-      numberOfPrompts = 5  // ✅ NIEUW: Default 5, maar kan 10 zijn voor ingelogd
+      numberOfPrompts = 5
     } = body
 
     if (!companyName?.trim()) {
@@ -37,7 +110,6 @@ export async function POST(request) {
 
     const supabase = await createServiceClient()
 
-    // Check scan limits (no more bypass parameter!)
     const scanCheck = await canUserScan(
       supabase,
       userId,
@@ -75,7 +147,6 @@ export async function POST(request) {
     const generatedPrompts = promptGenerationResult.prompts
     console.log(`✅ Generated ${generatedPrompts.length} prompts`)
     
-    // ✅ FIXED: Gebruik numberOfPrompts parameter ipv hardcoded logica
     const analysisLimit = numberOfPrompts
     const promptsToAnalyze = generatedPrompts.slice(0, analysisLimit)
     
@@ -90,7 +161,6 @@ export async function POST(request) {
       
       const result = await analyzeWithPerplexity(prompt, companyName)
       
-      // Always push result, even if failed
       analysisResults.push({
         ai_prompt: prompt,
         ...(result.success ? result.data : {
@@ -108,7 +178,6 @@ export async function POST(request) {
 
       console.log(`   ${result.success ? '✅' : '⚠️'} Prompt ${i + 1} ${result.success ? 'analyzed' : 'failed'}`)
 
-      // Rate limiting: 200ms between requests (5x faster, still safe)
       await new Promise(resolve => setTimeout(resolve, 200))
     }
 
@@ -116,6 +185,7 @@ export async function POST(request) {
 
     const scanDuration = Date.now() - startTime
 
+    // ✅ BESTAANDE CODE: trackScan slaat op in database
     await trackScan(
       supabase,
       userId,
@@ -125,6 +195,14 @@ export async function POST(request) {
       { generatedPrompts, analysisResults, totalCompanyMentions },
       scanDuration
     )
+
+    // ✅ NIEUW: Verstuur Slack notificatie NA succesvolle scan
+    sendSlackNotification({
+      companyName,
+      companyCategory,
+      primaryKeyword: identifiedQueriesSummary?.[0] || null,
+      totalMentions: totalCompanyMentions
+    }).catch(err => console.error('Slack notificatie fout:', err));
 
     const updatedCheck = await canUserScan(supabase, userId, 'ai-visibility', ip)
 
@@ -152,8 +230,8 @@ export async function POST(request) {
   }
 }
 
+// REST VAN DE CODE BLIJFT EXACT HETZELFDE...
 async function generatePromptsWithClaude(companyName, companyCategory, queries) {
-  // Extract primary keyword (first in the list) - this gets priority
   const primaryKeyword = queries.length > 0 ? queries[0] : null
   
   const searchConsoleContext = queries.length > 0 
@@ -257,7 +335,6 @@ Voorbeeld formaat:
       ? message.content[0].text 
       : ''
 
-    // Strip markdown code blocks if present
     let cleanedText = responseText.trim();
     if (cleanedText.startsWith('```json')) {
       cleanedText = cleanedText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
@@ -319,7 +396,6 @@ De output moet **ALTIJD en UITSLUITEND in het Nederlands zijn, GEEN ENKELE ENGEL
 
     console.log('🔍 AI Search Response Status:', response.status)
 
-    // Check for HTTP errors
     if (!response.ok) {
       const errorText = await response.text()
       console.error(`❌ AI Search API error (${response.status}):`, errorText)
@@ -329,7 +405,6 @@ De output moet **ALTIJD en UITSLUITEND in het Nederlands zijn, GEEN ENKELE ENGEL
     const data = await response.json()
     console.log('🔍 AI Search Response Data:', JSON.stringify(data, null, 2))
 
-    // Check if response has expected format
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
       console.error('❌ Invalid AI Search Response:', data)
       throw new Error('AI Search API error: Invalid response format')
@@ -337,7 +412,6 @@ De output moet **ALTIJD en UITSLUITEND in het Nederlands zijn, GEEN ENKELE ENGEL
 
     const rawOutput = data.choices[0].message.content
 
-    // Check if content is empty
     if (!rawOutput || rawOutput.trim() === '') {
       console.error('❌ AI Search returned empty content')
       throw new Error('AI Search returned empty response')
@@ -363,13 +437,11 @@ De output moet **ALTIJD en UITSLUITEND in het Nederlands zijn, GEEN ENKELE ENGEL
 
 async function parseWithClaude(rawOutput, companyName) {
   try {
-    // STAP 1: Externe letterlijke verificatie (zoals jij deed in PHP)
     const mentionsCount = (rawOutput.match(new RegExp(companyName, 'gi')) || []).length
     const isCompanyLiterallyMentioned = mentionsCount > 0
     
     console.log(`🔍 Pre-parse check: "${companyName}" mentioned ${mentionsCount} times`)
 
-    // STAP 2: Parser met jouw verfijnde instructies
     const message = await anthropic.messages.create({
       model: 'claude-3-7-sonnet-20250219',
       max_tokens: 1500,
@@ -457,7 +529,6 @@ De output van jou (de parser) moet **ALTIJD en UITSLUITEND in het Nederlands zij
       ? message.content[0].text 
       : ''
 
-    // Strip markdown code blocks if present (FIXED!)
     let cleanedText = responseText.trim();
     if (cleanedText.startsWith('```json')) {
       cleanedText = cleanedText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
@@ -467,7 +538,6 @@ De output van jou (de parser) moet **ALTIJD en UITSLUITEND in het Nederlands zij
 
     const parsed = JSON.parse(cleanedText)
 
-    // Validatie: Zorg dat de externe verificatie gerespecteerd wordt
     if (parsed.company_mentioned !== isCompanyLiterallyMentioned) {
       console.warn('⚠️ Parser override detected, forcing external verification')
       parsed.company_mentioned = isCompanyLiterallyMentioned

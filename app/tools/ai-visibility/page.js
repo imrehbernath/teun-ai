@@ -60,32 +60,32 @@ export default function AIVisibilityTool() {
 
       const totalPrompts = user ? 10 : 5;
       
-      // ✅ FIX: Progress blijft doorlopen, maar vertraagt naar het einde
+      // ✅ FIX: Progress aangepast voor langere scan duur
       const progressInterval = setInterval(() => {
         setProgress(prev => {
           const rounded = Math.floor(prev);
           
-          // Stop pas bij 98% (nooit 100% bereiken voor API klaar is)
-          if (rounded >= 98) return rounded;
+          // Stop pas bij 97% (nooit 100% bereiken voor API klaar is)
+          if (rounded >= 97) return rounded;
           
           if (user) {
-            // Voor 10 prompts: steeds trager naar het einde
-            if (rounded < 20) return rounded + 2;
-            if (rounded < 50) return rounded + 1.5;
-            if (rounded < 70) return rounded + 1;
-            if (rounded < 85) return rounded + 0.7;
-            if (rounded < 95) return rounded + 0.4;
-            return rounded + 0.2; // Heel langzaam 95-98%
+            // Voor 10 prompts: ~4-5 minuten
+            if (rounded < 15) return rounded + 1.5;
+            if (rounded < 40) return rounded + 0.8;
+            if (rounded < 65) return rounded + 0.5;
+            if (rounded < 85) return rounded + 0.3;
+            if (rounded < 92) return rounded + 0.2;
+            return rounded + 0.1; // Heel langzaam 92-97%
           } else {
-            // Voor 5 prompts: ook langzamer naar einde
-            if (rounded < 30) return rounded + 3;
-            if (rounded < 60) return rounded + 2;
-            if (rounded < 80) return rounded + 1;
-            if (rounded < 90) return rounded + 0.5;
-            return rounded + 0.3; // Langzaam 90-98%
+            // Voor 5 prompts: ~2 minuten
+            if (rounded < 25) return rounded + 2;
+            if (rounded < 55) return rounded + 1.2;
+            if (rounded < 75) return rounded + 0.7;
+            if (rounded < 90) return rounded + 0.4;
+            return rounded + 0.2; // Langzaam 90-97%
           }
         });
-      }, 800);
+      }, 1000); // 1 seconde interval voor stabielere progress
 
       // ✅ FIX: Indicator blijft updaten tot 100%
       const stepInterval = setInterval(() => {
@@ -97,15 +97,15 @@ export default function AIVisibilityTool() {
           
           if (rounded >= 10 && rounded < 20) {
             setCurrentStep('AI-prompts genereren...');
-          } else if (rounded >= 20 && rounded < 98) {
+          } else if (rounded >= 20 && rounded < 97) {
             const currentPrompt = Math.min(estimatedPromptsProcessed, totalPrompts);
             setCurrentStep(`Analyseren met AI-zoekmachine (${currentPrompt}/${totalPrompts})...`);
-          } else if (rounded >= 98) {
+          } else if (rounded >= 97) {
             setCurrentStep(`Resultaten verwerken (${totalPrompts}/${totalPrompts})...`);
           }
           return current;
         });
-      }, 500);
+      }, 800);
 
       const response = await fetch('/api/ai-visibility-analysis', {
         method: 'POST',
