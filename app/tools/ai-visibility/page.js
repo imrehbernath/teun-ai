@@ -60,7 +60,7 @@ export default function AIVisibilityTool() {
 
       const totalPrompts = user ? 10 : 5;
       
-      // ✅ FIX: Progress aangepast voor langere scan duur
+      // ✅ FIX: Progress aangepast voor realistische scan duur
       const progressInterval = setInterval(() => {
         setProgress(prev => {
           const rounded = Math.floor(prev);
@@ -77,15 +77,15 @@ export default function AIVisibilityTool() {
             if (rounded < 92) return rounded + 0.2;
             return rounded + 0.1; // Heel langzaam 92-97%
           } else {
-            // Voor 5 prompts: ~2 minuten
-            if (rounded < 25) return rounded + 2;
-            if (rounded < 55) return rounded + 1.2;
-            if (rounded < 75) return rounded + 0.7;
-            if (rounded < 90) return rounded + 0.4;
-            return rounded + 0.2; // Langzaam 90-97%
+            // Voor 5 prompts: ~2 minuten (LANGZAMER)
+            if (rounded < 20) return rounded + 1;
+            if (rounded < 45) return rounded + 0.6;
+            if (rounded < 70) return rounded + 0.4;
+            if (rounded < 88) return rounded + 0.25;
+            return rounded + 0.15; // Langzaam 88-97%
           }
         });
-      }, 1000); // 1 seconde interval voor stabielere progress
+      }, 1200); // 1.2 seconde interval voor nog langzamere progress
 
       // ✅ FIX: Indicator blijft updaten tot 100%
       const stepInterval = setInterval(() => {
