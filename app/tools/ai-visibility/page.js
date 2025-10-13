@@ -1,6 +1,6 @@
 // ============================================
 // FILE 1: app/tools/ai-visibility/page.js
-// ALLE FIXES: Progress zonder decimalen, realistischer indicator, 10 prompts voor ingelogd
+// ALLE FIXES: Progress zonder decimalen, realistischer indicator, 10 prompts voor ingelogd, responsive mobile
 // ============================================
 'use client';
 
@@ -60,7 +60,7 @@ export default function AIVisibilityTool() {
 
       const totalPrompts = user ? 10 : 5;
       
-    // ✅ FIX: Progress blijft doorlopen, maar vertraagt naar het einde
+      // ✅ FIX: Progress blijft doorlopen, maar vertraagt naar het einde
       const progressInterval = setInterval(() => {
         setProgress(prev => {
           const rounded = Math.floor(prev);
@@ -87,7 +87,7 @@ export default function AIVisibilityTool() {
         });
       }, 800);
 
-      // ✅ FIX: Realistischer indicator (1/10 bij 10%, 5/10 bij 50%, etc)
+      // ✅ FIX: Indicator blijft updaten tot 100%
       const stepInterval = setInterval(() => {
         setProgress(current => {
           const rounded = Math.floor(current);
@@ -97,11 +97,11 @@ export default function AIVisibilityTool() {
           
           if (rounded >= 10 && rounded < 20) {
             setCurrentStep('AI-prompts genereren...');
-          } else if (rounded >= 20 && rounded < 90) {
+          } else if (rounded >= 20 && rounded < 98) {
             const currentPrompt = Math.min(estimatedPromptsProcessed, totalPrompts);
             setCurrentStep(`Analyseren met AI-zoekmachine (${currentPrompt}/${totalPrompts})...`);
-          } else if (rounded >= 90) {
-            setCurrentStep(`Analyseren met AI-zoekmachine (${totalPrompts}/${totalPrompts})...`);
+          } else if (rounded >= 98) {
+            setCurrentStep(`Resultaten verwerken (${totalPrompts}/${totalPrompts})...`);
           }
           return current;
         });
@@ -420,28 +420,28 @@ export default function AIVisibilityTool() {
                 <p className="text-green-100">Je AI-zichtbaarheidsrapport is klaar</p>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="backdrop-blur-sm border-2 border-purple-400/40 rounded-xl p-4 text-center bg-gradient-to-br from-purple-500/10 to-indigo-500/10">
-                  <div className="text-3xl font-bold mb-1 bg-gradient-to-br from-purple-300 via-blue-300 to-purple-200 bg-clip-text text-transparent">
+              <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-6">
+                <div className="backdrop-blur-sm border-2 border-purple-400/40 rounded-xl p-3 sm:p-4 text-center bg-gradient-to-br from-purple-500/10 to-indigo-500/10">
+                  <div className="text-2xl sm:text-3xl font-bold mb-1 bg-gradient-to-br from-purple-300 via-blue-300 to-purple-200 bg-clip-text text-transparent">
                     {results.total_company_mentions}
                   </div>
-                  <div className="text-xs text-purple-200 uppercase tracking-wider font-semibold">
+                  <div className="text-[10px] sm:text-xs text-purple-200 uppercase tracking-wider font-semibold leading-tight">
                     VERMELDINGEN
                   </div>
                 </div>
-                <div className="backdrop-blur-sm border-2 border-purple-400/40 rounded-xl p-4 text-center bg-gradient-to-br from-purple-500/10 to-indigo-500/10">
-                  <div className="text-3xl font-bold mb-1 bg-gradient-to-br from-purple-300 via-blue-300 to-purple-200 bg-clip-text text-transparent">
+                <div className="backdrop-blur-sm border-2 border-purple-400/40 rounded-xl p-3 sm:p-4 text-center bg-gradient-to-br from-purple-500/10 to-indigo-500/10">
+                  <div className="text-2xl sm:text-3xl font-bold mb-1 bg-gradient-to-br from-purple-300 via-blue-300 to-purple-200 bg-clip-text text-transparent">
                     {results.analysis_results.length}
                   </div>
-                  <div className="text-xs text-purple-200 uppercase tracking-wider font-semibold">
+                  <div className="text-[10px] sm:text-xs text-purple-200 uppercase tracking-wider font-semibold leading-tight">
                     ANALYSES
                   </div>
                 </div>
-                <div className="backdrop-blur-sm border-2 border-purple-400/40 rounded-xl p-4 text-center bg-gradient-to-br from-purple-500/10 to-indigo-500/10">
-                  <div className="text-3xl font-bold mb-1 bg-gradient-to-br from-purple-300 via-blue-300 to-purple-200 bg-clip-text text-transparent">
+                <div className="backdrop-blur-sm border-2 border-purple-400/40 rounded-xl p-3 sm:p-4 text-center bg-gradient-to-br from-purple-500/10 to-indigo-500/10">
+                  <div className="text-2xl sm:text-3xl font-bold mb-1 bg-gradient-to-br from-purple-300 via-blue-300 to-purple-200 bg-clip-text text-transparent">
                     {[...new Set(results.analysis_results.flatMap(r => r.competitors_mentioned || []))].length}
                   </div>
-                  <div className="text-xs text-purple-200 uppercase tracking-wider font-semibold">
+                  <div className="text-[10px] sm:text-xs text-purple-200 uppercase tracking-wider font-semibold leading-tight">
                     CONCURRENTEN
                   </div>
                 </div>
