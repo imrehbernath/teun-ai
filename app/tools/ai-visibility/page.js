@@ -1,11 +1,14 @@
+// ============================================
+// FILE 1: app/tools/ai-visibility/page.js
+// ALLE FIXES: Progress zonder decimalen, realistischer indicator, 10 prompts voor ingelogd
+// ============================================
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, TrendingUp, Zap, BarChart3, CheckCircle2, AlertCircle, Loader2, Eye, Award, Clock } from 'lucide-react';
+import { Search, TrendingUp, Zap, BarChart3, CheckCircle2, AlertCircle, Loader2, Award, Clock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import FeedbackWidget from '@/app/components/FeedbackWidget';
 
 export default function AIVisibilityTool() {
   const [step, setStep] = useState(1);
@@ -23,17 +26,14 @@ export default function AIVisibilityTool() {
     queries: ''
   });
 
-  // Check if user is logged in
   useEffect(() => {
     const supabase = createClient();
     
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -42,120 +42,6 @@ export default function AIVisibilityTool() {
 
     return () => subscription.unsubscribe();
   }, []);
-
- const downloadPDF = () => {
-  if (!results) {
-    alert('Geen resultaten om te downloaden');
-    return;
-  }
-
-  try {
-    console.log('📄 Starting PDF generation...');
-    
-    const doc = new jsPDF();
-    console.log('✅ jsPDF instance created');
-
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-
-    // Header
-    doc.setFillColor(124, 58, 237);
-    doc.rect(0, 0, pageWidth, 40, 'F');
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
-    doc.setFont('helvetica', 'bold');
-    doc.text('AI Zichtbaarheidsanalyse', 20, 25);
-    console.log('✅ Header added');
-
-    // Company info
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Bedrijf: ' + formData.companyName, 20, 55);
-    doc.text('Categorie: ' + formData.companyCategory, 20, 62);
-    doc.text('Datum: ' + new Date().toLocaleDateString('nl-NL'), 20, 69);
-    console.log('✅ Company info added');
-
-    // Stats boxes
-    const stats = [
-      { label: 'Vermeldingen', value: results.total_company_mentions },
-      { label: 'Analyses', value: results.analysis_results.length },
-      { label: 'Concurrenten', value: [...new Set(results.analysis_results.flatMap(r => r.competitors_mentioned || []))].length }
-    ];
-
-    let xPos = 20;
-    stats.forEach((stat) => {
-      doc.setFillColor(237, 233, 254);
-      doc.roundedRect(xPos, 80, 50, 30, 3, 3, 'F');
-      
-      doc.setFontSize(20);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(124, 58, 237);
-      doc.text(String(stat.value), xPos + 25, 95, { align: 'center' });
-      
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(100, 100, 100);
-      doc.text(stat.label.toUpperCase(), xPos + 25, 105, { align: 'center' });
-      
-      xPos += 60;
-    });
-    console.log('✅ Stats boxes added');
-
-    // Table with results
-    const tableData = results.analysis_results.map((result, idx) => [
-      idx + 1,
-      result.company_mentioned ? '✓' : '✗',
-      result.ai_prompt.substring(0, 60) + '...',
-      result.competitors_mentioned ? result.competitors_mentioned.slice(0, 3).join(', ') : '-'
-    ]);
-
-    // Use autoTable - it's now attached to jsPDF prototype
-    doc.autoTable({
-      startY: 120,
-      head: [['#', 'Vermeld', 'AI Prompt', 'Concurrenten']],
-      body: tableData,
-      theme: 'grid',
-      headStyles: {
-        fillColor: [124, 58, 237],
-        textColor: [255, 255, 255],
-        fontStyle: 'bold',
-        fontSize: 10
-      },
-      bodyStyles: {
-        fontSize: 9
-      },
-      columnStyles: {
-        0: { cellWidth: 10 },
-        1: { cellWidth: 20, halign: 'center' },
-        2: { cellWidth: 90 },
-        3: { cellWidth: 60 }
-      }
-    });
-    console.log('✅ Table added');
-
-    // Footer
-    const finalY = doc.lastAutoTable.finalY || 120;
-    if (finalY < pageHeight - 30) {
-      doc.setFontSize(8);
-      doc.setTextColor(150, 150, 150);
-      doc.text('Gegenereerd door TEUN.AI - AI Zichtbaarheidsanalyse Tool', pageWidth / 2, pageHeight - 10, { align: 'center' });
-    }
-    console.log('✅ Footer added');
-
-    // Save PDF
-    const fileName = 'AI-Zichtbaarheid-' + formData.companyName.replace(/\s+/g, '-') + '-' + new Date().toISOString().split('T')[0] + '.pdf';
-    console.log('💾 Saving PDF as:', fileName);
-    
-    doc.save(fileName);
-    console.log('✅ PDF download triggered!');
-    
-  } catch (error) {
-    console.error('❌ PDF Generation Error:', error);
-    alert('Er ging iets mis bij het genereren van de PDF: ' + error.message);
-  }
-};
 
   const handleAnalyze = async () => {
     setAnalyzing(true);
@@ -169,35 +55,53 @@ export default function AIVisibilityTool() {
         .map(q => q.trim())
         .filter(q => q.length > 0);
 
-      // Step 1: Preparing
       setProgress(5);
       setCurrentStep('AI-prompts genereren...');
 
-      // Start progress simulation - slower and more realistic
+      const totalPrompts = user ? 10 : 5;
+      
+    // ✅ FIX: Progress blijft doorlopen, maar vertraagt naar het einde
       const progressInterval = setInterval(() => {
         setProgress(prev => {
-          if (prev >= 85) return prev; // Stop at 85%, wait for actual completion
-          if (prev < 30) return prev + 3; // Fast start (5% -> 30%)
-          if (prev < 60) return prev + 2; // Medium speed (30% -> 60%)
-          return prev + 1; // Slow down as we approach completion (60% -> 85%)
+          const rounded = Math.floor(prev);
+          
+          // Stop pas bij 98% (nooit 100% bereiken voor API klaar is)
+          if (rounded >= 98) return rounded;
+          
+          if (user) {
+            // Voor 10 prompts: steeds trager naar het einde
+            if (rounded < 20) return rounded + 2;
+            if (rounded < 50) return rounded + 1.5;
+            if (rounded < 70) return rounded + 1;
+            if (rounded < 85) return rounded + 0.7;
+            if (rounded < 95) return rounded + 0.4;
+            return rounded + 0.2; // Heel langzaam 95-98%
+          } else {
+            // Voor 5 prompts: ook langzamer naar einde
+            if (rounded < 30) return rounded + 3;
+            if (rounded < 60) return rounded + 2;
+            if (rounded < 80) return rounded + 1;
+            if (rounded < 90) return rounded + 0.5;
+            return rounded + 0.3; // Langzaam 90-98%
+          }
         });
-      }, 800); // Slower interval: 800ms instead of 500ms
+      }, 800);
 
-      // Update step messages based on progress
+      // ✅ FIX: Realistischer indicator (1/10 bij 10%, 5/10 bij 50%, etc)
       const stepInterval = setInterval(() => {
         setProgress(current => {
-          if (current >= 10 && current < 25) {
+          const rounded = Math.floor(current);
+          
+          // Bereken hoeveel prompts verwerkt zijn op basis van percentage
+          const estimatedPromptsProcessed = Math.floor((rounded / 100) * totalPrompts);
+          
+          if (rounded >= 10 && rounded < 20) {
             setCurrentStep('AI-prompts genereren...');
-          } else if (current >= 25 && current < 40) {
-            setCurrentStep('Analyseren met AI-zoekmachine (1/5)...');
-          } else if (current >= 40 && current < 55) {
-            setCurrentStep('Analyseren met AI-zoekmachine (2/5)...');
-          } else if (current >= 55 && current < 70) {
-            setCurrentStep('Analyseren met AI-zoekmachine (3/5)...');
-          } else if (current >= 70 && current < 85) {
-            setCurrentStep('Analyseren met AI-zoekmachine (4/5)...');
-          } else if (current >= 85 && current < 95) {
-            setCurrentStep('Analyseren met AI-zoekmachine (5/5)...');
+          } else if (rounded >= 20 && rounded < 90) {
+            const currentPrompt = Math.min(estimatedPromptsProcessed, totalPrompts);
+            setCurrentStep(`Analyseren met AI-zoekmachine (${currentPrompt}/${totalPrompts})...`);
+          } else if (rounded >= 90) {
+            setCurrentStep(`Analyseren met AI-zoekmachine (${totalPrompts}/${totalPrompts})...`);
           }
           return current;
         });
@@ -210,7 +114,8 @@ export default function AIVisibilityTool() {
           companyName: formData.companyName,
           companyCategory: formData.companyCategory,
           identifiedQueriesSummary: queriesArray.length > 0 ? queriesArray : [],
-          userId: user?.id || null // Send user ID if logged in
+          userId: user?.id || null,
+          numberOfPrompts: totalPrompts
         })
       });
 
@@ -223,11 +128,9 @@ export default function AIVisibilityTool() {
 
       const data = await response.json();
       
-      // Clear intervals and complete
       clearInterval(progressInterval);
       clearInterval(stepInterval);
       
-      // Final step
       setProgress(100);
       setCurrentStep('Voltooid!');
       setResults(data);
@@ -249,7 +152,6 @@ export default function AIVisibilityTool() {
     <div className="min-h-screen bg-gradient-to-b from-[#001233] via-[#1a0b3d] to-[#2d1654]" suppressHydrationWarning>
       <div className="max-w-5xl mx-auto px-4 py-6 sm:py-12 text-white">
         
-        {/* Header */}
         <header className="text-center mb-8 sm:mb-12">
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-white via-blue-200 to-purple-200 text-transparent bg-clip-text leading-tight px-4">
             AI Zichtbaarheidsanalyse
@@ -259,7 +161,6 @@ export default function AIVisibilityTool() {
           </p>
         </header>
 
-        {/* Steps indicator */}
         <div className="flex items-center justify-center gap-2 mb-8 flex-wrap">
           {[
             { num: 1, label: 'Zoekopdrachten' },
@@ -282,7 +183,6 @@ export default function AIVisibilityTool() {
           ))}
         </div>
 
-        {/* Error */}
         {error && (
           <div className="backdrop-blur-sm bg-red-500/20 border border-red-400/30 rounded-2xl p-4 mb-6 flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-red-300 flex-shrink-0 mt-0.5" />
@@ -293,9 +193,7 @@ export default function AIVisibilityTool() {
           </div>
         )}
 
-        {/* Main Card */}
         <section className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 mb-8">
-          {/* Step 1: Zoekopdrachten */}
           {step === 1 && (
             <div>
               <div className="flex items-center gap-3 mb-6">
@@ -345,7 +243,6 @@ export default function AIVisibilityTool() {
             </div>
           )}
 
-          {/* Step 2: Bedrijfsgegevens */}
           {step === 2 && (
             <div>
               <div className="flex items-center gap-3 mb-6">
@@ -408,7 +305,6 @@ export default function AIVisibilityTool() {
             </div>
           )}
 
-          {/* Step 3: Start Analyse */}
           {step === 3 && (
             <div>
               <div className="flex items-center gap-3 mb-6">
@@ -420,23 +316,23 @@ export default function AIVisibilityTool() {
 
               {analyzing ? (
                 <div className="space-y-6">
-                  {/* Time estimate banner */}
                   <div className="backdrop-blur-md bg-blue-500/20 border border-blue-400/30 rounded-xl p-4 flex items-start gap-3">
                     <Clock className="w-5 h-5 text-blue-300 flex-shrink-0 mt-0.5" />
                     <div className="text-sm">
-                      <p className="font-semibold text-blue-200 mb-1">Geschatte duur: 1-2 minuten</p>
+                      <p className="font-semibold text-blue-200 mb-1">
+                        Geschatte duur: {user ? '3-5 minuten' : '1-2 minuten'}
+                      </p>
                       <p className="text-blue-300/80">Je kunt ondertussen in een andere tab doorwerken. De resultaten verschijnen hier automatisch.</p>
                     </div>
                   </div>
 
-                  {/* Progress bar */}
                   <div className="backdrop-blur-md bg-gradient-to-br from-purple-600/30 via-purple-500/20 to-indigo-600/30 border border-purple-400/30 rounded-2xl p-6">
                     <div className="flex items-center gap-3 mb-4">
                       <Loader2 className="w-5 h-5 text-purple-300 animate-spin" />
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-medium text-purple-100">{currentStep}</span>
-                          <span className="text-sm text-purple-200">{progress}%</span>
+                          <span className="text-sm text-purple-200">{Math.floor(progress)}%</span>
                         </div>
                       </div>
                     </div>
@@ -444,12 +340,11 @@ export default function AIVisibilityTool() {
                     <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 transition-all duration-500 ease-out"
-                        style={{ width: progress + '%' }}
+                        style={{ width: Math.floor(progress) + '%' }}
                       />
                     </div>
                   </div>
 
-                  {/* Processing steps */}
                   <div className="space-y-2 text-sm mt-6">
                     <div className={'flex items-center gap-2 transition-colors duration-300 ' + (progress >= 20 ? 'text-green-300' : progress > 5 ? 'text-purple-300' : 'text-gray-500')}>
                       {progress >= 20 ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border-2 border-current" />}
@@ -486,7 +381,7 @@ export default function AIVisibilityTool() {
                     )}
                     <div className="flex justify-between">
                       <span className="text-gray-400">Te analyseren:</span>
-                      <span className="text-white font-medium">5 AI-prompts</span>
+                      <span className="text-white font-medium">{user ? '10' : '5'} AI-prompts</span>
                     </div>
                   </div>
 
@@ -510,7 +405,6 @@ export default function AIVisibilityTool() {
             </div>
           )}
 
-          {/* Step 4: Results */}
           {step === 4 && results && (
             <div>
               <div className="flex items-center gap-3 mb-6">
@@ -526,7 +420,6 @@ export default function AIVisibilityTool() {
                 <p className="text-green-100">Je AI-zichtbaarheidsrapport is klaar</p>
               </div>
 
-              {/* Stats */}
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="backdrop-blur-sm border-2 border-purple-400/40 rounded-xl p-4 text-center bg-gradient-to-br from-purple-500/10 to-indigo-500/10">
                   <div className="text-3xl font-bold mb-1 bg-gradient-to-br from-purple-300 via-blue-300 to-purple-200 bg-clip-text text-transparent">
@@ -554,7 +447,6 @@ export default function AIVisibilityTool() {
                 </div>
               </div>
 
-              {/* Results list */}
               <div className="space-y-3 mb-6">
                 {results.analysis_results.map((result, idx) => (
                   <div key={idx} className="bg-white/5 border border-white/10 rounded-lg p-4">
@@ -586,42 +478,45 @@ export default function AIVisibilityTool() {
                 ))}
               </div>
 
-              <div className="flex gap-4">
+              <div className="mb-6">
                 <button
                   onClick={() => {
                     setStep(1);
                     setFormData({ companyName: '', companyCategory: '', queries: '' });
                     setResults(null);
                   }}
-                  className="flex-1 px-6 py-3 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition"
+                  className="w-full px-6 py-3 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition"
                 >
                   Nieuwe analyse
                 </button>
-                <button 
-                  onClick={downloadPDF}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold rounded-lg hover:from-purple-600 hover:to-indigo-700 transition shadow-lg flex items-center justify-center gap-2"
-                >
-                  <Eye className="w-5 h-5" />
-                  Download PDF
-                </button>
               </div>
+
+              <FeedbackWidget 
+                scanId={results?.scan_id || null}
+                companyName={formData.companyName}
+                totalMentions={results?.total_company_mentions || 0}
+              />
             </div>
           )}
         </section>
 
-        {/* Bottom CTA - Only show when NOT analyzing */}
         {!analyzing && (
           <div className="text-center">
-            <p className="text-gray-400 mb-4">
+            <p className="text-gray-400 mb-2">
               {user ? 'Ingelogd als ' + user.email : 'Meer analyses nodig?'}
             </p>
             {!user && (
-              <Link 
-                href="/signup"
-                className="px-6 py-3 bg-white/10 border border-white/20 rounded-lg font-semibold hover:bg-white/20 transition text-white inline-block"
-              >
-                Meld je aan voor meer scans
-              </Link>
+              <>
+                <p className="text-purple-300 text-sm mb-4">
+                  ✨ Met een account krijg je 10 unieke prompts per scan
+                </p>
+                <Link 
+                  href="/signup"
+                  className="px-6 py-3 bg-white/10 border border-white/20 rounded-lg font-semibold hover:bg-white/20 transition text-white inline-block"
+                >
+                  Meld je aan voor meer scans
+                </Link>
+              </>
             )}
           </div>
         )}

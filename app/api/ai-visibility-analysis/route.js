@@ -19,7 +19,8 @@ export async function POST(request) {
       companyName, 
       companyCategory, 
       identifiedQueriesSummary,
-      userId 
+      userId,
+      numberOfPrompts = 5  // ✅ NIEUW: Default 5, maar kan 10 zijn voor ingelogd
     } = body
 
     if (!companyName?.trim()) {
@@ -73,10 +74,11 @@ export async function POST(request) {
     const generatedPrompts = promptGenerationResult.prompts
     console.log(`✅ Generated ${generatedPrompts.length} prompts`)
     
-    const analysisLimit = userId ? 10 : 5
+    // ✅ FIXED: Gebruik numberOfPrompts parameter ipv hardcoded logica
+    const analysisLimit = numberOfPrompts
     const promptsToAnalyze = generatedPrompts.slice(0, analysisLimit)
     
-    console.log(`🔍 Step 2: Analyzing ${promptsToAnalyze.length} prompts...`)
+    console.log(`🔍 Step 2: Analyzing ${promptsToAnalyze.length} prompts (limit: ${analysisLimit})...`)
     
     const analysisResults = []
     let totalCompanyMentions = 0
@@ -185,49 +187,61 @@ Vermijd prompts die starten met "Waar kan ik...", "Welke specialist...", of die 
 Focus op vragen die concreet om bedrijfsnamen vragen, en sluit expliciet de genoemde wereldwijde merken uit.
 
 **BELANGRIJKSTE REGEL:** Blijf strikt binnen de context van de opgegeven zoekwoorden. Voeg GEEN ongerelateerde termen of concepten toe die niet in de zoekwoorden voorkomen.`,
-      messages: [{
-        role: 'user',
-        content: `Genereer 10 zeer specifieke, commercieel relevante zoekvragen die een potentiële klant zou stellen met de intentie om **concrete, lokale/nationale bedrijven of leveranciers** te vinden die diensten of producten leveren relevant voor "${companyName}" in de categorie "${companyCategory}".
+     messages: [{
+  role: 'user',
+  content: `Genereer 10 zeer specifieke, commercieel relevante zoekvragen die een potentiële klant zou stellen met de intentie om **concrete, lokale/nationale bedrijven of leveranciers** te vinden.
+
+**ABSOLUTE TOP PRIORITEIT - STRIKT BLIJVEN BIJ CONTEXT:**
+${primaryKeyword ? `
+De vragen MOETEN draaien om "${primaryKeyword}" en aanvullende zoekwoorden.
+ALLE 10 vragen moeten direct gerelateerd zijn aan deze zoekwoorden en de categorie "${companyCategory}".
+
+**VOORBEELDEN VAN GOEDE VRAGEN VOOR "${primaryKeyword}" + "${companyCategory}":**
+- "Kun je een aantal gespecialiseerde ${companyCategory} noemen die expert zijn in ${primaryKeyword}?"
+- "Welke zijn de beste ${companyCategory} voor ${primaryKeyword} met goede reviews?"
+- "Geef voorbeelden van ervaren ${companyCategory} die gespecialiseerd zijn in ${primaryKeyword}"
+- "Lijst aanbevolen ${companyCategory} op voor ${primaryKeyword} kwesties"
+- "Welke ${companyCategory} hebben de meeste ervaring met ${primaryKeyword}?"
+
+**VERPLICHT:**
+- ELKE vraag moet "${primaryKeyword}" OF een direct gerelateerd synoniem bevatten
+- ELKE vraag moet "${companyCategory}" OF een direct gerelateerd synoniem bevatten
+- Gebruik ALLEEN termen die logisch passen bij de zoekwoorden
+- GEEN algemene juridische termen die NIET in de zoekwoorden staan
+` : `
+De vragen MOETEN draaien om "${companyCategory}".
+`}
 
 **KRITIEKE VEREISTEN:**
 
-1. **Algemeen en bedrijfsneutraal:** De vragen moeten algemeen zijn en mogen de naam "${companyName}" of "${companyCategory}" NIET direct bevatten
+1. **Algemeen en bedrijfsneutraal:** De vragen mogen de naam "${companyName}" NIET direct bevatten, maar MOETEN WEL "${companyCategory}" of synoniemen daarvan bevatten
 
-2. **Focus op bedrijfsnamen:** Zich uitsluitend richten op het **identificeren van specifieke, relevante organisaties, aanbieders of merken**
+2. **Focus op bedrijfsnamen + categorie:** Zich uitsluitend richten op het **identificeren van specifieke organisaties** binnen de categorie "${companyCategory}"
 
-3. **Sluit wereldwijde merken uit:** Die GEEN bekende, wereldwijde consumentenmerken zijn zoals Coca-Cola, Nike, Adidas, Apple, Samsung, Google (als bedrijf), Facebook, YouTube, Amazon, Lego etc.
+3. **Sluit wereldwijde merken uit:** GEEN bekende, wereldwijde consumentenmerken
 
 4. **VERMIJD ABSOLUUT:**
+   - Vragen die te algemeen zijn en NIET over "${companyCategory}" gaan
    - Vragen die beginnen met "Waar kan ik vinden..."
-   - Vragen die beginnen met "Welke specialist..."
-   - Vragen die leiden tot algemeen advies over zoekmethoden
-   - Vragen over typen specialisten of concepten zonder directe focus op bedrijfsnamen
-   - **Het toevoegen van ONGERELATEERDE termen die niet in de zoekwoorden staan**
+   - Vragen zonder directe link naar de opgegeven zoekwoorden
+   - **Het toevoegen van ONGERELATEERDE specialisaties die NIET in de zoekwoorden staan**
+   
+   **FOUT VOORBEELD (vermijd dit!):**
+   ❌ "Welke zijn de meest toonaangevende juridische kantoren voor procedures bij de kantonrechter?"
+   → TE ALGEMEEN, "kantonrechter" staat niet in de zoekwoorden!
+   
+   **GOED VOORBEELD:**
+   ✅ "Kun je een aantal gespecialiseerde advocatenkantoren noemen die expert zijn in arbeidsrecht?"
+   → Bevat zowel "advocatenkantoren" (categorie) als "arbeidsrecht" (zoekwoord)
 
-5. **Formuleer vragen die direct een lijst of concrete suggesties voor bedrijven uitlokken**
+5. **Formuleer vragen die direct een lijst uitlokken + BLIJF BIJ CONTEXT**
 
-**GOEDE START PATRONEN (gebruik deze!):**
-- "Kun je een aantal **bedrijven** noemen die..."
-- "Welke zijn de top **leveranciers** die gespecialiseerd zijn in..."
-- "Geef voorbeelden van gerenommeerde **bedrijven** voor..."
-- "Lijst aanbevolen **leveranciers** op van..."
-- "Welke **bedrijven** zijn gespecialiseerd in..."
-- "Noem enkele **bureaus/partners** die..."
-- "Vergelijk de beste **aanbieders** voor..."
-
-**VOORBEELDEN VAN IDEALE VRAGEN:**
-- "Kun je een aantal bedrijven noemen die de beste SEO-diensten aanbieden voor webshops in Nederland?"
-- "Welke zijn de top SEO-bureaus die gespecialiseerd zijn in lokale zoekmachine optimalisatie?"
-- "Geef voorbeelden van gerenommeerde marketingbureaus voor MKB met bewezen ROI-resultaten"
-- "Lijst aanbevolen SEO-leveranciers op met uitstekende reviews en case studies"
-- "Welke bedrijven zijn gespecialiseerd in technische SEO voor e-commerce platforms?"${searchConsoleContext}
-
-**BELANGRIJKE INSTRUCTIES:**
-- Zorg voor een sterke zoekintentie gericht op het vinden van specifieke, passende dienstverleners of aanbieders
-- Vermijd grote, niet-relevante consumentenmerken
-- Richt je op lokale/nationale Nederlandse bedrijven of specialistische MKB-dienstverleners
-- Varieer de vragen: mix van top-lijsten, vergelijkingen, specialisaties, reviews, case studies
-- **BLIJF STRIKT BINNEN DE CONTEXT VAN DE OPGEGEVEN ZOEKWOORDEN**
+**GOEDE START PATRONEN (gebruik categorie + zoekwoord!):**
+- "Kun je een aantal gespecialiseerde **${companyCategory}** noemen die..."
+- "Welke zijn de beste **${companyCategory}** voor ${primaryKeyword || '...'} ..."
+- "Geef voorbeelden van ervaren **${companyCategory}** in ${primaryKeyword || '...'}..."
+- "Lijst aanbevolen **${companyCategory}** op die gespecialiseerd zijn in ${primaryKeyword || '...'}..."
+- "Welke **${companyCategory}** hebben bewezen expertise in ${primaryKeyword || '...'}?"
 
 **OUTPUT FORMAAT:**
 Geef exact 10 vragen terug als een JSON array van strings. GEEN extra uitleg, ALLEEN de JSON array.
@@ -235,7 +249,7 @@ De vragen moeten **ALTIJD en UITSLUITEND in het Nederlands zijn, GEEN ENKELE ENG
 
 Voorbeeld formaat:
 ["Vraag 1", "Vraag 2", ..., "Vraag 10"]`
-      }]
+}]
     })
 
     const responseText = message.content[0].type === 'text' 

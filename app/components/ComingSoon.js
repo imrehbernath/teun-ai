@@ -112,16 +112,13 @@ export default function ComingSoon() {
             Test <strong>GRATIS</strong> hoe vaak jouw bedrijf wordt vermeld in AI-zoekmachines zoals ChatGPT, Perplexity en Claude.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex justify-center">
             <Link
               href="/tools/ai-visibility"
-              className="px-8 py-4 bg-white text-purple-700 font-bold rounded-lg hover:bg-green-50 transition shadow-xl hover:scale-105 transform text-center w-full sm:w-auto"
+              className="px-8 py-4 bg-white text-purple-700 font-bold rounded-lg hover:bg-green-50 transition shadow-xl hover:scale-105 transform text-center"
             >
               🚀 Test Nu Gratis (BETA)
             </Link>
-            <span className="text-green-200 text-sm">
-              2x gratis zonder account • Direct resultaat
-            </span>
           </div>
         </section>
 

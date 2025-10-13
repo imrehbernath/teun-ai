@@ -358,7 +358,7 @@ function Footer() {
                 </li>
                 <li>
                   <span className="text-white/50 text-sm cursor-not-allowed">
-                    Keyword Relevance <span className="text-xs">(binnenkort)</span>
+                    Zoekwoord Analyse <span className="text-xs">(binnenkort)</span>
                   </span>
                 </li>
                 <li>
@@ -368,7 +368,7 @@ function Footer() {
                 </li>
                 <li>
                   <span className="text-white/50 text-sm cursor-not-allowed">
-                    Structured Data <span className="text-xs">(binnenkort)</span>
+                    Schema Markup <span className="text-xs">(binnenkort)</span>
                   </span>
                 </li>
               </ul>
