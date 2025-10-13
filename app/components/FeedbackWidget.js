@@ -111,10 +111,10 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
             Help anderen hun AI-zichtbaarheid te ontdekken
           </p>
           
-          <div className="backdrop-blur-sm bg-white/10 rounded-lg p-4 mb-6 text-left text-sm text-blue-100">
+           <div className="backdrop-blur-sm bg-white/10 rounded-lg p-4 mb-6 text-left text-sm text-blue-100">
             <p className="italic">
-              "🎯 Zojuist mijn AI-zichtbaarheid getest met TEUN.AI<br/>
-              📊 Resultaat: {totalMentions}/5 vermeldingen in AI-zoekmachines..."
+              &ldquo;🎯 Zojuist mijn AI-zichtbaarheid getest met TEUN.AI<br/>
+              📊 Resultaat: {totalMentions}/5 vermeldingen in AI-zoekmachines...&rdquo;
             </p>
           </div>
 
