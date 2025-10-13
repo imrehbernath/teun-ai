@@ -197,18 +197,20 @@ export async function POST(request) {
       .select()
       .single();
 
-    // ✅ Verstuur Slack notificatie (non-blocking)
-    if (savedScan) {
-      const primaryKeyword = identifiedQueriesSummary?.[0] || null;
-      
-      sendSlackNotification({
-        companyName,
-        companyCategory,
-        primaryKeyword,
-        totalMentions: totalCompanyMentions,
-        scanId: savedScan.id
-      }).catch(err => console.error('Slack notificatie fout:', err));
-    }
+   // ✅ Verstuur Slack notificatie (non-blocking)
+if (savedScan) {
+  const primaryKeyword = identifiedQueriesSummary?.[0] || null;
+  
+  /* TIJDELIJK UITGEZET VOOR DEBUG
+  sendSlackNotification({
+    companyName,
+    companyCategory,
+    primaryKeyword,
+    totalMentions: totalCompanyMentions,
+    scanId: savedScan.id
+  }).catch(err => console.error('Slack notificatie fout:', err));
+  */
+}
 
     await trackScan(
       supabase,
