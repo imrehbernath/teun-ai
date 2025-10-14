@@ -92,7 +92,7 @@ export default function ComingSoon() {
           </p>
         </header>
 
-        {/* 🚀 BETA LAUNCH BANNER - NIEUW! */}
+        {/* 🚀 BETA LAUNCH BANNER */}
         <section className="backdrop-blur-md bg-gradient-to-r from-green-600/40 via-emerald-500/30 to-green-600/40 border-2 border-green-400/50 rounded-2xl p-6 md:p-8 mb-8 shadow-2xl animate-pulse-slow">
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="flex items-center gap-2 bg-green-500/30 px-4 py-2 rounded-full border border-green-400/50">
@@ -125,7 +125,6 @@ export default function ComingSoon() {
         {/* Launch Card */}
         <section className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 mb-8" aria-labelledby="launch-heading">
           <div className="text-center">
-            {/* Compacte badge voor mobiel */}
             <div className="inline-flex flex-col sm:flex-row items-center gap-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 px-3 py-2 md:px-4 md:py-2 rounded-full border border-blue-400/30 mb-6">
               <div className="flex items-center gap-2">
                 <span className="text-xl md:text-2xl" role="img" aria-label="raket">🚀</span>
@@ -215,7 +214,7 @@ export default function ComingSoon() {
         </section>
 
         {/* Why Section */}
-        <section className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8" aria-labelledby="why-heading">
+        <section className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 mb-12" aria-labelledby="why-heading">
           <h2 id="why-heading" className="text-2xl md:text-3xl font-bold text-center mb-6">Waarom Teun.ai?</h2>
           
           <div className="space-y-4 text-gray-300 text-base md:text-lg leading-relaxed">
@@ -248,20 +247,7 @@ export default function ComingSoon() {
           </div>
         </section>
 
-        {/* Footer */}
-        <footer className="text-center mt-12 text-gray-400 text-sm">
-          <p>
-            © 2025 Teun.ai | Powered by{' '}
-            <a 
-              href="https://www.onlinelabs.nl" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="text-cyan-400 hover:underline focus:outline-none focus:ring-2 focus:ring-cyan-400 rounded"
-            >
-              OnlineLabs
-            </a>
-          </p>
-        </footer>
+        {/* ✅ FOOTER VERWIJDERD - Zit nu in template.js */}
       </div>
     </div>
   );

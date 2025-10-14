@@ -452,15 +452,8 @@ function Footer() {
 
 // Main Template Component
 export default function Template({ children }) {
-  const pathname = usePathname();
-  
-  // Toon GEEN header/footer op coming soon page
-  const showLayout = pathname !== '/';
-
-  if (!showLayout) {
-    return children;
-  }
-
+  // ✅ VERWIJDERD: Geen exception meer voor homepage
+  // Altijd header + footer tonen
   return (
     <>
       <Header />
