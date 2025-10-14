@@ -36,3 +36,53 @@ body {
     font-family: var(--font-nunito), sans-serif;
   }
 }
+
+/* ===== WordPress Content Fixes ===== */
+/* Code block mobile responsive fix */
+@layer base {
+  /* Fix voor WordPress code blocks */
+  .prose pre,
+  .wp-block-code,
+  pre {
+    overflow-x: auto;
+    max-width: 100%;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    -webkit-overflow-scrolling: touch;
+    background-color: #1e293b;
+    border-radius: 0.5rem;
+    padding: 1rem;
+  }
+
+  .prose code {
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+
+  /* Specifiek voor inline code */
+  .prose :not(pre) > code {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* Mobile optimalisaties */
+  @media (max-width: 768px) {
+    .prose pre,
+    .wp-block-code pre {
+      font-size: 0.75rem;
+      line-height: 1.5;
+      padding: 0.75rem;
+    }
+
+    .prose code {
+      font-size: 0.75rem;
+    }
+  }
+
+  /* Tablet optimalisaties */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .prose pre {
+      font-size: 0.875rem;
+    }
+  }
+}
