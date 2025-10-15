@@ -178,11 +178,10 @@
 }
 
 /* ============================================
-   CHECKLIST STYLING (met verticale lijn)
+   CHECKLIST STYLING - Groene vinkjes (class="checklist")
    CSS MODULES FIX: MULTIPLE SELECTORS voor maximale compatibility
    ============================================ */
 
-/* Probeer ALLE mogelijke varianten */
 .blogContent ul:global(.wp-block-list):global(.checklist),
 .blogContent ul:global(.wp-block-list.checklist),
 .blogContent :global(ul.wp-block-list.checklist),
@@ -193,7 +192,7 @@
   position: relative !important;
 }
 
-/* Verticale lijn door alle items - ALLE varianten */
+/* Verticale lijn - groen/blauw gradient */
 .blogContent ul:global(.wp-block-list):global(.checklist)::before,
 .blogContent ul:global(.wp-block-list.checklist)::before,
 .blogContent :global(ul.wp-block-list.checklist)::before,
@@ -209,7 +208,6 @@
   z-index: 0 !important;
 }
 
-/* List items - ALLE varianten */
 .blogContent ul:global(.wp-block-list):global(.checklist) li,
 .blogContent ul:global(.wp-block-list.checklist) li,
 .blogContent :global(ul.wp-block-list.checklist) li,
@@ -222,7 +220,7 @@
   color: rgb(51, 51, 51) !important;
 }
 
-/* Vinkje badge - groene cirkel met vinkje - ALLE varianten */
+/* Vinkje badge - groene cirkel */
 .blogContent ul:global(.wp-block-list):global(.checklist) li::before,
 .blogContent ul:global(.wp-block-list.checklist) li::before,
 .blogContent :global(ul.wp-block-list.checklist) li::before,
@@ -247,13 +245,87 @@
   transition: all 0.2s ease !important;
 }
 
-/* Hover effect - ALLE varianten */
 .blogContent ul:global(.wp-block-list):global(.checklist) li:hover::before,
 .blogContent ul:global(.wp-block-list.checklist) li:hover::before,
 .blogContent :global(ul.wp-block-list.checklist) li:hover::before,
 .blogContent ul.checklist li:hover::before {
   transform: scale(1.1) !important;
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4) !important;
+}
+
+/* ============================================
+   FAIL CHECKLIST - Rode kruisjes (class="fail")
+   ============================================ */
+
+.blogContent ul:global(.wp-block-list):global(.fail),
+.blogContent ul:global(.wp-block-list.fail),
+.blogContent :global(ul.wp-block-list.fail),
+.blogContent ul.fail {
+  list-style: none !important;
+  margin: 24px 0 !important;
+  padding-left: 0 !important;
+  position: relative !important;
+}
+
+/* Verticale lijn - rood */
+.blogContent ul:global(.wp-block-list):global(.fail)::before,
+.blogContent ul:global(.wp-block-list.fail)::before,
+.blogContent :global(ul.wp-block-list.fail)::before,
+.blogContent ul.fail::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 15px !important;
+  top: 16px !important;
+  bottom: 16px !important;
+  width: 2px !important;
+  background: linear-gradient(180deg, #EF4444, #DC2626) !important;
+  opacity: 0.3 !important;
+  z-index: 0 !important;
+}
+
+.blogContent ul:global(.wp-block-list):global(.fail) li,
+.blogContent ul:global(.wp-block-list.fail) li,
+.blogContent :global(ul.wp-block-list.fail) li,
+.blogContent ul.fail li {
+  position: relative !important;
+  padding-left: 50px !important;
+  font-size: 17px !important;
+  line-height: 1.7em !important;
+  margin-bottom: 20px !important;
+  color: rgb(51, 51, 51) !important;
+}
+
+/* Kruisje badge - rode cirkel */
+.blogContent ul:global(.wp-block-list):global(.fail) li::before,
+.blogContent ul:global(.wp-block-list.fail) li::before,
+.blogContent :global(ul.wp-block-list.fail) li::before,
+.blogContent ul.fail li::before {
+  content: "✕" !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #EF4444, #DC2626) !important;
+  color: white !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3) !important;
+  z-index: 1 !important;
+  border: 3px solid white !important;
+  transition: all 0.2s ease !important;
+}
+
+.blogContent ul:global(.wp-block-list):global(.fail) li:hover::before,
+.blogContent ul:global(.wp-block-list.fail) li:hover::before,
+.blogContent :global(ul.wp-block-list.fail) li:hover::before,
+.blogContent ul.fail li:hover::before {
+  transform: scale(1.1) !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4) !important;
 }
 
 /* ============================================
@@ -577,7 +649,7 @@
     font-size: 12px;
   }
 
-  /* CHECKLIST MOBILE - ALLE selector varianten */
+  /* CHECKLIST MOBILE */
   .blogContent ul:global(.wp-block-list):global(.checklist)::before,
   .blogContent ul:global(.wp-block-list.checklist)::before,
   .blogContent :global(ul.wp-block-list.checklist)::before,
@@ -603,6 +675,35 @@
     width: 28px !important;
     height: 28px !important;
     font-size: 16px !important;
+    border: 2px solid white !important;
+  }
+
+  /* FAIL CHECKLIST MOBILE */
+  .blogContent ul:global(.wp-block-list):global(.fail)::before,
+  .blogContent ul:global(.wp-block-list.fail)::before,
+  .blogContent :global(ul.wp-block-list.fail)::before,
+  .blogContent ul.fail::before {
+    left: 13px !important;
+    top: 14px !important;
+    bottom: 14px !important;
+  }
+  
+  .blogContent ul:global(.wp-block-list):global(.fail) li,
+  .blogContent ul:global(.wp-block-list.fail) li,
+  .blogContent :global(ul.wp-block-list.fail) li,
+  .blogContent ul.fail li {
+    padding-left: 42px !important;
+    font-size: 16px !important;
+    margin-bottom: 16px !important;
+  }
+  
+  .blogContent ul:global(.wp-block-list):global(.fail) li::before,
+  .blogContent ul:global(.wp-block-list.fail) li::before,
+  .blogContent :global(ul.wp-block-list.fail) li::before,
+  .blogContent ul.fail li::before {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 18px !important;
     border: 2px solid white !important;
   }
 
@@ -765,7 +866,7 @@
     font-size: 15px;
   }
 
-  /* Checklist tablet - ALLE varianten */
+  /* Checklist tablet */
   .blogContent ul:global(.wp-block-list):global(.checklist) li::before,
   .blogContent ul:global(.wp-block-list.checklist) li::before,
   .blogContent :global(ul.wp-block-list.checklist) li::before,
@@ -773,6 +874,16 @@
     width: 30px !important;
     height: 30px !important;
     font-size: 17px !important;
+  }
+
+  /* Fail checklist tablet */
+  .blogContent ul:global(.wp-block-list):global(.fail) li::before,
+  .blogContent ul:global(.wp-block-list.fail) li::before,
+  .blogContent :global(ul.wp-block-list.fail) li::before,
+  .blogContent ul.fail li::before {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 19px !important;
   }
 }
 
