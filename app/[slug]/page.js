@@ -10,6 +10,7 @@ import ReadingTime from './ReadingTime';
 import SocialShareButtons from './SocialShareButtons';
 import AuthorBio from './AuthorBio';
 import GeoAuditCTA from './GeoAuditCTA';
+import ServerResponsiveImage from './ServerResponsiveImage';
 
 async function getPost(slug) {
   const query = `
@@ -25,6 +26,18 @@ async function getPost(slug) {
           node {
             sourceUrl
             altText
+            mediaDetails {
+              width
+              height
+            }
+          }
+        }
+        mobileImageData {
+          sourceUrl
+          altText
+          mediaDetails {
+            width
+            height
           }
         }
         author {
@@ -61,6 +74,14 @@ async function getPost(slug) {
     // Transform featured image URL to assets.teun.ai
     if (post.featuredImage?.node?.sourceUrl) {
       post.featuredImage.node.sourceUrl = post.featuredImage.node.sourceUrl.replace(
+        'https://wordpress-988065-5905039.cloudwaysapps.com',
+        'https://assets.teun.ai'
+      );
+    }
+    
+    // Transform mobile image URL to assets.teun.ai
+    if (post.mobileImageData?.sourceUrl) {
+      post.mobileImageData.sourceUrl = post.mobileImageData.sourceUrl.replace(
         'https://wordpress-988065-5905039.cloudwaysapps.com',
         'https://assets.teun.ai'
       );
@@ -293,27 +314,15 @@ export default async function BlogPost({ params }) {
             </div>
           </div>
 
-          {/* Rechts: Featured Image Card */}
+          {/* Rechts: Featured Image Card - RESPONSIVE */}
           <div className="bg-gradient-to-br from-indigo-900 via-blue-900 to-indigo-800 rounded-3xl overflow-hidden">
-            {post.featuredImage?.node?.sourceUrl ? (
-              <div className="relative w-full h-full min-h-[400px]">
-                <Image
-                  src={post.featuredImage.node.sourceUrl}
-                  alt={post.featuredImage.node.altText || post.title}
-                  fill
-                  className="object-cover"
-                  priority
-                  fetchPriority="high"
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                />
-              </div>
-            ) : (
-              <div className="w-full h-full min-h-[400px] bg-white/10 backdrop-blur flex items-center justify-center">
-                <svg className="w-32 h-32 text-white/50" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" />
-                </svg>
-              </div>
-            )}
+            <ServerResponsiveImage
+              desktopImage={post.featuredImage?.node}
+              mobileImage={post.mobileImageData}
+              alt={post.featuredImage?.node?.altText || post.title}
+              priority={true}
+              sizes="(max-width: 1024px) 100vw, 50vw"
+            />
           </div>
 
         </div>
@@ -321,7 +330,7 @@ export default async function BlogPost({ params }) {
 
       {/* Main Content */}
       <article className="bg-white">
-        <div className="mx-auto px-4 py-12 max-w-[1200px]">
+        <div className="mx-auto px-4 pt-6 pb-12 lg:pt-12 max-w-[1200px]">
           <div className="grid grid-cols-12 gap-6 lg:gap-12">
 
             {headings.length > 0 && (
