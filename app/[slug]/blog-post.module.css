@@ -39,11 +39,10 @@
   margin-bottom: 10px;
   padding-left: 40px;
   position: relative;
-  counter-increment: h3-counter;
 }
 
 .blogContent h3::before {
-  content: counter(h3-counter);
+  content: "→";
   position: absolute;
   left: 0;
   top: 0;
@@ -55,7 +54,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
 }
 
@@ -80,7 +79,10 @@
   color: rgb(51, 51, 51);
 }
 
-/* Unordered Lists - Gradient dots */
+/* ============================================
+   UNORDERED LISTS - Gradient dots
+   ============================================ */
+
 .blogContent ul {
   list-style: none;
   margin: 16px 0;
@@ -107,33 +109,151 @@
   background: linear-gradient(135deg, #1A7DFF, #6C3FF2);
 }
 
-/* Ordered Lists - Gradient dots */
+/* ============================================
+   ORDERED LISTS - Gradient cijfers in cirkels
+   ============================================ */
+
 .blogContent ol {
   list-style: none;
   counter-reset: item;
-  margin: 16px 0;
+  margin: 24px 0;
   padding-left: 0;
 }
 
 .blogContent ol li {
   position: relative;
-  padding-left: 24px;
+  padding-left: 50px;
   font-size: 17px;
   line-height: 1.7em;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   color: rgb(51, 51, 51);
   counter-increment: item;
 }
 
 .blogContent ol li::before {
-  content: "";
+  content: counter(item);
   position: absolute;
   left: 0;
-  top: 0.65em;
-  width: 8px;
-  height: 8px;
+  top: 0;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1A7DFF, #6C3FF2);
+  background: linear-gradient(135deg, #6C3FF2, #8B5CF6);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(108, 63, 242, 0.25);
+  transition: all 0.2s ease;
+}
+
+/* Nested ordered lists (sub-nummering) */
+.blogContent ol ol {
+  margin-top: 12px;
+  margin-bottom: 12px;
+  counter-reset: subitem;
+}
+
+.blogContent ol ol li {
+  padding-left: 45px;
+  margin-bottom: 12px;
+  counter-increment: subitem;
+}
+
+.blogContent ol ol li::before {
+  content: counter(item) "." counter(subitem);
+  width: 36px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 13px;
+  background: linear-gradient(135deg, #6C3FF2, #8B5CF6);
+}
+
+/* Hover effect voor interactiviteit */
+.blogContent ol li:hover::before {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(108, 63, 242, 0.35);
+}
+
+/* ============================================
+   CHECKLIST STYLING (met verticale lijn)
+   CSS MODULES FIX: MULTIPLE SELECTORS voor maximale compatibility
+   ============================================ */
+
+/* Probeer ALLE mogelijke varianten */
+.blogContent ul:global(.wp-block-list):global(.checklist),
+.blogContent ul:global(.wp-block-list.checklist),
+.blogContent :global(ul.wp-block-list.checklist),
+.blogContent ul.checklist {
+  list-style: none !important;
+  margin: 24px 0 !important;
+  padding-left: 0 !important;
+  position: relative !important;
+}
+
+/* Verticale lijn door alle items - ALLE varianten */
+.blogContent ul:global(.wp-block-list):global(.checklist)::before,
+.blogContent ul:global(.wp-block-list.checklist)::before,
+.blogContent :global(ul.wp-block-list.checklist)::before,
+.blogContent ul.checklist::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 15px !important;
+  top: 16px !important;
+  bottom: 16px !important;
+  width: 2px !important;
+  background: linear-gradient(180deg, #1A7DFF, #6C3FF2) !important;
+  opacity: 0.3 !important;
+  z-index: 0 !important;
+}
+
+/* List items - ALLE varianten */
+.blogContent ul:global(.wp-block-list):global(.checklist) li,
+.blogContent ul:global(.wp-block-list.checklist) li,
+.blogContent :global(ul.wp-block-list.checklist) li,
+.blogContent ul.checklist li {
+  position: relative !important;
+  padding-left: 50px !important;
+  font-size: 17px !important;
+  line-height: 1.7em !important;
+  margin-bottom: 20px !important;
+  color: rgb(51, 51, 51) !important;
+}
+
+/* Vinkje badge - groene cirkel met vinkje - ALLE varianten */
+.blogContent ul:global(.wp-block-list):global(.checklist) li::before,
+.blogContent ul:global(.wp-block-list.checklist) li::before,
+.blogContent :global(ul.wp-block-list.checklist) li::before,
+.blogContent ul.checklist li::before {
+  content: "✓" !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #10B981, #059669) !important;
+  color: white !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3) !important;
+  z-index: 1 !important;
+  border: 3px solid white !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Hover effect - ALLE varianten */
+.blogContent ul:global(.wp-block-list):global(.checklist) li:hover::before,
+.blogContent ul:global(.wp-block-list.checklist) li:hover::before,
+.blogContent :global(ul.wp-block-list.checklist) li:hover::before,
+.blogContent ul.checklist li:hover::before {
+  transform: scale(1.1) !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4) !important;
 }
 
 /* ============================================
@@ -157,8 +277,8 @@
 }
 
 .blogContent figcaption,
-.blogContent .wp-caption-text,
-.blogContent .wp-element-caption {
+.blogContent :global(.wp-caption-text),
+.blogContent :global(.wp-element-caption) {
   font-size: 14px;
   font-style: italic;
   color: #666;
@@ -168,8 +288,8 @@
   line-height: 1.6;
 }
 
-.blogContent figure.aligncenter figcaption,
-.blogContent figure.wp-block-image figcaption {
+.blogContent :global(figure.aligncenter) figcaption,
+.blogContent :global(figure.wp-block-image) figcaption {
   text-align: center;
 }
 
@@ -180,6 +300,45 @@
   margin: 24px 0;
   font-style: italic;
   color: rgb(85, 85, 85);
+}
+
+/* ============================================
+   CODE BLOCKS - WordPress Content Fixes
+   ============================================ */
+
+.blogContent pre,
+.blogContent :global(.wp-block-code),
+.blogContent :global(.wp-block-code) pre {
+  overflow-x: auto;
+  max-width: 100%;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  -webkit-overflow-scrolling: touch;
+  background-color: #f5f3ff;
+  border: 1px solid #e9d5ff;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  color: #5b21b6;
+  margin: 24px 0;
+}
+
+.blogContent code {
+  word-break: break-word;
+  white-space: pre-wrap;
+  color: #5b21b6;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+/* Specifiek voor inline code */
+.blogContent :not(pre) > code {
+  white-space: normal;
+  word-break: break-word;
+  background-color: #ede9fe;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  color: #6d28d9;
+  font-weight: 500;
 }
 
 /* ============================================
@@ -216,7 +375,6 @@
   border-image: linear-gradient(90deg, #1A7DFF, #6C3FF2) 1;
 }
 
-/* TOC Container styling for better contrast */
 :global(.toc-container) {
   background: white;
   border: 1px solid #e5e7eb;
@@ -258,7 +416,7 @@
   flex-shrink: 0;
 }
 
-:global(.toc-arrow svg) {
+:global(.toc-arrow) svg {
   width: 15px;
   height: 15px;
 }
@@ -272,8 +430,8 @@
    TABLES - DESKTOP
    ============================================ */
 
-.blogContent .wp-block-table,
-.blogContent figure.wp-block-table {
+.blogContent :global(.wp-block-table),
+.blogContent :global(figure.wp-block-table) {
   margin: 2rem 0;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -339,23 +497,162 @@
   color: #1f2937;
 }
 
-.blogContent table.striped tbody tr:nth-child(even) {
+.blogContent :global(table.striped) tbody tr:nth-child(even) {
   background-color: #f9fafb;
 }
 
-.blogContent table.striped tbody tr:hover {
+.blogContent :global(table.striped) tbody tr:hover {
   background-color: #f3f4f6;
 }
 
 /* ============================================
-   TABLES - MOBILE
+   MOBILE RESPONSIVE
    ============================================ */
 
 @media (max-width: 768px) {
-  /* FORCE scroll on ANY wrapper around table */
+  /* Typography mobile */
+  .blogContent p {
+    font-size: 16px;
+    line-height: 1.65em;
+    margin-bottom: 14px;
+  }
+
+  .blogContent p:first-of-type {
+    font-size: 16px;
+    line-height: 27px;
+  }
+
+  .blogContent h2 {
+    font-size: 22px;
+    margin-top: 32px;
+    margin-bottom: 20px;
+  }
+
+  .blogContent h3 {
+    font-size: 18px;
+    padding-left: 36px;
+    margin-top: 24px;
+    margin-bottom: 12px;
+  }
+
+  .blogContent h3::before {
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+  }
+
+  /* Lists mobile */
+  .blogContent ul li {
+    font-size: 16px;
+    padding-left: 20px;
+    margin-bottom: 10px;
+  }
+
+  .blogContent ul li::before {
+    width: 6px;
+    height: 6px;
+    top: 0.6em;
+  }
+
+  /* Ordered lists mobile */
+  .blogContent ol li {
+    padding-left: 42px;
+    font-size: 16px;
+    margin-bottom: 14px;
+  }
+  
+  .blogContent ol li::before {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  
+  .blogContent ol ol li {
+    padding-left: 40px;
+  }
+
+  .blogContent ol ol li::before {
+    width: 32px;
+    height: 24px;
+    font-size: 12px;
+  }
+
+  /* CHECKLIST MOBILE - ALLE selector varianten */
+  .blogContent ul:global(.wp-block-list):global(.checklist)::before,
+  .blogContent ul:global(.wp-block-list.checklist)::before,
+  .blogContent :global(ul.wp-block-list.checklist)::before,
+  .blogContent ul.checklist::before {
+    left: 13px !important;
+    top: 14px !important;
+    bottom: 14px !important;
+  }
+  
+  .blogContent ul:global(.wp-block-list):global(.checklist) li,
+  .blogContent ul:global(.wp-block-list.checklist) li,
+  .blogContent :global(ul.wp-block-list.checklist) li,
+  .blogContent ul.checklist li {
+    padding-left: 42px !important;
+    font-size: 16px !important;
+    margin-bottom: 16px !important;
+  }
+  
+  .blogContent ul:global(.wp-block-list):global(.checklist) li::before,
+  .blogContent ul:global(.wp-block-list.checklist) li::before,
+  .blogContent :global(ul.wp-block-list.checklist) li::before,
+  .blogContent ul.checklist li::before {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 16px !important;
+    border: 2px solid white !important;
+  }
+
+  /* Images mobile */
+  .blogContent img {
+    margin: 24px 0;
+    border-radius: 8px;
+  }
+
+  .blogContent figure {
+    margin: 24px 0;
+  }
+
+  .blogContent figcaption,
+  .blogContent :global(.wp-caption-text),
+  .blogContent :global(.wp-element-caption) {
+    font-size: 13px;
+    margin-top: 6px;
+  }
+
+  /* Blockquotes mobile */
+  .blogContent blockquote {
+    padding-left: 16px;
+    margin: 20px 0;
+    font-size: 16px;
+    border-left-width: 3px;
+  }
+
+  /* Code blocks mobile */
+  .blogContent pre,
+  .blogContent :global(.wp-block-code) pre {
+    font-size: 0.75rem;
+    line-height: 1.5;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+  }
+
+  .blogContent code {
+    font-size: 0.75rem;
+  }
+
+  .blogContent :not(pre) > code {
+    font-size: 0.8125em;
+    padding: 0.1rem 0.3rem;
+  }
+
+  /* TABLES MOBILE - FORCE scroll on ANY wrapper */
   .blogContent figure,
-  .blogContent .wp-block-table,
-  .blogContent figure.wp-block-table,
+  .blogContent :global(.wp-block-table),
+  .blogContent :global(figure.wp-block-table),
   .blogContent div:has(> table) {
     margin: 1.5rem 0 !important;
     border-radius: 8px !important;
@@ -369,20 +666,20 @@
     scrollbar-color: #1A7DFF #f1f5f9 !important;
   }
   
-  .blogContent .wp-block-table::-webkit-scrollbar,
-  .blogContent figure.wp-block-table::-webkit-scrollbar {
+  .blogContent :global(.wp-block-table)::-webkit-scrollbar,
+  .blogContent :global(figure.wp-block-table)::-webkit-scrollbar {
     height: 10px;
     -webkit-appearance: none;
   }
   
-  .blogContent .wp-block-table::-webkit-scrollbar-track,
-  .blogContent figure.wp-block-table::-webkit-scrollbar-track {
+  .blogContent :global(.wp-block-table)::-webkit-scrollbar-track,
+  .blogContent :global(figure.wp-block-table)::-webkit-scrollbar-track {
     background: #f1f5f9;
     border-radius: 5px;
   }
   
-  .blogContent .wp-block-table::-webkit-scrollbar-thumb,
-  .blogContent figure.wp-block-table::-webkit-scrollbar-thumb {
+  .blogContent :global(.wp-block-table)::-webkit-scrollbar-thumb,
+  .blogContent :global(figure.wp-block-table)::-webkit-scrollbar-thumb {
     background: #1A7DFF;
     border-radius: 5px;
     border: 2px solid #f1f5f9;
@@ -404,7 +701,7 @@
     overflow: visible !important;
   }
   
-  .blogContent table.has-fixed-layout {
+  .blogContent :global(table.has-fixed-layout) {
     table-layout: auto !important;
     width: auto !important;
   }
@@ -418,6 +715,87 @@
   .blogContent table thead th {
     font-size: 0.6875rem;
     letter-spacing: 0.03em;
+  }
+
+  /* TOC Mobile */
+  :global(.toc-container) {
+    padding: 1rem;
+    border-radius: 8px;
+  }
+
+  :global(.toc-link) {
+    font-size: 13px;
+    padding: 3px 6px;
+  }
+
+  :global(.toc-link.level-2) {
+    padding-left: 6px;
+  }
+
+  :global(.toc-link.level-3) {
+    padding-left: 20px;
+  }
+
+  :global(.toc-arrow) svg {
+    width: 13px;
+    height: 13px;
+  }
+}
+
+/* ============================================
+   TABLET RESPONSIVE
+   ============================================ */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .blogContent pre {
+    font-size: 0.875rem;
+  }
+
+  .blogContent h2 {
+    font-size: 24px;
+  }
+
+  .blogContent h3 {
+    font-size: 19px;
+  }
+
+  .blogContent ol li::before {
+    width: 30px;
+    height: 30px;
+    font-size: 15px;
+  }
+
+  /* Checklist tablet - ALLE varianten */
+  .blogContent ul:global(.wp-block-list):global(.checklist) li::before,
+  .blogContent ul:global(.wp-block-list.checklist) li::before,
+  .blogContent :global(ul.wp-block-list.checklist) li::before,
+  .blogContent ul.checklist li::before {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 17px !important;
+  }
+}
+
+/* ============================================
+   DARK MODE SUPPORT
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+  .blogContent pre,
+  .blogContent :global(.wp-block-code),
+  .blogContent :global(.wp-block-code) pre {
+    background-color: #1e1b4b;
+    border-color: #4c1d95;
+    color: #e9d5ff;
+  }
+
+  .blogContent code {
+    color: #e9d5ff;
+  }
+
+  .blogContent :not(pre) > code {
+    background-color: #4c1d95;
+    color: #ddd6fe;
   }
 }
 
