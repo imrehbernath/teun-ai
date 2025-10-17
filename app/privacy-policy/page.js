@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 import styles from '@/styles/legal-page.module.css';
 
 export default function PrivacyPolicyPage() {
@@ -60,8 +61,8 @@ export default function PrivacyPolicyPage() {
         <h3>2.3 Website Analytics (Google Analytics)</h3>
         <p>We gebruiken Google Analytics om te begrijpen hoe bezoekers onze website gebruiken. We verzamelen:</p>
         <ul>
-          <li>Pagina's die je bezoekt</li>
-          <li>Hoe lang je op pagina's blijft</li>
+          <li>Pagina&apos;s die je bezoekt</li>
+          <li>Hoe lang je op pagina&apos;s blijft</li>
           <li>Hoe je op onze site bent gekomen (bijvoorbeeld via Google)</li>
           <li>Anonieme locatiedata (land/stad niveau)</li>
           <li>Type apparaat en browser</li>
