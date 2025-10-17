@@ -289,7 +289,7 @@ export default async function BlogPost({ params }) {
                 >
                   <img 
                     src={post.author.node.avatar.url} 
-                    alt={post.author.node.name}
+                    alt={`Foto van ${post.author.node.name}, auteur van dit artikel`}
                     className="w-8 h-8 rounded-full"
                   />
                   <span>{post.author.node.name}</span>
