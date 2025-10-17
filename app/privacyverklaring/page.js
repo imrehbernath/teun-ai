@@ -218,27 +218,27 @@ export default function PrivacyPolicyPage() {
 
         <ol className="emojiOnly">
           <li>
-            <strong>📋 Recht op inzage</strong><br />
+            <strong>Recht op inzage</strong><br />
             Je mag weten welke gegevens we van je hebben
           </li>
           <li>
-            <strong>✏️ Recht op correctie</strong><br />
+            <strong>Recht op correctie</strong><br />
             Je mag onjuiste gegevens laten corrigeren
           </li>
           <li>
-            <strong>🗑️ Recht op verwijdering</strong><br />
+            <strong>Recht op verwijdering</strong><br />
             Je mag vragen je gegevens te verwijderen
           </li>
           <li>
-            <strong>📦 Recht op dataportabiliteit</strong><br />
+            <strong>Recht op dataportabiliteit</strong><br />
             Je mag je gegevens in een leesbaar formaat ontvangen
           </li>
           <li>
-            <strong>🚫 Recht op bezwaar</strong><br />
+            <strong>Recht op bezwaar</strong><br />
             Je mag bezwaar maken tegen bepaalde verwerkingen
           </li>
           <li>
-            <strong>⏸️ Recht op beperking</strong><br />
+            <strong>Recht op beperking</strong><br />
             Je mag vragen de verwerking te beperken
           </li>
         </ol>
