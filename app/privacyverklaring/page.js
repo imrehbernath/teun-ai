@@ -2,7 +2,7 @@
 import styles from '@/styles/legal-page.module.css';
 
 export const metadata = {
-  title: 'Privacyverklaring - GEO Tool voor AI Zichtbaarheid |',
+  title: 'Privacyverklaring - GEO Tool voor AI Zichtbaarheid',
   description: 'Privacy policy van Teun.ai, dé GEO tool voor AI zichtbaarheid. Lees hoe we je data beschermen en welke rechten je hebt.',
   openGraph: {
     title: 'Privacyverklaring - GEO Tool voor AI Zichtbaarheid | Teun.ai',
