@@ -1,0 +1,479 @@
+/* ============================================
+   LEGAL PAGE STYLING
+   Lightweight versie voor privacy/terms/cookies
+   ============================================ */
+
+.legalContent {
+  font-family: var(--font-nunito), sans-serif;
+  color: rgb(51, 51, 51);
+  line-height: 1.7;
+}
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+
+.legalContent p {
+  font-size: 17px;
+  line-height: 1.7em;
+  margin-bottom: 16px;
+  color: rgb(51, 51, 51);
+}
+
+.legalContent h2 {
+  font-size: 26px;
+  font-weight: 700;
+  background: linear-gradient(90deg, #1A7DFF, #6C3FF2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-top: 40px;
+  margin-bottom: 20px;
+}
+
+.legalContent h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: rgb(51, 51, 51);
+  margin-top: 28px;
+  margin-bottom: 12px;
+}
+
+/* ============================================
+   LINKS
+   ============================================ */
+
+.legalContent a {
+  color: #1A7DFF;
+  text-decoration: none;
+  font-weight: 500;
+  border-bottom: 1px solid rgba(26, 125, 255, 0.3);
+  transition: all 0.2s ease;
+}
+
+.legalContent a:hover {
+  color: #0D5FCC;
+  border-bottom-color: #0D5FCC;
+  background-color: rgba(26, 125, 255, 0.05);
+}
+
+/* ============================================
+   LISTS - Simple bullets
+   ============================================ */
+
+.legalContent ul {
+  list-style: none;
+  margin: 16px 0;
+  padding-left: 0;
+}
+
+.legalContent ul li {
+  position: relative;
+  padding-left: 24px;
+  font-size: 17px;
+  line-height: 1.7em;
+  margin-bottom: 10px;
+  color: rgb(51, 51, 51);
+}
+
+.legalContent ul li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.65em;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1A7DFF, #6C3FF2);
+}
+
+/* ============================================
+   ORDERED LISTS
+   ============================================ */
+
+.legalContent ol {
+  list-style: none;
+  counter-reset: item;
+  margin: 20px 0;
+  padding-left: 0;
+}
+
+.legalContent ol li {
+  position: relative;
+  padding-left: 45px;
+  font-size: 17px;
+  line-height: 1.7em;
+  margin-bottom: 14px;
+  color: rgb(51, 51, 51);
+  counter-increment: item;
+}
+
+.legalContent ol li::before {
+  content: counter(item);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6C3FF2, #8B5CF6);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(108, 63, 242, 0.2);
+}
+
+/* ============================================
+   CHECKLIST STYLING - Groene vinkjes (class="checklist")
+   Exact gekopieerd uit blog-post.module.css
+   ============================================ */
+
+.legalContent ul.checklist {
+  list-style: none !important;
+  margin: 24px 0 !important;
+  padding-left: 0 !important;
+  position: relative !important;
+}
+
+/* Verticale lijn - groen/blauw gradient */
+.legalContent ul.checklist::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 13px !important;
+  top: 16px !important;
+  bottom: 16px !important;
+  width: 2px !important;
+  background: linear-gradient(180deg, #1A7DFF, #6C3FF2) !important;
+  opacity: 0.3 !important;
+  z-index: 0 !important;
+}
+
+.legalContent ul.checklist li {
+  position: relative !important;
+  padding-left: 44px !important;
+  font-size: 17px !important;
+  line-height: 1.7em !important;
+  margin-bottom: 18px !important;
+  color: rgb(51, 51, 51) !important;
+}
+
+/* Vinkje badge - groene cirkel - DESKTOP: 28px */
+.legalContent ul.checklist li::before {
+  content: "✓" !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #10B981, #059669) !important;
+  color: white !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3) !important;
+  z-index: 1 !important;
+  border: 2.5px solid white !important;
+  transition: all 0.2s ease !important;
+}
+
+.legalContent ul.checklist li:hover::before {
+  transform: scale(1.1) !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4) !important;
+}
+
+/* ============================================
+   FAIL CHECKLIST - Rode kruisjes (class="fail")
+   Exact gekopieerd uit blog-post.module.css
+   ============================================ */
+
+.legalContent ul.fail {
+  list-style: none !important;
+  margin: 24px 0 !important;
+  padding-left: 0 !important;
+  position: relative !important;
+}
+
+/* Verticale lijn - rood */
+.legalContent ul.fail::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 13px !important;
+  top: 16px !important;
+  bottom: 16px !important;
+  width: 2px !important;
+  background: linear-gradient(180deg, #EF4444, #DC2626) !important;
+  opacity: 0.3 !important;
+  z-index: 0 !important;
+}
+
+.legalContent ul.fail li {
+  position: relative !important;
+  padding-left: 44px !important;
+  font-size: 17px !important;
+  line-height: 1.7em !important;
+  margin-bottom: 18px !important;
+  color: rgb(51, 51, 51) !important;
+}
+
+/* Kruisje badge - rode cirkel - DESKTOP: 28px */
+.legalContent ul.fail li::before {
+  content: "✕" !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #EF4444, #DC2626) !important;
+  color: white !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3) !important;
+  z-index: 1 !important;
+  border: 2.5px solid white !important;
+  transition: all 0.2s ease !important;
+}
+
+.legalContent ul.fail li:hover::before {
+  transform: scale(1.1) !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4) !important;
+}
+
+/* ============================================
+   EMOJI ONLY LISTS - Geen nummering
+   Voor "Jouw rechten" sectie met emojis
+   ============================================ */
+
+.legalContent ol.emojiOnly {
+  list-style: none !important;
+  counter-reset: none !important;
+  margin: 20px 0 !important;
+  padding-left: 0 !important;
+}
+
+.legalContent ol.emojiOnly li {
+  padding-left: 0 !important;
+  margin-bottom: 18px !important;
+  counter-increment: none !important;
+}
+
+.legalContent ol.emojiOnly li::before {
+  content: none !important;
+  display: none !important;
+}
+/* ============================================
+   TABLES
+   ============================================ */
+
+.legalContent table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 24px 0;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.legalContent table thead {
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+}
+
+.legalContent table thead th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: white;
+}
+
+.legalContent table tbody tr {
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.2s ease;
+}
+
+.legalContent table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.legalContent table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.legalContent table tbody td {
+  padding: 12px 16px;
+  font-size: 15px;
+  color: #374151;
+}
+
+.legalContent table tbody td:first-child {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+/* ============================================
+   BLOCKQUOTES
+   ============================================ */
+
+.legalContent blockquote {
+  border-left: 4px solid #1A7DFF;
+  padding-left: 20px;
+  margin: 20px 0;
+  font-style: italic;
+  color: rgb(85, 85, 85);
+  background: rgba(26, 125, 255, 0.03);
+  padding: 16px 20px;
+  border-radius: 4px;
+}
+
+/* ============================================
+   TEXT FORMATTING
+   ============================================ */
+
+.legalContent strong {
+  font-weight: 700;
+  color: rgb(51, 51, 51);
+}
+
+.legalContent em {
+  font-style: italic;
+}
+
+/* ============================================
+   MOBILE RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .legalContent p {
+    font-size: 16px;
+    margin-bottom: 14px;
+  }
+
+  .legalContent h2 {
+    font-size: 22px;
+    margin-top: 32px;
+    margin-bottom: 16px;
+  }
+
+  .legalContent h3 {
+    font-size: 18px;
+    margin-top: 24px;
+    margin-bottom: 10px;
+  }
+
+  .legalContent ul li,
+  .legalContent ol li {
+    font-size: 16px;
+    padding-left: 22px;
+  }
+
+  .legalContent ol li::before {
+    width: 26px;
+    height: 26px;
+    font-size: 14px;
+  }
+
+  /* CHECKLIST MOBILE - 26px kleiner */
+  .legalContent ul.checklist::before {
+    left: 12px !important;
+    top: 14px !important;
+    bottom: 14px !important;
+  }
+
+  .legalContent ul.checklist li {
+    padding-left: 38px !important;
+    font-size: 16px !important;
+    margin-bottom: 15px !important;
+  }
+
+  .legalContent ul.checklist li::before {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 15px !important;
+    border: 2px solid white !important;
+  }
+
+  /* FAIL CHECKLIST MOBILE - 26px kleiner */
+  .legalContent ul.fail::before {
+    left: 12px !important;
+    top: 14px !important;
+    bottom: 14px !important;
+  }
+
+  .legalContent ul.fail li {
+    padding-left: 38px !important;
+    font-size: 16px !important;
+    margin-bottom: 15px !important;
+  }
+
+  .legalContent ul.fail li::before {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 16px !important;
+    border: 2px solid white !important;
+  }
+
+  .legalContent table {
+    font-size: 14px;
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .legalContent table thead th,
+  .legalContent table tbody td {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .legalContent blockquote {
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 15px;
+  }
+}
+
+/* ============================================
+   TABLET RESPONSIVE
+   ============================================ */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .legalContent h2 {
+    font-size: 24px;
+  }
+
+  .legalContent h3 {
+    font-size: 19px;
+  }
+
+  .legalContent ol li::before {
+    width: 30px;
+    height: 30px;
+    font-size: 15px;
+  }
+
+  /* Checklist tablet - 28px (gelijk aan desktop) */
+  .legalContent ul.checklist li::before {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 16px !important;
+  }
+
+  /* Fail checklist tablet - 28px (gelijk aan desktop) */
+  .legalContent ul.fail li::before {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 17px !important;
+  }
+}
