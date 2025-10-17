@@ -1,6 +1,31 @@
 /* eslint-disable react/no-unescaped-entities */
 import styles from '@/styles/legal-page.module.css';
 
+export const metadata = {
+  title: 'Privacyverklaring - Jouw gegevens beschermen | OnlineLabs',
+  description: 'Lees hoe OnlineLabs jouw gegevens verwerkt en beschermt. Alles over cookies, beveiliging en jouw rechten op privacy overzichtelijk uitgelegd.',
+  openGraph: {
+    title: 'Privacyverklaring - Jouw gegevens beschermen | OnlineLabs',
+    description: 'Lees hoe OnlineLabs jouw gegevens verwerkt en beschermt. Alles over cookies, beveiliging en jouw rechten op privacy overzichtelijk uitgelegd.',
+    url: 'https://teun.ai/privacy-policy',
+    siteName: 'Teun.ai',
+    locale: 'nl_NL',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Privacyverklaring - Jouw gegevens beschermen | OnlineLabs',
+    description: 'Lees hoe OnlineLabs jouw gegevens verwerkt en beschermt. Alles over cookies, beveiliging en jouw rechten op privacy overzichtelijk uitgelegd.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  alternates: {
+    canonical: 'https://teun.ai/privacy-policy',
+  },
+};
+
 export default function PrivacyPolicyPage() {
   return (
     <div className="container mx-auto px-4 py-16 max-w-4xl">
