@@ -128,7 +128,6 @@
 
 /* ============================================
    CHECKLIST STYLING - Groene vinkjes (class="checklist")
-   Exact gekopieerd uit blog-post.module.css
    ============================================ */
 
 .legalContent ul.checklist {
@@ -189,7 +188,6 @@
 
 /* ============================================
    FAIL CHECKLIST - Rode kruisjes (class="fail")
-   Exact gekopieerd uit blog-post.module.css
    ============================================ */
 
 .legalContent ul.fail {
@@ -261,8 +259,12 @@
 }
 
 .legalContent ol.emojiOnly li {
-  padding-left: 0 !important;
+  position: relative !important;
+  padding-left: 50px !important;
+  font-size: 17px !important;
+  line-height: 1.7em !important;
   margin-bottom: 18px !important;
+  color: rgb(51, 51, 51) !important;
   counter-increment: none !important;
 }
 
@@ -270,6 +272,15 @@
   content: none !important;
   display: none !important;
 }
+
+/* Emoji positionering */
+.legalContent ol.emojiOnly li strong:first-child::before {
+  content: attr(data-emoji);
+  position: absolute;
+  left: 0;
+  font-size: 20px;
+}
+
 /* ============================================
    TABLES
    ============================================ */
@@ -384,6 +395,17 @@
     font-size: 14px;
   }
 
+  /* EMOJI ONLY MOBILE - FIXED */
+  .legalContent ol.emojiOnly li {
+    padding-left: 42px !important;
+    font-size: 16px !important;
+    margin-bottom: 20px !important;
+  }
+
+  .legalContent ol.emojiOnly li strong:first-child::before {
+    font-size: 18px;
+  }
+
   /* CHECKLIST MOBILE - 26px kleiner */
   .legalContent ul.checklist::before {
     left: 12px !important;
@@ -461,6 +483,11 @@
     width: 30px;
     height: 30px;
     font-size: 15px;
+  }
+
+  /* Emoji only tablet */
+  .legalContent ol.emojiOnly li {
+    padding-left: 48px !important;
   }
 
   /* Checklist tablet - 28px (gelijk aan desktop) */
