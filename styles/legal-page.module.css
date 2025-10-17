@@ -383,7 +383,7 @@
 
   /* Ordered lists - ALLEEN voor normale lists, NIET emojiOnly */
   .legalContent ol:not(.emojiOnly) li {
-    padding-left: 22px;
+    padding-left: 38px;
     font-size: 16px;
     margin-bottom: 14px;
   }
