@@ -2,27 +2,27 @@
 import styles from '@/styles/legal-page.module.css';
 
 export const metadata = {
-  title: 'Privacyverklaring - Jouw gegevens beschermen | OnlineLabs',
-  description: 'Lees hoe OnlineLabs jouw gegevens verwerkt en beschermt. Alles over cookies, beveiliging en jouw rechten op privacy overzichtelijk uitgelegd.',
+  title: 'Privacyverklaring - GEO Tool voor AI Zichtbaarheid |',
+  description: 'Privacy policy van Teun.ai, dé GEO tool voor AI zichtbaarheid. Lees hoe we je data beschermen en welke rechten je hebt.',
   openGraph: {
-    title: 'Privacyverklaring - Jouw gegevens beschermen | OnlineLabs',
-    description: 'Lees hoe OnlineLabs jouw gegevens verwerkt en beschermt. Alles over cookies, beveiliging en jouw rechten op privacy overzichtelijk uitgelegd.',
-    url: 'https://teun.ai/privacy-policy',
+    title: 'Privacyverklaring - GEO Tool voor AI Zichtbaarheid | Teun.ai',
+    description: 'Privacy policy van Teun.ai, dé GEO tool voor AI zichtbaarheid. Lees hoe we je data beschermen en welke rechten je hebt.',
+    url: 'https://teun.ai/privacyverklaring',
     siteName: 'Teun.ai',
     locale: 'nl_NL',
     type: 'website',
   },
   twitter: {
     card: 'summary',
-    title: 'Privacyverklaring - Jouw gegevens beschermen | OnlineLabs',
-    description: 'Lees hoe OnlineLabs jouw gegevens verwerkt en beschermt. Alles over cookies, beveiliging en jouw rechten op privacy overzichtelijk uitgelegd.',
+    title: 'Privacyverklaring - GEO Tool voor AI Zichtbaarheid | Teun.ai',
+    description: 'Privacy policy van Teun.ai, dé GEO tool voor AI zichtbaarheid. Lees hoe we je data beschermen en welke rechten je hebt.',
   },
   robots: {
     index: true,
     follow: true,
   },
   alternates: {
-    canonical: 'https://teun.ai/privacy-policy',
+    canonical: 'https://teun.ai/privacyverklaring',
   },
 };
 
