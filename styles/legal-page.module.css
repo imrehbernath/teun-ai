@@ -273,14 +273,6 @@
   display: none !important;
 }
 
-/* Emoji positionering */
-.legalContent ol.emojiOnly li strong:first-child::before {
-  content: attr(data-emoji);
-  position: absolute;
-  left: 0;
-  font-size: 20px;
-}
-
 /* ============================================
    TABLES
    ============================================ */
@@ -383,27 +375,30 @@
     margin-bottom: 10px;
   }
 
-  .legalContent ul li,
-  .legalContent ol li {
+  /* Unordered lists */
+  .legalContent ul li {
     font-size: 16px;
     padding-left: 22px;
   }
 
-  .legalContent ol li::before {
+  /* Ordered lists - ALLEEN voor normale lists, NIET emojiOnly */
+  .legalContent ol:not(.emojiOnly) li {
+    padding-left: 22px;
+    font-size: 16px;
+    margin-bottom: 14px;
+  }
+
+  .legalContent ol:not(.emojiOnly) li::before {
     width: 26px;
     height: 26px;
     font-size: 14px;
   }
 
-  /* EMOJI ONLY MOBILE - FIXED */
+  /* EMOJI ONLY MOBILE - Hoogste priority */
   .legalContent ol.emojiOnly li {
     padding-left: 42px !important;
     font-size: 16px !important;
     margin-bottom: 20px !important;
-  }
-
-  .legalContent ol.emojiOnly li strong:first-child::before {
-    font-size: 18px;
   }
 
   /* CHECKLIST MOBILE - 26px kleiner */
@@ -479,7 +474,7 @@
     font-size: 19px;
   }
 
-  .legalContent ol li::before {
+  .legalContent ol:not(.emojiOnly) li::before {
     width: 30px;
     height: 30px;
     font-size: 15px;
