@@ -411,6 +411,7 @@ function Footer() {
                 </li>
               </ul>
             </div>
+          </div>
 
           {/* Bottom bar */}
           <div className="mt-12 pt-8 border-t border-white/10">
@@ -454,8 +455,6 @@ function Footer() {
 
 // Main Template Component
 export default function Template({ children }) {
-  // ✅ VERWIJDERD: Geen exception meer voor homepage
-  // Altijd header + footer tonen
   return (
     <>
       <Header />
