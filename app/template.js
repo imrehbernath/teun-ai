@@ -397,18 +397,20 @@ function Footer() {
                   </button>
                 </li>
                 <li>
-                  <span className="text-white/50 text-sm cursor-not-allowed">
-                    Privacy Policy <span className="text-xs">(binnenkort)</span>
-                  </span>
+                  <Link 
+                    href="/privacyverklaring"
+                    className="text-white/70 hover:text-white text-sm transition-colors"
+                  >
+                    Privacyverklaring
+                  </Link>
                 </li>
                 <li>
                   <span className="text-white/50 text-sm cursor-not-allowed">
-                    Voorwaarden <span className="text-xs">(binnenkort)</span>
+                    Algemene Voorwaarden <span className="text-xs">(binnenkort)</span>
                   </span>
                 </li>
               </ul>
             </div>
-          </div>
 
           {/* Bottom bar */}
           <div className="mt-12 pt-8 border-t border-white/10">
