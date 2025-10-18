@@ -280,39 +280,48 @@ export default async function BlogPost({ params }) {
               {cleanExcerpt}
             </div>
 
-            {/* Meta info met Reading Time */}
-            <div className="flex flex-wrap items-center gap-4 text-sm text-purple-200 mb-6">
-              {post.author?.node?.avatar && (
-                <Link 
-                  href="/auteur/imre" 
-                  className="flex items-center gap-2 hover:text-white transition-colors"
-                >
-                  <img 
-                    src={post.author.node.avatar.url} 
-                    alt={`Foto van ${post.author.node.name}, auteur van dit artikel`}
-                    className="w-8 h-8 rounded-full"
-                  />
-                  <span>{post.author.node.name}</span>
-                </Link>
-              )}
-              
-              <time dateTime={post.date}>
-                {new Date(post.date).toLocaleDateString('nl-NL', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric'
-                })}
-              </time>
+           {/* Meta info met Reading Time */}
+              <div className="flex flex-wrap items-center gap-4 text-sm text-purple-200 mb-6">
+                {post.author?.node?.avatar && (
+                  <Link 
+                    href="/auteur/imre" 
+                    className="flex items-center gap-2 hover:text-white transition-colors"
+                  >
+                    <img 
+                      src={post.author.node.avatar.url} 
+                      alt={`Foto van ${post.author.node.name}, auteur van dit artikel`}
+                      className="w-8 h-8 rounded-full"
+                    />
+                    <span>{post.author.node.name}</span>
+                  </Link>
+                )}
+                
+                {/* Published date */}
+                <time dateTime={post.date}>
+                  {new Date(post.date).toLocaleDateString('nl-NL', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                  })}
+                </time>
 
-              {/* Update indicator (klein) */}
-              {post.modified && new Date(post.modified).getTime() !== new Date(post.date).getTime() && (
-                <span className="text-xs text-purple-300" title={`Laatst bijgewerkt: ${new Date(post.modified).toLocaleDateString('nl-NL')}`}>
-                  (bijgewerkt)
-                </span>
-              )}
+                {/* Modified date - met <time> tag */}
+                {post.modified && new Date(post.modified).getTime() !== new Date(post.date).getTime() && (
+                  <time 
+                    dateTime={post.modified}
+                    className="text-xs text-white/90 bg-white/15 px-2 py-0.5 rounded-md font-medium"
+                    title={`Laatst bijgewerkt: ${new Date(post.modified).toLocaleDateString('nl-NL', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    })}`}
+                  >
+                    bijgewerkt
+                  </time>
+                )}
 
-              <ReadingTime content={post.content} />
-            </div>
+                <ReadingTime content={post.content} />
+              </div>
 
             {/* Social Share Buttons */}
             <div className="pt-6 border-t border-purple-400/30">
