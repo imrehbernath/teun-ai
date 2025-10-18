@@ -398,94 +398,107 @@ export default async function BlogPost({ params }) {
       </article>
 
       {/* Schema.org structured data */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@graph': [
-              {
-                '@type': 'Organization',
-                '@id': 'https://teun.ai/#organization',
-                'name': 'teun.ai',
-                'logo': {
-                  '@type': 'ImageObject',
-                  '@id': 'https://teun.ai/#logo',
-                  'url': 'https://teun.ai/wp-content/uploads/2025/10/Teun-ai-logo-light.png',
-                  'contentUrl': 'https://teun.ai/wp-content/uploads/2025/10/Teun-ai-logo-light.png',
-                  'caption': 'Teun.ai',
-                  'inLanguage': 'nl-NL',
-                  'width': '512',
-                  'height': '512'
-                }
-              },
-              {
-                '@type': 'WebSite',
-                '@id': 'https://teun.ai/#website',
-                'url': 'https://teun.ai',
-                'name': 'Teun.ai',
-                'alternateName': 'Teun.ai',
-                'publisher': { '@id': 'https://teun.ai/#organization' },
-                'inLanguage': 'nl-NL'
-              },
-              {
-                '@type': 'ImageObject',
-                '@id': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp',
-                'url': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp',
-                'width': '1200',
-                'height': '675',
-                'caption': post.featuredImage?.node?.altText || post.title,
-                'inLanguage': 'nl-NL'
-              },
-              {
-                '@type': 'WebPage',
-                '@id': `https://teun.ai/${resolvedParams.slug}#webpage`,
-                'url': `https://teun.ai/${resolvedParams.slug}`,
-                'name': post.title,
-                'datePublished': new Date(post.date).toISOString(),
-                'dateModified': new Date(post.modified).toISOString(),
-                'isPartOf': { '@id': 'https://teun.ai/#website' },
-                'primaryImageOfPage': { '@id': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp' },
-                'inLanguage': 'nl-NL'
-              },
-              {
-                '@type': 'Person',
-                '@id': 'https://teun.ai/auteur/imre',
-                'name': 'Imre Bernáth',
-                'description': 'Imre Bernáth deelt inzichten over SEO, AI visibility en GEO-optimalisatie. Oprichter van Teun.ai en OnlineLabs. 15+ jaar ervaring in strategische online groei.',
-                'url': 'https://teun.ai/auteur/imre',
-                'image': {
-                  '@type': 'ImageObject',
-                  '@id': post.author?.node?.avatar?.url || 'https://gravatar.com/avatar/35c26275319f1c247e76cd36518ee34a?size=96',
-                  'url': post.author?.node?.avatar?.url || 'https://gravatar.com/avatar/35c26275319f1c247e76cd36518ee34a?size=96',
-                  'caption': 'Imre Bernáth',
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@graph': [
+                {
+                  '@type': 'Organization',
+                  '@id': 'https://teun.ai/#organization',
+                  'name': 'teun.ai',
+                  'logo': {
+                    '@type': 'ImageObject',
+                    '@id': 'https://teun.ai/#logo',
+                    'url': 'https://teun.ai/wp-content/uploads/2025/10/Teun-ai-logo-light.png',
+                    'contentUrl': 'https://teun.ai/wp-content/uploads/2025/10/Teun-ai-logo-light.png',
+                    'caption': 'Teun.ai',
+                    'inLanguage': 'nl-NL',
+                    'width': '512',
+                    'height': '512'
+                  }
+                },
+                {
+                  '@type': 'WebSite',
+                  '@id': 'https://teun.ai/#website',
+                  'url': 'https://teun.ai',
+                  'name': 'Teun.ai',
+                  'alternateName': 'Teun.ai',
+                  'publisher': { '@id': 'https://teun.ai/#organization' },
                   'inLanguage': 'nl-NL'
                 },
-                'sameAs': ['https://teun.ai', 'https://nl.linkedin.com/in/imrebernath'],
-                'worksFor': { '@id': 'https://teun.ai/#organization' }
-              },
-              {
-                '@type': 'BlogPosting',
-                'headline': post.title,
-                'datePublished': new Date(post.date).toISOString(),
-                'dateModified': new Date(post.modified).toISOString(),
-                'author': {
-                  '@id': 'https://teun.ai/auteur/imre',
-                  'name': 'Imre Bernáth'
+                {
+                  '@type': 'ImageObject',
+                  '@id': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp',
+                  'url': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp',
+                  'width': '1200',
+                  'height': '675',
+                  'caption': post.featuredImage?.node?.altText || post.title,
+                  'inLanguage': 'nl-NL'
                 },
-                'publisher': { '@id': 'https://teun.ai/#organization' },
-                'description': cleanExcerpt.substring(0, 160),
-                'name': post.title,
-                '@id': `https://teun.ai/${resolvedParams.slug}#richSnippet`,
-                'isPartOf': { '@id': `https://teun.ai/${resolvedParams.slug}#webpage` },
-                'image': { '@id': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp' },
-                'inLanguage': 'nl-NL',
-                'mainEntityOfPage': { '@id': `https://teun.ai/${resolvedParams.slug}#webpage` }
-              }
-            ]
-          })
-        }}
-      />
+                {
+                  '@type': 'WebPage',
+                  '@id': `https://teun.ai/${resolvedParams.slug}#webpage`,
+                  'url': `https://teun.ai/${resolvedParams.slug}`,
+                  'name': post.title,
+                  'datePublished': new Date(post.date).toISOString(),
+                  'dateModified': new Date(post.modified).toISOString(),
+                  'isPartOf': { '@id': 'https://teun.ai/#website' },
+                  'primaryImageOfPage': { '@id': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp' },
+                  'inLanguage': 'nl-NL'
+                },
+                {
+                  '@type': 'Person',
+                  '@id': 'https://teun.ai/auteur/imre',
+                  'name': 'Imre Bernáth',
+                  'description': 'Imre Bernáth deelt inzichten over SEO, AI visibility en GEO-optimalisatie. Oprichter van Teun.ai en OnlineLabs. 15+ jaar ervaring in strategische online groei.',
+                  'url': 'https://teun.ai/auteur/imre',
+                  'image': {
+                    '@type': 'ImageObject',
+                    '@id': post.author?.node?.avatar?.url || 'https://gravatar.com/avatar/35c26275319f1c247e76cd36518ee34a?size=96',
+                    'url': post.author?.node?.avatar?.url || 'https://gravatar.com/avatar/35c26275319f1c247e76cd36518ee34a?size=96',
+                    'caption': 'Imre Bernáth',
+                    'inLanguage': 'nl-NL'
+                  },
+                  'sameAs': ['https://teun.ai', 'https://nl.linkedin.com/in/imrebernath'],
+                  'worksFor': { '@id': 'https://teun.ai/#organization' }
+                },
+                {
+                  '@type': 'BlogPosting',
+                  'headline': post.title,
+                  'datePublished': new Date(post.date).toISOString(),
+                  'dateModified': new Date(post.modified).toISOString(),
+                  'author': {
+                    '@id': 'https://teun.ai/auteur/imre',
+                    'name': 'Imre Bernáth'
+                  },
+                  'publisher': { '@id': 'https://teun.ai/#organization' },
+                  'description': cleanExcerpt.substring(0, 160),
+                  'name': post.title,
+                  '@id': `https://teun.ai/${resolvedParams.slug}#richSnippet`,
+                  'isPartOf': { '@id': `https://teun.ai/${resolvedParams.slug}#webpage` },
+                  'image': { '@id': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp' },
+                  'inLanguage': 'nl-NL',
+                  'mainEntityOfPage': { '@id': `https://teun.ai/${resolvedParams.slug}#webpage` }
+                },
+                // 🆕 FAQ SCHEMA - Alleen als er FAQs zijn
+                ...(faqs.length > 0 ? [{
+                  '@type': 'FAQPage',
+                  '@id': `https://teun.ai/${resolvedParams.slug}#faq`,
+                  'mainEntity': faqs.map(faq => ({
+                    '@type': 'Question',
+                    'name': faq.question,
+                    'acceptedAnswer': {
+                      '@type': 'Answer',
+                      'text': faq.answer.replace(/<[^>]*>/g, '') // Strip HTML for schema
+                    }
+                  }))
+                }] : [])
+              ]
+            })
+          }}
+        />
     </>
   );
 }
