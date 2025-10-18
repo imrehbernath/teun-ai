@@ -295,6 +295,7 @@ export default async function BlogPost({ params }) {
                   <span>{post.author.node.name}</span>
                 </Link>
               )}
+              
               <time dateTime={post.date}>
                 {new Date(post.date).toLocaleDateString('nl-NL', {
                   day: 'numeric',
@@ -302,6 +303,14 @@ export default async function BlogPost({ params }) {
                   year: 'numeric'
                 })}
               </time>
+
+              {/* Update indicator (klein) */}
+              {post.modified && new Date(post.modified).getTime() !== new Date(post.date).getTime() && (
+                <span className="text-xs text-purple-300" title={`Laatst bijgewerkt: ${new Date(post.modified).toLocaleDateString('nl-NL')}`}>
+                  (bijgewerkt)
+                </span>
+              )}
+
               <ReadingTime content={post.content} />
             </div>
 
