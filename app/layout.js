@@ -26,7 +26,7 @@ export const metadata = {
   
   title: {
     default: 'Teun.ai – GEO Audits & AI-SEO Analyse | Live 1 januari 2026',
-    template: '%s | TEUN.AI'
+    template: '%s | Teun.ai'
   },
   
   description: 'Teun.ai: hét platform voor GEO Audits, AI-SEO analyse & AI-gedreven optimalisatie. Word zichtbaar in ChatGPT, Google AI, Bing AI & meer.',
