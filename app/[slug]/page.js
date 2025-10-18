@@ -305,19 +305,24 @@ export default async function BlogPost({ params }) {
                   })}
                 </time>
 
-                {/* Modified date - met <time> tag */}
+                {/* Modified date - ZICHTBAAR met volledige datum */}
                 {post.modified && new Date(post.modified).getTime() !== new Date(post.date).getTime() && (
-                  <time 
-                    dateTime={post.modified}
-                    className="text-xs text-white/90 bg-white/15 px-2 py-0.5 rounded-md font-medium"
-                    title={`Laatst bijgewerkt: ${new Date(post.modified).toLocaleDateString('nl-NL', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric'
-                    })}`}
-                  >
-                    bijgewerkt
-                  </time>
+                  <span className="text-xs text-white bg-white/25 px-3 py-1 rounded-full font-semibold">
+                    <time 
+                      dateTime={post.modified}
+                      title={`Laatst bijgewerkt: ${new Date(post.modified).toLocaleDateString('nl-NL', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                      })}`}
+                    >
+                      ↻ Bijgewerkt {new Date(post.modified).toLocaleDateString('nl-NL', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                      })}
+                    </time>
+                  </span>
                 )}
 
                 <ReadingTime content={post.content} />
