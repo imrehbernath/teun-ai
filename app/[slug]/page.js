@@ -287,10 +287,13 @@ export default async function BlogPost({ params }) {
                     href="/auteur/imre" 
                     className="flex items-center gap-2 hover:text-white transition-colors"
                   >
-                    <img 
-                      src={post.author.node.avatar.url} 
+                    <Image
+                      src={post.author.node.avatar.url}
                       alt={`Foto van ${post.author.node.name}, auteur van dit artikel`}
-                      className="w-8 h-8 rounded-full"
+                      width={32}
+                      height={32}
+                      className="rounded-full"
+                      loading="lazy"
                     />
                     <span>{post.author.node.name}</span>
                   </Link>
@@ -337,13 +340,14 @@ export default async function BlogPost({ params }) {
             </div>
           </div>
 
-          {/* Rechts: Featured Image Card - RESPONSIVE */}
+          {/* Rechts: Featured Image Card - RESPONSIVE met fetchPriority */}
           <div className="bg-gradient-to-br from-indigo-900 via-blue-900 to-indigo-800 rounded-3xl overflow-hidden">
             <ServerResponsiveImage
               desktopImage={post.featuredImage?.node}
               mobileImage={post.mobileImageData}
               alt={post.featuredImage?.node?.altText || post.title}
               priority={true}
+              fetchPriority="high"
               sizes="(max-width: 1024px) 100vw, 50vw"
             />
           </div>

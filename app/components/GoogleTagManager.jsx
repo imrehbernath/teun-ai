@@ -7,10 +7,10 @@ export default function GoogleTagManager() {
 
   return (
     <>
-      {/* Google Tag Manager Script */}
+      {/* Google Tag Manager Script - LAZY LOADED voor performance */}
       <Script
         id="google-tag-manager"
-        strategy="afterInteractive"
+        strategy="lazyOnload"
         dangerouslySetInnerHTML={{
           __html: `
             (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
