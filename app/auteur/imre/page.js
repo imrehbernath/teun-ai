@@ -251,31 +251,158 @@ export default async function AuthorPage() {
         </div>
       </section>
 
-      {/* Expertise Section */}
+      {/* Expertise Section - VERBETERD met nette uitlijning */}
       <section className="bg-white py-12 lg:py-16">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-8">Expertise & Kennis</h2>
           
           <div className="grid md:grid-cols-2 gap-6">
+            {/* Ervaring Card */}
             <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-6 border-2 border-purple-200">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">🎯 Specialisaties</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li>• <strong>GEO-optimalisatie</strong> (Generative Engine Optimization)</li>
-                <li>• <strong>Technische SEO</strong> & site audits</li>
-                <li>• <strong>AI visibility</strong> in ChatGPT, Gemini & Perplexity</li>
-                <li>• <strong>Contentstrategie</strong> & E-E-A-T</li>
-                <li>• <strong>Structured data</strong> & Schema.org</li>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-2xl">🎯</span>
+                <h3 className="text-xl font-bold text-gray-900">Ervaring</h3>
+              </div>
+              
+              <ul className="space-y-3">
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-600 font-bold mt-1 flex-shrink-0">•</span>
+                  <div className="flex-1">
+                    <span className="font-semibold text-gray-900">GEO-optimalisatie</span>
+                    <span className="block text-gray-600 text-sm mt-0.5">
+                      (Generative Engine Optimization)
+                    </span>
+                  </div>
+                </li>
+                
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-600 font-bold mt-1 flex-shrink-0">•</span>
+                  <div className="flex-1">
+                    <span className="font-semibold text-gray-900">Technische SEO</span>
+                    <span className="block text-gray-600 text-sm mt-0.5">
+                      & site audits
+                    </span>
+                  </div>
+                </li>
+                
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-600 font-bold mt-1 flex-shrink-0">•</span>
+                  <div className="flex-1">
+                    <span className="font-semibold text-gray-900">AI visibility</span>
+                    <span className="block text-gray-600 text-sm mt-0.5">
+                      in ChatGPT, Gemini & Perplexity
+                    </span>
+                  </div>
+                </li>
+                
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-600 font-bold mt-1 flex-shrink-0">•</span>
+                  <div className="flex-1">
+                    <span className="font-semibold text-gray-900">Contentstrategie</span>
+                    <span className="block text-gray-600 text-sm mt-0.5">
+                      & E-E-A-T
+                    </span>
+                  </div>
+                </li>
+                
+                <li className="flex items-start gap-2">
+                  <span className="text-purple-600 font-bold mt-1 flex-shrink-0">•</span>
+                  <div className="flex-1">
+                    <span className="font-semibold text-gray-900">Structured data</span>
+                    <span className="block text-gray-600 text-sm mt-0.5">
+                      & Schema.org
+                    </span>
+                  </div>
+                </li>
               </ul>
             </div>
 
+            {/* Projecten Card */}
             <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 border-2 border-blue-200">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">🚀 Projecten</h3>
-              <ul className="space-y-2 text-gray-700">
-                <li>• <strong>Teun.ai</strong> - Platform voor GEO-audits</li>
-                <li>• <strong>OnlineLabs</strong> - SEO & AI-visibility bureau</li>
-                <li>• <strong>150+ organisaties</strong> geholpen met digitale autoriteit</li>
-                <li>• Diepgaande kennis van <strong>WordPress, structured data</strong> en <strong>AI-overviews</strong></li>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-2xl">🚀</span>
+                <h3 className="text-xl font-bold text-gray-900">Projecten</h3>
+              </div>
+              
+              <ul className="space-y-3">
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-600 font-bold mt-1 flex-shrink-0">•</span>
+                  <div className="flex-1">
+                    <span className="font-semibold text-gray-900">Teun.ai</span>
+                    <span className="block text-gray-600 text-sm mt-0.5">
+                      - Platform voor GEO-audits
+                    </span>
+                  </div>
+                </li>
+                
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-600 font-bold mt-1 flex-shrink-0">•</span>
+                  <div className="flex-1">
+                    <span className="font-semibold text-gray-900">OnlineLabs</span>
+                    <span className="block text-gray-600 text-sm mt-0.5">
+                      - SEO & AI-visibility bureau
+                    </span>
+                  </div>
+                </li>
+                
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-600 font-bold mt-1 flex-shrink-0">•</span>
+                  <div className="flex-1">
+                    <span className="font-semibold text-gray-900">150+ organisaties</span>
+                    <span className="block text-gray-600 text-sm mt-0.5">
+                      geholpen met digitale autoriteit
+                    </span>
+                  </div>
+                </li>
+                
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-600 font-bold mt-1 flex-shrink-0">•</span>
+                  <div className="flex-1">
+                    <span className="text-gray-900">Diepgaande kennis van </span>
+                    <span className="font-semibold text-gray-900">WordPress,</span>
+                    <span className="block text-gray-600 text-sm mt-0.5">
+                      structured data en AI-overviews
+                    </span>
+                  </div>
+                </li>
               </ul>
+            </div>
+          </div>
+          
+          {/* Top Vaardigheden - Extra sectie */}
+          <div className="mt-8 bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl p-6 border-2 border-gray-200">
+            <div className="flex items-center gap-2 mb-6">
+              <span className="text-2xl">💼</span>
+              <h3 className="text-xl font-bold text-gray-900">Top Vaardigheden</h3>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {[
+                'GEO-optimalisatie',
+                'Technische SEO',
+                'AI visibility',
+                'Structured data',
+                'Google Search Console',
+                'ChatGPT',
+                'Google Tag Manager',
+                'SEO-audits',
+                'WordPress',
+                'Google Analytics',
+                'Schema.org',
+                'E-E-A-T',
+                'Core Web Vitals',
+                'Content strategie',
+                'SEMrush',
+                'Next.js'
+              ].map((skill, index) => (
+                <div 
+                  key={index}
+                  className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 hover:border-purple-300 hover:shadow-md transition-all text-sm"
+                >
+                  <span className="text-purple-600 font-bold text-xs">✓</span>
+                  <span className="text-gray-700 font-medium">{skill}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
