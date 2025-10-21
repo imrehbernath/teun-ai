@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'Inloggen | Teun.ai',
+  title: 'Inloggen',
   description: 'Log in op je Teun.ai account om toegang te krijgen tot GEO tools en AI-visibility scans.',
   robots: {
     index: false,
