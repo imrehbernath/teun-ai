@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import he from 'he';
 import styles from './blog-post.module.css';
 import TableOfContents from './TableOfContents';
 import FAQAccordion from './FAQAccordion';
@@ -11,21 +12,6 @@ import SocialShareButtons from './SocialShareButtons';
 import AuthorBio from './AuthorBio';
 import GeoAuditCTA from './GeoAuditCTA';
 import ServerResponsiveImage from './ServerResponsiveImage';
-
-// Helper function to decode HTML entities
-const decodeHtmlEntities = (text) => {
-  if (!text) return text;
-  const entities = {
-    '&amp;': '&',
-    '&lt;': '<',
-    '&gt;': '>',
-    '&quot;': '"',
-    '&#39;': "'",
-    '&nbsp;': ' ',
-    '&#x27;': "'"
-  };
-  return text.replace(/&[#a-z0-9]+;/gi, match => entities[match.toLowerCase()] || match);
-};
 
 async function getPost(slug) {
   const query = `
@@ -148,17 +134,17 @@ export async function generateMetadata({ params }) {
   let ogImage = post.featuredImage?.node?.sourceUrl;
   
   if (post.rankMathHead) {
-    // Extract title and DECODE HTML ENTITIES
+    // Extract title and DECODE with he library
     const titleMatch = post.rankMathHead.match(/<meta property="og:title" content="([^"]*)"/)
       || post.rankMathHead.match(/<title>([^<]*)<\/title>/);
     if (titleMatch) {
-      title = decodeHtmlEntities(titleMatch[1]);
+      title = he.decode(titleMatch[1]);
     }
     
-    // Extract description and DECODE HTML ENTITIES
+    // Extract description and DECODE with he library
     const descMatch = post.rankMathHead.match(/<meta name="description" content="([^"]*)"/);
     if (descMatch) {
-      description = decodeHtmlEntities(descMatch[1]);
+      description = he.decode(descMatch[1]);
     }
     
     // Extract OG image
