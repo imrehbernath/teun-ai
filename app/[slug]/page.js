@@ -12,6 +12,21 @@ import AuthorBio from './AuthorBio';
 import GeoAuditCTA from './GeoAuditCTA';
 import ServerResponsiveImage from './ServerResponsiveImage';
 
+// Helper function to decode HTML entities
+const decodeHtmlEntities = (text) => {
+  if (!text) return text;
+  const entities = {
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#39;': "'",
+    '&nbsp;': ' ',
+    '&#x27;': "'"
+  };
+  return text.replace(/&[#a-z0-9]+;/gi, match => entities[match.toLowerCase()] || match);
+};
+
 async function getPost(slug) {
   const query = `
     query GetPost($slug: ID!) {
@@ -133,14 +148,18 @@ export async function generateMetadata({ params }) {
   let ogImage = post.featuredImage?.node?.sourceUrl;
   
   if (post.rankMathHead) {
-    // Extract title
+    // Extract title and DECODE HTML ENTITIES
     const titleMatch = post.rankMathHead.match(/<meta property="og:title" content="([^"]*)"/)
       || post.rankMathHead.match(/<title>([^<]*)<\/title>/);
-    if (titleMatch) title = titleMatch[1];
+    if (titleMatch) {
+      title = decodeHtmlEntities(titleMatch[1]);
+    }
     
-    // Extract description
+    // Extract description and DECODE HTML ENTITIES
     const descMatch = post.rankMathHead.match(/<meta name="description" content="([^"]*)"/);
-    if (descMatch) description = descMatch[1];
+    if (descMatch) {
+      description = decodeHtmlEntities(descMatch[1]);
+    }
     
     // Extract OG image
     const ogImageMatch = post.rankMathHead.match(/<meta property="og:image" content="([^"]*)"/);
@@ -509,7 +528,7 @@ export default async function BlogPost({ params }) {
                   'inLanguage': 'nl-NL',
                   'mainEntityOfPage': { '@id': `https://teun.ai/${resolvedParams.slug}#webpage` }
                 },
-                // 🆕 FAQ SCHEMA - Alleen als er FAQs zijn
+                // FAQ SCHEMA - Alleen als er FAQs zijn
                 ...(faqs.length > 0 ? [{
                   '@type': 'FAQPage',
                   '@id': `https://teun.ai/${resolvedParams.slug}#faq`,
@@ -518,7 +537,7 @@ export default async function BlogPost({ params }) {
                     'name': faq.question,
                     'acceptedAnswer': {
                       '@type': 'Answer',
-                      'text': faq.answer.replace(/<[^>]*>/g, '') // Strip HTML for schema
+                      'text': faq.answer.replace(/<[^>]*>/g, '')
                     }
                   }))
                 }] : [])
