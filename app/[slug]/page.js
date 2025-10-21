@@ -346,7 +346,7 @@ export default async function BlogPost({ params }) {
           </div>
 
           {/* Rechts: Featured Image Card - RESPONSIVE met fetchPriority */}
-          <div className="rounded-3xl overflow-hidden">
+          <div className="bg-gradient-to-br from-indigo-900 via-blue-900 to-indigo-800 rounded-3xl overflow-hidden">
             <ServerResponsiveImage
               desktopImage={post.featuredImage?.node}
               mobileImage={post.mobileImageData}
