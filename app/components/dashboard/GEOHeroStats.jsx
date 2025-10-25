@@ -89,7 +89,7 @@ function GEOHeroStats({ prompts, platformScans }) {
               <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
                 <span className="text-2xl">💬</span>
               </div>
-              <div className="text-xs sm:text-sm font-semibold text-gray-600 leading-tight">Commerciële Prompts</div>
+              <div className="text-sm font-semibold text-gray-600">Prompts</div>
             </div>
             <div className="text-4xl font-bold text-gray-900 mb-1">{stats.totalPrompts}</div>
             <div className="text-sm text-gray-500">Ontdekt & gescand</div>
