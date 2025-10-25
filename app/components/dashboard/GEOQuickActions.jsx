@@ -74,18 +74,20 @@ function GEOQuickActions({ hasPrompts, onRefresh }) {
           </div>
 
           {/* CTA Button - BINNENKORT */}
-          <button
-            disabled
-            className="w-full px-6 py-4 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-600 rounded-2xl font-bold cursor-not-allowed relative overflow-hidden"
-          >
-            <div className="flex items-center justify-center gap-3">
-              <span className="text-xl sm:text-2xl">🎯</span>
-              <span className="text-base sm:text-lg">Start GEO Audit</span>
-            </div>
-            <span className="absolute -top-1 -right-1 px-2 sm:px-3 py-1 bg-purple-600 text-white rounded-full text-xs sm:text-sm font-bold shadow-lg whitespace-nowrap">
+          <div className="relative">
+            <button
+              disabled
+              className="w-full px-6 py-4 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-600 rounded-2xl font-bold cursor-not-allowed"
+            >
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-xl sm:text-2xl">🎯</span>
+                <span className="text-base sm:text-lg">Start GEO Audit</span>
+              </div>
+            </button>
+            <span className="absolute -top-2 -right-2 px-2 sm:px-3 py-1 bg-purple-600 text-white rounded-full text-xs sm:text-sm font-bold shadow-lg whitespace-nowrap">
               ⏳ Binnenkort
             </span>
-          </button>
+          </div>
 
         </div>
       </div>
@@ -101,11 +103,11 @@ function GEOQuickActions({ hasPrompts, onRefresh }) {
           </div>
 
           {/* Content */}
-          <h3 className="text-2xl font-bold text-gray-900 mb-3">
+          <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 leading-tight">
             Ontdek Meer Commercial Prompts
           </h3>
           
-          <p className="text-gray-700 mb-6 leading-relaxed">
+          <p className="text-sm sm:text-base text-gray-700 mb-6 leading-relaxed">
             Hoe meer prompts je ontdekt, hoe beter je GEO strategie. Scan opnieuw voor nieuwe 
             commercial queries in jouw niche.
           </p>
@@ -126,22 +128,24 @@ function GEOQuickActions({ hasPrompts, onRefresh }) {
           <div className="space-y-3">
             <button
               onClick={() => window.location.href = '/tools/ai-visibility'}
-              className="w-full px-6 py-4 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-2xl font-bold text-lg hover:shadow-2xl transition-all flex items-center justify-center gap-3"
+              className="w-full px-6 py-4 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-2xl font-bold text-base sm:text-lg hover:shadow-2xl transition-all flex items-center justify-center gap-3"
             >
-              <span className="text-2xl">🔍</span>
-              <span>Scan Perplexity Opnieuw</span>
+              <span className="text-xl sm:text-2xl">🔍</span>
+              <span className="whitespace-nowrap">Scan Perplexity Opnieuw</span>
             </button>
             
-            <button
-              disabled
-              className="w-full px-6 py-3 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-600 rounded-2xl font-bold cursor-not-allowed flex items-center justify-center gap-2 relative"
-            >
-              <span className="text-xl">🤖</span>
-              <span>Scan ChatGPT</span>
-              <span className="absolute -top-2 -right-2 px-2 py-1 bg-purple-600 text-white rounded-full text-xs font-bold shadow-lg">
+            <div className="relative">
+              <button
+                disabled
+                className="w-full px-6 py-3 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-600 rounded-2xl font-bold cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <span className="text-lg sm:text-xl">🤖</span>
+                <span className="text-sm sm:text-base">Scan ChatGPT</span>
+              </button>
+              <span className="absolute -top-2 -right-2 px-2 py-1 bg-purple-600 text-white rounded-full text-xs font-bold shadow-lg whitespace-nowrap">
                 ⏳ Binnenkort
               </span>
-            </button>
+            </div>
           </div>
 
         </div>
