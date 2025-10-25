@@ -76,11 +76,13 @@ function GEOQuickActions({ hasPrompts, onRefresh }) {
           {/* CTA Button - BINNENKORT */}
           <button
             disabled
-            className="w-full px-6 py-4 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-600 rounded-2xl font-bold text-lg cursor-not-allowed flex items-center justify-center gap-3 relative"
+            className="w-full px-6 py-4 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-600 rounded-2xl font-bold cursor-not-allowed relative overflow-hidden"
           >
-            <span className="text-2xl">🎯</span>
-            <span>Start GEO Audit</span>
-            <span className="absolute top-3 right-3 px-3 py-1 bg-purple-600 text-white rounded-full text-sm font-bold shadow-lg">
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-xl sm:text-2xl">🎯</span>
+              <span className="text-base sm:text-lg">Start GEO Audit</span>
+            </div>
+            <span className="absolute -top-1 -right-1 px-2 sm:px-3 py-1 bg-purple-600 text-white rounded-full text-xs sm:text-sm font-bold shadow-lg whitespace-nowrap">
               ⏳ Binnenkort
             </span>
           </button>
@@ -131,11 +133,14 @@ function GEOQuickActions({ hasPrompts, onRefresh }) {
             </button>
             
             <button
-              onClick={() => alert('Open de ChatGPT Chrome extensie! 🔌')}
-              className="w-full px-6 py-3 border-2 border-purple-300 text-purple-700 rounded-2xl font-bold hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
+              disabled
+              className="w-full px-6 py-3 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-600 rounded-2xl font-bold cursor-not-allowed flex items-center justify-center gap-2 relative"
             >
               <span className="text-xl">🤖</span>
               <span>Scan ChatGPT</span>
+              <span className="absolute -top-2 -right-2 px-2 py-1 bg-purple-600 text-white rounded-full text-xs font-bold shadow-lg">
+                ⏳ Binnenkort
+              </span>
             </button>
           </div>
 

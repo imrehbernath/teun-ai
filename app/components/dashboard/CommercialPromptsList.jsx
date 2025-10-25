@@ -254,14 +254,14 @@ function CommercialPromptsList({ prompts, onSelectPrompt }) {
                   )}
 
                   {/* Action Buttons */}
-                  <div className="flex items-center gap-3 mt-4">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-4">
                     <button
                       disabled
-                      className="px-5 py-3 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-600 rounded-xl font-bold cursor-not-allowed flex items-center gap-2 relative"
+                      className="flex-1 px-4 py-3 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-600 rounded-xl font-bold cursor-not-allowed flex items-center justify-center gap-2 relative"
                     >
-                      <span className="text-xl">🚀</span>
-                      <span>Optimaliseer Deze Prompt</span>
-                      <span className="absolute -top-2 -right-2 px-2 py-1 bg-purple-600 text-white rounded-full text-xs font-bold shadow-lg">
+                      <span className="text-lg sm:text-xl">🚀</span>
+                      <span className="text-sm sm:text-base">Optimaliseer Prompt</span>
+                      <span className="absolute -top-2 -right-2 px-2 py-1 bg-purple-600 text-white rounded-full text-xs font-bold shadow-lg whitespace-nowrap">
                         ⏳ Binnenkort
                       </span>
                     </button>
@@ -271,10 +271,10 @@ function CommercialPromptsList({ prompts, onSelectPrompt }) {
                         // Re-scan this specific prompt
                         alert('Scan functionaliteit komt binnenkort! 🔄')
                       }}
-                      className="px-5 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-all flex items-center gap-2"
+                      className="flex-1 sm:flex-initial px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
                     >
-                      <span className="text-xl">🔄</span>
-                      <span>Scan Opnieuw</span>
+                      <span className="text-lg sm:text-xl">🔄</span>
+                      <span className="text-sm sm:text-base whitespace-nowrap">Scan Opnieuw</span>
                     </button>
                   </div>
 
