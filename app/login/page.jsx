@@ -29,7 +29,13 @@ export default function LoginPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      router.push('/tools/ai-visibility');
+      // ✅ FIXED: Preserve extension parameter if present
+      const params = new URLSearchParams(window.location.search);
+      const redirectUrl = params.get('extension') === 'true' 
+        ? '/dashboard?extension=true' 
+        : '/dashboard';
+      
+      router.push(redirectUrl);
       router.refresh();
     }
   };
@@ -40,10 +46,17 @@ export default function LoginPage() {
     setError('');
 
     const supabase = createClient();
+    
+    // ✅ FIXED: Preserve extension parameter in magic link redirect
+    const params = new URLSearchParams(window.location.search);
+    const redirectPath = params.get('extension') === 'true'
+      ? '/dashboard?extension=true'
+      : '/dashboard';
+    
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/tools/ai-visibility`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${redirectPath}`,
       },
     });
 

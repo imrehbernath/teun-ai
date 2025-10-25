@@ -128,7 +128,30 @@ function Header() {
 
   const handleLogout = async () => {
     const supabase = createClient();
-    await supabase.auth.signOut();
+    
+    // 1. Sign out from Supabase
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      console.error('Logout error:', error);
+    }
+    
+    // 2. Clear extension storage (if Chrome API available)
+    if (window.chrome && chrome.storage) {
+      try {
+        chrome.storage.local.clear(() => {
+          console.log('Extension storage cleared');
+        });
+      } catch (err) {
+        console.log('Extension not available or error:', err);
+      }
+    }
+    
+    // 3. Clear local/session storage
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // 4. Force redirect to home
     window.location.href = '/';
   };
 
@@ -172,10 +195,16 @@ function Header() {
               
               {user ? (
                 <div className="flex items-center gap-4">
+                  <Link 
+                    href="/dashboard"
+                    className="text-white/90 hover:text-white font-medium text-[15px] transition-colors"
+                  >
+                    Dashboard
+                  </Link>
                   <span className="text-white/70 text-sm">{user.email}</span>
                   <button
                     onClick={handleLogout}
-                    className="text-white/90 hover:text-white font-medium text-[15px] transition-colors"
+                    className="text-white/90 hover:text-white font-medium text-[15px] transition-colors hover:underline"
                   >
                     Uitloggen
                   </button>
@@ -221,7 +250,7 @@ function Header() {
           {/* Mobile menu */}
           {mobileMenuOpen && (
             <div className="md:hidden pb-4">
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <Link
                   href="/blog"
                   className="block px-3 py-2 text-white/90 font-medium text-[15px] hover:text-white transition-colors"
@@ -236,16 +265,28 @@ function Header() {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <span className="inline-flex items-center gap-2">
-                    <span className="bg-green-500/20 text-green-300 px-2 py-1 rounded text-xs font-bold">BETA</span>
                     AI Zichtbaarheid
+                    <span className="bg-green-500/20 text-green-300 px-2 py-0.5 rounded text-xs font-bold">BETA</span>
                   </span>
                 </Link>
-
+                
                 {user ? (
                   <>
-                    <div className="px-3 py-2 text-white/70 text-sm">{user.email}</div>
+                    <Link
+                      href="/dashboard"
+                      className="block px-3 py-2 text-white/90 font-medium text-[15px] hover:text-white transition-colors"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Dashboard
+                    </Link>
+                    <div className="px-3 py-2 text-white/70 text-sm">
+                      {user.email}
+                    </div>
                     <button
-                      onClick={handleLogout}
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        handleLogout();
+                      }}
                       className="block w-full text-left px-3 py-2 text-white/90 font-medium text-[15px] hover:text-white transition-colors"
                     >
                       Uitloggen
@@ -260,11 +301,11 @@ function Header() {
                     Inloggen
                   </Link>
                 )}
-                
+
                 <button
                   onClick={() => {
-                    setShowPopup(true);
                     setMobileMenuOpen(false);
+                    setShowPopup(true);
                   }}
                   className="w-full mt-4 bg-gradient-to-r from-[#1A7DFF] to-[#6C3FF2] text-white px-6 py-2.5 rounded-lg font-semibold text-[15px] text-center"
                 >

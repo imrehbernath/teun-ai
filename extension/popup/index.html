@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teun.ai - ChatGPT Scanner</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">🚀 Teun.ai</div>
+    <div class="tagline">ChatGPT Visibility Scanner</div>
+  </div>
+
+  <!-- Login Section -->
+  <div id="login-section" class="section">
+    <div class="login-icon">🔐</div>
+    <h2 class="login-title">Login Required</h2>
+    <p class="login-description">
+      Log in op Teun.ai om je ChatGPT visibility te scannen en resultaten op te slaan in je dashboard.
+    </p>
+    <button id="login-btn" class="btn btn-primary">
+      Login met Teun.ai
+    </button>
+  </div>
+
+  <!-- Scan Section -->
+  <div id="scan-section" class="section">
+    <div class="scan-header">
+      <div class="user-info">
+        Ingelogd als: <span class="user-email" id="user-email">-</span>
+      </div>
+      <button id="logout-btn" class="logout-btn">Uitloggen</button>
+    </div>
+
+    <form id="scan-form">
+      <!-- Company Name -->
+      <div class="form-group">
+        <label class="form-label" for="company-name">
+          🏢 Bedrijfsnaam
+        </label>
+        <input 
+          type="text" 
+          id="company-name" 
+          class="form-input" 
+          placeholder="bijv. OnlineLabs"
+          required
+        />
+        <div class="form-hint">
+          De naam die je wilt vinden in ChatGPT antwoorden
+        </div>
+      </div>
+
+      <!-- Prompts -->
+      <div class="form-group">
+        <label class="form-label" for="prompts">
+          💬 Commercial Prompts
+        </label>
+        <textarea 
+          id="prompts" 
+          class="form-textarea" 
+          placeholder="Voer je prompts in (1 per regel)&#10;&#10;Bijvoorbeeld:&#10;Wat zijn de beste HBOT klinieken?&#10;Welke bedrijven bieden hyperbare zuurstoftherapie?"
+          required
+        ></textarea>
+        <div class="form-hint">
+          ⚡ Max 20 prompts per scan
+          <button type="button" id="load-samples-btn" class="load-samples-btn">
+            Laad voorbeelden
+          </button>
+        </div>
+      </div>
+
+      <!-- Start Button -->
+      <button type="submit" id="start-scan-btn" class="btn btn-primary btn-full">
+        🚀 Start ChatGPT Scan
+      </button>
+    </form>
+
+    <!-- Progress Section -->
+    <div id="progress-section">
+      <div class="progress-title">⚡ Scanning in progress...</div>
+      
+      <div class="progress-bar-container">
+        <div id="progress-bar" class="progress-bar"></div>
+      </div>
+      
+      <div id="progress-text" class="progress-text">0/0</div>
+      
+      <div class="current-query" id="current-query">
+        Voorbereiden...
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Section -->
+  <div id="results-section" class="section">
+    <div class="results-header">
+      <h2 class="results-title">🎉 Scan Compleet!</h2>
+      
+      <div class="results-stats">
+        <div class="stat-card">
+          <div class="stat-label">Gevonden</div>
+          <div class="stat-value">
+            <span id="found-count">0</span>/<span id="total-count">0</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Visibility</div>
+          <div class="stat-value">
+            <span id="visibility-score" class="score">0%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Grid -->
+    <div id="results-grid" class="results-grid">
+      <!-- Results will be inserted here by JS -->
+    </div>
+
+    <!-- Actions -->
+    <div class="results-actions">
+      <button id="view-dashboard-btn" class="btn btn-primary" style="flex: 1;">
+        📊 Bekijk Dashboard
+      </button>
+      <button id="new-scan-btn" class="btn btn-secondary" style="flex: 1;">
+        🔄 Nieuwe Scan
+      </button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
