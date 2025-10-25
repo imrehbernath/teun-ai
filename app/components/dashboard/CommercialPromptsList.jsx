@@ -137,14 +137,14 @@ function CommercialPromptsList({ prompts, onSelectPrompt }) {
                 <div className="flex-1 min-w-0">
                   
                   {/* Prompt Text + Copy Button */}
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <h3 className="text-xl font-bold text-gray-900 flex-1">
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4 mb-4">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 flex-1">
                       "{prompt.text}"
                     </h3>
                     
                     <button
                       onClick={() => copyPrompt(prompt.text)}
-                      className="flex-shrink-0 px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all flex items-center gap-2 font-semibold text-sm"
+                      className="self-start sm:flex-shrink-0 px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all flex items-center gap-2 font-semibold text-sm"
                     >
                       {copiedPrompt === prompt.text ? (
                         <>
