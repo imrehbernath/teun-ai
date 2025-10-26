@@ -283,7 +283,7 @@ export default function AIVisibilityTool() {
                         <span className="text-blue-300 flex-shrink-0">ℹ️</span>
                         <div className="text-sm text-blue-200">
                           <strong>Optioneel:</strong> Pas aan welke woorden AI gebruikt bij het maken van prompts. 
-                          Klik op voorbeelden om ze toe te voegen, of typ je eigen woorden (gescheiden door komma's).
+                          Klik op voorbeelden om ze toe te voegen, of typ je eigen woorden (gescheiden door komma&apos;s).
                         </div>
                       </div>
                     </div>
@@ -402,7 +402,7 @@ export default function AIVisibilityTool() {
                           className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-red-400/50 focus:outline-none text-sm"
                         />
                         <div className="text-xs text-gray-400">
-                          Scheid met komma's. Deze termen worden uitgesloten bij het maken van prompts.
+                          Scheid met komma&apos;s. Deze termen worden uitgesloten bij het maken van prompts.
                         </div>
                       </div>
 
