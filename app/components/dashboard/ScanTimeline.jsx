@@ -195,17 +195,10 @@ function ScanTimeline({ perplexityScans, chatgptScans }) {
                       {/* Expand/Collapse Button */}
                       <button
                         onClick={() => toggleExpand(scan.id)}
-                        className={`w-full px-3 sm:px-4 py-3 bg-gradient-to-r ${getScanColor(scan.type)} text-white rounded-xl font-bold hover:shadow-xl transition-all text-sm sm:text-base`}
+                        className={`w-full px-3 sm:px-4 py-3 bg-gradient-to-r ${getScanColor(scan.type)} text-white rounded-xl font-bold hover:shadow-xl transition-all text-sm sm:text-base flex items-center justify-center gap-2`}
                       >
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="flex items-center gap-2 flex-shrink-0">
-                            <span className="text-xl">{isExpanded ? '🔽' : '▶️'}</span>
-                            <span className="whitespace-nowrap">{isExpanded ? 'Verberg Details' : 'Bekijk Details'}</span>
-                          </span>
-                          <span className="text-sm opacity-90 font-normal flex-shrink-0">
-                            {scan.type === 'perplexity' ? `${scan.prompts_count} prompts` : `${scan.total_queries} queries`}
-                          </span>
-                        </div>
+                        <span className="text-xl">{isExpanded ? '🔽' : '▶️'}</span>
+                        <span className="whitespace-nowrap">{isExpanded ? 'Verberg Details' : 'Bekijk Details'}</span>
                       </button>
                     </div>
 

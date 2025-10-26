@@ -88,8 +88,8 @@ function CommercialPromptsList({ prompts, onSelectPrompt }) {
               <span className="text-3xl">💬</span>
             </div>
             <div>
-              <h2 className="text-3xl font-bold text-white">Commercial Prompts</h2>
-              <p className="text-purple-100 text-lg">
+              <h2 className="text-2xl sm:text-3xl font-bold text-white">Commerciële Prompts</h2>
+              <p className="text-purple-100 text-sm sm:text-lg">
                 {prompts.length} prompt{prompts.length !== 1 ? 's' : ''} • Multi-platform visibility
               </p>
             </div>
