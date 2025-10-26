@@ -85,11 +85,11 @@ function ScanTimeline({ perplexityScans, chatgptScans }) {
       </div>
 
       {/* Timeline */}
-      <div className="p-8">
+      <div className="p-4 sm:p-8">
         <div className="relative">
           
           {/* Timeline Line */}
-          <div className="absolute left-8 top-0 bottom-0 w-1 bg-gradient-to-b from-purple-300 via-blue-300 to-transparent"></div>
+          <div className="absolute left-6 sm:left-8 top-0 bottom-0 w-1 bg-gradient-to-b from-purple-300 via-blue-300 to-transparent"></div>
 
           {/* Scan Items */}
           <div className="space-y-6">
@@ -98,11 +98,11 @@ function ScanTimeline({ perplexityScans, chatgptScans }) {
               const isPerpexity = scan.type === 'perplexity'
               
               return (
-                <div key={scan.id} className="relative pl-20">
+                <div key={scan.id} className="relative pl-16 sm:pl-20">
                   
                   {/* Timeline Dot */}
-                  <div className={`absolute left-0 top-4 w-16 h-16 bg-gradient-to-br ${getScanColor(scan.type)} rounded-xl flex items-center justify-center shadow-xl border-4 border-white`}>
-                    <span className="text-3xl">{getScanIcon(scan.type)}</span>
+                  <div className={`absolute left-0 top-4 w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br ${getScanColor(scan.type)} rounded-xl flex items-center justify-center shadow-xl border-4 border-white`}>
+                    <span className="text-2xl sm:text-3xl">{getScanIcon(scan.type)}</span>
                   </div>
 
                   {/* Scan Card */}
@@ -111,27 +111,27 @@ function ScanTimeline({ perplexityScans, chatgptScans }) {
                   >
                     
                     {/* Card Header */}
-                    <div className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-2xl font-bold text-gray-900">
+                    <div className="p-5 sm:p-6">
+                      <div className="flex items-start justify-between gap-3 mb-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                            <h3 className="text-base sm:text-2xl font-bold text-gray-900 break-words">
                               {scan.company_name || scan.keyword}
                             </h3>
-                            <span className={`px-3 py-1 ${isPerpexity ? 'bg-purple-200 text-purple-800' : 'bg-blue-200 text-blue-800'} rounded-full text-sm font-bold`}>
+                            <span className={`self-start px-2 sm:px-3 py-1 ${isPerpexity ? 'bg-purple-200 text-purple-800' : 'bg-blue-200 text-blue-800'} rounded-full text-xs sm:text-sm font-bold whitespace-nowrap`}>
                               {isPerpexity ? 'Perplexity' : 'ChatGPT'}
                             </span>
                           </div>
-                          <p className="text-gray-600 flex items-center gap-2">
+                          <p className="text-xs sm:text-sm text-gray-600 flex items-center gap-2">
                             <span>🕐</span>
-                            <span>{formatDate(scan.created_at)}</span>
+                            <span className="break-words">{formatDate(scan.created_at)}</span>
                           </p>
                         </div>
                         
                         {/* Stats Badge */}
                         {scan.type === 'chatgpt' && (
-                          <div className="text-center">
-                            <div className={`text-3xl font-bold ${
+                          <div className="text-center flex-shrink-0">
+                            <div className={`text-xl sm:text-3xl font-bold ${
                               scan.found_count && scan.total_queries 
                                 ? (scan.found_count / scan.total_queries) >= 0.7 ? 'text-green-600'
                                 : (scan.found_count / scan.total_queries) >= 0.4 ? 'text-yellow-600'
@@ -148,8 +148,8 @@ function ScanTimeline({ perplexityScans, chatgptScans }) {
                         )}
                         
                         {scan.type === 'perplexity' && (
-                          <div className="text-center">
-                            <div className="text-3xl font-bold text-purple-600">
+                          <div className="text-center flex-shrink-0">
+                            <div className="text-xl sm:text-3xl font-bold text-purple-600">
                               {scan.prompts_count || 0}
                             </div>
                             <div className="text-xs text-gray-600">Prompts</div>
@@ -158,34 +158,34 @@ function ScanTimeline({ perplexityScans, chatgptScans }) {
                       </div>
 
                       {/* Quick Stats */}
-                      <div className="grid grid-cols-3 gap-3 mb-4">
+                      <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
                         {scan.type === 'chatgpt' ? (
                           <>
-                            <div className="p-3 bg-white/60 backdrop-blur rounded-lg text-center">
-                              <div className="text-xl font-bold text-gray-900">{scan.total_queries || 0}</div>
+                            <div className="p-2 sm:p-3 bg-white/60 backdrop-blur rounded-lg text-center">
+                              <div className="text-lg sm:text-xl font-bold text-gray-900">{scan.total_queries || 0}</div>
                               <div className="text-xs text-gray-600">Queries</div>
                             </div>
-                            <div className="p-3 bg-white/60 backdrop-blur rounded-lg text-center">
-                              <div className="text-xl font-bold text-green-700">{scan.found_count || 0}</div>
+                            <div className="p-2 sm:p-3 bg-white/60 backdrop-blur rounded-lg text-center">
+                              <div className="text-lg sm:text-xl font-bold text-green-700">{scan.found_count || 0}</div>
                               <div className="text-xs text-gray-600">Gevonden</div>
                             </div>
-                            <div className="p-3 bg-white/60 backdrop-blur rounded-lg text-center">
-                              <div className="text-xl font-bold text-blue-700">{scan.successful_queries || 0}</div>
+                            <div className="p-2 sm:p-3 bg-white/60 backdrop-blur rounded-lg text-center">
+                              <div className="text-lg sm:text-xl font-bold text-blue-700">{scan.successful_queries || 0}</div>
                               <div className="text-xs text-gray-600">Succesvol</div>
                             </div>
                           </>
                         ) : (
                           <>
-                            <div className="p-3 bg-white/60 backdrop-blur rounded-lg text-center">
-                              <div className="text-xl font-bold text-purple-700">{scan.prompts_count || 0}</div>
+                            <div className="p-2 sm:p-3 bg-white/60 backdrop-blur rounded-lg text-center">
+                              <div className="text-lg sm:text-xl font-bold text-purple-700">{scan.prompts_count || 0}</div>
                               <div className="text-xs text-gray-600">Prompts</div>
                             </div>
-                            <div className="p-3 bg-white/60 backdrop-blur rounded-lg text-center">
-                              <div className="text-xl font-bold text-green-700">✅</div>
+                            <div className="p-2 sm:p-3 bg-white/60 backdrop-blur rounded-lg text-center">
+                              <div className="text-lg sm:text-xl font-bold text-green-700">✅</div>
                               <div className="text-xs text-gray-600">Ontdekt</div>
                             </div>
-                            <div className="p-3 bg-white/60 backdrop-blur rounded-lg text-center">
-                              <div className="text-xl font-bold text-blue-700">🔮</div>
+                            <div className="p-2 sm:p-3 bg-white/60 backdrop-blur rounded-lg text-center">
+                              <div className="text-lg sm:text-xl font-bold text-blue-700">🔮</div>
                               <div className="text-xs text-gray-600">Perplexity</div>
                             </div>
                           </>
@@ -195,7 +195,7 @@ function ScanTimeline({ perplexityScans, chatgptScans }) {
                       {/* Expand/Collapse Button */}
                       <button
                         onClick={() => toggleExpand(scan.id)}
-                        className={`w-full px-4 py-3 bg-gradient-to-r ${getScanColor(scan.type)} text-white rounded-xl font-bold hover:shadow-xl transition-all`}
+                        className={`w-full px-3 sm:px-4 py-3 bg-gradient-to-r ${getScanColor(scan.type)} text-white rounded-xl font-bold hover:shadow-xl transition-all text-sm sm:text-base`}
                       >
                         <div className="flex items-center justify-between gap-3">
                           <span className="flex items-center gap-2 flex-shrink-0">
