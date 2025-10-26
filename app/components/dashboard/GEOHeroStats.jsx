@@ -67,7 +67,7 @@ function GEOHeroStats({ prompts, platformScans }) {
               Jouw GEO Performance
             </h1>
             <p className="text-purple-100 text-lg">
-              Real-time visibility across AI search platforms
+              Real-time zichtbaarheid over alle AI-zoekmachines
             </p>
           </div>
           

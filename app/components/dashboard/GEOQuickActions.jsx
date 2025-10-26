@@ -104,12 +104,12 @@ function GEOQuickActions({ hasPrompts, onRefresh }) {
 
           {/* Content */}
           <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 leading-tight">
-            Ontdek Meer Commercial Prompts
+            Ontdek Meer Commerciële Prompts
           </h3>
           
           <p className="text-sm sm:text-base text-gray-700 mb-6 leading-relaxed">
             Hoe meer prompts je ontdekt, hoe beter je GEO strategie. Scan opnieuw voor nieuwe 
-            commercial queries in jouw niche.
+            commerciële queries in jouw niche.
           </p>
 
           {/* Stats */}
