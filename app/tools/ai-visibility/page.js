@@ -1,11 +1,9 @@
-// ============================================
-// FILE 1: app/tools/ai-visibility/page.js
-// ALLE FIXES: Progress zonder decimalen, realistischer indicator, 10 prompts voor ingelogd, responsive mobile
-// ============================================
+// app/tools/ai-visibility/page.js
+// ✅ COMPLETE VERSION with Improved Advanced Settings - SYNTAX FIXED
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, TrendingUp, Zap, BarChart3, CheckCircle2, AlertCircle, Loader2, Award, Clock } from 'lucide-react';
+import { Search, TrendingUp, Zap, BarChart3, CheckCircle2, AlertCircle, Loader2, Award } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import FeedbackWidget from '@/app/components/FeedbackWidget';
@@ -26,6 +24,12 @@ export default function AIVisibilityTool() {
     queries: ''
   });
 
+  // ✨ Advanced Settings State
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [excludeTermsInput, setExcludeTermsInput] = useState('');
+  const [includeTermsInput, setIncludeTermsInput] = useState('');
+  const [locationTermsInput, setLocationTermsInput] = useState('');
+
   useEffect(() => {
     const supabase = createClient();
     
@@ -42,6 +46,38 @@ export default function AIVisibilityTool() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // ✨ Helper Functions for Advanced Settings
+  const addExcludeTerms = (newTerms) => {
+    const current = excludeTermsInput.split(',').map(t => t.trim()).filter(t => t);
+    const toAdd = Array.isArray(newTerms) ? newTerms : newTerms.split(',').map(t => t.trim()).filter(t => t);
+    const combined = [...new Set([...current, ...toAdd])];
+    setExcludeTermsInput(combined.join(', '));
+  };
+
+  const addIncludeTerms = (newTerms) => {
+    const current = includeTermsInput.split(',').map(t => t.trim()).filter(t => t);
+    const toAdd = Array.isArray(newTerms) ? newTerms : newTerms.split(',').map(t => t.trim()).filter(t => t);
+    const combined = [...new Set([...current, ...toAdd])];
+    setIncludeTermsInput(combined.join(', '));
+  };
+
+  const addLocationTerms = (newTerms) => {
+    const current = locationTermsInput.split(',').map(t => t.trim()).filter(t => t);
+    const toAdd = Array.isArray(newTerms) ? newTerms : newTerms.split(',').map(t => t.trim()).filter(t => t);
+    const combined = [...new Set([...current, ...toAdd])];
+    setLocationTermsInput(combined.join(', '));
+  };
+
+  const getCustomTerms = () => {
+    const exclude = excludeTermsInput.split(',').map(t => t.trim()).filter(t => t);
+    const include = includeTermsInput.split(',').map(t => t.trim()).filter(t => t);
+    const location = locationTermsInput.split(',').map(t => t.trim()).filter(t => t);
+    
+    return (exclude.length > 0 || include.length > 0 || location.length > 0)
+      ? { exclude, include, location }
+      : null;
+  };
 
   const handleAnalyze = async () => {
     setAnalyzing(true);
@@ -60,39 +96,37 @@ export default function AIVisibilityTool() {
 
       const totalPrompts = user ? 10 : 5;
       
-      // ✅ FIX: Progress aangepast voor realistische scan duur
+      // ✅ FIXED PROGRESS INTERVAL
       const progressInterval = setInterval(() => {
         setProgress(prev => {
           const rounded = Math.floor(prev);
           
-          // Stop pas bij 97% (nooit 100% bereiken voor API klaar is)
           if (rounded >= 97) return rounded;
           
           if (user) {
-            // Voor 10 prompts: ~4-5 minuten
-            if (rounded < 15) return rounded + 1.5;
-            if (rounded < 40) return rounded + 0.8;
-            if (rounded < 65) return rounded + 0.5;
-            if (rounded < 85) return rounded + 0.3;
-            if (rounded < 92) return rounded + 0.2;
-            return rounded + 0.1; // Heel langzaam 92-97%
+            // FOR 10 PROMPTS
+            if (rounded < 10) return prev + 2;
+            if (rounded < 25) return prev + 1;
+            if (rounded < 50) return prev + 0.6;
+            if (rounded < 70) return prev + 0.4;
+            if (rounded < 85) return prev + 0.25;
+            if (rounded < 92) return prev + 0.15;
+            return prev + 0.08;
           } else {
-            // Voor 5 prompts: ~2 minuten (LANGZAMER)
-            if (rounded < 20) return rounded + 1;
-            if (rounded < 45) return rounded + 0.6;
-            if (rounded < 70) return rounded + 0.4;
-            if (rounded < 88) return rounded + 0.25;
-            return rounded + 0.15; // Langzaam 88-97%
+            // FOR 5 PROMPTS
+            if (rounded < 15) return prev + 2.5;
+            if (rounded < 35) return prev + 1.2;
+            if (rounded < 60) return prev + 0.7;
+            if (rounded < 80) return prev + 0.4;
+            if (rounded < 90) return prev + 0.25;
+            return prev + 0.12;
           }
         });
-      }, 1200); // 1.2 seconde interval voor nog langzamere progress
+      }, 1000);
 
-      // ✅ FIX: Indicator blijft updaten tot 100%
       const stepInterval = setInterval(() => {
         setProgress(current => {
           const rounded = Math.floor(current);
-          
-          // Bereken hoeveel prompts verwerkt zijn op basis van percentage
           const estimatedPromptsProcessed = Math.floor((rounded / 100) * totalPrompts);
           
           if (rounded >= 10 && rounded < 20) {
@@ -115,7 +149,8 @@ export default function AIVisibilityTool() {
           companyCategory: formData.companyCategory,
           identifiedQueriesSummary: queriesArray.length > 0 ? queriesArray : [],
           userId: user?.id || null,
-          numberOfPrompts: totalPrompts
+          numberOfPrompts: totalPrompts,
+          customTerms: getCustomTerms()
         })
       });
 
@@ -174,8 +209,8 @@ export default function AIVisibilityTool() {
                 step === num
                   ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white'
                   : step > num
-                  ? 'bg-purple-600/30 text-purple-200'
-                  : 'bg-white/5 text-gray-400'
+                  ? 'bg-white/10 text-gray-400'
+                  : 'bg-white/5 text-gray-500'
               )}
             >
               {num}. {label}
@@ -183,62 +218,270 @@ export default function AIVisibilityTool() {
           ))}
         </div>
 
-        {error && (
-          <div className="backdrop-blur-sm bg-red-500/20 border border-red-400/30 rounded-2xl p-4 mb-6 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-300 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-red-200">Er is een fout opgetreden</p>
-              <p className="text-sm text-red-300 mt-1">{error}</p>
-            </div>
-          </div>
-        )}
-
-        <section className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 mb-8">
+        <section className="backdrop-blur-md bg-gradient-to-br from-white/10 via-white/5 to-white/10 border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl mb-8">
+          
           {step === 1 && (
             <div>
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
                   <Search className="w-5 h-5 text-blue-300" />
                 </div>
                 <h2 className="text-2xl font-bold">1. Geef belangrijkste zoekwoorden op</h2>
               </div>
 
-              <div className="space-y-4">
-                <div className="backdrop-blur-sm bg-blue-500/10 border border-blue-400/30 rounded-lg p-4 mb-4">
-                  <div className="flex items-start gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-blue-300 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm text-blue-200">
-                      <p className="font-semibold mb-1">Tip: Eerste zoekwoord is het belangrijkst</p>
-                      <p className="text-blue-300/80">Dit wordt gebruikt om relevante AI-prompts te genereren die matchen met waar jouw klanten naar zoeken.</p>
-                    </div>
+              <div className="bg-blue-500/10 border border-blue-400/30 rounded-xl p-4 mb-6">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-5 h-5 text-blue-300 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-blue-200">
+                    <strong>Tip: Eerste zoekwoord is het belangrijkst</strong>
+                    <p className="mt-1 text-blue-100">
+                      Dit wordt gebruikt om relevante AI-prompts te genereren die matchen met waar jouw klanten naar zoeken.
+                    </p>
                   </div>
                 </div>
+              </div>
 
-                <div className="flex gap-2 flex-wrap">
-                  <button className="px-4 py-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-400/30 rounded-lg text-blue-200 text-sm font-medium">
-                    Handmatig invoeren
-                  </button>
-                  <button className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-gray-400 text-sm hover:bg-white/10 transition">
-                    Upload CSV
-                  </button>
-                </div>
-
+              <div className="space-y-2 mb-6">
+                <label className="text-sm text-gray-300 font-medium block">
+                  Zoekwoorden (optioneel)
+                </label>
                 <textarea
                   value={formData.queries}
-                  onChange={(e) => setFormData({...formData, queries: e.target.value})}
-                  placeholder="Bijv. Linnen gordijnen, Linnen gordijnen op maat, Inbetween gordijnen&#10;&#10;Voer je belangrijkste zoekwoorden in, gescheiden door komma's of nieuwe regels"
-                  className="w-full h-40 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none"
-                  suppressHydrationWarning
+                  onChange={(e) => setFormData({ ...formData, queries: e.target.value })}
+                  placeholder="Bijv: Linnen gordijnen, Linnen gordijnen op maat, Inbetween gordijnen. Voer je belangrijkste zoekwoorden in, gescheiden door komma's of nieuwe regels"
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-400 focus:outline-none min-h-[120px] resize-y"
                 />
+              </div>
 
-                <div className="flex items-center justify-between pt-4">
-                  <button
-                    onClick={() => setStep(2)}
-                    className="px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold rounded-lg hover:from-purple-600 hover:to-indigo-700 transition shadow-lg ml-auto"
-                  >
-                    Volgende →
-                  </button>
-                </div>
+              {/* ✨ Advanced Settings Section */}
+              <div className="mt-6 border-t border-white/10 pt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+                  className="flex items-center justify-between w-full px-4 py-3 bg-white/5 hover:bg-white/10 rounded-lg transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-indigo-500/20 rounded-lg flex items-center justify-center border border-purple-400/30 group-hover:border-purple-400/50 transition-all">
+                      <span className="text-xl">⚙️</span>
+                    </div>
+                    <div className="text-left">
+                      <div className="font-semibold text-white">Geavanceerde Instellingen</div>
+                      <div className="text-xs text-gray-400">Bepaal welke woorden AI gebruikt (optioneel)</div>
+                    </div>
+                  </div>
+                  <div className="text-purple-300">
+                    {showAdvancedSettings ? '▼' : '▶'}
+                  </div>
+                </button>
+
+                {showAdvancedSettings && (
+                  <div className="mt-4 space-y-4 bg-white/5 rounded-lg p-4 border border-white/10">
+                    
+                    {/* Info Banner */}
+                    <div className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-3">
+                      <div className="flex items-start gap-2">
+                        <span className="text-blue-300 flex-shrink-0">ℹ️</span>
+                        <div className="text-sm text-blue-200">
+                          <strong>Optioneel:</strong> Pas aan welke woorden AI gebruikt bij het maken van prompts. 
+                          Klik op voorbeelden om ze toe te voegen, of typ je eigen woorden (gescheiden door komma's).
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Preset Examples */}
+                    <div className="space-y-3">
+                      <label className="text-sm text-gray-300 font-medium block">
+                        🎯 Klik op voorbeelden om toe te voegen:
+                      </label>
+                      
+                      {/* Premium Examples */}
+                      <div className="space-y-2">
+                        <div className="text-xs text-purple-300 font-semibold">💎 Premium Positionering:</div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => addIncludeTerms(['premium', 'hoogwaardig', 'exclusief'])}
+                            className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-200 rounded-lg text-xs font-medium transition-all border border-green-400/30"
+                          >
+                            + premium, hoogwaardig, exclusief
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => addIncludeTerms(['gespecialiseerd', 'ervaren', 'deskundig'])}
+                            className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-200 rounded-lg text-xs font-medium transition-all border border-green-400/30"
+                          >
+                            + gespecialiseerd, ervaren, deskundig
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => addExcludeTerms(['goedkoop', 'budget', 'korting'])}
+                            className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-200 rounded-lg text-xs font-medium transition-all border border-red-400/30"
+                          >
+                            − goedkoop, budget, korting
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Local Service Examples */}
+                      <div className="space-y-2">
+                        <div className="text-xs text-blue-300 font-semibold">📍 Lokale Service:</div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => addLocationTerms(['Amsterdam', 'Rotterdam', 'Utrecht'])}
+                            className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 rounded-lg text-xs font-medium transition-all border border-blue-400/30"
+                          >
+                            + Amsterdam, Rotterdam, Utrecht
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => addLocationTerms(['landelijk actief', 'in Nederland'])}
+                            className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 rounded-lg text-xs font-medium transition-all border border-blue-400/30"
+                          >
+                            + landelijk actief, in Nederland
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => addIncludeTerms(['lokaal', 'in de buurt', 'regio'])}
+                            className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-200 rounded-lg text-xs font-medium transition-all border border-green-400/30"
+                          >
+                            + lokaal, in de buurt, regio
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Service Quality Examples */}
+                      <div className="space-y-2">
+                        <div className="text-xs text-indigo-300 font-semibold">⭐ Service Kwaliteit:</div>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => addIncludeTerms(['24/7 bereikbaar', 'spoedservice', 'direct beschikbaar'])}
+                            className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-200 rounded-lg text-xs font-medium transition-all border border-green-400/30"
+                          >
+                            + 24/7, spoedservice, direct
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => addIncludeTerms(['transparant', 'vast tarief', 'duidelijke offerte'])}
+                            className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-200 rounded-lg text-xs font-medium transition-all border border-green-400/30"
+                          >
+                            + transparant, vast tarief, duidelijk
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Reset Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExcludeTermsInput('');
+                          setIncludeTermsInput('');
+                          setLocationTermsInput('');
+                        }}
+                        className="px-3 py-1.5 bg-gray-500/20 hover:bg-gray-500/30 text-gray-200 rounded-lg text-xs font-medium transition-all border border-gray-400/30"
+                      >
+                        🔄 Alles wissen
+                      </button>
+                    </div>
+
+                    {/* Input Fields */}
+                    <div className="space-y-4 pt-4 border-t border-white/10">
+                      
+                      {/* Exclude Input */}
+                      <div className="space-y-2">
+                        <label className="text-sm text-gray-300 font-medium flex items-center gap-2">
+                          <span className="text-red-400">❌</span>
+                          Vermijd deze woorden (optioneel)
+                        </label>
+                        <input
+                          type="text"
+                          value={excludeTermsInput}
+                          onChange={(e) => setExcludeTermsInput(e.target.value)}
+                          placeholder="Bijv: goedkoop, budget, korting"
+                          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-red-400/50 focus:outline-none text-sm"
+                        />
+                        <div className="text-xs text-gray-400">
+                          Scheid met komma's. Deze termen worden uitgesloten bij het maken van prompts.
+                        </div>
+                      </div>
+
+                      {/* Include Input */}
+                      <div className="space-y-2">
+                        <label className="text-sm text-gray-300 font-medium flex items-center gap-2">
+                          <span className="text-green-400">✅</span>
+                          Gebruik deze woorden (optioneel)
+                        </label>
+                        <input
+                          type="text"
+                          value={includeTermsInput}
+                          onChange={(e) => setIncludeTermsInput(e.target.value)}
+                          placeholder="Bijv: gespecialiseerd, ervaren, premium"
+                          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-green-400/50 focus:outline-none text-sm"
+                        />
+                        <div className="text-xs text-gray-400">
+                          AI zal deze termen proberen te gebruiken in de gegenereerde prompts.
+                        </div>
+                      </div>
+
+                      {/* Location Input */}
+                      <div className="space-y-2">
+                        <label className="text-sm text-gray-300 font-medium flex items-center gap-2">
+                          <span className="text-blue-400">📍</span>
+                          Locatie-focus (optioneel)
+                        </label>
+                        <input
+                          type="text"
+                          value={locationTermsInput}
+                          onChange={(e) => setLocationTermsInput(e.target.value)}
+                          placeholder="Bijv: Amsterdam, landelijk actief, regio Utrecht"
+                          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-blue-400/50 focus:outline-none text-sm"
+                        />
+                        <div className="text-xs text-gray-400">
+                          Locatie-specifieke termen om in prompts te gebruiken.
+                        </div>
+                      </div>
+
+                    </div>
+
+                    {/* Preview */}
+                    {(excludeTermsInput || includeTermsInput || locationTermsInput) && (
+                      <div className="mt-4 p-3 bg-purple-500/10 border border-purple-400/30 rounded-lg">
+                        <div className="text-xs text-purple-200 font-semibold mb-2">📋 Actieve Instellingen:</div>
+                        <div className="space-y-1 text-xs">
+                          {excludeTermsInput && (
+                            <div className="flex items-start gap-2">
+                              <span className="text-red-400">❌</span>
+                              <span className="text-gray-300">{excludeTermsInput}</span>
+                            </div>
+                          )}
+                          {includeTermsInput && (
+                            <div className="flex items-start gap-2">
+                              <span className="text-green-400">✅</span>
+                              <span className="text-gray-300">{includeTermsInput}</span>
+                            </div>
+                          )}
+                          {locationTermsInput && (
+                            <div className="flex items-start gap-2">
+                              <span className="text-blue-400">📍</span>
+                              <span className="text-gray-300">{locationTermsInput}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={() => setStep(2)}
+                  className="px-8 py-4 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold rounded-lg hover:from-purple-600 hover:to-indigo-700 transition shadow-lg"
+                >
+                  Volgende →
+                </button>
               </div>
             </div>
           )}
@@ -249,58 +492,59 @@ export default function AIVisibilityTool() {
                 <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg flex items-center justify-center border border-purple-400/30">
                   <TrendingUp className="w-5 h-5 text-purple-300" />
                 </div>
-                <h2 className="text-2xl font-bold">2. Voer je bedrijfsgegevens in</h2>
+                <h2 className="text-2xl font-bold">2. Bedrijfsinfo</h2>
               </div>
 
-              <div className="space-y-6">
-                <div>
-                  <label htmlFor="companyName" className="block text-sm font-medium text-gray-300 mb-2">
+              <div className="space-y-4 mb-6">
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-300 font-medium block">
                     Bedrijfsnaam *
                   </label>
                   <input
-                    id="companyName"
                     type="text"
                     value={formData.companyName}
-                    onChange={(e) => setFormData({...formData, companyName: e.target.value})}
-                    placeholder="Bijv. Jouw Gordijnwinkel (zoals vermeld in Google Bedrijfsprofiel)"
-                    className="w-full px-4 py-3 rounded-lg bg-white/5 text-white placeholder-gray-500 border border-white/10 focus:outline-none focus:ring-2 focus:ring-purple-400"
-                    suppressHydrationWarning
+                    onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                    placeholder="Bijv: OnlineLabs"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-400 focus:outline-none"
+                    required
                   />
                 </div>
 
-                <div>
-                  <label htmlFor="companyCategory" className="block text-sm font-medium text-gray-300 mb-2">
-                    Bedrijfscategorie *
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-300 font-medium block">
+                    Categorie/Branche *
                   </label>
                   <input
-                    id="companyCategory"
                     type="text"
                     value={formData.companyCategory}
-                    onChange={(e) => setFormData({...formData, companyCategory: e.target.value})}
-                    placeholder="Bijv. Gordijnwinkel, Raamdecoraties, Woninginrichting"
-                    className="w-full px-4 py-3 rounded-lg bg-white/5 text-white placeholder-gray-500 border border-white/10 focus:outline-none focus:ring-2 focus:ring-purple-400"
-                    suppressHydrationWarning
+                    onChange={(e) => setFormData({ ...formData, companyCategory: e.target.value })}
+                    placeholder="Bijv: Online marketing bureau, SEO bureau, Webdesign bureau"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-400 focus:outline-none"
+                    required
                   />
-                  <p className="text-xs text-gray-400 mt-2">
-                    Deze info helpt met het genereren van relevante AI-prompts
-                  </p>
                 </div>
+              </div>
 
-                <div className="flex items-center justify-between pt-4">
-                  <button
-                    onClick={() => setStep(1)}
-                    className="px-6 py-3 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition"
-                  >
-                    ← Terug
-                  </button>
-                  <button
-                    onClick={() => setStep(3)}
-                    disabled={!formData.companyName || !formData.companyCategory}
-                    className="px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold rounded-lg hover:from-purple-600 hover:to-indigo-700 transition disabled:opacity-50 shadow-lg"
-                  >
-                    Volgende →
-                  </button>
-                </div>
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => setStep(1)}
+                  className="px-6 py-3 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition"
+                >
+                  ← Terug
+                </button>
+                <button
+                  onClick={() => {
+                    if (!formData.companyName || !formData.companyCategory) {
+                      setError('Vul alle verplichte velden in');
+                      return;
+                    }
+                    setError(null);
+                    setStep(3);
+                  }}
+                  className="px-8 py-4 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold rounded-lg hover:from-purple-600 hover:to-indigo-700 transition shadow-lg"
+                >
+                  Volgende →
+                </button>
               </div>
             </div>
           )}
@@ -316,39 +560,27 @@ export default function AIVisibilityTool() {
 
               {analyzing ? (
                 <div className="space-y-6">
-                  <div className="backdrop-blur-md bg-blue-500/20 border border-blue-400/30 rounded-xl p-4 flex items-start gap-3">
-                    <Clock className="w-5 h-5 text-blue-300 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm">
-                      <p className="font-semibold text-blue-200 mb-1">
-                        Geschatte duur: {user ? '3-5 minuten' : '1-2 minuten'}
-                      </p>
-                      <p className="text-blue-300/80">Je kunt ondertussen in een andere tab doorwerken. De resultaten verschijnen hier automatisch.</p>
-                    </div>
-                  </div>
-
-                  <div className="backdrop-blur-md bg-gradient-to-br from-purple-600/30 via-purple-500/20 to-indigo-600/30 border border-purple-400/30 rounded-2xl p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <Loader2 className="w-5 h-5 text-purple-300 animate-spin" />
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium text-purple-100">{currentStep}</span>
-                          <span className="text-sm text-purple-200">{Math.floor(progress)}%</span>
-                        </div>
+                  <div className="bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border-2 border-purple-400/40 rounded-2xl p-6 text-center">
+                    <Loader2 className="w-12 h-12 text-purple-300 mx-auto mb-4 animate-spin" />
+                    <h3 className="text-xl font-bold text-white mb-2">Bezig met analyseren...</h3>
+                    <p className="text-purple-200 mb-4">{currentStep}</p>
+                    
+                    <div className="w-full bg-white/10 rounded-full h-4 overflow-hidden border border-white/20">
+                      <div 
+                        className="h-full bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 transition-all duration-300 flex items-center justify-end pr-2"
+                        style={{ width: `${Math.floor(progress)}%` }}
+                      >
+                        <span className="text-xs font-bold text-white drop-shadow-lg">
+                          {Math.floor(progress)}%
+                        </span>
                       </div>
                     </div>
-                    
-                    <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-purple-500 to-indigo-600 transition-all duration-500 ease-out"
-                        style={{ width: Math.floor(progress) + '%' }}
-                      />
-                    </div>
                   </div>
 
-                  <div className="space-y-2 text-sm mt-6">
-                    <div className={'flex items-center gap-2 transition-colors duration-300 ' + (progress >= 20 ? 'text-green-300' : progress > 5 ? 'text-purple-300' : 'text-gray-500')}>
+                  <div className="space-y-3 text-sm">
+                    <div className={'flex items-center gap-2 transition-colors duration-300 ' + (progress >= 20 ? 'text-green-300' : progress > 10 ? 'text-purple-300' : 'text-gray-500')}>
                       {progress >= 20 ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border-2 border-current" />}
-                      <span>AI-prompts genereren op basis van jouw zoekwoorden...</span>
+                      <span>Commerciële AI-prompts genereren...</span>
                     </div>
                     <div className={'flex items-center gap-2 transition-colors duration-300 ' + (progress >= 90 ? 'text-green-300' : progress > 20 ? 'text-purple-300' : 'text-gray-500')}>
                       {progress >= 90 ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border-2 border-current" />}
@@ -384,6 +616,36 @@ export default function AIVisibilityTool() {
                       <span className="text-white font-medium">{user ? '10' : '5'} AI-prompts</span>
                     </div>
                   </div>
+
+                  {/* ✨ Show Advanced Settings in Step 3 */}
+                  {(excludeTermsInput || includeTermsInput || locationTermsInput) && (
+                    <div className="bg-purple-500/10 border border-purple-400/30 rounded-lg p-4 mb-6">
+                      <div className="text-sm text-purple-200 font-semibold mb-3 flex items-center gap-2">
+                        <span>⚙️</span>
+                        <span>Geavanceerde Instellingen:</span>
+                      </div>
+                      <div className="space-y-2 text-xs">
+                        {excludeTermsInput && (
+                          <div className="flex items-start gap-2">
+                            <span className="text-red-400 flex-shrink-0">❌ Vermijd:</span>
+                            <span className="text-gray-300">{excludeTermsInput}</span>
+                          </div>
+                        )}
+                        {includeTermsInput && (
+                          <div className="flex items-start gap-2">
+                            <span className="text-green-400 flex-shrink-0">✅ Gebruik:</span>
+                            <span className="text-gray-300">{includeTermsInput}</span>
+                          </div>
+                        )}
+                        {locationTermsInput && (
+                          <div className="flex items-start gap-2">
+                            <span className="text-blue-400 flex-shrink-0">📍 Locatie:</span>
+                            <span className="text-gray-300">{locationTermsInput}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between">
                     <button
@@ -483,6 +745,9 @@ export default function AIVisibilityTool() {
                   onClick={() => {
                     setStep(1);
                     setFormData({ companyName: '', companyCategory: '', queries: '' });
+                    setExcludeTermsInput('');
+                    setIncludeTermsInput('');
+                    setLocationTermsInput('');
                     setResults(null);
                   }}
                   className="w-full px-6 py-3 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition"
@@ -499,6 +764,17 @@ export default function AIVisibilityTool() {
             </div>
           )}
         </section>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-400/30 rounded-xl">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-5 h-5 text-red-300 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-red-200">
+                <strong>Fout:</strong> {error}
+              </div>
+            </div>
+          </div>
+        )}
 
         {!analyzing && (
           <div className="text-center">

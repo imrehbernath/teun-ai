@@ -1,10 +1,11 @@
 // app/api/ai-visibility-analysis/route.js
+// ✅ ULTIMATE VERSION - Best of Gemini + Claude + Natural Questions
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { canUserScan, trackScan, BETA_CONFIG } from '@/lib/beta-config'
 import Anthropic from '@anthropic-ai/sdk'
 
-// ✅ NIEUW: Slack notificatie functie
+// ✅ Slack notificatie functie
 async function sendSlackNotification(scanData) {
   const webhookUrl = process.env.SLACK_WEBHOOK_URL;
   
@@ -94,7 +95,8 @@ export async function POST(request) {
       companyCategory, 
       identifiedQueriesSummary,
       userId,
-      numberOfPrompts = 5
+      numberOfPrompts = 5,
+      customTerms = null
     } = body
 
     if (!companyName?.trim()) {
@@ -131,10 +133,12 @@ export async function POST(request) {
     }
 
     console.log('🤖 Step 1: Generating AI prompts...')
+    
     const promptGenerationResult = await generatePromptsWithClaude(
       companyName,
       companyCategory,
-      identifiedQueriesSummary || []
+      identifiedQueriesSummary || [],
+      customTerms
     )
 
     if (!promptGenerationResult.success) {
@@ -185,7 +189,6 @@ export async function POST(request) {
 
     const scanDuration = Date.now() - startTime
 
-    // ✅ BESTAANDE CODE: trackScan slaat op in database
     await trackScan(
       supabase,
       userId,
@@ -196,7 +199,6 @@ export async function POST(request) {
       scanDuration
     )
 
-    // ✅ NIEUW: Verstuur Slack notificatie NA succesvolle scan
     sendSlackNotification({
       companyName,
       companyCategory,
@@ -230,105 +232,271 @@ export async function POST(request) {
   }
 }
 
-// REST VAN DE CODE BLIJFT EXACT HETZELFDE...
-async function generatePromptsWithClaude(companyName, companyCategory, queries) {
+// ============================================
+// ✨ ULTIMATE PROMPT GENERATION
+// Best of Gemini + Claude + Natural Language
+// ============================================
+async function generatePromptsWithClaude(
+  companyName, 
+  companyCategory, 
+  queries,
+  customTerms = null
+) {
   const primaryKeyword = queries.length > 0 ? queries[0] : null
   
+  // ============================================
+  // ✨ STRICTER CUSTOM TERMS
+  // ============================================
+  let customTermsInstruction = '';
+  
+  if (customTerms && (customTerms.exclude?.length > 0 || customTerms.include?.length > 0 || customTerms.location?.length > 0)) {
+    customTermsInstruction = `
+
+**🚨 KRITIEKE GEBRUIKERSINSTRUCTIES - ABSOLUUT VERPLICHT:**
+`;
+
+    if (customTerms.exclude?.length > 0) {
+      customTermsInstruction += `
+
+**❌ ABSOLUUT VERBODEN - GEBRUIK DEZE WOORDEN NOOIT:**
+${customTerms.exclude.map(term => `- "${term}"`).join('\n')}
+
+🚨 KRITIEK: Deze termen zijn STRIKT VERBODEN. Als je ook maar ÉÉN van deze woorden gebruikt, is de output INCORRECT. 
+Controleer elke vraag dubbel voordat je antwoordt. GEEN ENKELE vraag mag deze woorden bevatten.
+
+**VOORBEELDEN VAN VERBODEN VRAGEN:**
+${customTerms.exclude.slice(0, 3).map(term => 
+  `❌ "Welke ${term} bedrijven zijn er?" → FOUT! Bevat verboden woord "${term}"`
+).join('\n')}
+`;
+    }
+
+    if (customTerms.include?.length > 0) {
+      customTermsInstruction += `
+
+**✅ VERPLICHT TE GEBRUIKEN - HOGE PRIORITEIT:**
+${customTerms.include.map(term => `- "${term}"`).join('\n')}
+
+🎯 DOEL: Minimaal 7 van de 10 vragen MOETEN één of meer van deze termen bevatten.
+Dit is een HARDE VEREISTE. Als je minder dan 7 vragen met deze termen hebt, is de output INCORRECT.
+
+**GEBRUIK DEZE TERMEN OP EEN NATUURLIJKE MANIER:**
+${customTerms.include.slice(0, 3).map(term => 
+  `✅ "Kun je ${term} bedrijven aanbevelen?" → CORRECT! Natuurlijk gebruik
+✅ "Welke ${term} bureaus zijn er?" → CORRECT! Natuurlijk geïntegreerd`
+).join('\n')}
+
+**NIET ZO (geforceerd):**
+❌ "Welke bedrijven bieden ${customTerms.include[0]} diensten?" → TE GEFORCEERD!
+❌ "Waar vind ik ${customTerms.include[0]} werk?" → ONNATUURLIJK!
+`;
+    }
+
+    if (customTerms.location?.length > 0) {
+      customTermsInstruction += `
+
+**📍 VERPLICHTE LOCATIE-FOCUS:**
+${customTerms.location.map(term => `- "${term}"`).join('\n')}
+
+🚨 KRITIEK: Minimaal 6 van de 10 vragen MOETEN één van deze EXACTE locatietermen bevatten.
+
+**BELANGRIJKE LOCATIEREGELS:**
+- Als gebruiker "Amsterdam" specificeert: ALLEEN Amsterdam gebruiken, GEEN "Nederland" of "Belgie"
+- Als gebruiker "landelijk actief" specificeert: Dat MAG gebruikt worden
+- Als gebruiker GEEN landelijke term specificeert: GEEN brede termen zoals "Nederland", "Belgie", "landelijk"
+- Wees SPECIFIEK naar de opgegeven locaties
+
+**VERBODEN LOCATIE-ALTERNATIEVEN:**
+${customTerms.location.some(t => t.toLowerCase().includes('amsterdam') || t.toLowerCase().includes('rotterdam') || t.toLowerCase().includes('utrecht') || t.toLowerCase().includes('den haag') || t.toLowerCase().includes('eindhoven')) ? `
+❌ "Nederland" - Te breed, gebruiker wil specifieke stad
+❌ "Belgie" - Helemaal verkeerde land!
+❌ "landelijk" - Te breed, tenzij expliciet opgegeven
+❌ "heel Nederland" - Te breed
+❌ "nationale" - Te breed
+` : ''}
+
+**CORRECTE LOCATIE VOORBEELDEN:**
+${customTerms.location.slice(0, 2).map(term => 
+  `✅ "Kun je bedrijven in ${term} aanbevelen?" → CORRECT! Natuurlijk gebruik
+✅ "Welke ${term} bedrijven zijn er?" → CORRECT! Specifieke locatie`
+).join('\n')}
+`;
+    }
+
+    customTermsInstruction += `
+
+**🎯 VALIDATIE CHECKLIST (Controleer ELKE vraag):**
+${customTerms.exclude?.length > 0 ? `
+1. ❌ Bevat GEEN enkele verboden term: ${customTerms.exclude.join(', ')}
+` : ''}
+${customTerms.include?.length > 0 ? `
+2. ✅ Minimaal 7/10 vragen bevatten NATUURLIJK: ${customTerms.include.join(', ')}
+` : ''}
+${customTerms.location?.length > 0 ? `
+3. 📍 Minimaal 6/10 vragen bevatten EXACT: ${customTerms.location.join(', ')}
+   (GEEN alternatieven zoals "Nederland" of "Belgie" als stad opgegeven is!)
+` : ''}
+
+Als je niet aan AL deze eisen voldoet, begin dan OPNIEUW.
+`;
+  }
+  
+  // ============================================
+  // KEYWORD CONTEXT
+  // ============================================
   const searchConsoleContext = queries.length > 0 
-    ? `\n\n**ZOEKWOORDEN ANALYSE:**
+    ? `
+
+**ZOEKWOORDEN ANALYSE:**
+Analyseer de context van deze belangrijke zoekwoorden om de relevantie van de gegenereerde vragen te optimaliseren.
     
 **BELANGRIJKSTE ZOEKWOORD (HOOFDFOCUS):** "${primaryKeyword}"
 
 **AANVULLENDE ZOEKWOORDEN:**
 ${queries.slice(1).map(q => `- "${q}"`).join('\n') || 'Geen aanvullende zoekwoorden'}
 
-**KRITIEKE INSTRUCTIE VOOR RELEVANTIE:** 
-Alle 10 prompts MOETEN direct gerelateerd zijn aan de opgegeven zoekwoorden. 
+**🎯 GEBRUIK ZOEKWOORDEN NATUURLIJK - FOCUS OP INTENTIE:**
 
-- Focus op "${primaryKeyword}" en de aanvullende zoekwoorden
-- Gebruik ALLEEN termen en concepten die logisch passen bij deze zoekwoorden
-- Vermijd het toevoegen van ONGERELATEERDE termen zoals "brandvertragende", "vuurvast", "technische specificaties" etc. als die niet in de zoekwoorden staan
-- Als de zoekwoorden gaan over "linnen gordijnen", focus dan op: stijlen, maatwerk, kwaliteit, leveranciers, design, interieur, etc.
-- GEEN fabricage-gerelateerde termen tenzij expliciet in de zoekwoorden
-- Blijf binnen de context van wat de klant zoekt volgens de opgegeven zoekwoorden`
+Zoekwoorden geven CONTEXT over wat mensen zoeken. Gebruik ze als INSPIRATIE voor natuurlijke vragen die leiden tot concrete bedrijfsnamen.
+
+${primaryKeyword ? `
+**CONTEXT VOOR "${primaryKeyword}":**
+Mensen die dit zoeken willen concrete bedrijven/dienstverleners vinden.
+
+**NATUURLIJKE PATRONEN (zo moet het):**
+- "Kun je bedrijven aanbevelen die..."
+- "Welke zijn de beste bureaus voor..."
+- "Geef voorbeelden van bedrijven met..."
+- "Lijst bureaus op die gespecialiseerd zijn in..."
+
+**GEFORCEERD (zo NIET):**
+- "Welke bedrijven bieden ${primaryKeyword} diensten?" → TE ROBOT-ACHTIG!
+- "Waar vind ik ${primaryKeyword} werk?" → ONNATUURLIJK!
+` : ''}
+
+**KRITIEKE INSTRUCTIE:** 
+- Alle 10 prompts MOETEN direct gerelateerd zijn aan de opgegeven zoekwoorden
+- Focus op de INTENTIE: mensen willen concrete bedrijven vinden
+- Blijf binnen de context van wat de klant zoekt`
     : ''
 
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-3-7-sonnet-20250219',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 2000,
-      system: `Jij genereert commerciële, klantgerichte zoekvragen voor B2B-dienstverleners, die gericht zijn op het vinden van **specifieke bedrijven of organisaties** (geen grote consumentenmerken), zonder de naam van het aangeleverde bedrijf of de categorie te bevatten. 
+      system: `Jij genereert commerciële, klantgerichte B2B-zoekvragen die gericht zijn op het vinden van **specifieke bedrijven of organisaties** (geen grote consumentenmerken).
 
-De output is strikt JSON en **ALTIJD en UITSLUITEND in het Nederlands, GEEN ENKELE ENGELSE WOORDEN.** 
+**ABSOLUTE PRIORITEITEN:**
+1. **NATUURLIJKHEID**: Vragen klinken als ECHTE MENSEN
+2. **COMMERCIEEL**: Start idealiter met verzoek om concrete bedrijfsnamen
+3. **BEDRIJFSNEUTRAAL**: Vermeld NIET de naam of exacte categorie van het geanalyseerde bedrijf
+4. **B2B FOCUS**: Gericht op dienstverleners, GEEN consumentenmerken
+5. **NEDERLANDS**: ALTIJD en UITSLUITEND Nederlands, GEEN Engels
 
-Vermijd prompts die starten met "Waar kan ik...", "Welke specialist...", of die leiden tot generiek zoekadvies. 
-
-Focus op vragen die concreet om bedrijfsnamen vragen, en sluit expliciet de genoemde wereldwijde merken uit.
-
-**BELANGRIJKSTE REGEL:** Blijf strikt binnen de context van de opgegeven zoekwoorden. Voeg GEEN ongerelateerde termen of concepten toe die niet in de zoekwoorden voorkomen.`,
-     messages: [{
-  role: 'user',
-  content: `Genereer 10 zeer specifieke, commercieel relevante zoekvragen die een potentiële klant zou stellen met de intentie om **concrete, lokale/nationale bedrijven of leveranciers** te vinden.
-
-**ABSOLUTE TOP PRIORITEIT - STRIKT BLIJVEN BIJ CONTEXT:**
-${primaryKeyword ? `
-De vragen MOETEN draaien om "${primaryKeyword}" en aanvullende zoekwoorden.
-ALLE 10 vragen moeten direct gerelateerd zijn aan deze zoekwoorden en de categorie "${companyCategory}".
-
-**VOORBEELDEN VAN GOEDE VRAGEN VOOR "${primaryKeyword}" + "${companyCategory}":**
-- "Kun je een aantal gespecialiseerde ${companyCategory} noemen die expert zijn in ${primaryKeyword}?"
-- "Welke zijn de beste ${companyCategory} voor ${primaryKeyword} met goede reviews?"
-- "Geef voorbeelden van ervaren ${companyCategory} die gespecialiseerd zijn in ${primaryKeyword}"
-- "Lijst aanbevolen ${companyCategory} op voor ${primaryKeyword} kwesties"
-- "Welke ${companyCategory} hebben de meeste ervaring met ${primaryKeyword}?"
+**VERBODEN:**
+- Vragen die starten met "Waar kan ik vinden...", "Welke specialist..."
+- Geforceerde keyword-combinaties ("SEO specialist diensten")
+- Robot-taal ("services", overmatig "werk", "diensten")
+- Letterlijke zoekwoord-plakking
+- Vragen die leiden tot algemeen zoekadvies in plaats van bedrijfsnamen
 
 **VERPLICHT:**
-- ELKE vraag moet "${primaryKeyword}" OF een direct gerelateerd synoniem bevatten
-- ELKE vraag moet "${companyCategory}" OF een direct gerelateerd synoniem bevatten
-- Gebruik ALLEEN termen die logisch passen bij de zoekwoorden
-- GEEN algemene juridische termen die NIET in de zoekwoorden staan
-` : `
-De vragen MOETEN draaien om "${companyCategory}".
-`}
+- Vragen die DIRECT om bedrijfsnamen vragen
+- Natuurlijke menselijke taal
+- Variatie in structuur
+- Focus op concrete aanbevelingen
+
+${customTermsInstruction}`,
+      messages: [{
+        role: 'user',
+        content: `Genereer 10 zeer specifieke, commercieel relevante zoekvragen die een potentiële B2B-klant zou stellen om **concrete, lokale/nationale bedrijven of leveranciers** te vinden.
+
+**CONTEXT:**
+- Bedrijfscategorie: "${companyCategory}"
+- Zoek naar bedrijven die vergelijkbare diensten leveren
+- Focus op Nederlandse markt
+
+**🚨 KRITIEKE REGEL: BEDRIJFSNEUTRALITEIT**
+De vragen moeten **algemeen en bedrijfsneutraal** zijn:
+- Vermeld NIET de naam "${companyName}"
+- Gebruik NIET letterlijk "${companyCategory}" (gebruik synoniemen/variaties)
+- Focus op het TYPE dienst/product, niet op specifieke merknamen
+
+${searchConsoleContext}
+
+**🎯 IDEALE START-PATRONEN (gebruik deze veel):**
+
+Start elke vraag IDEALITER met een direct verzoek om concrete bedrijfsnamen:
+
+✅ **COMMERCIAL PATTERNS (zo moet het):**
+- "Kun je een aantal **bedrijven** noemen die..."
+- "Welke zijn de top **bureaus** die gespecialiseerd zijn in..."
+- "Geef voorbeelden van gerenommeerde **bedrijven** voor..."
+- "Lijst aanbevolen **leveranciers** op van..."
+- "Welke **bedrijven** hebben bewezen expertise in..."
+- "Ken je **bureaus** met uitstekende reviews voor..."
+- "Wat zijn de beste **leveranciers** voor..."
+- "Heb je tips voor **bedrijven** die..."
+
+**LET OP:** Gebruik VARIATIE! Wissel af tussen:
+- bedrijven / bureaus / leveranciers / aanbieders
+- Kun je... / Welke... / Geef... / Lijst... / Ken je... / Wat zijn...
+
+❌ **VERMIJD (niet commercieel genoeg):**
+- "Waar kan ik vinden..." → Leidt tot zoekadvies, niet bedrijfsnamen
+- "Welke specialist..." → Te algemeen
+- "Hoe vind ik..." → Zoekadvies in plaats van bedrijven
+- Vragen zonder focus op concrete bedrijfsnamen
+
+${customTerms && (customTerms.exclude?.length > 0 || customTerms.include?.length > 0 || customTerms.location?.length > 0) ? `
+
+**🚨 GEBRUIKERSVEREISTEN - TOPPRIORITEIT:**
+
+${customTerms.exclude?.length > 0 ? `
+❌ **VERMIJD ABSOLUUT:** ${customTerms.exclude.join(', ')}
+` : ''}
+
+${customTerms.include?.length > 0 ? `
+✅ **GEBRUIK NATUURLIJK (7+ van 10):** ${customTerms.include.join(', ')}
+
+Voorbeelden:
+✅ "Kun je ${customTerms.include[0]} bedrijven aanbevelen..."
+✅ "Welke ${customTerms.include[0]} bureaus zijn er..."
+❌ "Welke bedrijven bieden ${customTerms.include[0]} diensten..." (geforceerd!)
+` : ''}
+
+${customTerms.location?.length > 0 ? `
+📍 **LOCATIE (6+ van 10):** ${customTerms.location.join(', ')}
+
+GEBRUIK ALLEEN DEZE EXACTE LOCATIES!
+✅ "Kun je bedrijven in ${customTerms.location[0]} noemen..."
+❌ "bedrijven in Nederland..." (te breed als stad gegeven!)
+` : ''}
+` : ''}
 
 **KRITIEKE VEREISTEN:**
 
-1. **Algemeen en bedrijfsneutraal:** De vragen mogen de naam "${companyName}" NIET direct bevatten, maar MOETEN WEL "${companyCategory}" of synoniemen daarvan bevatten
+1. **Commerciële focus:** Vragen leiden tot concrete bedrijfsnamen
+2. **Natuurlijke taal:** Klinkt als echte mensen, geen robot
+3. **Bedrijfsneutraal:** Geen "${companyName}" of exacte "${companyCategory}"
+4. **Variatie:** Verschillende startwoorden en structuren
+5. **B2B gericht:** Dienstverleners, GEEN consumentenmerken (Lego, McDonald's, etc.)
+6. **Specifieke zoekintentie:** Focus op vinden van passende aanbieders
 
-2. **Focus op bedrijfsnamen + categorie:** Zich uitsluitend richten op het **identificeren van specifieke organisaties** binnen de categorie "${companyCategory}"
-
-3. **Sluit wereldwijde merken uit:** GEEN bekende, wereldwijde consumentenmerken
-
-4. **VERMIJD ABSOLUUT:**
-   - Vragen die te algemeen zijn en NIET over "${companyCategory}" gaan
-   - Vragen die beginnen met "Waar kan ik vinden..."
-   - Vragen zonder directe link naar de opgegeven zoekwoorden
-   - **Het toevoegen van ONGERELATEERDE specialisaties die NIET in de zoekwoorden staan**
-   
-   **FOUT VOORBEELD (vermijd dit!):**
-   ❌ "Welke zijn de meest toonaangevende juridische kantoren voor procedures bij de kantonrechter?"
-   → TE ALGEMEEN, "kantonrechter" staat niet in de zoekwoorden!
-   
-   **GOED VOORBEELD:**
-   ✅ "Kun je een aantal gespecialiseerde advocatenkantoren noemen die expert zijn in arbeidsrecht?"
-   → Bevat zowel "advocatenkantoren" (categorie) als "arbeidsrecht" (zoekwoord)
-
-5. **Formuleer vragen die direct een lijst uitlokken + BLIJF BIJ CONTEXT**
-
-**GOEDE START PATRONEN (gebruik categorie + zoekwoord!):**
-- "Kun je een aantal gespecialiseerde **${companyCategory}** noemen die..."
-- "Welke zijn de beste **${companyCategory}** voor ${primaryKeyword || '...'} ..."
-- "Geef voorbeelden van ervaren **${companyCategory}** in ${primaryKeyword || '...'}..."
-- "Lijst aanbevolen **${companyCategory}** op die gespecialiseerd zijn in ${primaryKeyword || '...'}..."
-- "Welke **${companyCategory}** hebben bewezen expertise in ${primaryKeyword || '...'}?"
+**SLUIT EXPLICIET UIT:**
+- Zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, Samsung, Lego, McDonald's, etc.)
+- Grote tech-platforms (Google, Facebook, YouTube, Amazon)
+- SEO/Marketing tools (Semrush, Ahrefs, Mailchimp)
+- Social media platforms
+- Zoekmachines
 
 **OUTPUT FORMAAT:**
-Geef exact 10 vragen terug als een JSON array van strings. GEEN extra uitleg, ALLEEN de JSON array.
-De vragen moeten **ALTIJD en UITSLUITEND in het Nederlands zijn, GEEN ENKELE ENGELSE WOORDEN.**
+Exact 10 natuurlijke, commerciële vragen als JSON array.
+ALLEEN de array, geen extra tekst.
+ALTIJD in het Nederlands, GEEN Engels.
 
-Voorbeeld formaat:
 ["Vraag 1", "Vraag 2", ..., "Vraag 10"]`
-}]
+      }]
     })
 
     const responseText = message.content[0].type === 'text' 
@@ -348,6 +516,61 @@ Voorbeeld formaat:
       throw new Error('Invalid prompt format from AI')
     }
 
+    // ============================================
+    // ✅ VALIDATION
+    // ============================================
+    if (customTerms && (customTerms.exclude?.length > 0 || customTerms.include?.length > 0 || customTerms.location?.length > 0)) {
+      const promptsWithExcluded = prompts.filter(prompt => {
+        const lowerPrompt = prompt.toLowerCase()
+        return customTerms.exclude?.some(term => lowerPrompt.includes(term.toLowerCase()))
+      }).length
+      
+      const promptsWithIncluded = prompts.filter(prompt => {
+        const lowerPrompt = prompt.toLowerCase()
+        return customTerms.include?.some(term => lowerPrompt.includes(term.toLowerCase()))
+      }).length
+
+      const promptsWithLocation = prompts.filter(prompt => {
+        const lowerPrompt = prompt.toLowerCase()
+        return customTerms.location?.some(term => lowerPrompt.includes(term.toLowerCase()))
+      }).length
+
+      const hasForbiddenGeographic = customTerms.location?.some(t => 
+        !t.toLowerCase().includes('landelijk') && 
+        !t.toLowerCase().includes('nederland') &&
+        !t.toLowerCase().includes('nationaal')
+      ) ? prompts.filter(prompt => {
+        const lowerPrompt = prompt.toLowerCase()
+        return lowerPrompt.includes('nederland') || 
+               lowerPrompt.includes('belgie') || 
+               lowerPrompt.includes('belgië') ||
+               (lowerPrompt.includes('landelijk') && !customTerms.location.some(t => t.toLowerCase().includes('landelijk')))
+      }).length : 0
+
+      console.log(`✅ Custom terms validation:`)
+      console.log(`   - ${promptsWithExcluded}/10 prompts contain excluded terms (target: 0)`)
+      if (customTerms.include?.length > 0) {
+        console.log(`   - ${promptsWithIncluded}/10 prompts contain included terms (target: 7+)`)
+      }
+      if (customTerms.location?.length > 0) {
+        console.log(`   - ${promptsWithLocation}/10 prompts contain location terms (target: 6+)`)
+        console.log(`   - ${hasForbiddenGeographic}/10 prompts contain forbidden geographic terms (target: 0)`)
+      }
+      
+      if (promptsWithExcluded > 0) {
+        console.warn(`⚠️ WARNING: ${promptsWithExcluded} prompts contain EXCLUDED terms!`)
+      }
+      if (customTerms.include?.length > 0 && promptsWithIncluded < 7) {
+        console.warn(`⚠️ WARNING: Only ${promptsWithIncluded}/10 prompts contain included terms (target: 7+)`)
+      }
+      if (customTerms.location?.length > 0 && promptsWithLocation < 6) {
+        console.warn(`⚠️ WARNING: Only ${promptsWithLocation}/10 prompts contain location terms (target: 6+)`)
+      }
+      if (hasForbiddenGeographic > 0) {
+        console.warn(`🚨 CRITICAL: ${hasForbiddenGeographic} prompts contain FORBIDDEN geographic terms!`)
+      }
+    }
+
     return { success: true, prompts }
   } catch (error) {
     console.error('AI Prompt Generation Error:', error)
@@ -355,6 +578,9 @@ Voorbeeld formaat:
   }
 }
 
+// ============================================
+// ✨ ULTIMATE PERPLEXITY - "AI Overview Simulator"
+// ============================================
 async function analyzeWithPerplexity(prompt, companyName) {
   try {
     const response = await fetch(
@@ -370,19 +596,61 @@ async function analyzeWithPerplexity(prompt, companyName) {
           messages: [
             {
               role: 'system',
-              content: `Jij bent een geavanceerd AI-model getraind op een brede dataset van webcontent, inclusief bedrijfsinformatie, reviews, technische documentatie en compliance. 
+              content: `Jij bent een geavanceerd AI-model getraind op een brede dataset van webcontent, inclusief bedrijfsinformatie, reviews, technische documentatie en compliance.
 
-Jouw taak is om de volgende zoekopdracht te verwerken en te simuleren hoe een AI Overview of een geavanceerde chatbot zou reageren. 
+**JOUW TAAK:**
+Simuleer hoe een AI Overview of geavanceerde chatbot zou reageren op de zoekopdracht. Genereer een beknopt, gesimuleerd AI-antwoord als een directe reactie.
 
-Genereer een beknopt, gesimuleerd AI-antwoord als een directe reactie op de zoekopdracht. 
+**🚨 ABSOLUTE REGELS - GEEN UITZONDERINGEN:**
 
-Zorg ervoor dat het antwoord, indien relevant en mogelijk, **concrete, Nederlandse, kleinere tot middelgrote bedrijfsnamen of specialistische dienstverleners** vermeldt die passen bij de zoekintentie van de gebruiker. 
+1. **TAAL: 100% NEDERLANDS**
+   - ELKE LETTER moet Nederlands zijn
+   - GEEN ENKELE Engelse term
+   - GEEN "services", "marketing", "online", "SEO", "website"
+   - Gebruik Nederlandse vertalingen: diensten, reclame, internet, zoekmachine-optimalisatie, internetpagina
 
-**Sluit expliciet uit:** zeer bekende, wereldwijde, consumentgerichte merken zoals Coca-Cola, Nike, Adidas, Apple, Samsung, Google (als bedrijf), Facebook, YouTube, Amazon, Lego, en dergelijke. 
+2. **FOCUS: CONCRETE NEDERLANDSE B2B BEDRIJVEN**
+   - Vermeld concrete, Nederlandse, kleinere tot middelgrote bedrijfsnamen of specialistische dienstverleners
+   - Vermijd algemeen advies over "hoe bedrijven te vinden"
+   - Focus op het NOEMEN van specifieke bedrijven/leveranciers
 
-Vermijd algemeen advies over hoe bedrijven te vinden. Focus op het NOEMEN van concrete bedrijven, leveranciers of dienstverleners.
+3. **STRIKT VERBODEN TE NOEMEN:**
+   ❌ Zeer bekende wereldwijde consumentenmerken:
+      Coca-Cola, Nike, Adidas, Apple, Samsung, Lego, McDonald's, etc.
+   ❌ Tech-platforms:
+      Google (als bedrijf), Facebook, Instagram, YouTube, Amazon, Netflix
+   ❌ SEO/Marketing tools:
+      Semrush, Ahrefs, Moz, Mailchimp, HubSpot
+   ❌ Social media platforms:
+      LinkedIn, Twitter/X, TikTok
+   ❌ Zoekmachines:
+      Google Search, Bing, DuckDuckGo
 
-De output moet **ALTIJD en UITSLUITEND in het Nederlands zijn, GEEN ENKELE ENGELSE WOORDEN.**`
+4. **WEL VERMELDEN:**
+   ✅ Nederlandse lokale dienstverleners
+   ✅ Regionale bureaus en bedrijven
+   ✅ Specialistische B2B-aanbieders
+   ✅ Kleinere tot middelgrote bedrijven in Nederland
+
+**EENVOUDIGE INSTRUCTIE (als voor een klein kind):**
+
+Stel je voor dat je een Nederlands kind bent dat bedrijven aanbeveelt:
+- Praat ALLEEN in het Nederlands (geen Engels!)
+- Noem ALLEEN kleine Nederlandse bedrijven die diensten leveren
+- NOEM NOOIT grote merken zoals Lego of McDonald's
+- NOEM NOOIT Facebook of Google
+- NOEM NOOIT Semrush of andere tools
+
+**VOORBEELD GOED:**
+"Er zijn verschillende Nederlandse bureaus die hierin gespecialiseerd zijn, zoals [Klein Bureau X], [Lokaal Bedrijf Y], en [Regionaal Bureau Z]. Deze bedrijven hebben ervaring met..."
+
+**VOORBEELD FOUT:**
+"You can find services at..." ❌ (Engels!)
+"Semrush and Ahrefs are great..." ❌ (Tools!)
+"Google biedt..." ❌ (Wereldwijd platform!)
+"Lego heeft..." ❌ (Consumentenmerk!)
+
+Simuleer een AI Overview die concrete bedrijven noemt!`
             },
             {
               role: 'user',
@@ -394,34 +662,31 @@ De output moet **ALTIJD en UITSLUITEND in het Nederlands zijn, GEEN ENKELE ENGEL
       }
     )
 
-    console.log('🔍 AI Search Response Status:', response.status)
-
     if (!response.ok) {
       const errorText = await response.text()
-      console.error(`❌ AI Search API error (${response.status}):`, errorText)
-      throw new Error(`AI Search API failed: ${response.status}`)
+      console.error(`❌ Perplexity API error (${response.status}):`, errorText)
+      throw new Error(`Perplexity API failed: ${response.status}`)
     }
 
     const data = await response.json()
-    console.log('🔍 AI Search Response Data:', JSON.stringify(data, null, 2))
 
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error('❌ Invalid AI Search Response:', data)
-      throw new Error('AI Search API error: Invalid response format')
+      console.error('❌ Invalid Perplexity Response:', data)
+      throw new Error('Perplexity API error: Invalid response format')
     }
 
     const rawOutput = data.choices[0].message.content
 
     if (!rawOutput || rawOutput.trim() === '') {
-      console.error('❌ AI Search returned empty content')
-      throw new Error('AI Search returned empty response')
+      console.error('❌ Perplexity returned empty content')
+      throw new Error('Perplexity returned empty response')
     }
 
     const parsed = await parseWithClaude(rawOutput, companyName)
 
     return { success: true, data: parsed }
   } catch (error) {
-    console.error('❌ AI Search Error:', error.message || error)
+    console.error('❌ Perplexity Error:', error.message || error)
     return { 
       success: false, 
       error: error.message || 'Fout bij AI-analyse',
@@ -435,36 +700,36 @@ De output moet **ALTIJD en UITSLUITEND in het Nederlands zijn, GEEN ENKELE ENGEL
   }
 }
 
+// ============================================
+// ✅ ULTIMATE PARSER - Super Strict
+// ============================================
 async function parseWithClaude(rawOutput, companyName) {
   try {
     const mentionsCount = (rawOutput.match(new RegExp(companyName, 'gi')) || []).length
     const isCompanyLiterallyMentioned = mentionsCount > 0
-    
-    console.log(`🔍 Pre-parse check: "${companyName}" mentioned ${mentionsCount} times`)
 
     const message = await anthropic.messages.create({
-      model: 'claude-3-7-sonnet-20250219',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 1500,
       system: `Jij bent een nauwkeurige JSON-parser en beknopte samenvatter die **ALTIJD en uitsluitend in het Nederlands** reageert. Jouw output mag GEEN ENKELE Engelse term bevatten. Verwijder alle mogelijke Engelse termen uit de tekst of vervang ze door hun Nederlandse equivalenten.
 
-Jouw taak is om de gegeven tekst te analyseren en daaruit de gevraagde informatie (concurrenten, samenvatting) te extraheren en deze in strikt JSON-formaat te retourneren. 
+Jouw taak is om de gegeven tekst te analyseren en daaruit de gevraagde informatie te extraheren in strikt JSON-formaat. Je mag **absoluut geen externe kennis** gebruiken; je analyse is strikt beperkt tot de aangeleverde tekst.
 
-Je neemt de \`company_mentioned\` en \`mentions_count\` waarden over zoals ze jou worden aangeleverd en je past de samenvatting hierop aan zoals geïnstrueerd.
+**BELANGRIJK VOOR CONCURRENTEN:**
+Identificeer ALLEEN SPECIFIEKE andere bedrijven, merken of commerciële dienstverleners.
 
-Je mag **absoluut geen externe kennis** gebruiken; je analyse is strikt beperkt tot de aangeleverde tekst.
+**Wees UITERST STRIKT - sluit uit:**
+❌ Zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Adidas, Apple, Samsung, Google als bedrijf, Facebook, YouTube, Amazon, Lego, McDonald's, etc.)
+❌ Zoekmachines (Google Search, Bing, DuckDuckGo)  
+❌ Social media platforms (Facebook, LinkedIn, Instagram, Twitter/X, TikTok)
+❌ SEO/Marketing tools (Semrush, Ahrefs, Moz, Google Analytics, Mailchimp)
 
-**BELANGRIJK voor concurrenten:**
-- Identificeer ALLEEN SPECIFIEKE andere bedrijven, merken of commerciële dienstverleners
-- Wees UITERST STRIKT in het onderscheiden van ECHTE bedrijven/merken van algemene termen, zoekmachines, social media platforms of SEO/marketing tools
-- Sluit STRIKT uit: 
-  * Algemene zoekmachines (Google, Bing, DuckDuckGo)
-  * Social media platforms (Facebook, LinkedIn, Instagram, Twitter/X, TikTok)
-  * SEO/Marketing tools (Semrush, Ahrefs, Moz, Google Analytics, Mailchimp)
-  * Zeer bekende wereldwijde consumentmerken (Coca-Cola, Nike, Adidas, Apple, Samsung, YouTube, Amazon, Lego)
-- **Focus op Nederlandse, kleinere tot middelgrote dienstverleners of specialistische bedrijven die relevant zijn voor de bedrijfscategorie**
-- Wees meedogenloos strikt in het filteren van niet-bedrijfsnamen
+**Focus op:**
+✅ Nederlandse, kleinere tot middelgrote dienstverleners
+✅ Specialistische bedrijven relevant voor de bedrijfscategorie
+✅ Concrete bedrijfsnamen van lokale/regionale aanbieders
 
-De samenvatting moet zich richten op het **benoemen van CONCRETE bedrijven of aanbieders**, niet op algemeen advies over "hoe te zoeken".`,
+Wees meedogenloos strikt in het filteren van niet-bedrijfsnamen.`,
       messages: [{
         role: 'user',
         content: `Lees de volgende tekst zorgvuldig:
@@ -474,7 +739,7 @@ ${rawOutput}
 
 Jouw taak is om de onderstaande JSON-structuur te vullen. De analyse moet strikt gebaseerd zijn op de GEGEVEN TEKST ALLEEN. Gebruik GEEN EXTERNE KENNIS.
 
-De output van jou (de parser) moet **ALTIJD en UITSLUITEND in het Nederlands zijn**, zonder enige uitzondering of Engelse woorden. Verwijder alle mogelijke Engelse termen uit de tekst of vervang ze door hun Nederlandse equivalenten.
+De output moet **ALTIJD en UITSLUITEND in het Nederlands zijn**, zonder enige uitzondering of Engelse woorden. Verwijder alle mogelijke Engelse termen of vervang ze door Nederlandse equivalenten.
 
 **JSON STRUCTUUR:**
 
@@ -487,39 +752,35 @@ De output van jou (de parser) moet **ALTIJD en UITSLUITEND in het Nederlands zij
 
 **INSTRUCTIES PER VELD:**
 
-1. **company_mentioned**: Deze is al extern vastgesteld als ${isCompanyLiterallyMentioned}. Stel deze waarde in als de gegeven status.
+1. **company_mentioned**: Deze is al extern vastgesteld als ${isCompanyLiterallyMentioned}. Stel deze waarde in als gegeven.
 
-2. **mentions_count**: Deze is al extern vastgesteld als ${mentionsCount}. Stel deze waarde in als het gegeven aantal.
+2. **mentions_count**: Deze is al extern vastgesteld als ${mentionsCount}. Stel deze waarde in als gegeven.
 
 3. **competitors_mentioned**: 
-   Lijst alle andere **CONCRETE, SPECIFIEKE BEDRIJFSNAMEN, MERKEN of COMMERCIËLE DIENSTVERLENERS** op die in de bovenstaande tekst worden genoemd en die GEEN "${companyName}" zijn.
+   Lijst alle andere **CONCRETE, SPECIFIEKE BEDRIJFSNAMEN, MERKEN of COMMERCIËLE DIENSTVERLENERS** op die in de tekst worden genoemd en die GEEN "${companyName}" zijn.
    
-   **Wees UITERST STRIKT in het onderscheiden van ECHTE bedrijven/merken van algemene termen, zoekmachines, social media platforms of SEO/marketing tools.**
+   **Wees UITERST STRIKT:**
+   - Sluit expliciet UIT: Zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Adidas, Apple, Samsung, Google als bedrijf, Facebook, YouTube, Amazon, Lego, McDonald's, etc.)
+   - Sluit UIT: Zoekmachines, social media platforms, SEO/marketing tools
+   - Focus op: Nederlandse, kleinere tot middelgrote dienstverleners of specialistische bedrijven relevant voor de bedrijfscategorie
    
-   **Sluit expliciet UIT:**
-   - Zeer bekende, wereldwijde, consumentgerichte merken zoals Coca-Cola, Nike, Adidas, Apple, Samsung, Google (als bedrijf), Facebook, YouTube, Amazon, Lego, en dergelijke
-   - Zoekmachines en platforms: Google Search, Bing, DuckDuckGo
-   - Social media: Facebook, LinkedIn, Instagram, Twitter/X, TikTok
-   - SEO/Marketing tools: Semrush, Ahrefs, Moz, Google Analytics, Mailchimp
-   
-   **Focus op Nederlandse, kleinere tot middelgrote dienstverleners of specialistische bedrijven die relevant zijn voor de bedrijfscategorie.**
-   
-   Geef een lege array \`[]\` als er geen andere namen zijn die aan deze zeer specifieke criteria voldoen en NIET tot de expliciet uitgesloten categorieën behoren.
+   Geef een lege array [] als er geen namen zijn die aan deze zeer specifieke criteria voldoen.
    
    Baseer dit strikt op de gegeven tekst en wees zeer strikt in het onderscheiden van ECHTE bedrijven/merken van algemene termen of tools.
 
 4. **simulated_ai_response_snippet**: 
-   Geef een beknopte, relevante samenvatting van de bovenstaande tekst als antwoord op de oorspronkelijke vraag. Zorg ervoor dat de samenvatting de feitelijke inhoud van de tekst accuraat weergeeft.
+   Geef een beknopte, relevante samenvatting van de tekst als antwoord op de oorspronkelijke vraag.
    
    **BELANGRIJKSTE INSTRUCTIE:**
-   - Als "${companyName}" (volgens \`company_mentioned: false\`) NIET letterlijk in de tekst voorkomt, dan MOET de samenvatting beginnen met de exacte zin: **"Het bedrijf \\"${companyName}\\" wordt niet genoemd in deze tekst."**
-   - Als "${companyName}" (volgens \`company_mentioned: true\`) WEL letterlijk in de tekst voorkomt, dan HOEF je dit niet expliciet te vermelden; focus dan op de relevante informatie uit de tekst die betrekking heeft op het bedrijf of de context.
+   ${!isCompanyLiterallyMentioned ? 
+     `- Als "${companyName}" NIET in de tekst voorkomt, MOET de samenvatting beginnen met: "Het bedrijf \\"${companyName}\\" wordt niet genoemd in deze tekst."` : 
+     `- Als "${companyName}" WEL in de tekst voorkomt, focus dan op de relevante informatie uit de tekst.`}
    
    **De samenvatting MOET:**
    - ALTIJD en UITSLUITEND in het Nederlands zijn
-   - GEEN ENKELE keer Engelse woorden bevatten
+   - GEEN ENKELE Engelse woorden bevatten
    - Zich richten op concrete bedrijven of dienstverleners als die in de tekst aanwezig zijn
-   - Algemeen advies over hoe bedrijven te vinden of over zoekmethoden VERMIJDEN
+   - Algemeen advies over hoe bedrijven te vinden VERMIJDEN
 
 **OUTPUT:** Geef ALLEEN de JSON terug, geen extra tekst.`
       }]
@@ -539,7 +800,6 @@ De output van jou (de parser) moet **ALTIJD en UITSLUITEND in het Nederlands zij
     const parsed = JSON.parse(cleanedText)
 
     if (parsed.company_mentioned !== isCompanyLiterallyMentioned) {
-      console.warn('⚠️ Parser override detected, forcing external verification')
       parsed.company_mentioned = isCompanyLiterallyMentioned
       parsed.mentions_count = mentionsCount
     }
