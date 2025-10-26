@@ -149,9 +149,15 @@ export async function POST(request) {
     }
 
     const generatedPrompts = promptGenerationResult.prompts
-    console.log(`✅ Generated ${generatedPrompts.length} prompts`)
     
-    const analysisLimit = numberOfPrompts
+    // ✨ Admin fast scan mode
+    let numberOfPromptsToAnalyze = numberOfPrompts
+    if (scanCheck.isAdmin && scanCheck.adminSettings?.fastScanMode) {
+      numberOfPromptsToAnalyze = scanCheck.adminSettings.numberOfPrompts
+      console.log(`⚡ ADMIN FAST SCAN: Analyzing only ${numberOfPromptsToAnalyze} prompt(s)`)
+    }
+    
+    const analysisLimit = numberOfPromptsToAnalyze
     const promptsToAnalyze = generatedPrompts.slice(0, analysisLimit)
     
     console.log(`🔍 Step 2: Analyzing ${promptsToAnalyze.length} prompts (limit: ${analysisLimit})...`)
@@ -198,6 +204,43 @@ export async function POST(request) {
       { generatedPrompts, analysisResults, totalCompanyMentions },
       scanDuration
     )
+
+    // ✅ ALSO save to tool_integrations for WOW Dashboard
+    if (userId) {
+      console.log('📊 Attempting to save to tool_integrations...')
+      console.log('Data to insert:', {
+        user_id: userId,
+        tool_name: 'ai-visibility',
+        company_name: companyName,
+        prompts_count: generatedPrompts.length,
+        total_company_mentions: totalCompanyMentions
+      })
+
+      const { data: integrationData, error: integrationError } = await supabase
+        .from('tool_integrations')
+        .insert({
+          user_id: userId,
+          tool_name: 'ai-visibility',
+          company_name: companyName,
+          keyword: identifiedQueriesSummary?.[0] || companyCategory,
+          commercial_prompts: generatedPrompts,
+          prompts_count: generatedPrompts.length,
+          results: analysisResults,
+          total_company_mentions: totalCompanyMentions
+        })
+        .select()
+
+      if (integrationError) {
+        console.error('❌ ERROR saving to tool_integrations!')
+        console.error('Error code:', integrationError.code)
+        console.error('Error message:', integrationError.message)
+        console.error('Error details:', integrationError.details)
+        console.error('Error hint:', integrationError.hint)
+      } else {
+        console.log('✅ Successfully saved to tool_integrations!')
+        console.log('Inserted data:', integrationData)
+      }
+    }
 
     sendSlackNotification({
       companyName,

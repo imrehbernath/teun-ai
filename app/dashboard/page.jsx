@@ -189,7 +189,7 @@ export default function DashboardPage() {
         .not('commercial_prompts', 'is', null)
         .order('created_at', { ascending: false })
 
-      // Load ChatGPT extension scans
+      // Load ChatGPT extension scans (OPTIONAL - table may not exist!)
       const { data: chatgptScansData, error: chatgptError } = await supabase
         .from('chatgpt_scans')
         .select(`
@@ -199,8 +199,13 @@ export default function DashboardPage() {
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
 
+      // Only throw on critical errors
       if (intError) throw intError
-      if (chatgptError) throw chatgptError
+      
+      // ChatGPT scans are optional - just warn if not available
+      if (chatgptError) {
+        console.warn('⚠️ ChatGPT scans not available (this is OK):', chatgptError.message)
+      }
 
       // Set old states (for backward compatibility if needed)
       setRecentActivity(integrations || [])
@@ -208,7 +213,7 @@ export default function DashboardPage() {
       setLatestScan(integrations && integrations.length > 0 ? integrations[0] : null)
 
       // NEW: Process data for WOW dashboard
-      const allPrompts = processCommercialPrompts(integrations, chatgptScansData)
+      const allPrompts = processCommercialPrompts(integrations || [], chatgptScansData || [])
       
       setCommercialPrompts(allPrompts)
       setPlatformScans({
@@ -235,13 +240,22 @@ export default function DashboardPage() {
         ? scan.commercial_prompts 
         : []
       
+      const results = Array.isArray(scan.results) ? scan.results : []
+      
       prompts.forEach(prompt => {
         if (!promptsMap.has(prompt)) {
+          // Check if this prompt actually found the company in the results
+          const resultForPrompt = results.find(r => r.ai_prompt === prompt)
+          const wasFound = resultForPrompt?.company_mentioned === true
+          
           promptsMap.set(prompt, {
             text: prompt,
             company: scan.company_name,
             platforms: {
-              perplexity: { status: 'found', scanId: scan.id },
+              perplexity: { 
+                status: wasFound ? 'found' : 'not_found',
+                scanId: scan.id 
+              },
               chatgpt: { status: 'unknown' },
               aiOverviews: { status: 'coming_soon' }
             },
