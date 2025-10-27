@@ -10,6 +10,7 @@ import CommercialPromptsList from '@/app/components/dashboard/CommercialPromptsL
 import PlatformPerformance from '@/app/components/dashboard/PlatformPerformance'
 import GEOQuickActions from '@/app/components/dashboard/GEOQuickActions'
 import ScanTimeline from '@/app/components/dashboard/ScanTimeline'
+import CompetitorsLeaderboard from '@/app/components/dashboard/CompetitorsLeaderboard'
 
 export default function DashboardPage() {
   const [recentActivity, setRecentActivity] = useState([])
@@ -248,13 +249,17 @@ export default function DashboardPage() {
           const resultForPrompt = results.find(r => r.ai_prompt === prompt)
           const wasFound = resultForPrompt?.company_mentioned === true
           
+          // 🆕 Extract competitors from result
+          const competitors = resultForPrompt?.competitors_mentioned || []
+          
           promptsMap.set(prompt, {
             text: prompt,
             company: scan.company_name,
             platforms: {
               perplexity: { 
                 status: wasFound ? 'found' : 'not_found',
-                scanId: scan.id 
+                scanId: scan.id,
+                competitors: competitors  // 🆕 Add competitors
               },
               chatgpt: { status: 'unknown' },
               aiOverviews: { status: 'coming_soon' }
@@ -413,6 +418,14 @@ export default function DashboardPage() {
           <CommercialPromptsList 
             prompts={commercialPrompts}
             onSelectPrompt={() => {}}
+          />
+        )}
+
+        {/* 🆕 Competitors Leaderboard */}
+        {commercialPrompts.length > 0 && (
+          <CompetitorsLeaderboard 
+            prompts={commercialPrompts}
+            userCompany={user?.user_metadata?.company_name || commercialPrompts[0]?.company || 'Jouw Bedrijf'}
           />
         )}
 

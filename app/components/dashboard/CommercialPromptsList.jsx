@@ -4,6 +4,7 @@ import { useState } from 'react'
 
 function CommercialPromptsList({ prompts, onSelectPrompt }) {
   const [expandedPrompts, setExpandedPrompts] = useState(new Set())
+  const [expandedCompetitors, setExpandedCompetitors] = useState(new Set())
   const [copiedPrompt, setCopiedPrompt] = useState(null)
 
   const toggleExpand = (promptText) => {
@@ -14,6 +15,16 @@ function CommercialPromptsList({ prompts, onSelectPrompt }) {
       newExpanded.add(promptText)
     }
     setExpandedPrompts(newExpanded)
+  }
+
+  const toggleCompetitors = (promptText) => {
+    const newExpanded = new Set(expandedCompetitors)
+    if (newExpanded.has(promptText)) {
+      newExpanded.delete(promptText)
+    } else {
+      newExpanded.add(promptText)
+    }
+    setExpandedCompetitors(newExpanded)
   }
 
   const copyPrompt = async (text) => {
@@ -73,6 +84,27 @@ function CommercialPromptsList({ prompts, onSelectPrompt }) {
     }
   }
 
+  // Get all competitors from a prompt (from all platforms)
+  const getCompetitors = (prompt) => {
+    const competitors = new Set()
+    
+    if (prompt.platforms.perplexity?.competitors) {
+      prompt.platforms.perplexity.competitors.forEach(c => competitors.add(c))
+    }
+    
+    if (prompt.platforms.chatgpt?.competitors) {
+      prompt.platforms.chatgpt.competitors.forEach(c => competitors.add(c))
+    }
+    
+    return Array.from(competitors)
+  }
+
+  // Check if user is found in ANY platform for this prompt
+  const isUserFound = (prompt) => {
+    return prompt.platforms.perplexity?.status === 'found' || 
+           prompt.platforms.chatgpt?.status === 'found'
+  }
+
   if (prompts.length === 0) {
     return null
   }
@@ -117,7 +149,10 @@ function CommercialPromptsList({ prompts, onSelectPrompt }) {
       <div className="divide-y-2 divide-gray-100">
         {prompts.map((prompt, index) => {
           const isExpanded = expandedPrompts.has(prompt.text)
+          const competitorsExpanded = expandedCompetitors.has(prompt.text)
           const hasSnippet = prompt.platforms.chatgpt?.snippet
+          const competitors = getCompetitors(prompt)
+          const userFound = isUserFound(prompt)
 
           return (
             <div 
@@ -211,6 +246,94 @@ function CommercialPromptsList({ prompts, onSelectPrompt }) {
                     </div>
 
                   </div>
+
+                  {/* 🆕 COMPETITORS SECTION */}
+                  {competitors.length > 0 && (
+                    <div className="mb-4">
+                      <button
+                        onClick={() => toggleCompetitors(prompt.text)}
+                        className={`w-full px-4 py-3 rounded-xl font-semibold transition-all flex items-center justify-between group ${
+                          !userFound 
+                            ? 'bg-gradient-to-r from-orange-100 to-red-100 hover:from-orange-200 hover:to-red-200 text-orange-900 border-2 border-orange-300' 
+                            : 'bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-900'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <span className="text-xl">{competitorsExpanded ? '🔽' : '▶️'}</span>
+                          <span>👥 Concurrenten in deze response ({competitors.length})</span>
+                          {!userFound && (
+                            <span className="px-2 py-0.5 bg-red-500 text-white rounded-full text-xs font-bold ml-2">
+                              ⚠️ Jij niet gevonden!
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-sm opacity-70 group-hover:opacity-100">
+                          {competitorsExpanded ? 'Verberg' : 'Toon details'}
+                        </span>
+                      </button>
+
+                      {competitorsExpanded && (
+                        <div className={`mt-4 p-6 rounded-xl border-2 ${
+                          !userFound 
+                            ? 'bg-gradient-to-br from-orange-50 to-red-50 border-orange-200' 
+                            : 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200'
+                        }`}>
+                          
+                          {!userFound && (
+                            <div className="mb-4 p-4 bg-red-100 border-2 border-red-300 rounded-lg">
+                              <div className="flex items-start gap-3">
+                                <span className="text-2xl">⚠️</span>
+                                <div>
+                                  <h4 className="font-bold text-red-900 mb-1">Optimalisatie Kans!</h4>
+                                  <p className="text-red-800 text-sm">
+                                    Deze concurrenten worden WEL genoemd, maar jij niet. Analyseer waarom zij beter scoren!
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex items-start gap-3 mb-3">
+                            <span className="text-2xl">🏆</span>
+                            <div className="flex-1">
+                              <h4 className="font-bold text-gray-900 mb-3">Gevonden Concurrenten:</h4>
+                              <div className="space-y-2">
+                                {competitors.map((competitor, i) => (
+                                  <div key={i} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+                                    <span className="font-semibold text-gray-900">{competitor}</span>
+                                    <button
+                                      disabled
+                                      className="px-3 py-1 bg-gray-300 text-gray-600 rounded-lg text-sm font-semibold cursor-not-allowed relative"
+                                    >
+                                      🔍 Analyseer
+                                      <span className="absolute -top-2 -right-2 px-1.5 py-0.5 bg-purple-600 text-white rounded-full text-xs font-bold shadow-lg whitespace-nowrap">
+                                        Soon
+                                      </span>
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          {!userFound && (
+                            <div className="mt-4 pt-4 border-t-2 border-orange-200">
+                              <button
+                                disabled
+                                className="w-full px-4 py-3 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-600 rounded-xl font-bold cursor-not-allowed flex items-center justify-center gap-2 relative"
+                              >
+                                <span className="text-xl">🚀</span>
+                                <span>Optimaliseer voor deze prompt</span>
+                                <span className="absolute -top-2 -right-2 px-2 py-1 bg-purple-600 text-white rounded-full text-xs font-bold shadow-lg whitespace-nowrap">
+                                  ⏳ Binnenkort
+                                </span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Expandable Snippet Section */}
                   {hasSnippet && (
