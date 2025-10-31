@@ -7,7 +7,7 @@
 const CONFIG = {
   DASHBOARD_URL_DEV: 'http://localhost:3000',
   DASHBOARD_URL_PROD: 'https://teun.ai',
-  isDevelopment: false // ← PRODUCTION MODE!
+  isDevelopment: true // ← SET TO FALSE FOR PRODUCTION
 };
 
 function getDashboardUrl() {

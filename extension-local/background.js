@@ -9,7 +9,7 @@ console.log('🚀 Teun.ai Background: Service worker loaded');
 const CONFIG = {
   API_BASE_URL_DEV: 'http://localhost:3000',
   API_BASE_URL_PROD: 'https://teun.ai',
-  isDevelopment: false // ← PRODUCTION MODE!
+  isDevelopment: true // Set to false for production
 };
 
 // Get current API URL

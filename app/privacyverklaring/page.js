@@ -34,7 +34,7 @@ export default function PrivacyPolicyPage() {
           Privacyverklaring
         </h1>
         <p className="text-gray-600">
-          Laatst bijgewerkt: 17 oktober 2025
+          Laatst bijgewerkt: 27 oktober 2025
         </p>
       </header>
 
@@ -99,6 +99,21 @@ export default function PrivacyPolicyPage() {
           <strong>Opt-out:</strong> Je kunt analytische cookies weigeren via onze cookie banner.
         </p>
 
+        <h3>2.4 Chrome Extension Scans</h3>
+        <p>Wanneer je onze Chrome extensie gebruikt, verzamelen we:</p>
+        <ul>
+          <li>ChatGPT scan resultaten (welke prompts jouw bedrijf noemen)</li>
+          <li>Positie van vermeldingen in ChatGPT antwoorden</li>
+          <li>Text snippets van relevante antwoorden</li>
+          <li>Timestamp en gebruikers-ID van de scan</li>
+          <li>Je inloggegevens (Supabase authenticatie token - alleen lokaal opgeslagen)</li>
+        </ul>
+        <p>
+          <strong>Doel:</strong> Om jouw AI visibility te meten en te tonen in je dashboard.<br />
+          <strong>Bewaartermijn:</strong> Onbeperkt (tenzij je verwijdering aanvraagt)<br />
+          <strong>Lokale opslag:</strong> Login tokens worden alleen op jouw computer opgeslagen, niet op onze servers.
+        </p>
+
         <h2>3. Bewaartermijnen</h2>
         <p>We bewaren je gegevens niet langer dan nodig:</p>
 
@@ -125,6 +140,11 @@ export default function PrivacyPolicyPage() {
               <td>Online scan resultaten</td>
               <td>Max. 1 jaar</td>
               <td>Voor je eigen referentie</td>
+            </tr>
+            <tr>
+              <td>Chrome extensie scans</td>
+              <td>Onbeperkt</td>
+              <td>Voor historische data & trends (verwijderbaar op aanvraag)</td>
             </tr>
             <tr>
               <td>Offerteaanvragen</td>
@@ -164,6 +184,19 @@ export default function PrivacyPolicyPage() {
           maar verwerkt geen persoonsgegevens actief.
         </p>
 
+        <h3>4.3 OpenAI (ChatGPT)</h3>
+        <p>
+          De Chrome extensie communiceert met ChatGPT.com om prompts te testen. We delen:
+        </p>
+        <ul className="checklist">
+          <li>De commercial prompts die je wilt testen</li>
+          <li><strong>GEEN</strong> persoonlijke gegevens</li>
+          <li><strong>GEEN</strong> andere ChatGPT gesprekken</li>
+        </ul>
+        <p>
+          Deze communicatie gebeurt via je eigen browser en ChatGPT account. We hebben geen toegang tot je ChatGPT gesprekken.
+        </p>
+
         <p><strong>We delen je gegevens NIET met:</strong></p>
         <ul className="fail">
           <li>Advertentienetwerken</li>
@@ -179,6 +212,7 @@ export default function PrivacyPolicyPage() {
           <li><strong>Toegangscontrole</strong> - Alleen geautoriseerd personeel heeft toegang</li>
           <li><strong>Regular updates</strong> - We houden onze systemen up-to-date</li>
           <li><strong>Spam detectie</strong> - We gebruiken IP-adressen om spam te voorkomen</li>
+          <li><strong>Lokale token opslag</strong> - Chrome extensie login tokens worden alleen op jouw computer bewaard</li>
         </ul>
 
         <h2>6. Cookies & Tracking</h2>
@@ -271,7 +305,7 @@ export default function PrivacyPolicyPage() {
           We kunnen deze privacyverklaring aanpassen wanneer dit nodig is. De meest recente versie vind je altijd op deze pagina. 
           Bij belangrijke wijzigingen informeren we je via e-mail (als we je e-mailadres hebben).
         </p>
-        <p><strong>Laatst bijgewerkt:</strong> 17 oktober 2025</p>
+        <p><strong>Laatst bijgewerkt:</strong> 27 oktober 2025</p>
 
         <h2>10. Vragen?</h2>
         <p>Heb je vragen over deze privacyverklaring of over hoe we met je gegevens omgaan?</p>
@@ -282,6 +316,113 @@ export default function PrivacyPolicyPage() {
           <strong>👤 Contactpersoon:</strong> Imre Bernáth
         </p>
         <p>We helpen je graag verder!</p>
+
+        <h2>11. Chrome Extension - ChatGPT Visibility Scanner</h2>
+        <p>
+          Onze Chrome extensie helpt je om jouw AI visibility in ChatGPT te meten.
+        </p>
+
+        <h3>11.1 Welke gegevens verzamelt de extensie?</h3>
+        
+        <p><strong>Lokale opslag (alleen op jouw computer):</strong></p>
+        <ul>
+          <li>Je inloggegevens (Supabase authenticatie token)</li>
+          <li>De commercial prompts die je wilt testen</li>
+          <li>Tijdelijke scan resultaten</li>
+        </ul>
+
+        <p><strong>Naar onze servers verzonden:</strong></p>
+        <ul>
+          <li>ChatGPT scan resultaten (welke prompts jouw bedrijf vermelden)</li>
+          <li>Positie van vermeldingen in ChatGPT antwoorden</li>
+          <li>Text snippets van ChatGPT antwoorden</li>
+          <li>Timestamp van scans</li>
+        </ul>
+
+        <p><strong>NIET verzameld:</strong></p>
+        <ul className="fail">
+          <li>Je ChatGPT gesprekken</li>
+          <li>Persoonlijke ChatGPT data</li>
+          <li>Andere websites die je bezoekt</li>
+          <li>Toetsaanslagen of wachtwoorden</li>
+        </ul>
+
+        <h3>11.2 Permissions uitleg</h3>
+        <p>De extensie vraagt de volgende Chrome permissions:</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Permission</th>
+              <th>Waarom nodig?</th>
+              <th>Wat doen we ermee?</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>storage</code></td>
+              <td>Om je login te onthouden</td>
+              <td>Lokale opslag van auth token</td>
+            </tr>
+            <tr>
+              <td><code>activeTab</code></td>
+              <td>Om ChatGPT te lezen</td>
+              <td>Alleen wanneer je op &quot;Scan&quot; klikt</td>
+            </tr>
+            <tr>
+              <td><code>tabs</code></td>
+              <td>Om ChatGPT pagina te openen</td>
+              <td>Alleen voor scan functionaliteit</td>
+            </tr>
+            <tr>
+              <td><code>host_permissions</code></td>
+              <td>Toegang tot teun.ai en chatgpt.com</td>
+              <td>Communicatie met dashboard</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>11.3 Hoe werkt de extensie?</h3>
+        <ol>
+          <li>Je logt in via onze website (teun.ai/dashboard)</li>
+          <li>Extensie haalt jouw commercial prompts op van het dashboard</li>
+          <li>Je klikt op &quot;Start Scan&quot; in de extensie</li>
+          <li>Extensie opent ChatGPT en voert prompts uit</li>
+          <li>Resultaten worden opgeslagen in je dashboard</li>
+          <li>Je kunt resultaten bekijken op teun.ai/dashboard</li>
+        </ol>
+
+        <h3>11.4 Beveiliging</h3>
+        <ul className="checklist">
+          <li><strong>End-to-end versleuteling:</strong> Communicatie tussen extensie en dashboard is versleuteld (HTTPS)</li>
+          <li><strong>Lokale opslag:</strong> Je login token wordt alleen lokaal opgeslagen, niet gedeeld</li>
+          <li><strong>Geen tracking:</strong> We tracken niet wat je buiten de scan functie doet</li>
+          <li><strong>Transparant:</strong> De extensie code is transparant en controleerbaar</li>
+        </ul>
+
+        <h3>11.5 Verwijderen van data</h3>
+        <p>Je kunt je extensie data verwijderen door:</p>
+        <ol>
+          <li>De extensie te deïnstalleren via Chrome</li>
+          <li>Je account te verwijderen op teun.ai/dashboard</li>
+          <li>Een verzoek te sturen naar <a href="mailto:hallo@onlinelabs.nl">hallo@onlinelabs.nl</a></li>
+        </ol>
+
+        <h3>11.6 Updates</h3>
+        <p>
+          De extensie update automatisch via de Chrome Web Store. Bij grote wijzigingen informeren we je via:
+        </p>
+        <ul>
+          <li>Update notificatie in de extensie</li>
+          <li>E-mail (indien geregistreerd)</li>
+          <li>Changelog op teun.ai/changelog (binnenkort)</li>
+        </ul>
+
+        <blockquote>
+          <strong>Vragen over de extensie?</strong><br />
+          📧 E-mail: <a href="mailto:hallo@onlinelabs.nl">hallo@onlinelabs.nl</a><br />
+          📞 Telefoon: <a href="tel:+31208202022">020 820 20 22</a>
+        </blockquote>
 
         <h2>Specifiek voor Early Access & Online Scans</h2>
 

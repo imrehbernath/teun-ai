@@ -18,10 +18,11 @@
 ],
   
   "host_permissions": [
-  "https://chatgpt.com/*",
-  "https://chat.openai.com/*",
-  "https://teun.ai/*"
-],
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*",
+    "https://teun.ai/*",
+    "http://localhost:3000/*"
+  ],
   
   "background": {
     "service_worker": "background.js",
@@ -56,8 +57,9 @@
   ],
   
   "externally_connectable": {
-  "matches": [
-    "https://teun.ai/*"
+    "matches": [
+      "https://teun.ai/*",
+      "http://localhost:3000/*"
     ]
   }
 }
