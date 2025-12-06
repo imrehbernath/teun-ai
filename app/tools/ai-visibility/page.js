@@ -2,14 +2,14 @@
 // ✅ COMPLETE VERSION with URL Parameter Handling for OnlineLabs Integration
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Search, TrendingUp, Zap, BarChart3, CheckCircle2, AlertCircle, Loader2, Award } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import FeedbackWidget from '@/app/components/FeedbackWidget';
 
-export default function AIVisibilityTool() {
+function AIVisibilityToolContent() {
   const searchParams = useSearchParams();
   
   const [step, setStep] = useState(1);
@@ -901,5 +901,18 @@ export default function AIVisibilityTool() {
         )}
       </div>
     </div>
+  );
+}
+
+// Wrapper component with Suspense for useSearchParams
+export default function AIVisibilityTool() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-[#001233] via-[#1a0b3d] to-[#2d1654] flex items-center justify-center">
+        <Loader2 className="w-12 h-12 text-purple-300 animate-spin" />
+      </div>
+    }>
+      <AIVisibilityToolContent />
+    </Suspense>
   );
 }
