@@ -1,14 +1,17 @@
 // app/tools/ai-visibility/page.js
-// ✅ COMPLETE VERSION with Improved Advanced Settings - SYNTAX FIXED
+// ✅ COMPLETE VERSION with URL Parameter Handling for OnlineLabs Integration
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Search, TrendingUp, Zap, BarChart3, CheckCircle2, AlertCircle, Loader2, Award } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import FeedbackWidget from '@/app/components/FeedbackWidget';
 
 export default function AIVisibilityTool() {
+  const searchParams = useSearchParams();
+  
   const [step, setStep] = useState(1);
   const [analyzing, setAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -17,6 +20,7 @@ export default function AIVisibilityTool() {
   const [results, setResults] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [referralSource, setReferralSource] = useState(null);
   
   const [formData, setFormData] = useState({
     companyName: '',
@@ -29,6 +33,66 @@ export default function AIVisibilityTool() {
   const [excludeTermsInput, setExcludeTermsInput] = useState('');
   const [includeTermsInput, setIncludeTermsInput] = useState('');
   const [locationTermsInput, setLocationTermsInput] = useState('');
+
+  // ✨ Handle URL Parameters from OnlineLabs
+  useEffect(() => {
+    if (!searchParams) return;
+
+    const company = searchParams.get('company');
+    const category = searchParams.get('category');
+    const keywords = searchParams.get('keywords');
+    const exclude = searchParams.get('exclude');
+    const include = searchParams.get('include');
+    const location = searchParams.get('location');
+    const ref = searchParams.get('ref');
+    const autostart = searchParams.get('autostart');
+
+    // Track referral source
+    if (ref) {
+      setReferralSource(ref);
+      console.log('📍 Referral source:', ref);
+    }
+
+    // Pre-fill form data
+    if (company || category || keywords) {
+      setFormData(prev => ({
+        ...prev,
+        companyName: company || prev.companyName,
+        companyCategory: category || prev.companyCategory,
+        queries: keywords || prev.queries
+      }));
+    }
+
+    // Pre-fill advanced settings
+    if (exclude) {
+      setExcludeTermsInput(exclude);
+      setShowAdvancedSettings(true);
+    }
+    if (include) {
+      setIncludeTermsInput(include);
+      setShowAdvancedSettings(true);
+    }
+    if (location) {
+      setLocationTermsInput(location);
+      setShowAdvancedSettings(true);
+    }
+
+    // Auto-navigate to step 3 if company and category are provided
+    if (company && category) {
+      setStep(3);
+      
+      // Auto-start analysis if requested
+      if (autostart === 'true') {
+        // Small delay to ensure state is set
+        setTimeout(() => {
+          // Will trigger analysis after user state is loaded
+        }, 500);
+      }
+    } else if (keywords) {
+      // If only keywords provided, go to step 2
+      setStep(2);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -150,7 +214,8 @@ export default function AIVisibilityTool() {
           identifiedQueriesSummary: queriesArray.length > 0 ? queriesArray : [],
           userId: user?.id || null,
           numberOfPrompts: totalPrompts,
-          customTerms: getCustomTerms()
+          customTerms: getCustomTerms(),
+          referralSource: referralSource // Track where the user came from
         })
       });
 
@@ -186,6 +251,25 @@ export default function AIVisibilityTool() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#001233] via-[#1a0b3d] to-[#2d1654]" suppressHydrationWarning>
       <div className="max-w-5xl mx-auto px-4 py-6 sm:py-12 text-white">
+        
+        {/* ✨ OnlineLabs Referral Banner */}
+        {referralSource === 'onlinelabs' && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-400/30 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
+                <span className="text-xl">🔗</span>
+              </div>
+              <div>
+                <p className="text-sm text-blue-200">
+                  <strong>Via OnlineLabs</strong> – Je gegevens zijn automatisch ingevuld
+                </p>
+                <p className="text-xs text-gray-400">
+                  Controleer de gegevens en start de analyse
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         
         <header className="text-center mb-8 sm:mb-12">
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-white via-blue-200 to-purple-200 text-transparent bg-clip-text leading-tight px-4">
@@ -615,6 +699,12 @@ export default function AIVisibilityTool() {
                       <span className="text-gray-400">Te analyseren:</span>
                       <span className="text-white font-medium">{user ? '10' : '5'} AI-prompts</span>
                     </div>
+                    {referralSource && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Bron:</span>
+                        <span className="text-blue-300 font-medium capitalize">{referralSource}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* ✨ Show Advanced Settings in Step 3 */}
@@ -749,12 +839,25 @@ export default function AIVisibilityTool() {
                     setIncludeTermsInput('');
                     setLocationTermsInput('');
                     setResults(null);
+                    setReferralSource(null);
                   }}
                   className="w-full px-6 py-3 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition"
                 >
                   Nieuwe analyse
                 </button>
               </div>
+
+              {/* ✨ OnlineLabs Back Link */}
+              {referralSource === 'onlinelabs' && (
+                <div className="mb-6 text-center">
+                  <a 
+                    href="https://onlinelabs.nl/skills/geo-optimalisatie"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 rounded-lg font-medium transition border border-blue-400/30"
+                  >
+                    ← Terug naar OnlineLabs GEO Optimalisatie
+                  </a>
+                </div>
+              )}
 
               <FeedbackWidget 
                 scanId={results?.scan_id || null}
