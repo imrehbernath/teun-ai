@@ -118,7 +118,7 @@ export default function DashboardPage() {
       console.log('📤 Sending message to extension...')
       
       chrome.runtime.sendMessage(
-        'dpjeohkoadiajdggbippmhdbkpbflieg',
+        'jjhjnmkanlmjhmobcgemjakkjdbkkfmk',
         {
           action: 'store_auth',
           token: session.access_token,
@@ -468,11 +468,11 @@ export default function DashboardPage() {
                 </h3>
                 <p className="text-gray-700 mb-3">Kopieer deze URL en plak in je Chrome adresbalk:</p>
                 <div className="bg-white rounded-lg p-4 border-2 border-purple-300 font-mono text-sm break-all select-all">
-                  chrome://extensions/?id=dpjeohkoadiajdggbippmhdbkpbflieg
+                  chrome://extensions/?id=jjhjnmkanlmjhmobcgemjakkjdbkkfmk
                 </div>
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText('chrome://extensions/?id=dpjeohkoadiajdggbippmhdbkpbflieg')
+                    navigator.clipboard.writeText('chrome://extensions/?id=jjhjnmkanlmjhmobcgemjakkjdbkkfmk')
                     alert('✅ URL gekopieerd!')
                   }}
                   className="mt-3 px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
