@@ -13,7 +13,8 @@ export default function Homepage() {
   const [formData, setFormData] = useState({
     bedrijfsnaam: '',
     website: '',
-    branche: ''
+    branche: '',
+    zoekwoorden: ''
   });
   const [openFaq, setOpenFaq] = useState(0);
 
@@ -26,6 +27,7 @@ export default function Homepage() {
     if (formData.bedrijfsnaam) params.set('company', formData.bedrijfsnaam);
     if (formData.branche) params.set('category', formData.branche);
     if (formData.website) params.set('website', formData.website);
+    if (formData.zoekwoorden) params.set('keywords', formData.zoekwoorden);
     
     // Auto-start de scan als er een bedrijfsnaam is
     if (formData.bedrijfsnaam) {
@@ -103,7 +105,7 @@ export default function Homepage() {
 
                 {/* Scan Form */}
                 <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 space-y-4">
-                  <div className="grid md:grid-cols-3 gap-4">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1.5">
                         Bedrijfsnaam *
@@ -132,7 +134,19 @@ export default function Homepage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                        Website <span className="text-slate-400 font-normal">(optioneel)</span>
+                        Zoekwoorden
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.zoekwoorden}
+                        onChange={(e) => setFormData({...formData, zoekwoorden: e.target.value})}
+                        placeholder="SEO specialist, ranking"
+                        className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        Website <span className="text-slate-400 font-normal">(opt.)</span>
                       </label>
                       <input
                         type="text"
@@ -288,7 +302,7 @@ export default function Homepage() {
                     Vul je gegevens in
                   </h3>
                   <p className="text-slate-600">
-                    Bedrijfsnaam, website en branche. Meer hebben we niet nodig.
+                    Bedrijfsnaam, branche en zoekwoorden. Wij maken de commerciële prompts.
                   </p>
                 </div>
               </div>
@@ -394,7 +408,7 @@ export default function Homepage() {
                 {[
                   {
                     question: 'Hoe werkt Teun.AI precies?',
-                    answer: 'Teun.AI analyseert je website en genereert automatisch GEO-geoptimaliseerde content. De tool is speciaal ontwikkeld voor de Nederlandse markt en taal. Je voert keywords in en krijgt direct publiceerbare teksten.'
+                    answer: 'Teun.AI scant hoe zichtbaar jouw bedrijf is in AI-zoekmachines zoals ChatGPT, Perplexity, Claude en Gemini. Je voert je bedrijfsgegevens en zoekwoorden in, en wij genereren de commerciële prompts die jouw potentiële klanten gebruiken. Zo zie je precies waar je wel en niet wordt aanbevolen.'
                   },
                   {
                     question: 'Wat kost Teun.AI?',
