@@ -1,24 +1,24 @@
-import ComingSoon from './components/ComingSoon';
+import Homepage from './components/Homepage';
 
 export const metadata = {
-  title: 'Teun.ai – GEO Audits & AI-SEO Analyse | Live 1 januari 2026',
-  description: 'Teun.ai: hét platform voor GEO Audits, AI-SEO analyse & AI-gedreven optimalisatie. Word zichtbaar in ChatGPT, Google AI, Bing AI & meer.',
-  keywords: ['GEO audit', 'AI-SEO analyse', 'Generative Engine Optimization', 'ChatGPT SEO', 'Perplexity SEO', 'AI visibility'],
+  title: 'Teun.ai – AI Zichtbaarheidsanalyse | Gratis GEO Scanner',
+  description: 'Ontdek hoe zichtbaar jouw bedrijf is in ChatGPT, Perplexity, Claude en Gemini. Gratis AI visibility scan in 30 seconden. Start nu!',
+  keywords: ['AI zichtbaarheid', 'GEO audit', 'AI-SEO analyse', 'Generative Engine Optimization', 'ChatGPT SEO', 'Perplexity SEO', 'AI visibility scanner'],
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: 'Teun.ai – GEO Audits & AI-SEO Analyse | Live 1 januari 2026',
-    description: 'Teun.ai: hét platform voor GEO Audits, AI-SEO analyse & AI-gedreven optimalisatie. Word zichtbaar in ChatGPT, Google AI, Bing AI & meer.',
-    images: ['/GEO-insights-en-AI-SEO.webp'],
+    title: 'Teun.ai – AI Zichtbaarheidsanalyse | Gratis GEO Scanner',
+    description: 'Ontdek hoe zichtbaar jouw bedrijf is in ChatGPT, Perplexity, Claude en Gemini. Gratis AI visibility scan in 30 seconden.',
+    images: ['/og-image-teun-ai.webp'],
     type: 'website',
     locale: 'nl_NL',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Teun.ai – GEO Audits & AI-SEO Analyse | Live 1 januari 2026',
-    description: 'Teun.ai: hét platform voor GEO Audits, AI-SEO analyse & AI-gedreven optimalisatie. Word zichtbaar in ChatGPT, Google AI, Bing AI & meer.',
-    images: ['/GEO-insights-en-AI-SEO.webp'],
+    title: 'Teun.ai – AI Zichtbaarheidsanalyse | Gratis GEO Scanner',
+    description: 'Ontdek hoe zichtbaar jouw bedrijf is in ChatGPT, Perplexity, Claude en Gemini. Gratis AI visibility scan in 30 seconden.',
+    images: ['/og-image-teun-ai.webp'],
   },
 };
 
@@ -68,8 +68,9 @@ export default function Home() {
       {
         "@type": "Organization",
         "@id": `${siteUrl}/#organization`,
-        "name": "teun.ai",
+        "name": "Teun.ai",
         "url": siteUrl,
+        "description": "Teun.ai is de eerste AI visibility scanner voor de Nederlandse markt. Ontdek hoe zichtbaar jouw bedrijf is in ChatGPT, Perplexity, Claude en Gemini.",
         "logo": {
           "@type": "ImageObject",
           "@id": `${siteUrl}/#logo`,
@@ -89,32 +90,23 @@ export default function Home() {
         "@id": `${siteUrl}/#website`,
         "url": siteUrl,
         "name": "Teun.ai",
-        "alternateName": "Teun.ai",
+        "alternateName": "Teun.ai - AI Zichtbaarheidsanalyse",
         "publisher": {
           "@id": `${siteUrl}/#organization`
         },
         "inLanguage": "nl-NL",
         "potentialAction": {
           "@type": "SearchAction",
-          "target": `${siteUrl}/?s={search_term_string}`,
+          "target": `${siteUrl}/search?q={search_term_string}`,
           "query-input": "required name=search_term_string"
         }
-      },
-      {
-        "@type": "ImageObject",
-        "@id": `${siteUrl}/GEO-insights-en-AI-SEO.webp`,
-        "url": `${siteUrl}/GEO-insights-en-AI-SEO.webp`,
-        "width": "1200",
-        "height": "675",
-        "caption": "GEO insights en AI-SEO",
-        "inLanguage": "nl-NL"
       },
       {
         "@type": "WebPage",
         "@id": `${siteUrl}/#webpage`,
         "url": siteUrl,
-        "name": "Teun.ai – GEO Audits & AI-SEO Analyse | Live 1 januari 2026",
-        "datePublished": "2021-05-24T18:58:15+00:00",
+        "name": "Teun.ai – AI Zichtbaarheidsanalyse | Gratis GEO Scanner",
+        "datePublished": "2025-10-01T00:00:00+00:00",
         "dateModified": new Date().toISOString(),
         "about": {
           "@id": `${siteUrl}/#organization`
@@ -122,10 +114,23 @@ export default function Home() {
         "isPartOf": {
           "@id": `${siteUrl}/#website`
         },
-        "primaryImageOfPage": {
-          "@id": `${siteUrl}/GEO-insights-en-AI-SEO.webp`
-        },
         "inLanguage": "nl-NL"
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "Teun.ai AI Visibility Scanner",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "EUR",
+          "description": "2 gratis scans per maand"
+        },
+        "description": "Scan hoe zichtbaar jouw bedrijf is in AI-zoekmachines zoals ChatGPT, Perplexity, Claude en Gemini.",
+        "provider": {
+          "@id": `${siteUrl}/#organization`
+        }
       },
       {
         "@type": "Person",
@@ -143,33 +148,6 @@ export default function Home() {
         "worksFor": {
           "@id": "https://www.onlinelabs.nl/#organization"
         }
-      },
-      {
-        "@type": "Article",
-        "headline": "Teun.ai – GEO Audits & AI-SEO Analyse | Live 1 januari 2026",
-        "keywords": "GEO audit,AI-SEO analyse",
-        "datePublished": "2021-05-24T18:58:15+00:00",
-        "dateModified": new Date().toISOString(),
-        "author": {
-          "@id": `${siteUrl}/auteur/imre`,
-          "name": "Imre Bernáth"
-        },
-        "publisher": {
-          "@id": `${siteUrl}/#organization`
-        },
-        "description": "Teun.ai: hét platform voor GEO Audits, AI-SEO analyse & AI-gedreven optimalisatie. Word zichtbaar in ChatGPT, Google AI, Bing AI & meer.",
-        "name": "Teun.ai – GEO Audits & AI-SEO Analyse | Live 1 januari 2026",
-        "@id": `${siteUrl}/#richSnippet`,
-        "isPartOf": {
-          "@id": `${siteUrl}/#webpage`
-        },
-        "image": {
-          "@id": `${siteUrl}/GEO-insights-en-AI-SEO.webp`
-        },
-        "inLanguage": "nl-NL",
-        "mainEntityOfPage": {
-          "@id": `${siteUrl}/#webpage`
-        }
       }
     ]
   };
@@ -184,10 +162,10 @@ export default function Home() {
         }}
       />
       
-      <ComingSoon />
+      <Homepage />
     </>
   );
 }
 
 // Static caching - homepage verandert zelden
-export const revalidate = 86400; // 24 uur cache
+export const revalidate = 3600; // 1 uur cache
