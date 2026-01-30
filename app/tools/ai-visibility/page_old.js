@@ -690,6 +690,21 @@ function AIVisibilityToolContent() {
                         <span>Resultaten verwerken en rapport genereren...</span>
                       </div>
                     </div>
+
+                    {/* CTA tijdens scannen */}
+                    <div className="bg-gradient-to-r from-emerald-500/10 to-green-500/10 border border-emerald-400/30 rounded-xl p-5 mt-6">
+                      <p className="text-white text-sm mb-3 text-center">
+                        💡 <strong>Wist je dat?</strong> Wij helpen bedrijven om beter gevonden te worden in AI-zoekmachines
+                      </p>
+                      <a 
+                        href="https://www.onlinelabs.nl/skills/geo-optimalisatie"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-full bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white font-semibold py-3 px-6 rounded-lg text-center transition-all cursor-pointer"
+                      >
+                        Bekijk onze GEO-optimalisatie →
+                      </a>
+                    </div>
                   </div>
                 ) : (
                   <>
@@ -883,13 +898,13 @@ function AIVisibilityToolContent() {
                       setReferralSource(null);
                       setFromHomepage(false);
                     }}
-                    className="flex-1 px-6 py-3 bg-white border-2 border-slate-300 text-slate-700 rounded-xl font-semibold hover:border-slate-400 hover:bg-slate-50 transition cursor-pointer"
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-semibold hover:shadow-lg transition cursor-pointer"
                   >
                     🔄 Nieuwe analyse
                   </button>
                   <Link 
                     href="/"
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-semibold hover:shadow-lg transition text-center cursor-pointer"
+                    className="flex-1 px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 transition text-center"
                   >
                     ← Terug naar home
                   </Link>
@@ -935,26 +950,6 @@ function AIVisibilityToolContent() {
             </div>
           )}
         </section>
-
-        {/* CTA tijdens scannen - buiten de scanner box */}
-        {analyzing && (
-          <div className="text-center mb-8">
-            <p className="text-slate-600 mb-3">
-              Wij helpen bedrijven om beter gevonden te worden in AI-zoekmachines
-            </p>
-            <a 
-              href="https://www.onlinelabs.nl/skills/geo-optimalisatie"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white font-semibold py-3 px-8 rounded-lg transition-all cursor-pointer"
-            >
-              GEO optimalisatie →
-            </a>
-            <p className="text-slate-400 text-xs mt-2">
-              Opent in een nieuwe tab – de scan blijft draaien
-            </p>
-          </div>
-        )}
 
         {error && (
           <div className="mb-6 p-4 bg-red-100 border border-red-300 rounded-xl">

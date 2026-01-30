@@ -83,8 +83,8 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
 
   if (step === 'success') {
     return (
-      <div className="backdrop-blur-sm bg-green-500/20 border border-green-400/30 rounded-xl p-4 mt-6 animate-in fade-in slide-in-from-bottom-4">
-        <div className="flex items-center gap-2 text-green-300">
+      <div className="bg-green-50 border border-green-200 rounded-xl p-4 mt-6 animate-in fade-in slide-in-from-bottom-4">
+        <div className="flex items-center gap-2 text-green-700">
           <span className="text-2xl">🎉</span>
           <p className="font-semibold">Bedankt voor je feedback!</p>
         </div>
@@ -94,24 +94,24 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
 
   if (step === 'linkedin') {
     return (
-      <div className="backdrop-blur-sm bg-gradient-to-r from-blue-600/30 to-blue-500/20 border border-blue-400/30 rounded-xl p-6 mt-6 animate-in fade-in slide-in-from-bottom-4">
+      <div className="relative bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6 mt-6 animate-in fade-in slide-in-from-bottom-4">
         <button
           onClick={() => setStep('initial')}
-          className="absolute top-4 right-4 text-blue-300 hover:text-white"
+          className="absolute top-4 right-4 text-blue-400 hover:text-blue-600"
         >
           <X className="w-5 h-5" />
         </button>
         
         <div className="text-center">
-          <Share2 className="w-12 h-12 text-blue-300 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-white mb-2">
+          <Share2 className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-slate-900 mb-2">
             🚀 Deel je resultaat op LinkedIn!
           </h3>
-          <p className="text-blue-200 mb-4">
+          <p className="text-blue-700 mb-4">
             Help anderen hun AI-zichtbaarheid te ontdekken
           </p>
           
-           <div className="backdrop-blur-sm bg-white/10 rounded-lg p-4 mb-6 text-left text-sm text-blue-100">
+          <div className="bg-white rounded-lg p-4 mb-6 text-left text-sm text-slate-600 border border-blue-100">
             <p className="italic">
               &ldquo;🎯 Zojuist mijn AI-zichtbaarheid getest met TEUN.AI<br/>
               📊 Resultaat: {totalMentions}/5 vermeldingen in AI-zoekmachines...&rdquo;
@@ -121,13 +121,13 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
           <div className="flex gap-3">
             <button
               onClick={() => handleLinkedInShare(true)}
-              className="flex-1 px-6 py-3 bg-[#0A66C2] text-white font-bold rounded-lg hover:bg-[#004182] transition"
+              className="flex-1 px-6 py-3 bg-[#0A66C2] text-white font-bold rounded-lg hover:bg-[#004182] transition cursor-pointer"
             >
               Deel op LinkedIn
             </button>
             <button
               onClick={() => handleLinkedInShare(false)}
-              className="px-6 py-3 bg-white/10 text-white rounded-lg hover:bg-white/20 transition"
+              className="px-6 py-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition cursor-pointer"
             >
               Sla over
             </button>
@@ -139,18 +139,18 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
 
   if (step === 'comment') {
     return (
-      <div className="backdrop-blur-sm bg-orange-500/20 border border-orange-400/30 rounded-xl p-6 mt-6 animate-in fade-in slide-in-from-bottom-4">
+      <div className="relative bg-orange-50 border border-orange-200 rounded-xl p-6 mt-6 animate-in fade-in slide-in-from-bottom-4">
         <button
           onClick={() => setStep('initial')}
-          className="absolute top-4 right-4 text-orange-300 hover:text-white"
+          className="absolute top-4 right-4 text-orange-400 hover:text-orange-600"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <h3 className="text-xl font-bold text-white mb-2">
+        <h3 className="text-xl font-bold text-slate-900 mb-2">
           😔 Wat kunnen we verbeteren?
         </h3>
-        <p className="text-orange-200 mb-4 text-sm">
+        <p className="text-orange-700 mb-4 text-sm">
           Je feedback helpt ons om de tool te verbeteren!
         </p>
 
@@ -158,7 +158,7 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           placeholder="Vertel ons wat beter kan..."
-          className="w-full h-32 bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none mb-4"
+          className="w-full h-32 bg-white border border-orange-200 rounded-lg px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none mb-4"
         />
 
         <input
@@ -166,13 +166,13 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Email (optioneel, voor follow-up)"
-          className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 mb-4"
+          className="w-full bg-white border border-orange-200 rounded-lg px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-400 mb-4"
         />
 
         <button
           onClick={handleSubmitFeedback}
           disabled={submitting || !comment}
-          className="w-full px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-lg hover:from-orange-600 hover:to-red-600 transition disabled:opacity-50"
+          className="w-full px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-lg hover:from-orange-600 hover:to-red-600 transition disabled:opacity-50 cursor-pointer"
         >
           {submitting ? 'Versturen...' : 'Verstuur feedback'}
         </button>
@@ -182,22 +182,22 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
 
   // Initial state
   return (
-    <div className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl p-4 mt-6">
+    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-6">
       <div className="flex items-center justify-between">
-        <p className="text-gray-300 text-sm sm:text-base">
+        <p className="text-slate-600 text-sm sm:text-base">
           💭 Hoe vond je deze analyse?
         </p>
         <div className="flex gap-2">
           <button
             onClick={() => handleRating('positive')}
-            className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 rounded-lg transition flex items-center gap-2 text-green-300 font-semibold"
+            className="px-4 py-2 bg-green-100 hover:bg-green-200 border border-green-300 rounded-lg transition flex items-center gap-2 text-green-700 font-semibold cursor-pointer"
           >
             <ThumbsUp className="w-4 h-4" />
             <span className="hidden sm:inline">Handig</span>
           </button>
           <button
             onClick={() => handleRating('negative')}
-            className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 rounded-lg transition flex items-center gap-2 text-orange-300 font-semibold"
+            className="px-4 py-2 bg-orange-100 hover:bg-orange-200 border border-orange-300 rounded-lg transition flex items-center gap-2 text-orange-700 font-semibold cursor-pointer"
           >
             <ThumbsDown className="w-4 h-4" />
             <span className="hidden sm:inline">Kan beter</span>

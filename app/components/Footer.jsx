@@ -10,7 +10,7 @@ export default function Footer() {
           
           {/* Column 1: Brand */}
           <div className="lg:col-span-1">
-            <Link href="/home" className="inline-block mb-4">
+            <Link href="/" className="inline-block mb-4">
               <span className="text-white font-montserrat font-semibold text-[22px] leading-[24px]">
                 TEUN.AI
               </span>
@@ -28,23 +28,8 @@ export default function Footer() {
             <h3 className="text-white font-semibold text-base mb-4">Over GEO</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/over-geo/wat-is-geo" className="text-white/70 hover:text-white text-sm transition-colors">
-                  Wat is GEO?
-                </Link>
-              </li>
-              <li>
-                <Link href="/over-geo/seo-vs-geo" className="text-white/70 hover:text-white text-sm transition-colors">
-                  SEO vs GEO
-                </Link>
-              </li>
-              <li>
-                <Link href="/over-geo/6-dimensies" className="text-white/70 hover:text-white text-sm transition-colors">
-                  6 Dimensies van GEO
-                </Link>
-              </li>
-              <li>
                 <Link href="/blog" className="text-white/70 hover:text-white text-sm transition-colors">
-                  Blog & Academy
+                  Blog & Insights
                 </Link>
               </li>
             </ul>
@@ -55,29 +40,31 @@ export default function Footer() {
             <h3 className="text-white font-semibold text-base mb-4">GEO Tools</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/tools/geo-audit" className="text-white/70 hover:text-white text-sm transition-colors">
+                <Link href="/tools/geo-audit" className="text-white/70 hover:text-white text-sm transition-colors inline-flex items-center gap-2">
                   GEO Audit
+                  <span className="text-[10px] px-1.5 py-0.5 bg-orange-500/20 text-orange-300 rounded">early access</span>
                 </Link>
               </li>
               <li>
-                <Link href="/tools/ai-zichtbaarheid" className="text-white/70 hover:text-white text-sm transition-colors">
-                  AI Zichtbaarheidsanalyse
+                <Link href="/tools/ai-visibility" className="text-white/70 hover:text-white text-sm transition-colors inline-flex items-center gap-2">
+                  AI Zichtbaarheid
+                  <span className="text-[10px] px-1.5 py-0.5 bg-green-500/20 text-green-300 rounded">LIVE</span>
                 </Link>
               </li>
               <li>
-                <Link href="/tools/keyword-relevance" className="text-white/70 hover:text-white text-sm transition-colors">
-                  Keyword Relevance Finder
-                </Link>
+                <span className="text-white/40 text-sm">
+                  Zoekwoord Analyse <span className="text-white/30 text-xs">(binnenkort)</span>
+                </span>
               </li>
               <li>
-                <Link href="/tools/entity-builder" className="text-white/70 hover:text-white text-sm transition-colors">
-                  Entity Builder
-                </Link>
+                <span className="text-white/40 text-sm">
+                  Entity Builder <span className="text-white/30 text-xs">(binnenkort)</span>
+                </span>
               </li>
               <li>
-                <Link href="/tools/structured-data" className="text-white/70 hover:text-white text-sm transition-colors">
-                  Structured Data Checker
-                </Link>
+                <span className="text-white/40 text-sm">
+                  Schema Markup <span className="text-white/30 text-xs">(binnenkort)</span>
+                </span>
               </li>
             </ul>
           </div>
@@ -87,14 +74,9 @@ export default function Footer() {
             <h3 className="text-white font-semibold text-base mb-4">Bedrijf</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/over-ons" className="text-white/70 hover:text-white text-sm transition-colors">
-                  Over Teun.ai
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="text-white/70 hover:text-white text-sm transition-colors">
+                <a href="https://www.onlinelabs.nl/contact" target="_blank" rel="noopener noreferrer" className="text-white/70 hover:text-white text-sm transition-colors">
                   Contact
-                </Link>
+                </a>
               </li>
               <li>
                 <Link href="/early-access" className="text-white/70 hover:text-white text-sm transition-colors">
@@ -103,12 +85,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link href="/privacy" className="text-white/70 hover:text-white text-sm transition-colors">
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link href="/terms" className="text-white/70 hover:text-white text-sm transition-colors">
-                  Algemene Voorwaarden
+                  Privacyverklaring
                 </Link>
               </li>
             </ul>
@@ -119,7 +96,7 @@ export default function Footer() {
         <div className="mt-12 pt-8 border-t border-white/10">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-white/60 text-xs">
-              Powered by <Link href="https://onlinelabs.nl" target="_blank" className="hover:text-white transition-colors">OnlineLabs</Link>
+              Powered by <a href="https://onlinelabs.nl" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">OnlineLabs</a>
             </p>
             
             {/* Social Media */}
