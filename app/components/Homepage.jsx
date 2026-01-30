@@ -6,7 +6,6 @@ import Link from 'next/link';
 
 // ============================================
 // HOMEPAGE COMPONENT - Teun.ai
-// Design: Daaf (Figma)
 // ============================================
 
 export default function Homepage() {
@@ -156,17 +155,27 @@ export default function Homepage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
-                            Meer relevante keywords = betere resultaten
+                            Scheid met komma's • Max. 10 zoekwoorden
                           </span>
                         </span>
                       </label>
                       <input
                         type="text"
                         value={formData.zoekwoorden}
-                        onChange={(e) => setFormData({...formData, zoekwoorden: e.target.value})}
-                        placeholder="Linnen gordijnen, Luxe gordijnen"
+                        onChange={(e) => {
+                          const keywords = e.target.value.split(',').filter(k => k.trim());
+                          if (keywords.length <= 10 || e.target.value.length < formData.zoekwoorden.length) {
+                            setFormData({...formData, zoekwoorden: e.target.value});
+                          }
+                        }}
+                        placeholder="keyword 1, keyword 2, keyword 3"
                         className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400"
                       />
+                      {formData.zoekwoorden && (
+                        <p className="mt-1 text-xs text-slate-400">
+                          {formData.zoekwoorden.split(',').filter(k => k.trim()).length}/10 zoekwoorden
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1.5">
