@@ -165,7 +165,14 @@ export default function DashboardPage() {
           const site = websiteMap.get(key)
           const prompts = scan.commercial_prompts || []
           const results = scan.scan_results || []
-          const mentions = scan.total_mentions || 0
+          
+          // ✅ FIX: Calculate mentions from results if total_company_mentions is not available
+          let mentions = scan.total_company_mentions || scan.total_mentions || 0
+          
+          // Fallback: count mentions from scan_results
+          if (mentions === 0 && results.length > 0) {
+            mentions = results.filter(r => r.company_mentioned === true).length
+          }
           
           site.scans.push({
             id: scan.id,
