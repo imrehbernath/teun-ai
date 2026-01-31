@@ -38,11 +38,11 @@ export default function Homepage() {
   };
 
   return (
-    <div className="bg-white overflow-x-hidden">
+    <div className="bg-white overflow-hidden">
       {/* ====== HERO + STATS WRAPPER ====== */}
-      <div className="relative">
+      <div className="relative overflow-hidden">
         {/* Hero Mascotte - Positioned over both sections */}
-        <div className="hidden lg:block absolute right-[5%] xl:right-[10%] top-[136px] z-50 pointer-events-none">
+        <div className="hidden lg:block absolute right-[5%] xl:right-[10%] top-[136px] z-10 pointer-events-none select-none">
           <Image
             src="/mascotte-teun-ai.png"
             alt="Teun - AI Visibility Mascotte"
@@ -168,7 +168,7 @@ export default function Homepage() {
                             setFormData({...formData, zoekwoorden: e.target.value});
                           }
                         }}
-                        placeholder="keyword 1, keyword 2, keyword 3"
+                        placeholder="Linnen gordijnen, Luxe gordijnen"
                         className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400"
                       />
                       {formData.zoekwoorden && (
@@ -253,13 +253,30 @@ export default function Homepage() {
           >
             <div className="flex items-center justify-center gap-20 animate-scroll-left whitespace-nowrap">
               {[
-                'Signhost', 'Evert-Groot', 'Flinck-Advocaten', 'HvanA', 'Contactcare', 'instrktiv', 'CAKE-Film',
-                'Signhost', 'Evert-Groot', 'Flinck-Advocaten', 'HvanA', 'Contactcare', 'instrktiv', 'CAKE-Film',
+                { name: 'Signhost', ext: 'svg' },
+                { name: 'Evert-Groot', ext: 'svg' },
+                { name: 'Flinck-Advocaten', ext: 'svg' },
+                { name: 'Grachten-Museum', ext: 'png' },
+                { name: 'HvanA', ext: 'svg' },
+                { name: 'Contactcare', ext: 'svg' },
+                { name: 'Feadship-Heritage-fleet', ext: 'png' },
+                { name: 'instrktiv', ext: 'svg' },
+                { name: 'CAKE-Film', ext: 'svg' },
+                // Duplicates for seamless loop
+                { name: 'Signhost', ext: 'svg' },
+                { name: 'Evert-Groot', ext: 'svg' },
+                { name: 'Flinck-Advocaten', ext: 'svg' },
+                { name: 'Grachten-Museum', ext: 'png' },
+                { name: 'HvanA', ext: 'svg' },
+                { name: 'Contactcare', ext: 'svg' },
+                { name: 'Feadship-Heritage-fleet', ext: 'png' },
+                { name: 'instrktiv', ext: 'svg' },
+                { name: 'CAKE-Film', ext: 'svg' },
               ].map((logo, i) => (
                 <Image
                   key={`top-${i}`}
-                  src={`/${logo}.svg`}
-                  alt={logo.replace(/-/g, ' ')}
+                  src={`/${logo.name}.${logo.ext}`}
+                  alt={logo.name.replace(/-/g, ' ')}
                   width={200}
                   height={80}
                   className="h-16 md:h-20 w-auto flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity duration-300"
@@ -275,13 +292,26 @@ export default function Homepage() {
           >
             <div className="flex items-center justify-center gap-20 animate-scroll-right whitespace-nowrap">
               {[
-                'ASN-autoschade', 'De-Smaak-van-Italie', 'Forteiland-Pampus', 'Sec-Arbeidsrecht-Advocaten', 'Farber-Zwaanswijk-Advocaten', 'Webike-Amsterdam',
-                'ASN-autoschade', 'De-Smaak-van-Italie', 'Forteiland-Pampus', 'Sec-Arbeidsrecht-Advocaten', 'Farber-Zwaanswijk-Advocaten', 'Webike-Amsterdam',
+                { name: 'ASN-autoschade', ext: 'svg' },
+                { name: 'De-Smaak-van-Italie', ext: 'svg' },
+                { name: 'InterDam', ext: 'png' },
+                { name: 'Forteiland-Pampus', ext: 'svg' },
+                { name: 'Sec-Arbeidsrecht-Advocaten', ext: 'svg' },
+                { name: 'Farber-Zwaanswijk-Advocaten', ext: 'svg' },
+                { name: 'Webike-Amsterdam', ext: 'svg' },
+                // Duplicates for seamless loop
+                { name: 'ASN-autoschade', ext: 'svg' },
+                { name: 'De-Smaak-van-Italie', ext: 'svg' },
+                { name: 'InterDam', ext: 'png' },
+                { name: 'Forteiland-Pampus', ext: 'svg' },
+                { name: 'Sec-Arbeidsrecht-Advocaten', ext: 'svg' },
+                { name: 'Farber-Zwaanswijk-Advocaten', ext: 'svg' },
+                { name: 'Webike-Amsterdam', ext: 'svg' },
               ].map((logo, i) => (
                 <Image
                   key={`bottom-${i}`}
-                  src={`/${logo}.svg`}
-                  alt={logo.replace(/-/g, ' ')}
+                  src={`/${logo.name}.${logo.ext}`}
+                  alt={logo.name.replace(/-/g, ' ')}
                   width={200}
                   height={80}
                   className="h-16 md:h-20 w-auto flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity duration-300"
@@ -374,58 +404,186 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* ====== DASHBOARD PREVIEW ====== */}
-      <section className="py-20 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* ====== DASHBOARD PREVIEW - WHAT YOU GET ====== */}
+      <section className="py-20 bg-gradient-to-br from-[#1E1E3F] via-[#2D2D5F] to-[#1E1E3F] relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-purple-500 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-500 rounded-full blur-3xl"></div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+            <span className="inline-block px-4 py-2 bg-gradient-to-r from-green-400/20 to-emerald-400/20 border border-green-400/30 rounded-full text-green-300 text-sm font-medium mb-4">
+              ✨ Gratis account voordelen
+            </span>
+            <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
               Dit krijg je te zien
             </h2>
-            <p className="text-lg text-slate-600">
-              Een compleet overzicht van je AI-zichtbaarheid
+            <p className="text-lg text-slate-300 max-w-2xl mx-auto">
+              Jouw persoonlijke AI-zichtbaarheids dashboard met realtime inzichten
             </p>
           </div>
 
-          {/* Dashboard Card */}
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-8 max-w-4xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">
-                  O
+          {/* Main Feature Cards */}
+          <div className="grid lg:grid-cols-2 gap-6 max-w-5xl mx-auto mb-12">
+            
+            {/* Card 1: Dashboard Preview */}
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-6 hover:bg-white/15 transition-all group">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
                 </div>
                 <div>
-                  <div className="font-bold text-slate-900">OnlineLabs</div>
-                  <div className="text-sm text-slate-500">onlinelabs.nl</div>
+                  <h3 className="text-xl font-bold text-white">Persoonlijk Dashboard</h3>
+                  <p className="text-slate-400 text-sm">Track al je websites op één plek</p>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="text-4xl font-bold text-slate-900">72</div>
-                <div className="text-sm text-slate-500">AI Visibility Score</div>
+              
+              {/* Mini Dashboard Preview */}
+              <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-xs">OL</div>
+                    <div>
+                      <div className="text-white text-sm font-medium">OnlineLabs</div>
+                      <div className="text-slate-500 text-xs">onlinelabs.nl</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-green-400">78</div>
+                    <div className="text-slate-500 text-xs">Score</div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-md">ChatGPT ✓</span>
+                  <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-md">Perplexity ✓</span>
+                  <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-xs rounded-md">↑ 6 punten</span>
+                </div>
               </div>
+
+              <ul className="mt-4 space-y-2">
+                <li className="flex items-center gap-2 text-slate-300 text-sm">
+                  <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Alle websites in één overzicht
+                </li>
+                <li className="flex items-center gap-2 text-slate-300 text-sm">
+                  <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Score historie & trends
+                </li>
+                <li className="flex items-center gap-2 text-slate-300 text-sm">
+                  <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Prompts bewerken & opnieuw scannen
+                </li>
+              </ul>
             </div>
 
-            {/* Platform Scores */}
-            <div className="grid grid-cols-4 gap-4">
+            {/* Card 2: ChatGPT Realtime - UNIQUE FEATURE */}
+            <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/10 backdrop-blur-sm rounded-2xl border border-green-400/30 p-6 hover:border-green-400/50 transition-all group relative overflow-hidden">
+              {/* Highlight badge */}
+              <div className="absolute top-4 right-4">
+                <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full animate-pulse">
+                  UNIEK
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-[#10A37F] to-[#0D8A6A] rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M22.2 9.4c.4-1.2.2-2.5-.5-3.6-.7-1-1.8-1.7-3-1.9-.6-.1-1.2 0-1.8.2-.5-1.3-1.5-2.3-2.8-2.8-1.3-.5-2.8-.4-4 .3C9.4.6 8.2.2 7 .5c-1.2.3-2.3 1.1-2.9 2.2-.6 1.1-.7 2.4-.3 3.6-1.3.5-2.3 1.5-2.8 2.8s-.4 2.8.3 4c-1 .8-1.6 2-1.7 3.3-.1 1.3.4 2.6 1.4 3.5 1 .9 2.3 1.3 3.6 1.2.5 1.3 1.5 2.3 2.8 2.8 1.3.5 2.8.4 4-.3.8 1 2 1.6 3.3 1.7 1.3.1 2.6-.4 3.5-1.4.9-1 1.3-2.3 1.2-3.6 1.3-.5 2.3-1.5 2.8-2.8.5-1.3.4-2.8-.3-4 1-.8 1.6-2 1.7-3.3.1-1.3-.4-2.6-1.4-3.5z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">ChatGPT Realtime Scanner</h3>
+                  <p className="text-green-300 text-sm">Chrome Extensie - Gratis bij account</p>
+                </div>
+              </div>
+
+              {/* Chrome Extension Preview */}
+              <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50 mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 bg-gradient-to-br from-[#10A37F] to-[#0D8A6A] rounded flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">T</span>
+                  </div>
+                  <span className="text-slate-400 text-xs">Teun.ai Chrome Extensie actief</span>
+                </div>
+                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-green-300 text-sm font-medium">Jouw bedrijf is genoemd!</span>
+                  </div>
+                  <p className="text-slate-400 text-xs mt-1 pl-7">Direct inzicht terwijl je ChatGPT gebruikt</p>
+                </div>
+              </div>
+
+              <ul className="space-y-2">
+                <li className="flex items-center gap-2 text-slate-300 text-sm">
+                  <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <strong className="text-white">Onbeperkt</strong> ChatGPT scans
+                </li>
+                <li className="flex items-center gap-2 text-slate-300 text-sm">
+                  <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Automatisch scannen terwijl je chat
+                </li>
+                <li className="flex items-center gap-2 text-slate-300 text-sm">
+                  <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Resultaten direct in je dashboard
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom: What's included */}
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 max-w-3xl mx-auto">
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-bold text-white mb-2">Gratis account = Gratis features</h3>
+              <p className="text-slate-400 text-sm">Geen creditcard nodig, geen hidden costs</p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { name: 'ChatGPT', score: 85, color: 'from-green-400 to-emerald-500' },
-                { name: 'Perplexity', score: 78, color: 'from-blue-400 to-cyan-500' },
-                { name: 'Claude', score: 62, color: 'from-purple-400 to-violet-500' },
-                { name: 'Gemini', score: 45, color: 'from-amber-400 to-orange-500' },
-              ].map((platform) => (
-                <div key={platform.name} className="bg-slate-50 rounded-xl p-4 text-center">
-                  <div className="text-sm text-slate-600 mb-2">{platform.name}</div>
-                  <div className={`text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r ${platform.color}`}>
-                    {platform.score}%
-                  </div>
-                  {/* Progress bar */}
-                  <div className="mt-2 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full bg-gradient-to-r ${platform.color} transition-all duration-1000`}
-                      style={{ width: `${platform.score}%` }}
-                    ></div>
-                  </div>
+                { icon: '🔍', label: 'Perplexity scan', desc: '1x per dag' },
+                { icon: '💬', label: 'ChatGPT extensie', desc: 'Onbeperkt' },
+                { icon: '📊', label: 'Dashboard', desc: 'Volledig' },
+                { icon: '📈', label: 'Historie', desc: 'Altijd beschikbaar' },
+              ].map((feature, idx) => (
+                <div key={idx} className="text-center p-3 bg-white/5 rounded-xl">
+                  <div className="text-2xl mb-2">{feature.icon}</div>
+                  <div className="text-white text-sm font-medium">{feature.label}</div>
+                  <div className="text-green-400 text-xs">{feature.desc}</div>
                 </div>
               ))}
+            </div>
+            
+            {/* CTA */}
+            <div className="mt-6 text-center">
+              <Link 
+                href="/signup"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold text-lg hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg shadow-green-500/25 hover:shadow-green-500/40"
+              >
+                Maak Gratis Account
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </Link>
+              <p className="text-slate-500 text-xs mt-3">
+                Al 500+ bedrijven gingen je voor
+              </p>
             </div>
           </div>
         </div>
@@ -441,11 +599,11 @@ export default function Homepage() {
                 {[
                   {
                     question: 'Hoe werkt Teun.AI precies?',
-                    answer: 'Teun.AI scant hoe zichtbaar jouw bedrijf is in AI-zoekmachines zoals ChatGPT, Perplexity, Claude en Gemini. Je voert je bedrijfsgegevens en zoekwoorden in, en wij genereren de commerciële prompts die jouw potentiële klanten gebruiken. Zo zie je precies waar je wel en niet wordt aanbevolen.'
+                    answer: 'Teun.AI scant hoe zichtbaar jouw bedrijf is in AI-zoekmachines. Onze gratis tool scant via Perplexity AI met realtime webresultaten. Met een account krijg je ook toegang tot ChatGPT scans via onze Chrome extensie. Je voert je bedrijfsgegevens en zoekwoorden in, en wij genereren de commerciële prompts die jouw potentiële klanten gebruiken.'
                   },
                   {
                     question: 'Wat kost Teun.AI?',
-                    answer: 'Je kunt 2x gratis scannen zonder account. Met een account kun je onbeperkt scannen en krijg je toegang tot geavanceerde features - helemaal gratis.'
+                    answer: 'Je kunt 2x gratis scannen zonder account. Met een gratis account krijg je 1 scan per dag + toegang tot je dashboard en onze Chrome extensie voor onbeperkte ChatGPT scans.'
                   },
                   {
                     question: 'Is Teun.AI geschikt voor mijn bedrijf?',

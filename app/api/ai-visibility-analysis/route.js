@@ -96,7 +96,8 @@ export async function POST(request) {
       identifiedQueriesSummary,
       userId,
       numberOfPrompts = 5,
-      customTerms = null
+      customTerms = null,
+      customPrompts = null  // ✨ Pre-made prompts from dashboard edit
     } = body
 
     if (!companyName?.trim()) {
@@ -132,23 +133,32 @@ export async function POST(request) {
       )
     }
 
-    console.log('🤖 Step 1: Generating AI prompts...')
+    console.log('🤖 Step 1: Preparing AI prompts...')
     
-    const promptGenerationResult = await generatePromptsWithClaude(
-      companyName,
-      companyCategory,
-      identifiedQueriesSummary || [],
-      customTerms
-    )
-
-    if (!promptGenerationResult.success) {
-      return NextResponse.json(
-        { error: promptGenerationResult.error },
-        { status: 500 }
+    let generatedPrompts = []
+    
+    // ✨ Use custom prompts if provided (from dashboard edit)
+    if (customPrompts && Array.isArray(customPrompts) && customPrompts.length > 0) {
+      console.log(`📝 Using ${customPrompts.length} custom prompts from dashboard`)
+      generatedPrompts = customPrompts.filter(p => p && p.trim().length > 0)
+    } else {
+      // Generate prompts with Claude
+      const promptGenerationResult = await generatePromptsWithClaude(
+        companyName,
+        companyCategory,
+        identifiedQueriesSummary || [],
+        customTerms
       )
-    }
 
-    const generatedPrompts = promptGenerationResult.prompts
+      if (!promptGenerationResult.success) {
+        return NextResponse.json(
+          { error: promptGenerationResult.error },
+          { status: 500 }
+        )
+      }
+
+      generatedPrompts = promptGenerationResult.prompts
+    }
     
     // ✨ Admin fast scan mode
     let numberOfPromptsToAnalyze = numberOfPrompts
