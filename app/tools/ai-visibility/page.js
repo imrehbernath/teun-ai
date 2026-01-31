@@ -388,13 +388,16 @@ function AIVisibilityToolContent() {
 
               <div className="space-y-2 mb-6">
                 <label className="text-sm text-gray-300 font-medium block">
-                  Zoekwoorden (optioneel)
+                  Zoekwoorden <span className="text-purple-400">*</span>
                 </label>
+                <p className="text-xs text-gray-400 -mt-1 mb-2">
+                  Hoe specifieker, hoe beter de prompts
+                </p>
                 <textarea
                   value={formData.queries}
                   onChange={(e) => setFormData({ ...formData, queries: e.target.value })}
-                  placeholder="Bijv: Linnen gordijnen, Linnen gordijnen op maat, Inbetween gordijnen. Voer je belangrijkste zoekwoorden in, gescheiden door komma's of nieuwe regels"
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-400 focus:outline-none min-h-[120px] resize-y"
+                  placeholder="Bijv: SEO bureau Amsterdam, Online marketing, Google Ads specialist"
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-400 focus:outline-none min-h-[80px] resize-y"
                 />
               </div>
 
@@ -620,6 +623,17 @@ function AIVisibilityToolContent() {
                 )}
               </div>
 
+              {/* Mobiele Teun */}
+              <div className="flex lg:hidden justify-center mb-4">
+                <Image
+                  src="/mascotte-teun-ai.png"
+                  alt="Teun"
+                  width={100}
+                  height={125}
+                  className="drop-shadow-lg opacity-80"
+                />
+              </div>
+
               <div className="flex justify-end mt-6">
                 <button
                   onClick={() => setStep(2)}
@@ -630,7 +644,7 @@ function AIVisibilityToolContent() {
               </div>
               </div>
 
-              {/* Right: Teun Mascotte */}
+              {/* Right: Teun Mascotte - Desktop */}
               <div className="hidden lg:flex flex-col items-center justify-center">
                 <Image
                   src="/mascotte-teun-ai.png"
@@ -687,6 +701,17 @@ function AIVisibilityToolContent() {
                 </div>
               </div>
 
+              {/* Mobiele Teun */}
+              <div className="flex lg:hidden justify-center mb-4">
+                <Image
+                  src="/mascotte-teun-ai.png"
+                  alt="Teun"
+                  width={100}
+                  height={125}
+                  className="drop-shadow-lg opacity-80"
+                />
+              </div>
+
               <div className="flex items-center justify-between">
                 <button
                   onClick={() => setStep(1)}
@@ -710,7 +735,7 @@ function AIVisibilityToolContent() {
               </div>
               </div>
 
-              {/* Right: Teun Mascotte */}
+              {/* Right: Teun Mascotte - Desktop */}
               <div className="hidden lg:flex flex-col items-center justify-center">
                 <Image
                   src="/mascotte-teun-ai.png"
@@ -972,7 +997,8 @@ function AIVisibilityToolContent() {
                       {results.total_company_mentions}
                     </div>
                     <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-medium leading-tight">
-                      Vermel-<br className="sm:hidden" />dingen
+                      <span className="hidden sm:inline">Vermeldingen</span>
+                      <span className="sm:hidden">Genoemd</span>
                     </div>
                   </div>
                   <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 text-center shadow-sm">
@@ -980,7 +1006,8 @@ function AIVisibilityToolContent() {
                       {results.analysis_results.length}
                     </div>
                     <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-medium leading-tight">
-                      AI<br className="sm:hidden" /> Prompts
+                      <span className="hidden sm:inline">AI Prompts</span>
+                      <span className="sm:hidden">Prompts</span>
                     </div>
                   </div>
                   <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 text-center shadow-sm">
@@ -988,7 +1015,8 @@ function AIVisibilityToolContent() {
                       {[...new Set(results.analysis_results.flatMap(r => r.competitors_mentioned || []))].length}
                     </div>
                     <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-medium leading-tight">
-                      Concur-<br className="sm:hidden" />renten
+                      <span className="hidden sm:inline">Concurrenten</span>
+                      <span className="sm:hidden">Concurrent</span>
                     </div>
                   </div>
                 </div>
