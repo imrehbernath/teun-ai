@@ -124,7 +124,7 @@ export default function SignupPage() {
           {/* Left: Teun + benefits */}
           <div className="hidden lg:flex flex-col items-center text-center">
             <Image
-              src="/Teun-ai-dashboard.png"
+              src="/Teun-ai-blij-met-resultaat.png"
               alt="Teun verwelkomt je"
               width={320}
               height={400}
@@ -179,7 +179,7 @@ export default function SignupPage() {
             {/* Mobile Teun */}
             <div className="lg:hidden flex justify-center mb-6">
               <Image
-                src="/Teun-ai-dashboard.png"
+                src="/Teun-ai-blij-met-resultaat.png"
                 alt="Teun verwelkomt je"
                 width={160}
                 height={200}
