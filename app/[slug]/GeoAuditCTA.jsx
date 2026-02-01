@@ -57,10 +57,13 @@ function EarlyAccessPopup({ isOpen, onClose }) {
             </svg>
           </div>
           <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            GEO Audit - Binnenkort!
+            GEO Optimalisatie – Binnenkort!
           </h3>
           <p className="text-gray-600">
-            Meld je aan voor early access en krijg als eerste toegang tot onze GEO Audit tool.
+            Onze GEO Optimalisatie tool is in ontwikkeling. Meld je aan voor de early access lijst en we laten je weten zodra deze klaar is.
+          </p>
+          <p className="text-gray-500 text-sm mt-2">
+            💡 Wist je dat onze <a href="/tools/ai-visibility" className="text-blue-600 font-medium hover:underline">AI Zichtbaarheid Scan</a> al gratis beschikbaar is? Maak een gratis account en start direct.
           </p>
         </div>
 
@@ -80,7 +83,7 @@ function EarlyAccessPopup({ isOpen, onClose }) {
             disabled={status === 'loading'}
             className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 cursor-pointer"
           >
-            {status === 'loading' ? 'Verzenden...' : 'Aanmelden voor Early Access'}
+            {status === 'loading' ? 'Verzenden...' : 'Zet me op de lijst'}
           </button>
         </form>
 
@@ -106,19 +109,27 @@ export default function GeoAuditCTA() {
 
   return (
     <>
-      <div className="mt-16 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-8 text-center text-white">
-        <h3 className="text-2xl font-bold mb-4">
-          Klaar om je GEO te verbeteren?
+      <div className="mt-16 bg-gradient-to-br from-slate-50 via-white to-blue-50 border border-slate-200 rounded-2xl p-8 text-center">
+        <h3 className="text-2xl font-bold text-slate-900 mb-4">
+          Start met GEO optimalisatie
         </h3>
-        <p className="text-purple-100 mb-6 text-lg">
-          Start vandaag nog met een gratis GEO audit en ontdek hoe zichtbaar jouw merk is in AI-antwoorden.
+        <p className="text-slate-600 mb-6 text-lg">
+          Wil je weten hoe zichtbaar jouw merk is in AI-zoekmachines? Start een gratis scan of meld je aan voor onze GEO tools.
         </p>
-        <button
-          onClick={() => setShowPopup(true)}
-          className="inline-block bg-white text-purple-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition shadow-lg cursor-pointer"
-        >
-          Start Gratis GEO Audit
-        </button>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <a
+            href="/tools/ai-visibility"
+            className="inline-flex items-center justify-center px-7 py-3.5 rounded-xl bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white font-semibold text-sm hover:shadow-lg hover:scale-[1.02] transition-all min-w-[180px]"
+          >
+            Start Gratis Scan →
+          </a>
+          <button
+            onClick={() => setShowPopup(true)}
+            className="inline-flex items-center justify-center px-7 py-3.5 rounded-xl bg-gradient-to-r from-[#1A7DFF] to-[#6C3FF2] text-white font-semibold text-sm hover:shadow-lg hover:scale-[1.02] transition-all min-w-[180px] cursor-pointer"
+          >
+            Start GEO Optimalisatie
+          </button>
+        </div>
       </div>
 
       <EarlyAccessPopup isOpen={showPopup} onClose={() => setShowPopup(false)} />

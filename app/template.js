@@ -61,10 +61,13 @@ function EarlyAccessPopup({ isOpen, onClose }) {
             </svg>
           </div>
           <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            GEO Audit - Binnenkort!
+            GEO Optimalisatie – Binnenkort!
           </h3>
           <p className="text-gray-600">
-            Meld je aan voor early access en krijg als eerste toegang tot onze GEO Audit tool.
+            Onze GEO Optimalisatie tool is in ontwikkeling. Meld je aan voor de early access lijst en we laten je weten zodra deze klaar is.
+          </p>
+          <p className="text-gray-500 text-sm mt-2">
+            💡 Wist je dat onze <a href="/tools/ai-visibility" className="text-blue-600 font-medium hover:underline">AI Zichtbaarheid Scan</a> al gratis beschikbaar is? Maak een gratis account en start direct.
           </p>
         </div>
 
@@ -85,7 +88,7 @@ function EarlyAccessPopup({ isOpen, onClose }) {
             disabled={status === 'loading'}
             className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 cursor-pointer"
           >
-            {status === 'loading' ? 'Verzenden...' : 'Aanmelden voor Early Access'}
+            {status === 'loading' ? 'Verzenden...' : 'Zet me op de lijst'}
           </button>
         </form>
 
@@ -173,24 +176,20 @@ function Header() {
             {/* Desktop Navigation */}
             <div className="hidden md:flex md:items-center md:gap-6">
               <Link
-                href="/blog"
-                className="text-white/90 hover:text-white font-medium text-[15px] transition-colors"
-              >
-                Blog
-              </Link>
-
-              <Link
                 href="/tools/ai-visibility"
                 className="text-white/90 hover:text-white font-medium text-[15px] transition-colors flex items-center gap-2"
               >
+                AI Zichtbaarheid Scan
                 <span className="inline-flex items-center gap-1 bg-green-500/20 text-green-300 px-2 py-1 rounded text-xs font-bold">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                  </span>
-                  BETA
+                  GRATIS
                 </span>
-                AI Zichtbaarheid
+              </Link>
+
+              <Link
+                href="/blog"
+                className="text-white/90 hover:text-white font-medium text-[15px] transition-colors"
+              >
+                Blog & Insights
               </Link>
               
               {user ? (
@@ -220,9 +219,9 @@ function Header() {
 
               <button
                 onClick={() => setShowPopup(true)}
-                className="bg-gradient-to-r from-[#1A7DFF] to-[#6C3FF2] text-white px-6 py-2.5 rounded-lg font-semibold text-[15px] hover:shadow-lg hover:scale-105 transition-all"
+                className="bg-gradient-to-r from-[#1A7DFF] to-[#6C3FF2] text-white px-6 py-2.5 rounded-lg font-semibold text-[15px] hover:shadow-lg hover:scale-105 transition-all cursor-pointer"
               >
-                Start GEO Audit
+                Start GEO Optimalisatie
               </button>
             </div>
 
@@ -252,22 +251,22 @@ function Header() {
             <div className="md:hidden pb-4">
               <div className="space-y-2">
                 <Link
-                  href="/blog"
-                  className="block px-3 py-2 text-white/90 font-medium text-[15px] hover:text-white transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Blog
-                </Link>
-
-                <Link
                   href="/tools/ai-visibility"
                   className="block px-3 py-2 text-white/90 font-medium text-[15px] hover:text-white transition-colors"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <span className="inline-flex items-center gap-2">
-                    AI Zichtbaarheid
-                    <span className="bg-green-500/20 text-green-300 px-2 py-0.5 rounded text-xs font-bold">BETA</span>
+                    AI Zichtbaarheid Scan
+                    <span className="bg-green-500/20 text-green-300 px-2 py-0.5 rounded text-xs font-bold">GRATIS</span>
                   </span>
+                </Link>
+
+                <Link
+                  href="/blog"
+                  className="block px-3 py-2 text-white/90 font-medium text-[15px] hover:text-white transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Blog & Insights
                 </Link>
                 
                 {user ? (
@@ -309,7 +308,7 @@ function Header() {
                   }}
                   className="w-full mt-4 bg-gradient-to-r from-[#1A7DFF] to-[#6C3FF2] text-white px-6 py-2.5 rounded-lg font-semibold text-[15px] text-center"
                 >
-                  Start GEO Audit
+                  Start GEO Optimalisatie
                 </button>
               </div>
             </div>
@@ -370,7 +369,7 @@ function Footer() {
                     onClick={() => setShowPopup(true)}
                     className="text-white/70 hover:text-white text-sm transition-colors text-left"
                   >
-                    GEO Audit <span className="text-xs text-purple-300">(early access)</span>
+                    GEO Optimalisatie <span className="text-xs text-purple-300">(early access)</span>
                   </button>
                 </li>
                 <li>

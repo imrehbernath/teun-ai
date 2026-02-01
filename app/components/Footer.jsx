@@ -1,9 +1,75 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
+
+// Early Access Popup Component
+function EarlyAccessPopup({ isOpen, onClose }) {
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState('idle');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setStatus('loading');
+    try {
+      const response = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      if (response.ok) {
+        setStatus('success');
+        setEmail('');
+        setTimeout(() => { setStatus('idle'); onClose(); }, 3000);
+      } else {
+        setStatus('error');
+        setTimeout(() => setStatus('idle'), 3000);
+      }
+    } catch (error) {
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 3000);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl max-w-md w-full p-8 relative animate-fade-in">
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors" aria-label="Sluiten">
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        <div className="text-center mb-6">
+          <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">GEO Optimalisatie – Binnenkort!</h3>
+          <p className="text-gray-600">Onze GEO Optimalisatie tool is in ontwikkeling. Meld je aan voor de early access lijst en we laten je weten zodra deze klaar is.</p>
+          <p className="text-gray-500 text-sm mt-2">💡 Wist je dat onze <a href="/tools/ai-visibility" className="text-blue-600 font-medium hover:underline">AI Zichtbaarheid Scan</a> al gratis beschikbaar is? Maak een gratis account en start direct.</p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Vul je emailadres in *" required disabled={status === 'loading'} className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-purple-500 focus:outline-none transition-colors disabled:opacity-50" />
+          <button type="submit" disabled={status === 'loading'} className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 cursor-pointer">
+            {status === 'loading' ? 'Verzenden...' : 'Zet me op de lijst'}
+          </button>
+        </form>
+        {status === 'success' && <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm text-center">✓ Bedankt! Je ontvangt binnenkort meer informatie.</div>}
+        {status === 'error' && <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm text-center">✗ Er ging iets mis. Probeer het opnieuw.</div>}
+      </div>
+    </div>
+  );
+}
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const [showPopup, setShowPopup] = useState(false);
 
   return (
+    <>
     <footer className="bg-gradient-to-br from-[#1E1E3F] via-[#2D2D5F] to-[#1E1E3F] text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
@@ -40,10 +106,10 @@ export default function Footer() {
             <h3 className="text-white font-semibold text-base mb-4">GEO Tools</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/tools/geo-audit" className="text-white/70 hover:text-white text-sm transition-colors inline-flex items-center gap-2">
-                  GEO Audit
+                <button onClick={() => setShowPopup(true)} className="text-white/70 hover:text-white text-sm transition-colors inline-flex items-center gap-2 cursor-pointer">
+                  GEO Optimalisatie
                   <span className="text-[10px] px-1.5 py-0.5 bg-orange-500/20 text-orange-300 rounded">early access</span>
-                </Link>
+                </button>
               </li>
               <li>
                 <Link href="/tools/ai-visibility" className="text-white/70 hover:text-white text-sm transition-colors inline-flex items-center gap-2">
@@ -79,9 +145,9 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <Link href="/early-access" className="text-white/70 hover:text-white text-sm transition-colors">
+                <button onClick={() => setShowPopup(true)} className="text-white/70 hover:text-white text-sm transition-colors cursor-pointer">
                   Early Access
-                </Link>
+                </button>
               </li>
               <li>
                 <Link href="/privacy" className="text-white/70 hover:text-white text-sm transition-colors">
@@ -128,5 +194,7 @@ export default function Footer() {
         </div>
       </div>
     </footer>
+    <EarlyAccessPopup isOpen={showPopup} onClose={() => setShowPopup(false)} />
+    </>
   );
 }

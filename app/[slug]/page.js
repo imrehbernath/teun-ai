@@ -429,6 +429,23 @@ export default async function BlogPost({ params }) {
         </div>
       </article>
 
+      {/* Teun mascotte - overlapping footer like homepage */}
+      <section className="bg-slate-50 relative overflow-visible">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="flex justify-center">
+            <div className="hidden lg:block translate-y-24" style={{ marginBottom: '48px' }}>
+              <Image
+                src="/teun-ai-mascotte.png"
+                alt="Teun helpt je met GEO"
+                width={280}
+                height={350}
+                className="drop-shadow-xl"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Schema.org structured data */}
         <script
           type="application/ld+json"

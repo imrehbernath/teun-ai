@@ -36,6 +36,15 @@ function AIVisibilityToolContent() {
   const [excludeTermsInput, setExcludeTermsInput] = useState('');
   const [includeTermsInput, setIncludeTermsInput] = useState('');
   const [locationTermsInput, setLocationTermsInput] = useState('');
+  const [activeTooltip, setActiveTooltip] = useState(null);
+
+  // Close tooltip on outside tap
+  useEffect(() => {
+    if (!activeTooltip) return;
+    const close = () => setActiveTooltip(null);
+    const timer = setTimeout(() => document.addEventListener('click', close, { once: true }), 10);
+    return () => { clearTimeout(timer); document.removeEventListener('click', close); };
+  }, [activeTooltip]);
 
   // Handle URL Parameters from OnlineLabs
   useEffect(() => {
@@ -596,13 +605,20 @@ function AIVisibilityToolContent() {
                   <div className="space-y-2">
                     <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
                       Bedrijfsnaam <span className="text-blue-600">*</span>
-                      <span className="group relative">
-                        <svg className="w-4 h-4 text-slate-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <span className="relative">
+                        <svg 
+                          className="w-4 h-4 text-slate-400 cursor-help" 
+                          fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                          onClick={(e) => { e.preventDefault(); setActiveTooltip(activeTooltip === 'bedrijf' ? null : 'bedrijf'); }}
+                        >
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
-                          Zoals vermeld bij Google Bedrijfsprofiel
-                        </span>
+                        {activeTooltip === 'bedrijf' && (
+                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap z-50 shadow-lg">
+                            Zoals vermeld bij Google Bedrijfsprofiel
+                            <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></span>
+                          </span>
+                        )}
                       </span>
                     </label>
                     <input
@@ -618,13 +634,20 @@ function AIVisibilityToolContent() {
                   <div className="space-y-2">
                     <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
                       Branche <span className="text-blue-600">*</span>
-                      <span className="group relative">
-                        <svg className="w-4 h-4 text-slate-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <span className="relative">
+                        <svg 
+                          className="w-4 h-4 text-slate-400 cursor-help" 
+                          fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                          onClick={(e) => { e.preventDefault(); setActiveTooltip(activeTooltip === 'branche' ? null : 'branche'); }}
+                        >
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
-                          Zoals vermeld bij Google Bedrijfsprofiel
-                        </span>
+                        {activeTooltip === 'branche' && (
+                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap z-50 shadow-lg">
+                            Zoals vermeld bij Google Bedrijfsprofiel
+                            <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></span>
+                          </span>
+                        )}
                       </span>
                     </label>
                     <input
@@ -712,7 +735,7 @@ function AIVisibilityToolContent() {
                 {analyzing ? (
                   <div className="space-y-6">
                     {/* Mobile Teun during scanning - overlaps onto scan box */}
-                    <div className="flex lg:hidden justify-center -mb-8 relative z-10">
+                    <div className="flex lg:hidden justify-center relative z-10" style={{ marginBottom: 0 }}>
                       <Image src="/teun-ai-mascotte.png" alt="Teun analyseert" width={160} height={200} className="drop-shadow-2xl" />
                     </div>
                     <div className="bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border-2 border-purple-400/40 rounded-2xl p-6 pt-10 text-center">

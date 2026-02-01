@@ -108,12 +108,12 @@ export default async function BlogOverview() {
       {/* ====== HERO + STATS WRAPPER ====== */}
       <div className="relative overflow-hidden">
         {/* Teun Blij - Positioned over hero + stats like homepage pattern */}
-        <div className="hidden lg:block absolute right-[5%] xl:right-[8%] top-[60px] z-10 pointer-events-none select-none">
+        <div className="hidden lg:block absolute right-[5%] xl:right-[8%] z-10 pointer-events-none select-none" style={{ bottom: '0px' }}>
           <Image
             src="/Teun-ai-blij-met-resultaat.png"
             alt="Teun is blij - AI Visibility Blog"
-            width={360}
-            height={450}
+            width={460}
+            height={575}
             className="drop-shadow-2xl"
             priority
           />
