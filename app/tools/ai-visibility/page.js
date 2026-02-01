@@ -711,11 +711,11 @@ function AIVisibilityToolContent() {
 
                 {analyzing ? (
                   <div className="space-y-6">
-                    {/* Mobile Teun during scanning */}
-                    <div className="flex lg:hidden justify-center">
-                      <Image src="/teun-ai-mascotte.png" alt="Teun analyseert" width={100} height={125} className="drop-shadow-xl animate-pulse" />
+                    {/* Mobile Teun during scanning - overlaps onto scan box */}
+                    <div className="flex lg:hidden justify-center -mb-8 relative z-10">
+                      <Image src="/teun-ai-mascotte.png" alt="Teun analyseert" width={160} height={200} className="drop-shadow-2xl" />
                     </div>
-                    <div className="bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border-2 border-purple-400/40 rounded-2xl p-6 text-center">
+                    <div className="bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border-2 border-purple-400/40 rounded-2xl p-6 pt-10 text-center">
                       <Loader2 className="w-12 h-12 text-purple-300 mx-auto mb-4 animate-spin" />
                       <h3 className="text-xl font-bold text-white mb-2">Bezig met analyseren...</h3>
                       <p className="text-purple-200 mb-4">{currentStep}</p>
