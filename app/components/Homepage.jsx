@@ -16,6 +16,7 @@ export default function Homepage() {
     zoekwoorden: ''
   });
   const [openFaq, setOpenFaq] = useState(0);
+  const [activeTooltip, setActiveTooltip] = useState(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -108,13 +109,15 @@ export default function Homepage() {
                     <div>
                       <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
                         Bedrijfsnaam *
-                        <span className="group relative">
+                        <span className="relative" onClick={() => setActiveTooltip(activeTooltip === 'bedrijf' ? null : 'bedrijf')}>
                           <svg className="w-4 h-4 text-slate-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
-                            Zoals vermeld bij Google Bedrijfsprofiel
-                          </span>
+                          {activeTooltip === 'bedrijf' && (
+                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap z-50">
+                              Zoals vermeld bij Google Bedrijfsprofiel
+                            </span>
+                          )}
                         </span>
                       </label>
                       <input
@@ -129,13 +132,15 @@ export default function Homepage() {
                     <div>
                       <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
                         Branche *
-                        <span className="group relative">
+                        <span className="relative" onClick={() => setActiveTooltip(activeTooltip === 'branche' ? null : 'branche')}>
                           <svg className="w-4 h-4 text-slate-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
-                            Zoals vermeld bij Google Bedrijfsprofiel
-                          </span>
+                          {activeTooltip === 'branche' && (
+                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap z-50">
+                              Zoals vermeld bij Google Bedrijfsprofiel
+                            </span>
+                          )}
                         </span>
                       </label>
                       <input
@@ -150,13 +155,15 @@ export default function Homepage() {
                     <div>
                       <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
                         Zoekwoorden
-                        <span className="group relative">
+                        <span className="relative" onClick={() => setActiveTooltip(activeTooltip === 'zoekwoorden' ? null : 'zoekwoorden')}>
                           <svg className="w-4 h-4 text-slate-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
-                            Scheid met komma's • Max. 10 zoekwoorden
-                          </span>
+                          {activeTooltip === 'zoekwoorden' && (
+                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap z-50">
+                              Scheid met komma's • Max. 10 zoekwoorden
+                            </span>
+                          )}
                         </span>
                       </label>
                       <input
