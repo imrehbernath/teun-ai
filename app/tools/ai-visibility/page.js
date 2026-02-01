@@ -1,5 +1,5 @@
 // app/tools/ai-visibility/page.js
-// ✅ COMPLETE VERSION with URL Parameter Handling for OnlineLabs Integration
+// ✅ SESSION 11 - Redesign aligned with Homepage + Better Mobile Teun
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
@@ -29,15 +29,15 @@ function AIVisibilityToolContent() {
     companyCategory: '',
     queries: ''
   });
-  const [customPrompts, setCustomPrompts] = useState(null); // Pre-made prompts from dashboard
+  const [customPrompts, setCustomPrompts] = useState(null);
 
-  // ✨ Advanced Settings State
+  // Advanced Settings State
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [excludeTermsInput, setExcludeTermsInput] = useState('');
   const [includeTermsInput, setIncludeTermsInput] = useState('');
   const [locationTermsInput, setLocationTermsInput] = useState('');
 
-  // ✨ Handle URL Parameters from OnlineLabs
+  // Handle URL Parameters from OnlineLabs
   useEffect(() => {
     if (!searchParams) return;
 
@@ -52,13 +52,11 @@ function AIVisibilityToolContent() {
     const autostart = searchParams.get('autostart');
     const customPromptsFlag = searchParams.get('customPrompts');
 
-    // Track referral source
     if (ref) {
       setReferralSource(ref);
       console.log('📍 Referral source:', ref);
     }
 
-    // Handle custom prompts from dashboard (bewerkte prompts)
     if (customPromptsFlag === 'true') {
       try {
         const storedPrompts = sessionStorage.getItem('teun_custom_prompts');
@@ -66,30 +64,22 @@ function AIVisibilityToolContent() {
           const parsedPrompts = JSON.parse(storedPrompts);
           console.log('📝 Custom prompts loaded:', parsedPrompts.length);
           
-          // Pre-fill form data
           setFormData(prev => ({
             ...prev,
             companyName: company || prev.companyName,
             companyCategory: category || prev.companyCategory
           }));
           
-          // Store custom prompts in state
           setCustomPrompts(parsedPrompts);
-          
-          // Skip to step 3 (scan) with prompts ready
           setStep(3);
-          
-          // Clear sessionStorage
           sessionStorage.removeItem('teun_custom_prompts');
-          
-          return; // Don't process other params
+          return;
         }
       } catch (e) {
         console.error('Error loading custom prompts:', e);
       }
     }
 
-    // Pre-fill form data
     if (company || category || keywords) {
       setFormData(prev => ({
         ...prev,
@@ -100,7 +90,6 @@ function AIVisibilityToolContent() {
       }));
     }
 
-    // Pre-fill advanced settings
     if (exclude) {
       setExcludeTermsInput(exclude);
       setShowAdvancedSettings(true);
@@ -114,16 +103,12 @@ function AIVisibilityToolContent() {
       setShowAdvancedSettings(true);
     }
 
-    // Auto-navigate to step 3 if company and category are provided
     if (company && category) {
       setStep(3);
-      
-      // Auto-start analysis if requested (from homepage)
       if (autostart === 'true') {
         setFromHomepage(true);
       }
     } else if (keywords) {
-      // If only keywords provided, go to step 2
       setStep(2);
     }
   }, [searchParams]);
@@ -145,7 +130,6 @@ function AIVisibilityToolContent() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // ✨ Stop bounce animation after 4 seconds
   useEffect(() => {
     if (fromHomepage) {
       const timer = setTimeout(() => {
@@ -155,7 +139,7 @@ function AIVisibilityToolContent() {
     }
   }, [fromHomepage]);
 
-  // ✨ Helper Functions for Advanced Settings
+  // Helper Functions for Advanced Settings
   const addExcludeTerms = (newTerms) => {
     const current = excludeTermsInput.split(',').map(t => t.trim()).filter(t => t);
     const toAdd = Array.isArray(newTerms) ? newTerms : newTerms.split(',').map(t => t.trim()).filter(t => t);
@@ -201,7 +185,6 @@ function AIVisibilityToolContent() {
 
       setProgress(5);
       
-      // Use custom prompts if available, otherwise use default count
       const hasCustomPrompts = customPrompts && customPrompts.length > 0;
       const totalPrompts = hasCustomPrompts ? customPrompts.length : (user ? 10 : 5);
       
@@ -211,15 +194,11 @@ function AIVisibilityToolContent() {
         setCurrentStep('AI-prompts genereren...');
       }
       
-      // ✅ FIXED PROGRESS INTERVAL
       const progressInterval = setInterval(() => {
         setProgress(prev => {
           const rounded = Math.floor(prev);
-          
           if (rounded >= 97) return rounded;
-          
           if (user) {
-            // FOR 10 PROMPTS
             if (rounded < 10) return prev + 2;
             if (rounded < 25) return prev + 1;
             if (rounded < 50) return prev + 0.6;
@@ -228,7 +207,6 @@ function AIVisibilityToolContent() {
             if (rounded < 92) return prev + 0.15;
             return prev + 0.08;
           } else {
-            // FOR 5 PROMPTS
             if (rounded < 15) return prev + 2.5;
             if (rounded < 35) return prev + 1.2;
             if (rounded < 60) return prev + 0.7;
@@ -243,7 +221,6 @@ function AIVisibilityToolContent() {
         setProgress(current => {
           const rounded = Math.floor(current);
           const estimatedPromptsProcessed = Math.floor((rounded / 100) * totalPrompts);
-          
           if (rounded >= 10 && rounded < 20) {
             setCurrentStep('AI-prompts genereren...');
           } else if (rounded >= 20 && rounded < 97) {
@@ -267,7 +244,6 @@ function AIVisibilityToolContent() {
           numberOfPrompts: totalPrompts,
           customTerms: getCustomTerms(),
           referralSource: referralSource,
-          // Pass custom prompts if available (from dashboard edit)
           customPrompts: hasCustomPrompts ? customPrompts : null
         })
       });
@@ -287,7 +263,7 @@ function AIVisibilityToolContent() {
       setProgress(100);
       setCurrentStep('Voltooid!');
       setResults(data);
-      setCustomPrompts(null); // Clear custom prompts after analysis
+      setCustomPrompts(null);
 
       setTimeout(() => {
         setAnalyzing(false);
@@ -302,22 +278,27 @@ function AIVisibilityToolContent() {
     }
   };
 
+  // ====================================
+  // RENDER
+  // ====================================
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50" suppressHydrationWarning>
+
+
       <div className="relative max-w-5xl mx-auto px-4 py-6 sm:py-12">
         
-        {/* ✨ OnlineLabs Referral Banner */}
+        {/* OnlineLabs Referral Banner */}
         {referralSource === 'onlinelabs' && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-400/30 rounded-xl">
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                 <span className="text-xl">🔗</span>
               </div>
               <div>
-                <p className="text-sm text-blue-200">
+                <p className="text-sm text-slate-700">
                   <strong>Via OnlineLabs</strong> – Je gegevens zijn automatisch ingevuld
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-slate-500">
                   Controleer de gegevens en start de analyse
                 </p>
               </div>
@@ -325,30 +306,32 @@ function AIVisibilityToolContent() {
           </div>
         )}
         
+        {/* Header */}
         <header className="text-center mb-8 sm:mb-12">
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 text-slate-900 leading-tight px-4">
             AI Zichtbaarheidsanalyse
           </h1>
           <p className="text-base sm:text-lg md:text-xl text-slate-600 px-4">
-            Ontdek hoe AI-modellen jouw bedrijf vermelden bij commerciële zoekvragen
+            Hoe vermelden AI-modellen jouw bedrijf bij commerciële zoekvragen?
           </p>
         </header>
 
-        <div className="flex items-center justify-center gap-1 sm:gap-2 mb-6 sm:mb-8 flex-wrap px-2">
+        {/* Step Indicator - Pill style matching homepage CTA */}
+        <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-6 sm:mb-8 flex-wrap px-2">
           {[
             { num: 1, label: 'Zoekopdrachten', mobileLabel: 'Zoek' },
             { num: 2, label: 'Bedrijfsinfo', mobileLabel: 'Info' },
-            { num: 3, label: 'Analyse', mobileLabel: 'Analyse' },
+            { num: 3, label: 'Analyse', mobileLabel: 'Scan' },
             { num: 4, label: 'Rapport', mobileLabel: 'Rapport' }
           ].map(({ num, label, mobileLabel }) => (
             <div
               key={num}
-              className={'px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition ' + (
+              className={'px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 ' + (
                 step === num
-                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white'
+                  ? 'bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white shadow-lg'
                   : step > num
                   ? 'bg-slate-200 text-slate-500'
-                  : 'bg-slate-100 text-slate-400'
+                  : 'bg-white border border-slate-200 text-slate-400'
               )}
             >
               <span className="hidden sm:inline">{num}. {label}</span>
@@ -357,403 +340,367 @@ function AIVisibilityToolContent() {
           ))}
         </div>
 
-        <section className={`rounded-3xl p-6 sm:p-8 shadow-xl mb-8 ${
-          step === 4 
-            ? 'bg-white border border-slate-200' 
-            : 'bg-gradient-to-br from-[#1E1E3F] via-[#2D2D5F] to-[#1E1E3F] border border-slate-700 text-white'
-        }`}>
-          
-          {step === 1 && (
-            <div className="grid lg:grid-cols-3 gap-8">
-              {/* Left: Content - 2 columns */}
-              <div className="lg:col-span-2">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-lg flex items-center justify-center border border-blue-400/30">
-                  <Search className="w-5 h-5 text-blue-300" />
+        {/* ====================================== */}
+        {/* STEP 1 - Zoekwoorden (LIGHT THEME)    */}
+        {/* ====================================== */}
+        {step === 1 && (
+          <section className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 sm:p-8 mb-8">
+            <div className="grid lg:grid-cols-5 gap-6 lg:gap-8">
+              {/* Left: Content - 3 columns */}
+              <div className="lg:col-span-3">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg flex items-center justify-center border border-blue-200">
+                    <Search className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900">1. Geef belangrijkste zoekwoorden op</h2>
                 </div>
-                <h2 className="text-2xl font-bold">1. Geef belangrijkste zoekwoorden op</h2>
-              </div>
 
-              <div className="bg-blue-500/10 border border-blue-400/30 rounded-xl p-4 mb-6">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="w-5 h-5 text-blue-300 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-blue-200">
-                    <strong>Tip: Eerste zoekwoord is het belangrijkst</strong>
-                    <p className="mt-1 text-blue-100">
-                      Dit wordt gebruikt om relevante AI-prompts te genereren die matchen met waar jouw klanten naar zoeken.
+                {/* Tip box - Desktop only */}
+                <div className="hidden lg:block bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-slate-700">
+                      <strong className="text-slate-800">Tip: Eerste zoekwoord is het belangrijkst</strong>
+                      <p className="mt-1 text-slate-600">
+                        Dit wordt gebruikt om relevante AI-prompts te genereren die matchen met waar jouw klanten naar zoeken.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 mb-6">
+                  <label className="text-sm text-slate-700 font-medium block">
+                    Zoekwoorden <span className="text-blue-600">*</span>
+                  </label>
+                  <p className="text-xs text-slate-500 -mt-1 mb-2">
+                    Hoe specifieker, hoe beter de prompts
+                  </p>
+                  <textarea
+                    value={formData.queries}
+                    onChange={(e) => setFormData({ ...formData, queries: e.target.value })}
+                    placeholder="Bijv: Linnen gordijnen op maat, Luxe gordijnen, Raamdecoratie"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 min-h-[80px] resize-y bg-white"
+                  />
+                </div>
+
+                {/* Advanced Settings - Desktop only */}
+                <div className="hidden lg:block mt-6 border-t border-slate-100 pt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+                    className="flex items-center justify-between w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all group border border-slate-200"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-lg flex items-center justify-center border border-purple-200 group-hover:border-purple-300 transition-all">
+                        <span className="text-xl">⚙️</span>
+                      </div>
+                      <div className="text-left">
+                        <div className="font-semibold text-slate-800">Geavanceerde Instellingen</div>
+                        <div className="text-xs text-slate-500">Bepaal welke woorden AI gebruikt (optioneel)</div>
+                      </div>
+                    </div>
+                    <div className="text-slate-400">
+                      {showAdvancedSettings ? '▼' : '▶'}
+                    </div>
+                  </button>
+
+                  {showAdvancedSettings && (
+                    <div className="mt-4 space-y-4 bg-slate-50 rounded-xl p-5 border border-slate-200">
+                      
+                      {/* Info Banner */}
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <div className="flex items-start gap-2">
+                          <span className="text-blue-500 flex-shrink-0">ℹ️</span>
+                          <div className="text-sm text-slate-600">
+                            <strong className="text-slate-700">Optioneel:</strong> Pas aan welke woorden AI gebruikt bij het maken van prompts. 
+                            Klik op voorbeelden om ze toe te voegen, of typ je eigen woorden (gescheiden door komma&apos;s).
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Preset Examples */}
+                      <div className="space-y-3">
+                        <label className="text-sm text-slate-700 font-medium block">
+                          🎯 Klik op voorbeelden om toe te voegen:
+                        </label>
+                        
+                        {/* Premium Examples */}
+                        <div className="space-y-2">
+                          <div className="text-xs text-purple-600 font-semibold">💎 Premium Positionering:</div>
+                          <div className="flex flex-wrap gap-2">
+                            <button type="button" onClick={() => addIncludeTerms(['premium', 'hoogwaardig', 'exclusief'])}
+                              className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium transition-all border border-green-200">
+                              + premium, hoogwaardig, exclusief
+                            </button>
+                            <button type="button" onClick={() => addIncludeTerms(['gespecialiseerd', 'ervaren', 'deskundig'])}
+                              className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium transition-all border border-green-200">
+                              + gespecialiseerd, ervaren, deskundig
+                            </button>
+                            <button type="button" onClick={() => addExcludeTerms(['goedkoop', 'budget', 'korting'])}
+                              className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition-all border border-red-200">
+                              − goedkoop, budget, korting
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Local Service Examples */}
+                        <div className="space-y-2">
+                          <div className="text-xs text-blue-600 font-semibold">📍 Lokale Service:</div>
+                          <div className="flex flex-wrap gap-2">
+                            <button type="button" onClick={() => addLocationTerms(['Amsterdam', 'Rotterdam', 'Utrecht'])}
+                              className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium transition-all border border-blue-200">
+                              + Amsterdam, Rotterdam, Utrecht
+                            </button>
+                            <button type="button" onClick={() => addLocationTerms(['landelijk actief', 'in Nederland'])}
+                              className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium transition-all border border-blue-200">
+                              + landelijk actief, in Nederland
+                            </button>
+                            <button type="button" onClick={() => addIncludeTerms(['lokaal', 'in de buurt', 'regio'])}
+                              className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium transition-all border border-green-200">
+                              + lokaal, in de buurt, regio
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Service Quality Examples */}
+                        <div className="space-y-2">
+                          <div className="text-xs text-indigo-600 font-semibold">⭐ Service Kwaliteit:</div>
+                          <div className="flex flex-wrap gap-2">
+                            <button type="button" onClick={() => addIncludeTerms(['24/7 bereikbaar', 'spoedservice', 'direct beschikbaar'])}
+                              className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium transition-all border border-green-200">
+                              + 24/7, spoedservice, direct
+                            </button>
+                            <button type="button" onClick={() => addIncludeTerms(['transparant', 'vast tarief', 'duidelijke offerte'])}
+                              className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium transition-all border border-green-200">
+                              + transparant, vast tarief, duidelijk
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Reset Button */}
+                        <button type="button" onClick={() => { setExcludeTermsInput(''); setIncludeTermsInput(''); setLocationTermsInput(''); }}
+                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-medium transition-all border border-slate-200">
+                          🔄 Alles wissen
+                        </button>
+                      </div>
+
+                      {/* Input Fields */}
+                      <div className="space-y-4 pt-4 border-t border-slate-200">
+                        <div className="space-y-2">
+                          <label className="text-sm text-slate-700 font-medium flex items-center gap-2">
+                            <span className="text-red-500">❌</span> Vermijd deze woorden (optioneel)
+                          </label>
+                          <input type="text" value={excludeTermsInput} onChange={(e) => setExcludeTermsInput(e.target.value)}
+                            placeholder="Bijv: goedkoop, budget, korting"
+                            className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-red-400 focus:ring-2 focus:ring-red-400/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 text-sm" />
+                          <div className="text-xs text-slate-500">Scheid met komma&apos;s. Deze termen worden uitgesloten bij het maken van prompts.</div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm text-slate-700 font-medium flex items-center gap-2">
+                            <span className="text-green-500">✅</span> Gebruik deze woorden (optioneel)
+                          </label>
+                          <input type="text" value={includeTermsInput} onChange={(e) => setIncludeTermsInput(e.target.value)}
+                            placeholder="Bijv: gespecialiseerd, ervaren, premium"
+                            className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-green-400 focus:ring-2 focus:ring-green-400/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 text-sm" />
+                          <div className="text-xs text-slate-500">AI zal deze termen proberen te gebruiken in de gegenereerde prompts.</div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm text-slate-700 font-medium flex items-center gap-2">
+                            <span className="text-blue-500">📍</span> Locatie-focus (optioneel)
+                          </label>
+                          <input type="text" value={locationTermsInput} onChange={(e) => setLocationTermsInput(e.target.value)}
+                            placeholder="Bijv: Amsterdam, landelijk actief, regio Utrecht"
+                            className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 text-sm" />
+                          <div className="text-xs text-slate-500">Locatie-specifieke termen om in prompts te gebruiken.</div>
+                        </div>
+                      </div>
+
+                      {/* Preview */}
+                      {(excludeTermsInput || includeTermsInput || locationTermsInput) && (
+                        <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                          <div className="text-xs text-purple-700 font-semibold mb-2">📋 Actieve Instellingen:</div>
+                          <div className="space-y-1 text-xs">
+                            {excludeTermsInput && <div className="flex items-start gap-2"><span className="text-red-500">❌</span><span className="text-slate-600">{excludeTermsInput}</span></div>}
+                            {includeTermsInput && <div className="flex items-start gap-2"><span className="text-green-500">✅</span><span className="text-slate-600">{includeTermsInput}</span></div>}
+                            {locationTermsInput && <div className="flex items-start gap-2"><span className="text-blue-500">📍</span><span className="text-slate-600">{locationTermsInput}</span></div>}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Mobile Teun - Between form and button */}
+                <div className="flex lg:hidden justify-center my-4">
+                  <div className="relative">
+                    <Image
+                      src="/teun-ai-mascotte.png"
+                      alt="Teun"
+                      width={140}
+                      height={175}
+                      className="drop-shadow-xl"
+                    />
+                    <p className="text-xs text-slate-500 text-center mt-2 font-medium">
+                      Welke zoekwoorden<br />gebruiken jouw klanten in Google?
                     </p>
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-2 mb-6">
-                <label className="text-sm text-gray-300 font-medium block">
-                  Zoekwoorden <span className="text-purple-400">*</span>
-                </label>
-                <p className="text-xs text-gray-400 -mt-1 mb-2">
-                  Hoe specifieker, hoe beter de prompts
-                </p>
-                <textarea
-                  value={formData.queries}
-                  onChange={(e) => setFormData({ ...formData, queries: e.target.value })}
-                  placeholder="Bijv: SEO bureau Amsterdam, Online marketing, Google Ads specialist"
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-400 focus:outline-none min-h-[80px] resize-y"
-                />
-              </div>
-
-              {/* ✨ Advanced Settings Section */}
-              <div className="mt-6 border-t border-white/10 pt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
-                  className="flex items-center justify-between w-full px-4 py-3 bg-white/5 hover:bg-white/10 rounded-lg transition-all group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-indigo-500/20 rounded-lg flex items-center justify-center border border-purple-400/30 group-hover:border-purple-400/50 transition-all">
-                      <span className="text-xl">⚙️</span>
-                    </div>
-                    <div className="text-left">
-                      <div className="font-semibold text-white">Geavanceerde Instellingen</div>
-                      <div className="text-xs text-gray-400">Bepaal welke woorden AI gebruikt (optioneel)</div>
-                    </div>
-                  </div>
-                  <div className="text-purple-300">
-                    {showAdvancedSettings ? '▼' : '▶'}
-                  </div>
-                </button>
-
-                {showAdvancedSettings && (
-                  <div className="mt-4 space-y-4 bg-white/5 rounded-lg p-4 border border-white/10">
-                    
-                    {/* Info Banner */}
-                    <div className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-3">
-                      <div className="flex items-start gap-2">
-                        <span className="text-blue-300 flex-shrink-0">ℹ️</span>
-                        <div className="text-sm text-blue-200">
-                          <strong>Optioneel:</strong> Pas aan welke woorden AI gebruikt bij het maken van prompts. 
-                          Klik op voorbeelden om ze toe te voegen, of typ je eigen woorden (gescheiden door komma&apos;s).
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Preset Examples */}
-                    <div className="space-y-3">
-                      <label className="text-sm text-gray-300 font-medium block">
-                        🎯 Klik op voorbeelden om toe te voegen:
-                      </label>
-                      
-                      {/* Premium Examples */}
-                      <div className="space-y-2">
-                        <div className="text-xs text-purple-300 font-semibold">💎 Premium Positionering:</div>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => addIncludeTerms(['premium', 'hoogwaardig', 'exclusief'])}
-                            className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-200 rounded-lg text-xs font-medium transition-all border border-green-400/30"
-                          >
-                            + premium, hoogwaardig, exclusief
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => addIncludeTerms(['gespecialiseerd', 'ervaren', 'deskundig'])}
-                            className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-200 rounded-lg text-xs font-medium transition-all border border-green-400/30"
-                          >
-                            + gespecialiseerd, ervaren, deskundig
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => addExcludeTerms(['goedkoop', 'budget', 'korting'])}
-                            className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-200 rounded-lg text-xs font-medium transition-all border border-red-400/30"
-                          >
-                            − goedkoop, budget, korting
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Local Service Examples */}
-                      <div className="space-y-2">
-                        <div className="text-xs text-blue-300 font-semibold">📍 Lokale Service:</div>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => addLocationTerms(['Amsterdam', 'Rotterdam', 'Utrecht'])}
-                            className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 rounded-lg text-xs font-medium transition-all border border-blue-400/30"
-                          >
-                            + Amsterdam, Rotterdam, Utrecht
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => addLocationTerms(['landelijk actief', 'in Nederland'])}
-                            className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 rounded-lg text-xs font-medium transition-all border border-blue-400/30"
-                          >
-                            + landelijk actief, in Nederland
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => addIncludeTerms(['lokaal', 'in de buurt', 'regio'])}
-                            className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-200 rounded-lg text-xs font-medium transition-all border border-green-400/30"
-                          >
-                            + lokaal, in de buurt, regio
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Service Quality Examples */}
-                      <div className="space-y-2">
-                        <div className="text-xs text-indigo-300 font-semibold">⭐ Service Kwaliteit:</div>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => addIncludeTerms(['24/7 bereikbaar', 'spoedservice', 'direct beschikbaar'])}
-                            className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-200 rounded-lg text-xs font-medium transition-all border border-green-400/30"
-                          >
-                            + 24/7, spoedservice, direct
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => addIncludeTerms(['transparant', 'vast tarief', 'duidelijke offerte'])}
-                            className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-200 rounded-lg text-xs font-medium transition-all border border-green-400/30"
-                          >
-                            + transparant, vast tarief, duidelijk
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Reset Button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setExcludeTermsInput('');
-                          setIncludeTermsInput('');
-                          setLocationTermsInput('');
-                        }}
-                        className="px-3 py-1.5 bg-gray-500/20 hover:bg-gray-500/30 text-gray-200 rounded-lg text-xs font-medium transition-all border border-gray-400/30"
-                      >
-                        🔄 Alles wissen
-                      </button>
-                    </div>
-
-                    {/* Input Fields */}
-                    <div className="space-y-4 pt-4 border-t border-white/10">
-                      
-                      {/* Exclude Input */}
-                      <div className="space-y-2">
-                        <label className="text-sm text-gray-300 font-medium flex items-center gap-2">
-                          <span className="text-red-400">❌</span>
-                          Vermijd deze woorden (optioneel)
-                        </label>
-                        <input
-                          type="text"
-                          value={excludeTermsInput}
-                          onChange={(e) => setExcludeTermsInput(e.target.value)}
-                          placeholder="Bijv: goedkoop, budget, korting"
-                          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-red-400/50 focus:outline-none text-sm"
-                        />
-                        <div className="text-xs text-gray-400">
-                          Scheid met komma&apos;s. Deze termen worden uitgesloten bij het maken van prompts.
-                        </div>
-                      </div>
-
-                      {/* Include Input */}
-                      <div className="space-y-2">
-                        <label className="text-sm text-gray-300 font-medium flex items-center gap-2">
-                          <span className="text-green-400">✅</span>
-                          Gebruik deze woorden (optioneel)
-                        </label>
-                        <input
-                          type="text"
-                          value={includeTermsInput}
-                          onChange={(e) => setIncludeTermsInput(e.target.value)}
-                          placeholder="Bijv: gespecialiseerd, ervaren, premium"
-                          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-green-400/50 focus:outline-none text-sm"
-                        />
-                        <div className="text-xs text-gray-400">
-                          AI zal deze termen proberen te gebruiken in de gegenereerde prompts.
-                        </div>
-                      </div>
-
-                      {/* Location Input */}
-                      <div className="space-y-2">
-                        <label className="text-sm text-gray-300 font-medium flex items-center gap-2">
-                          <span className="text-blue-400">📍</span>
-                          Locatie-focus (optioneel)
-                        </label>
-                        <input
-                          type="text"
-                          value={locationTermsInput}
-                          onChange={(e) => setLocationTermsInput(e.target.value)}
-                          placeholder="Bijv: Amsterdam, landelijk actief, regio Utrecht"
-                          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:border-blue-400/50 focus:outline-none text-sm"
-                        />
-                        <div className="text-xs text-gray-400">
-                          Locatie-specifieke termen om in prompts te gebruiken.
-                        </div>
-                      </div>
-
-                    </div>
-
-                    {/* Preview */}
-                    {(excludeTermsInput || includeTermsInput || locationTermsInput) && (
-                      <div className="mt-4 p-3 bg-purple-500/10 border border-purple-400/30 rounded-lg">
-                        <div className="text-xs text-purple-200 font-semibold mb-2">📋 Actieve Instellingen:</div>
-                        <div className="space-y-1 text-xs">
-                          {excludeTermsInput && (
-                            <div className="flex items-start gap-2">
-                              <span className="text-red-400">❌</span>
-                              <span className="text-gray-300">{excludeTermsInput}</span>
-                            </div>
-                          )}
-                          {includeTermsInput && (
-                            <div className="flex items-start gap-2">
-                              <span className="text-green-400">✅</span>
-                              <span className="text-gray-300">{includeTermsInput}</span>
-                            </div>
-                          )}
-                          {locationTermsInput && (
-                            <div className="flex items-start gap-2">
-                              <span className="text-blue-400">📍</span>
-                              <span className="text-gray-300">{locationTermsInput}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                  </div>
-                )}
-              </div>
-
-              {/* Mobiele Teun */}
-              <div className="flex lg:hidden justify-center mb-4">
-                <Image
-                  src="/mascotte-teun-ai.png"
-                  alt="Teun"
-                  width={100}
-                  height={125}
-                  className="drop-shadow-lg opacity-80"
-                />
-              </div>
-
-              <div className="flex justify-end mt-6">
-                <button
-                  onClick={() => setStep(2)}
-                  className="px-8 py-4 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold rounded-lg hover:from-purple-600 hover:to-indigo-700 transition shadow-lg cursor-pointer"
-                >
-                  Volgende →
-                </button>
-              </div>
+                {/* CTA Button */}
+                <div className="flex justify-end mt-6">
+                  <button
+                    onClick={() => {
+                      setStep(2);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white font-bold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer text-base"
+                  >
+                    Volgende →
+                  </button>
+                </div>
               </div>
 
               {/* Right: Teun Mascotte - Desktop */}
-              <div className="hidden lg:flex flex-col items-center justify-center">
+              <div className="hidden lg:flex lg:col-span-2 flex-col items-center justify-center">
                 <Image
-                  src="/mascotte-teun-ai.png"
+                  src="/teun-ai-mascotte.png"
                   alt="Teun helpt je zoekwoorden kiezen"
                   width={280}
                   height={350}
                   className="drop-shadow-2xl"
                 />
-                <p className="text-sm text-gray-400 mt-4 text-center">
-                  Welke zoekwoorden<br />gebruiken jouw klanten?
+                <p className="text-sm text-slate-500 mt-4 text-center font-medium">
+                  Welke zoekwoorden<br />gebruiken jouw klanten in Google?
                 </p>
               </div>
             </div>
-          )}
+          </section>
+        )}
 
-          {step === 2 && (
-            <div className="grid lg:grid-cols-3 gap-8">
-              {/* Left: Content - 2 columns */}
-              <div className="lg:col-span-2">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg flex items-center justify-center border border-purple-400/30">
-                  <TrendingUp className="w-5 h-5 text-purple-300" />
-                </div>
-                <h2 className="text-2xl font-bold">2. Bedrijfsinfo</h2>
-              </div>
-
-              <div className="space-y-4 mb-6">
-                <div className="space-y-2">
-                  <label className="text-sm text-gray-300 font-medium block">
-                    Bedrijfsnaam *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.companyName}
-                    onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                    placeholder="Bijv: OnlineLabs"
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-400 focus:outline-none"
-                    required
-                  />
+        {/* ====================================== */}
+        {/* STEP 2 - Bedrijfsinfo (LIGHT THEME)   */}
+        {/* ====================================== */}
+        {step === 2 && (
+          <section className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 sm:p-8 mb-8">
+            <div className="grid lg:grid-cols-5 gap-6 lg:gap-8">
+              {/* Left: Content - 3 columns */}
+              <div className="lg:col-span-3">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center border border-purple-200">
+                    <TrendingUp className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900">2. Bedrijfsinfo</h2>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm text-gray-300 font-medium block">
-                    Categorie/Branche *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.companyCategory}
-                    onChange={(e) => setFormData({ ...formData, companyCategory: e.target.value })}
-                    placeholder="Bijv: Online marketing bureau, SEO bureau, Webdesign bureau"
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-400 focus:outline-none"
-                    required
-                  />
+                <div className="space-y-4 mb-6">
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                      Bedrijfsnaam <span className="text-blue-600">*</span>
+                      <span className="group relative">
+                        <svg className="w-4 h-4 text-slate-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+                          Zoals vermeld bij Google Bedrijfsprofiel
+                        </span>
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.companyName}
+                      onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                      placeholder="Evert Groot"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 bg-white"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                      Branche <span className="text-blue-600">*</span>
+                      <span className="group relative">
+                        <svg className="w-4 h-4 text-slate-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+                          Zoals vermeld bij Google Bedrijfsprofiel
+                        </span>
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.companyCategory}
+                      onChange={(e) => setFormData({ ...formData, companyCategory: e.target.value })}
+                      placeholder="Gordijnwinkel"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 bg-white"
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Mobiele Teun */}
-              <div className="flex lg:hidden justify-center mb-4">
-                <Image
-                  src="/mascotte-teun-ai.png"
-                  alt="Teun"
-                  width={100}
-                  height={125}
-                  className="drop-shadow-lg opacity-80"
-                />
-              </div>
+                {/* Mobile Teun - Improved visibility */}
+                <div className="flex lg:hidden justify-center my-4">
+                  <div className="relative">
+                    <Image
+                      src="/mascotte-teun-ai.png"
+                      alt="Teun"
+                      width={140}
+                      height={175}
+                      className="drop-shadow-xl"
+                    />
+                    <p className="text-xs text-slate-500 text-center mt-2 font-medium">
+                      Vertel me over jouw bedrijf!
+                    </p>
+                  </div>
+                </div>
 
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={() => setStep(1)}
-                  className="px-6 py-3 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition cursor-pointer"
-                >
-                  ← Terug
-                </button>
-                <button
-                  onClick={() => {
-                    if (!formData.companyName || !formData.companyCategory) {
-                      setError('Vul alle verplichte velden in');
-                      return;
-                    }
-                    setError(null);
-                    setStep(3);
-                  }}
-                  className="px-8 py-4 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold rounded-lg hover:from-purple-600 hover:to-indigo-700 transition shadow-lg cursor-pointer"
-                >
-                  Volgende →
-                </button>
-              </div>
+                <div className="flex items-center justify-between mt-6">
+                  <button
+                    onClick={() => { setStep(1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    className="px-5 py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition cursor-pointer border border-slate-200"
+                  >
+                    ← Terug
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!formData.companyName || !formData.companyCategory) {
+                        setError('Vul alle verplichte velden in');
+                        return;
+                      }
+                      setError(null);
+                      setStep(3);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="px-8 py-4 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white font-bold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer"
+                  >
+                    Volgende →
+                  </button>
+                </div>
               </div>
 
               {/* Right: Teun Mascotte - Desktop */}
-              <div className="hidden lg:flex flex-col items-center justify-center">
+              <div className="hidden lg:flex lg:col-span-2 flex-col items-center justify-center">
                 <Image
                   src="/mascotte-teun-ai.png"
                   alt="Teun wacht op je bedrijfsinfo"
-                  width={280}
-                  height={350}
+                  width={300}
+                  height={380}
                   className="drop-shadow-2xl"
                 />
-                <p className="text-sm text-gray-400 mt-4 text-center">
+                <p className="text-sm text-slate-500 mt-4 text-center font-medium">
                   Vertel me over<br />jouw bedrijf!
                 </p>
               </div>
             </div>
-          )}
+          </section>
+        )}
 
-          {step === 3 && (
+        {/* ====================================== */}
+        {/* STEP 3 - Analyse (DARK THEME)         */}
+        {/* ====================================== */}
+        {step === 3 && (
+          <section className="rounded-2xl p-6 sm:p-8 shadow-xl mb-8 bg-gradient-to-br from-[#1E1E3F] via-[#2D2D5F] to-[#1E1E3F] border border-slate-700 text-white">
             <div className="grid lg:grid-cols-3 gap-8">
-              {/* Left: Content - 2 columns */}
               <div className="lg:col-span-2">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-lg flex items-center justify-center border border-yellow-400/30">
@@ -764,6 +711,10 @@ function AIVisibilityToolContent() {
 
                 {analyzing ? (
                   <div className="space-y-6">
+                    {/* Mobile Teun during scanning */}
+                    <div className="flex lg:hidden justify-center">
+                      <Image src="/teun-ai-mascotte.png" alt="Teun analyseert" width={100} height={125} className="drop-shadow-xl animate-pulse" />
+                    </div>
                     <div className="bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border-2 border-purple-400/40 rounded-2xl p-6 text-center">
                       <Loader2 className="w-12 h-12 text-purple-300 mx-auto mb-4 animate-spin" />
                       <h3 className="text-xl font-bold text-white mb-2">Bezig met analyseren...</h3>
@@ -798,38 +749,38 @@ function AIVisibilityToolContent() {
                   </div>
                 ) : (
                   <>
-                    <div className="bg-white/5 rounded-lg p-4 mb-6 space-y-2 text-sm border border-white/10">
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Bedrijfsnaam:</span>
-                        <span className="text-white font-medium">{formData.companyName}</span>
+                    <div className="bg-white/5 rounded-lg p-4 mb-6 space-y-3 text-sm border border-white/10">
+                      <div className="flex justify-between items-start gap-3">
+                        <span className="text-gray-400 flex-shrink-0">Bedrijf:</span>
+                        <span className="text-white font-medium text-right">{formData.companyName}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Categorie:</span>
-                        <span className="text-white font-medium">{formData.companyCategory}</span>
+                      <div className="flex justify-between items-start gap-3">
+                        <span className="text-gray-400 flex-shrink-0">Branche:</span>
+                        <span className="text-white font-medium text-right">{formData.companyCategory}</span>
                       </div>
                       {formData.queries && !customPrompts && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-400">Belangrijkste zoekwoord:</span>
-                          <span className="text-white font-medium">
+                        <div className="flex justify-between items-start gap-3">
+                          <span className="text-gray-400 flex-shrink-0">Zoekwoord:</span>
+                          <span className="text-white font-medium text-right">
                             {formData.queries.split(/[,\n]/)[0]?.trim() || 'Geen opgegeven'}
                           </span>
                         </div>
                       )}
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Te analyseren:</span>
-                        <span className="text-white font-medium">
-                          {customPrompts ? `${customPrompts.length} aangepaste prompts` : `${user ? '10' : '5'} AI-prompts`}
+                      <div className="flex justify-between items-start gap-3">
+                        <span className="text-gray-400 flex-shrink-0">Prompts:</span>
+                        <span className="text-white font-medium text-right">
+                          {customPrompts ? `${customPrompts.length} aangepast` : `${user ? '10' : '5'} AI-prompts`}
                         </span>
                       </div>
                       {referralSource && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-400">Bron:</span>
-                          <span className="text-blue-300 font-medium capitalize">{referralSource}</span>
+                        <div className="flex justify-between items-start gap-3">
+                          <span className="text-gray-400 flex-shrink-0">Bron:</span>
+                          <span className="text-blue-300 font-medium text-right capitalize">{referralSource}</span>
                         </div>
                       )}
                     </div>
 
-                    {/* ✨ Show Custom Prompts from Dashboard */}
+                    {/* Custom Prompts from Dashboard */}
                     {customPrompts && customPrompts.length > 0 && (
                       <div className="bg-purple-500/20 border border-purple-400/40 rounded-xl p-4 mb-6">
                         <div className="text-sm text-purple-200 font-semibold mb-3 flex items-center gap-2">
@@ -844,16 +795,14 @@ function AIVisibilityToolContent() {
                             </div>
                           ))}
                         </div>
-                        <button
-                          onClick={() => setCustomPrompts(null)}
-                          className="mt-3 text-xs text-purple-300 hover:text-purple-200 underline"
-                        >
+                        <button onClick={() => setCustomPrompts(null)}
+                          className="mt-3 text-xs text-purple-300 hover:text-purple-200 underline">
                           Annuleer en genereer nieuwe prompts
                         </button>
                       </div>
                     )}
 
-                    {/* ✨ Show Advanced Settings in Step 3 */}
+                    {/* Advanced Settings in Step 3 */}
                     {(excludeTermsInput || includeTermsInput || locationTermsInput) && (
                       <div className="bg-purple-500/10 border border-purple-400/30 rounded-lg p-4 mb-6">
                         <div className="text-sm text-purple-200 font-semibold mb-3 flex items-center gap-2">
@@ -861,43 +810,22 @@ function AIVisibilityToolContent() {
                           <span>Geavanceerde Instellingen:</span>
                         </div>
                         <div className="space-y-2 text-xs">
-                          {excludeTermsInput && (
-                            <div className="flex items-start gap-2">
-                              <span className="text-red-400 flex-shrink-0">❌ Vermijd:</span>
-                              <span className="text-gray-300">{excludeTermsInput}</span>
-                            </div>
-                          )}
-                          {includeTermsInput && (
-                            <div className="flex items-start gap-2">
-                              <span className="text-green-400 flex-shrink-0">✅ Gebruik:</span>
-                              <span className="text-gray-300">{includeTermsInput}</span>
-                            </div>
-                          )}
-                          {locationTermsInput && (
-                            <div className="flex items-start gap-2">
-                              <span className="text-blue-400 flex-shrink-0">📍 Locatie:</span>
-                              <span className="text-gray-300">{locationTermsInput}</span>
-                            </div>
-                          )}
+                          {excludeTermsInput && <div className="flex items-start gap-2"><span className="text-red-400 flex-shrink-0">❌ Vermijd:</span><span className="text-gray-300">{excludeTermsInput}</span></div>}
+                          {includeTermsInput && <div className="flex items-start gap-2"><span className="text-green-400 flex-shrink-0">✅ Gebruik:</span><span className="text-gray-300">{includeTermsInput}</span></div>}
+                          {locationTermsInput && <div className="flex items-start gap-2"><span className="text-blue-400 flex-shrink-0">📍 Locatie:</span><span className="text-gray-300">{locationTermsInput}</span></div>}
                         </div>
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between">
-                      <button
-                        onClick={() => setStep(2)}
-                        className="px-6 py-3 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition cursor-pointer"
-                      >
+                    <div className="flex items-center gap-3 mt-6">
+                      <button onClick={() => { setStep(2); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                        className="px-5 py-3 bg-white/10 text-white rounded-xl font-semibold hover:bg-white/20 transition cursor-pointer text-sm sm:text-base whitespace-nowrap">
                         ← Terug
                       </button>
                       <button
-                        onClick={() => {
-                          setFromHomepage(false);
-                          handleAnalyze();
-                        }}
-                        className={`px-8 py-4 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold rounded-lg hover:from-purple-600 hover:to-indigo-700 transition shadow-lg flex items-center gap-2 cursor-pointer ${fromHomepage ? 'animate-bounce' : ''}`}
-                      >
-                        <Zap className="w-5 h-5" />
+                        onClick={() => { setFromHomepage(false); handleAnalyze(); }}
+                        className={`flex-1 px-5 py-3 sm:py-4 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold rounded-xl hover:from-purple-600 hover:to-indigo-700 transition shadow-lg flex items-center justify-center gap-2 cursor-pointer text-sm sm:text-base ${fromHomepage ? 'animate-bounce' : ''}`}>
+                        <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
                         Start Analyse
                       </button>
                     </div>
@@ -907,34 +835,29 @@ function AIVisibilityToolContent() {
 
               {/* Right: Teun Mascotte */}
               <div className="hidden lg:flex flex-col items-center justify-center">
-                <Image
-                  src="/mascotte-teun-ai.png"
-                  alt="Teun helpt je analyseren"
-                  width={280}
-                  height={350}
-                  className="drop-shadow-2xl"
-                />
+                <Image src="/teun-ai-mascotte.png" alt="Teun helpt je analyseren" width={280} height={350} className="drop-shadow-2xl" />
               </div>
             </div>
-          )}
+          </section>
+        )}
 
-          {step === 4 && results && (
+        {/* ====================================== */}
+        {/* STEP 4 - Rapport (LIGHT THEME)        */}
+        {/* ====================================== */}
+        {step === 4 && results && (
+          <section className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 sm:p-8 mb-8">
+            {/* Teun above results - mobile */}
+            <div className="flex lg:hidden justify-center -mt-2 mb-4">
+              <div className="text-center">
+                <Image src="/Teun-ai-blij-met-resultaat.png" alt="Teun is blij!" width={120} height={150} className="drop-shadow-xl mx-auto" />
+              </div>
+            </div>
+
             <div className="grid lg:grid-cols-3 gap-8">
-              {/* Left: Results - 2 columns */}
               <div className="lg:col-span-2">
                 {/* Success Header */}
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6 relative overflow-hidden">
-                  {/* Teun Mascotte - Mobiel only */}
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 lg:hidden opacity-30 pointer-events-none">
-                    <Image
-                      src="/Teun-ai-blij-met-resultaat.png"
-                      alt="Teun"
-                      width={80}
-                      height={100}
-                      className="drop-shadow-lg"
-                    />
-                  </div>
-                  <div className="flex items-center gap-3 sm:gap-4 relative z-10">
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6">
+                  <div className="flex items-center gap-3 sm:gap-4">
                     <div className="w-12 h-12 sm:w-14 sm:h-14 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
                       <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
                     </div>
@@ -957,13 +880,11 @@ function AIVisibilityToolContent() {
                       </div>
                       <span className="font-semibold text-slate-800 text-sm sm:text-base">Perplexity AI</span>
                     </div>
-                    <span className="text-xs sm:text-sm text-slate-600">
-                      Realtime webscan met actuele bronnen
-                    </span>
+                    <span className="text-xs sm:text-sm text-slate-600">Realtime webscan met actuele bronnen</span>
                   </div>
                 </div>
 
-                {/* ChatGPT Login Prompt - Alleen voor niet-ingelogde gebruikers */}
+                {/* ChatGPT Login Prompt */}
                 {!user && (
                   <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
                     <div className="flex items-start sm:items-center gap-3 flex-col sm:flex-row">
@@ -976,38 +897,27 @@ function AIVisibilityToolContent() {
                         <span className="font-semibold text-slate-800 text-sm sm:text-base">ChatGPT scan?</span>
                       </div>
                       <div className="flex-1">
-                        <span className="text-xs sm:text-sm text-slate-600">
-                          Log in voor een extra ChatGPT analyse + toegang tot het dashboard
-                        </span>
+                        <span className="text-xs sm:text-sm text-slate-600">Log in voor een extra ChatGPT analyse + toegang tot het dashboard</span>
                       </div>
-                      <Link 
-                        href="/login"
-                        className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-sm font-semibold rounded-lg hover:from-emerald-600 hover:to-green-600 transition whitespace-nowrap"
-                      >
+                      <Link href="/login" className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-sm font-semibold rounded-lg hover:from-emerald-600 hover:to-green-600 transition whitespace-nowrap">
                         Inloggen
                       </Link>
                     </div>
                   </div>
                 )}
 
-                {/* Stats Cards - Responsive */}
+                {/* Stats Cards */}
                 <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
                   <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 text-center shadow-sm">
-                    <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-1">
-                      {results.total_company_mentions}
-                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-1">{results.total_company_mentions}</div>
                     <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-medium leading-tight">
-                      <span className="hidden sm:inline">Vermeldingen</span>
-                      <span className="sm:hidden">Genoemd</span>
+                      <span className="hidden sm:inline">Vermeldingen</span><span className="sm:hidden">Vermeld</span>
                     </div>
                   </div>
                   <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 text-center shadow-sm">
-                    <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">
-                      {results.analysis_results.length}
-                    </div>
+                    <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">{results.analysis_results.length}</div>
                     <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-medium leading-tight">
-                      <span className="hidden sm:inline">AI Prompts</span>
-                      <span className="sm:hidden">Prompts</span>
+                      <span className="hidden sm:inline">AI Prompts</span><span className="sm:hidden">Prompts</span>
                     </div>
                   </div>
                   <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 text-center shadow-sm">
@@ -1015,8 +925,7 @@ function AIVisibilityToolContent() {
                       {[...new Set(results.analysis_results.flatMap(r => r.competitors_mentioned || []))].length}
                     </div>
                     <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-medium leading-tight">
-                      <span className="hidden sm:inline">Concurrenten</span>
-                      <span className="sm:hidden">Concurrent</span>
+                      <span className="hidden sm:inline">Concurrenten</span><span className="sm:hidden">Concurrent</span>
                     </div>
                   </div>
                 </div>
@@ -1065,21 +974,15 @@ function AIVisibilityToolContent() {
                     onClick={() => {
                       setStep(1);
                       setFormData({ companyName: '', companyCategory: '', queries: '' });
-                      setExcludeTermsInput('');
-                      setIncludeTermsInput('');
-                      setLocationTermsInput('');
-                      setResults(null);
-                      setReferralSource(null);
-                      setFromHomepage(false);
+                      setExcludeTermsInput(''); setIncludeTermsInput(''); setLocationTermsInput('');
+                      setResults(null); setReferralSource(null); setFromHomepage(false);
                     }}
                     className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-white border-2 border-slate-300 text-slate-700 rounded-xl font-semibold hover:border-slate-400 hover:bg-slate-50 transition cursor-pointer text-sm sm:text-base"
                   >
                     🔄 Nieuwe analyse
                   </button>
-                  <Link 
-                    href="/"
-                    className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-semibold hover:shadow-lg transition text-center cursor-pointer text-sm sm:text-base"
-                  >
+                  <Link href="/"
+                    className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-semibold hover:shadow-lg transition text-center cursor-pointer text-sm sm:text-base">
                     ← Terug naar home
                   </Link>
                 </div>
@@ -1087,10 +990,8 @@ function AIVisibilityToolContent() {
                 {/* OnlineLabs Back Link */}
                 {referralSource === 'onlinelabs' && (
                   <div className="mb-6">
-                    <a 
-                      href="https://onlinelabs.nl/skills/geo-optimalisatie"
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-medium transition border border-blue-200 w-full justify-center"
-                    >
+                    <a href="https://onlinelabs.nl/skills/geo-optimalisatie"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-medium transition border border-blue-200 w-full justify-center">
                       ← Terug naar OnlineLabs GEO Optimalisatie
                     </a>
                   </div>
@@ -1105,13 +1006,7 @@ function AIVisibilityToolContent() {
 
               {/* Right: Teun Mascotte */}
               <div className="hidden lg:flex flex-col items-center justify-start pt-8">
-                <Image
-                  src="/Teun-ai-blij-met-resultaat.png"
-                  alt="Teun is blij met je resultaat!"
-                  width={300}
-                  height={380}
-                  className="drop-shadow-2xl"
-                />
+                <Image src="/Teun-ai-blij-met-resultaat.png" alt="Teun is blij met je resultaat!" width={300} height={380} className="drop-shadow-2xl" />
                 <div className="mt-4 text-center">
                   <p className="text-lg font-semibold text-slate-900">Goed bezig! 🎉</p>
                   <p className="text-sm text-slate-600">
@@ -1122,26 +1017,18 @@ function AIVisibilityToolContent() {
                 </div>
               </div>
             </div>
-          )}
-        </section>
+          </section>
+        )}
 
-        {/* CTA tijdens scannen - buiten de scanner box */}
+        {/* CTA tijdens scannen */}
         {analyzing && (
           <div className="text-center mb-8">
-            <p className="text-slate-600 mb-3">
-              Wij helpen bedrijven om beter gevonden te worden in AI-zoekmachines
-            </p>
-            <a 
-              href="https://www.onlinelabs.nl/skills/geo-optimalisatie"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white font-semibold py-3 px-8 rounded-lg transition-all cursor-pointer"
-            >
+            <p className="text-slate-600 mb-3">Wij helpen bedrijven om beter gevonden te worden in AI-zoekmachines</p>
+            <a href="https://www.onlinelabs.nl/skills/geo-optimalisatie" target="_blank" rel="noopener noreferrer"
+              className="inline-block bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white font-semibold py-3 px-8 rounded-lg transition-all cursor-pointer">
               GEO optimalisatie →
             </a>
-            <p className="text-slate-400 text-xs mt-2">
-              Opent in een nieuwe tab – de scan blijft draaien
-            </p>
+            <p className="text-slate-400 text-xs mt-2">Opent in een nieuwe tab – de scan blijft draaien</p>
           </div>
         )}
 
@@ -1149,9 +1036,7 @@ function AIVisibilityToolContent() {
           <div className="mb-6 p-4 bg-red-100 border border-red-300 rounded-xl">
             <div className="flex items-start gap-2">
               <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-red-700">
-                <strong>Fout:</strong> {error}
-              </div>
+              <div className="text-sm text-red-700"><strong>Fout:</strong> {error}</div>
             </div>
           </div>
         )}
@@ -1163,14 +1048,10 @@ function AIVisibilityToolContent() {
             </p>
             {!user && (
               <>
-                <p className="text-purple-600 text-sm mb-4">
-                  ✨ Met een account krijg je 10 unieke prompts per scan
-                </p>
-                <Link 
-                  href="/signup"
-                  className="px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg font-semibold hover:from-purple-600 hover:to-indigo-700 transition cursor-pointer inline-block"
-                >
-                  Meld je aan voor meer scans
+                <p className="text-purple-600 text-sm mb-4">✨ Gratis account = 10 unieke prompts per scan</p>
+                <Link href="/signup"
+                  className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white rounded-lg font-semibold hover:shadow-lg transition cursor-pointer inline-block">
+                  Gratis aanmelden →
                 </Link>
               </>
             )}
