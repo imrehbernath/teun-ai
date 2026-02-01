@@ -67,7 +67,7 @@ function EarlyAccessPopup({ isOpen, onClose }) {
             Onze GEO Optimalisatie tool is in ontwikkeling. Meld je aan voor de early access lijst en we laten je weten zodra deze klaar is.
           </p>
           <p className="text-gray-500 text-sm mt-2">
-            💡 Wist je dat onze <a href="/tools/ai-visibility" className="text-blue-600 font-medium hover:underline">AI Zichtbaarheid Scan</a> al gratis beschikbaar is? Maak een gratis account en start direct.
+            💡 Wist je dat onze <Link href="/tools/ai-visibility" className="text-blue-600 font-medium hover:underline">AI Zichtbaarheid Scan</Link> al gratis beschikbaar is? Maak een gratis account en start direct.
           </p>
         </div>
 
