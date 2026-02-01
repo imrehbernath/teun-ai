@@ -366,7 +366,7 @@ export default function Homepage() {
             {/* Step 1 */}
             <div className="bg-white rounded-2xl p-8 shadow-sm">
               <div className="flex items-start gap-4">
-                <div className="text-4xl font-bold text-[#1E1E3F]">.1</div>
+                <div className="text-4xl font-bold text-[#1E1E3F]">1.</div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 mb-2">
                     Vul je gegevens in
@@ -381,7 +381,7 @@ export default function Homepage() {
             {/* Step 2 */}
             <div className="bg-white rounded-2xl p-8 shadow-sm">
               <div className="flex items-start gap-4">
-                <div className="text-4xl font-bold text-[#1E1E3F]">.2</div>
+                <div className="text-4xl font-bold text-[#1E1E3F]">2.</div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 mb-2">
                     We scannen 4 AI's
@@ -396,7 +396,7 @@ export default function Homepage() {
             {/* Step 3 */}
             <div className="bg-white rounded-2xl p-8 shadow-sm">
               <div className="flex items-start gap-4">
-                <div className="text-4xl font-bold text-[#1E1E3F]">.3</div>
+                <div className="text-4xl font-bold text-[#1E1E3F]">3.</div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 mb-2">
                     Ontvang je rapport
