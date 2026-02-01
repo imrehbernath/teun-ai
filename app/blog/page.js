@@ -1,6 +1,7 @@
 import Image from 'next/image';
-import BlogNewsletterSignup from './BlogNewsletterSignup';
+import Link from 'next/link';
 import BlogOverviewClient from './BlogOverviewClient';
+import BlogFAQ from './BlogFAQ';
 
 async function getPosts() {
   const query = `
@@ -46,7 +47,6 @@ async function getPosts() {
 
     const json = await res.json();
     
-    // Transform WordPress URLs to assets.teun.ai
     const posts = (json.data?.posts?.nodes || []).map(post => ({
       ...post,
       featuredImage: post.featuredImage ? {
@@ -72,14 +72,14 @@ async function getPosts() {
 }
 
 export const metadata = {
-  title: 'GEO Blog – AI & SEO Inzichten 2025',
-  description: 'Lees wekelijks nieuwe blogs over GEO, AI-SEO en zichtbaarheid in ChatGPT en Google AI. Praktische inzichten, tips en trends in 2025.',
+  title: 'GEO Blog – AI & SEO Inzichten 2026',
+  description: 'De nieuwste strategieën, inzichten en trends om vindbaar te blijven in ChatGPT, Perplexity en andere AI-zoekmachines.',
   alternates: {
     canonical: '/blog',
   },
   openGraph: {
-    title: 'GEO Blog – AI & SEO Inzichten 2025 | Teun.ai',
-    description: 'Lees wekelijks nieuwe blogs over GEO, AI-SEO en zichtbaarheid in ChatGPT en Google AI. Praktische inzichten, tips en trends in 2025.',
+    title: 'GEO Blog – AI & SEO Inzichten 2026 | Teun.ai',
+    description: 'De nieuwste strategieën, inzichten en trends om vindbaar te blijven in ChatGPT, Perplexity en andere AI-zoekmachines.',
     url: 'https://teun.ai/blog',
     siteName: 'Teun.ai',
     locale: 'nl_NL',
@@ -94,8 +94,8 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'GEO Blog – AI & SEO Inzichten 2025 | Teun.ai',
-    description: 'Lees wekelijks nieuwe blogs over GEO, AI-SEO en zichtbaarheid in ChatGPT en Google AI. Praktische inzichten, tips en trends in 2025.',
+    title: 'GEO Blog – AI & SEO Inzichten 2026 | Teun.ai',
+    description: 'De nieuwste strategieën, inzichten en trends om vindbaar te blijven in ChatGPT, Perplexity en andere AI-zoekmachines.',
     images: ['https://teun.ai/GEO-insights-en-AI-SEO.webp'],
   },
 };
@@ -105,64 +105,155 @@ export default async function BlogOverview() {
 
   return (
     <>
-      {/* Hero Section */}
-      <section className="relative py-20 lg:py-32 overflow-hidden">
-        {/* Background Image */}
-        <div className="absolute inset-0 z-0">
+      {/* ====== HERO + STATS WRAPPER ====== */}
+      <div className="relative overflow-hidden">
+        {/* Teun Blij - Positioned over hero + stats like homepage pattern */}
+        <div className="hidden lg:block absolute right-[5%] xl:right-[8%] top-[60px] z-10 pointer-events-none select-none">
           <Image
-            src="/GEO-blog-teun-ai-bg.webp"
-            alt=""
-            fill
+            src="/Teun-ai-blij-met-resultaat.png"
+            alt="Teun is blij - AI Visibility Blog"
+            width={360}
+            height={450}
+            className="drop-shadow-2xl"
             priority
-            fetchPriority="high"
-            className="object-cover"
-            quality={75}
-            sizes="(max-width: 640px) 640px, (max-width: 750px) 750px, (max-width: 1080px) 1080px, (max-width: 1920px) 1920px, 100vw"
           />
-          {/* Stronger Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#001233]/90 via-[#1a0b3d]/85 to-[#2d1654]/90"></div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center text-white max-w-3xl mx-auto">
-            <h1 className="text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-              <span className="bg-gradient-to-r from-white via-blue-200 to-purple-200 text-transparent bg-clip-text">
-                Insights & Blogs
-              </span>
-            </h1>
-            <p className="text-xl lg:text-2xl text-white/90 leading-relaxed font-light">
-              Elke week nieuwe inzichten over GEO, AI & zichtbaarheid
-            </p>
+        {/* ====== HERO SECTION ====== */}
+        <section className="relative bg-gradient-to-br from-slate-50 via-white to-blue-50">
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 opacity-30 pointer-events-none">
+            <div className="absolute top-20 left-10 w-72 h-72 bg-blue-100 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-100 rounded-full blur-3xl"></div>
           </div>
+
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 lg:pt-20">
+            <div className="grid lg:grid-cols-5 gap-8 items-end">
+              {/* Left: Content - 3 columns */}
+              <div className="lg:col-span-3 pb-12 lg:pb-20">
+                {/* Badge */}
+                <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-600 shadow-sm mb-6">
+                  <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  GEO & AI-ZICHTBAARHEID
+                </span>
+
+                <h1 className="text-4xl md:text-5xl lg:text-[3.2rem] font-bold text-slate-900 leading-tight mb-6">
+                  Alles over AI-zichtbaarheid{' '}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+                    en GEO
+                  </span>
+                </h1>
+                
+                <p className="text-lg text-slate-600 mb-4 max-w-lg">
+                  De nieuwste strategieën, inzichten en trends om vindbaar te blijven in ChatGPT, Perplexity en andere AI-zoekmachines.
+                </p>
+
+                {/* AI Platform badges - same as homepage */}
+                <div className="flex flex-wrap gap-3 mb-8">
+                  {['OpenAI', 'Perplexity', 'Gemini', 'Claude'].map((platform) => (
+                    <span 
+                      key={platform}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                      {platform}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Mobile Teun - above fold */}
+                <div className="lg:hidden flex justify-center">
+                  <Image
+                    src="/Teun-ai-blij-met-resultaat.png"
+                    alt="Teun is blij - AI Visibility Blog"
+                    width={200}
+                    height={250}
+                    className="drop-shadow-xl"
+                  />
+                </div>
+              </div>
+
+              {/* Right: 2 columns - reserved for absolute Teun */}
+              <div className="hidden lg:block lg:col-span-2"></div>
+            </div>
+          </div>
+        </section>
+
+        {/* ====== STATS BAR ====== */}
+        <section className="bg-gradient-to-r from-[#1E1E3F] via-[#2D2D5F] to-[#1E1E3F] py-8 relative">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
+              {[
+                { value: '2.847', label: 'Scans uitgevoerd' },
+                { value: '94%', label: 'Vindt nieuwe inzichten' },
+                { value: '4', label: 'AI-platforms gescand' },
+                { value: 'Gratis', label: 'Eerste scan', highlight: true },
+              ].map((stat) => (
+                <div key={stat.label}>
+                  <div className={`text-2xl lg:text-3xl font-bold ${stat.highlight ? 'text-emerald-400' : 'text-white'}`}>
+                    {stat.value}
+                  </div>
+                  <div className="text-xs text-slate-400 mt-1">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* ====== BLOG POSTS (lichte achtergrond) ====== */}
+      <section className="bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+          <h2 className="text-xl lg:text-2xl font-semibold text-slate-900 mb-8">
+            All blog posts
+          </h2>
+          <BlogOverviewClient posts={posts} categories={categories} />
         </div>
       </section>
 
-      {/* Client Component with Filtering */}
-      <BlogOverviewClient posts={posts} categories={categories} />
+      {/* ====== FAQ met Teun (licht, zelfde als homepage) ====== */}
+      <BlogFAQ />
 
-      {/* Newsletter CTA */}
-      <section className="bg-gradient-to-br from-purple-600 via-purple-500 to-indigo-600 py-20 relative overflow-hidden">
-        {/* Background pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
-            backgroundSize: '40px 40px'
-          }}></div>
+      {/* ====== FINAL CTA (licht, zodat het niet botst met donkere footer) ====== */}
+      <section className="py-16 lg:py-20 bg-gradient-to-br from-slate-50 via-white to-blue-50 relative overflow-hidden">
+        {/* Subtle background */}
+        <div className="absolute inset-0 opacity-20 pointer-events-none">
+          <div className="absolute top-10 left-1/4 w-72 h-72 bg-blue-100 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-10 right-1/4 w-72 h-72 bg-purple-100 rounded-full blur-3xl"></div>
         </div>
 
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
-            Blijf op de hoogte van GEO-updates
+        <div className="relative max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 mb-4 leading-tight">
+            Hoe zichtbaar is jouw merk in{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+              AI-zoekmachines?
+            </span>
           </h2>
-          <p className="text-purple-100 mb-10 text-base lg:text-xl max-w-2xl mx-auto leading-relaxed">
-            Ontvang wekelijks de nieuwste inzichten over AI-zichtbaarheid en GEO optimalisatie.
+          <p className="text-slate-600 mb-8 max-w-xl mx-auto">
+            Start een gratis scan of lees meer over GEO optimalisatie.
           </p>
-          
-          <BlogNewsletterSignup />
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/tools/ai-visibility"
+              className="inline-flex items-center justify-center px-7 py-3.5 rounded-xl bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white font-semibold text-sm hover:shadow-lg hover:scale-[1.02] transition-all min-w-[180px]"
+            >
+              Start Gratis Scan →
+            </Link>
+            <a
+              href="https://www.onlinelabs.nl/skills/geo-optimalisatie"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center px-7 py-3.5 rounded-xl border-2 border-slate-200 text-slate-700 font-semibold text-sm hover:border-slate-300 hover:bg-white transition-all min-w-[180px]"
+            >
+              GEO Optimalisatie
+            </a>
+          </div>
         </div>
       </section>
     </>
   );
 }
 
-export const revalidate = 86400; // 24 uur cache
+export const revalidate = 86400;
