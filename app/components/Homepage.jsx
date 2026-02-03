@@ -43,7 +43,7 @@ export default function Homepage() {
       {/* ====== HERO + STATS WRAPPER ====== */}
       <div className="relative overflow-hidden">
         {/* Hero Mascotte - Positioned over both sections */}
-        <div className="hidden lg:block absolute right-[5%] xl:right-[10%] top-[136px] z-10 pointer-events-none select-none">
+        <div className="hidden lg:block absolute right-[5%] xl:right-[10%] top-[174px] z-10 pointer-events-none select-none">
           <Image
             src="/mascotte-teun-ai.png"
             alt="Teun - AI Visibility Mascotte"
