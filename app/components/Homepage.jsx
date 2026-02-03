@@ -124,7 +124,7 @@ export default function Homepage() {
                         type="text"
                         value={formData.bedrijfsnaam}
                         onChange={(e) => setFormData({...formData, bedrijfsnaam: e.target.value})}
-                        placeholder="Evert Groot"
+                        placeholder="Je bedrijfsnaam"
                         className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400"
                         required
                       />
@@ -147,7 +147,7 @@ export default function Homepage() {
                         type="text"
                         value={formData.branche}
                         onChange={(e) => setFormData({...formData, branche: e.target.value})}
-                        placeholder="Gordijnwinkel"
+                        placeholder="Jouw branche"
                         className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400"
                         required
                       />
@@ -175,7 +175,7 @@ export default function Homepage() {
                             setFormData({...formData, zoekwoorden: e.target.value});
                           }
                         }}
-                        placeholder="Linnen gordijnen, Luxe gordijnen"
+                        placeholder="Keyword 1, Keyword 2, Keyword 3"
                         className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400"
                       />
                       {formData.zoekwoorden && (
@@ -185,16 +185,37 @@ export default function Homepage() {
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                        Website <span className="text-slate-400 font-normal">(opt.)</span>
+                      <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+                        Website
+                        <span className="relative" onClick={() => setActiveTooltip(activeTooltip === 'website' ? null : 'website')}>
+                          <svg className="w-4 h-4 text-slate-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          {activeTooltip === 'website' && (
+                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap z-50">
+                              ✨ Wij analyseren je pagina voor betere prompts
+                            </span>
+                          )}
+                        </span>
                       </label>
                       <input
                         type="text"
                         value={formData.website}
                         onChange={(e) => setFormData({...formData, website: e.target.value})}
-                        placeholder="evertgroot.nl"
+                        placeholder="jouwwebsite.nl"
                         className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400"
                       />
+                      {!formData.website && (
+                        <p className="mt-1.5 text-xs text-purple-600">
+                          <span className="flex items-center gap-1">
+                            <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
+                            </svg>
+                            Tip: Vul je URL in
+                          </span>
+                          <span className="block pl-4">voor nóg betere prompts</span>
+                        </p>
+                      )}
                     </div>
                   </div>
 

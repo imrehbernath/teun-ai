@@ -27,7 +27,8 @@ function AIVisibilityToolContent() {
   const [formData, setFormData] = useState({
     companyName: '',
     companyCategory: '',
-    queries: ''
+    queries: '',
+    website: ''  // ✨ NEW: Website URL for smart analysis
   });
   const [customPrompts, setCustomPrompts] = useState(null);
 
@@ -253,7 +254,8 @@ function AIVisibilityToolContent() {
           numberOfPrompts: totalPrompts,
           customTerms: getCustomTerms(),
           referralSource: referralSource,
-          customPrompts: hasCustomPrompts ? customPrompts : null
+          customPrompts: hasCustomPrompts ? customPrompts : null,
+          websiteUrl: formData.website || null  // ✨ NEW: Website URL for smart analysis
         })
       });
 
@@ -387,7 +389,7 @@ function AIVisibilityToolContent() {
                   <textarea
                     value={formData.queries}
                     onChange={(e) => setFormData({ ...formData, queries: e.target.value })}
-                    placeholder="Bijv: Linnen gordijnen op maat, Luxe gordijnen, Raamdecoratie"
+                    placeholder="Jouw belangrijkste zoekwoorden, gescheiden door komma's"
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 min-h-[80px] resize-y bg-white"
                   />
                 </div>
@@ -625,7 +627,7 @@ function AIVisibilityToolContent() {
                       type="text"
                       value={formData.companyName}
                       onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                      placeholder="Evert Groot"
+                      placeholder="Je bedrijfsnaam"
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 bg-white"
                       required
                     />
@@ -654,10 +656,50 @@ function AIVisibilityToolContent() {
                       type="text"
                       value={formData.companyCategory}
                       onChange={(e) => setFormData({ ...formData, companyCategory: e.target.value })}
-                      placeholder="Gordijnwinkel"
+                      placeholder="Jouw branche"
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 bg-white"
                       required
                     />
+                  </div>
+
+                  {/* ✨ Website URL field for smart analysis */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                      Website
+                      <span className="relative">
+                        <svg 
+                          className="w-4 h-4 text-slate-400 cursor-help" 
+                          fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                          onClick={(e) => { e.preventDefault(); setActiveTooltip(activeTooltip === 'website' ? null : 'website'); }}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {activeTooltip === 'website' && (
+                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap z-50 shadow-lg">
+                            ✨ Wij analyseren je pagina voor betere prompts
+                            <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></span>
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.website}
+                      onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                      placeholder="jouwwebsite.nl"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 bg-white"
+                    />
+                    {!formData.website && (
+                      <p className="text-xs text-purple-600 mt-1.5">
+                        <span className="flex items-center gap-1">
+                          <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
+                          </svg>
+                          Tip: Vul je URL in
+                        </span>
+                        <span className="block pl-4">voor nóg betere prompts</span>
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -930,6 +972,23 @@ function AIVisibilityToolContent() {
                 )}
 
                 {/* Stats Cards */}
+                {results.websiteAnalyzed && (
+                  <div className="mb-4 sm:mb-6 p-3 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-purple-900">Website geanalyseerd</p>
+                        <p className="text-xs text-purple-600">
+                          {results.enhancedKeywords?.length || 0} zoekwoorden geëxtraheerd voor betere prompts
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
                   <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 text-center shadow-sm">
                     <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-1">{results.total_company_mentions}</div>
@@ -996,7 +1055,7 @@ function AIVisibilityToolContent() {
                   <button
                     onClick={() => {
                       setStep(1);
-                      setFormData({ companyName: '', companyCategory: '', queries: '' });
+                      setFormData({ companyName: '', companyCategory: '', queries: '', website: '' });
                       setExcludeTermsInput(''); setIncludeTermsInput(''); setLocationTermsInput('');
                       setResults(null); setReferralSource(null); setFromHomepage(false);
                     }}

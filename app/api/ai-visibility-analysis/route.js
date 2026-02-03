@@ -84,6 +84,175 @@ const anthropic = new Anthropic({
 })
 
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY
+const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY || '0f2289b685e1cf063f5c6572e2dcef83'
+
+// ============================================
+// ✨ WEBSITE SCRAPING WITH SCRAPER API
+// ============================================
+async function scrapeWebsite(url) {
+  try {
+    // Normalize URL
+    let normalizedUrl = url.trim()
+    if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+      normalizedUrl = 'https://' + normalizedUrl
+    }
+    
+    console.log(`🔗 Scraping: ${normalizedUrl}`)
+    
+    const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(normalizedUrl)}&render=false`
+    
+    const response = await fetch(scraperUrl, {
+      method: 'GET',
+      headers: { 'Accept': 'text/html' },
+      signal: AbortSignal.timeout(15000) // 15 second timeout
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Scraper API error: ${response.status}`)
+    }
+    
+    const html = await response.text()
+    console.log(`✅ Scraped ${html.length} characters`)
+    
+    return { success: true, html }
+  } catch (error) {
+    console.error('❌ Scrape error:', error.message)
+    return { success: false, error: error.message }
+  }
+}
+
+// ============================================
+// ✨ PARSE HTML FOR RELEVANT CONTENT
+// ============================================
+function parseHtmlContent(html) {
+  // Extract meta title
+  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
+  const title = titleMatch ? titleMatch[1].trim() : ''
+  
+  // Extract meta description
+  const metaDescMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i) ||
+                        html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']description["']/i)
+  const metaDescription = metaDescMatch ? metaDescMatch[1].trim() : ''
+  
+  // Extract H1s
+  const h1Matches = html.match(/<h1[^>]*>([^<]+)<\/h1>/gi) || []
+  const h1s = h1Matches.map(h => h.replace(/<[^>]+>/g, '').trim()).filter(h => h.length > 0).slice(0, 3)
+  
+  // Extract H2s  
+  const h2Matches = html.match(/<h2[^>]*>([^<]+)<\/h2>/gi) || []
+  const h2s = h2Matches.map(h => h.replace(/<[^>]+>/g, '').trim()).filter(h => h.length > 0).slice(0, 5)
+  
+  // Extract main content (strip tags, limit size)
+  let bodyContent = html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
+    .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
+    .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 3000) // Limit to ~3000 chars for Claude context
+  
+  return {
+    title,
+    metaDescription,
+    h1s,
+    h2s,
+    bodyContent
+  }
+}
+
+// ============================================
+// ✨ ANALYZE WEBSITE WITH CLAUDE
+// ============================================
+async function analyzeWebsiteForKeywords(websiteUrl, companyName, companyCategory) {
+  try {
+    // Step 1: Scrape the website
+    const scrapeResult = await scrapeWebsite(websiteUrl)
+    if (!scrapeResult.success) {
+      return { success: false, error: scrapeResult.error }
+    }
+    
+    // Step 2: Parse HTML
+    const parsed = parseHtmlContent(scrapeResult.html)
+    
+    // Step 3: Analyze with Claude
+    const message = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: `Je bent een expert in het analyseren van websites voor zoekwoord-extractie en commerciële intentie.
+Je analyseert websites om te begrijpen:
+1. Welke diensten/producten het bedrijf aanbiedt
+2. Wat hun USPs (unique selling points) zijn
+3. Welke zoekwoorden potentiële klanten zouden gebruiken
+4. Welke locatie-focus ze hebben
+
+Antwoord ALTIJD in het Nederlands. Wees CONCREET en SPECIFIEK.`,
+      messages: [{
+        role: 'user',
+        content: `Analyseer deze website-informatie voor "${companyName}" (branche: ${companyCategory}):
+
+**META TITEL:** ${parsed.title || 'Niet gevonden'}
+
+**META BESCHRIJVING:** ${parsed.metaDescription || 'Niet gevonden'}
+
+**H1 KOPPEN:** ${parsed.h1s.length > 0 ? parsed.h1s.join(' | ') : 'Niet gevonden'}
+
+**H2 KOPPEN:** ${parsed.h2s.length > 0 ? parsed.h2s.join(' | ') : 'Niet gevonden'}
+
+**PAGINA CONTENT (fragment):** ${parsed.bodyContent.slice(0, 1500)}
+
+---
+
+Geef je analyse in EXACT dit JSON-formaat:
+
+{
+  "keywords": ["zoekwoord1", "zoekwoord2", "zoekwoord3", "zoekwoord4", "zoekwoord5"],
+  "services": ["dienst1", "dienst2", "dienst3"],
+  "usps": ["usp1", "usp2"],
+  "location": "locatie of regio focus (of null)",
+  "targetAudience": "beschrijving doelgroep"
+}
+
+BELANGRIJKE REGELS:
+- keywords: 5-8 commerciële zoekwoorden die potentiële klanten zouden gebruiken om dit type bedrijf te vinden
+- Focus op zoekwoorden die NIET de bedrijfsnaam bevatten
+- Denk vanuit de klant: wat zou iemand typen die dit bedrijf zoekt?
+- services: concrete diensten/producten die het bedrijf aanbiedt
+- usps: unieke verkoopargumenten
+- Alles in het Nederlands
+
+Geef ALLEEN de JSON terug, geen extra tekst.`
+      }]
+    })
+    
+    const responseText = message.content[0].type === 'text' ? message.content[0].text : ''
+    
+    // Clean and parse JSON
+    let cleanedText = responseText.trim()
+    if (cleanedText.startsWith('```json')) {
+      cleanedText = cleanedText.replace(/^```json\n?/, '').replace(/\n?```$/, '')
+    } else if (cleanedText.startsWith('```')) {
+      cleanedText = cleanedText.replace(/^```\n?/, '').replace(/\n?```$/, '')
+    }
+    
+    const analysis = JSON.parse(cleanedText)
+    
+    return {
+      success: true,
+      keywords: analysis.keywords || [],
+      services: analysis.services || [],
+      usps: analysis.usps || [],
+      location: analysis.location,
+      targetAudience: analysis.targetAudience,
+      rawParsed: parsed
+    }
+  } catch (error) {
+    console.error('❌ Website analysis error:', error.message)
+    return { success: false, error: error.message }
+  }
+}
 
 export async function POST(request) {
   const startTime = Date.now()
@@ -97,7 +266,8 @@ export async function POST(request) {
       userId,
       numberOfPrompts = 5,
       customTerms = null,
-      customPrompts = null  // ✨ Pre-made prompts from dashboard edit
+      customPrompts = null,  // ✨ Pre-made prompts from dashboard edit
+      websiteUrl = null      // ✨ NEW: Website URL for smart analysis
     } = body
 
     if (!companyName?.trim()) {
@@ -136,18 +306,52 @@ export async function POST(request) {
     console.log('🤖 Step 1: Preparing AI prompts...')
     
     let generatedPrompts = []
+    let websiteAnalysis = null
+    let enhancedKeywords = identifiedQueriesSummary || []
+    
+    // ✨ NEW: Analyze website if URL provided
+    if (websiteUrl && websiteUrl.trim()) {
+      console.log('🌐 Website URL provided, starting smart analysis...')
+      try {
+        websiteAnalysis = await analyzeWebsiteForKeywords(websiteUrl, companyName, companyCategory)
+        if (websiteAnalysis.success) {
+          console.log(`✅ Website analysis complete: ${websiteAnalysis.keywords.length} keywords extracted`)
+          // Merge website keywords with user-provided keywords (user keywords take priority)
+          const userKeywords = identifiedQueriesSummary || []
+          const websiteKeywords = websiteAnalysis.keywords || []
+          // User keywords first, then add unique website keywords
+          enhancedKeywords = [...userKeywords]
+          websiteKeywords.forEach(kw => {
+            if (!enhancedKeywords.some(uk => uk.toLowerCase() === kw.toLowerCase())) {
+              enhancedKeywords.push(kw)
+            }
+          })
+          // Limit to max 10 keywords
+          enhancedKeywords = enhancedKeywords.slice(0, 10)
+          console.log(`📊 Enhanced keywords: ${enhancedKeywords.join(', ')}`)
+        } else {
+          console.log('⚠️ Website analysis failed, using fallback keywords')
+        }
+      } catch (error) {
+        console.error('❌ Website analysis error:', error.message)
+        // Continue without website analysis
+      }
+    } else {
+      console.log('ℹ️ No website URL provided, using standard keyword analysis')
+    }
     
     // ✨ Use custom prompts if provided (from dashboard edit)
     if (customPrompts && Array.isArray(customPrompts) && customPrompts.length > 0) {
       console.log(`📝 Using ${customPrompts.length} custom prompts from dashboard`)
       generatedPrompts = customPrompts.filter(p => p && p.trim().length > 0)
     } else {
-      // Generate prompts with Claude
+      // Generate prompts with Claude (now with enhanced keywords)
       const promptGenerationResult = await generatePromptsWithClaude(
         companyName,
         companyCategory,
-        identifiedQueriesSummary || [],
-        customTerms
+        enhancedKeywords,
+        customTerms,
+        websiteAnalysis  // Pass website analysis for extra context
       )
 
       if (!promptGenerationResult.success) {
@@ -265,11 +469,19 @@ export async function POST(request) {
       generated_prompts: generatedPrompts,
       analysis_results: analysisResults,
       total_company_mentions: totalCompanyMentions,
+      websiteAnalyzed: websiteAnalysis?.success || false,
+      enhancedKeywords: enhancedKeywords,
       meta: {
         scansRemaining: updatedCheck.scansRemaining,
         isAuthenticated: !!userId,
         analysisLimit: analysisLimit,
         scanDurationMs: scanDuration,
+        websiteAnalysis: websiteAnalysis?.success ? {
+          url: websiteUrl,
+          extractedKeywords: websiteAnalysis.keywords,
+          services: websiteAnalysis.services,
+          usps: websiteAnalysis.usps
+        } : null,
         betaMessage: userId 
           ? `Je hebt nog ${updatedCheck.scansRemaining} scans deze maand!` 
           : `Maak een gratis account voor ${BETA_CONFIG.TOOLS['ai-visibility'].limits.authenticated} scans per maand`
@@ -293,9 +505,33 @@ async function generatePromptsWithClaude(
   companyName, 
   companyCategory, 
   queries,
-  customTerms = null
+  customTerms = null,
+  websiteAnalysis = null  // ✨ NEW: Website analysis for better prompts
 ) {
   const primaryKeyword = queries.length > 0 ? queries[0] : null
+  
+  // ============================================
+  // ✨ WEBSITE CONTEXT (if available)
+  // ============================================
+  let websiteContext = '';
+  if (websiteAnalysis && websiteAnalysis.success) {
+    websiteContext = `
+
+**🌐 WEBSITE ANALYSE - GEBRUIK DEZE CONTEXT:**
+
+**DIENSTEN/PRODUCTEN:**
+${websiteAnalysis.services?.length > 0 ? websiteAnalysis.services.map(s => `- ${s}`).join('\n') : 'Niet gedetecteerd'}
+
+**UNIQUE SELLING POINTS:**
+${websiteAnalysis.usps?.length > 0 ? websiteAnalysis.usps.map(u => `- ${u}`).join('\n') : 'Niet gedetecteerd'}
+
+**DOELGROEP:** ${websiteAnalysis.targetAudience || 'Niet gedetecteerd'}
+
+**LOCATIE-FOCUS:** ${websiteAnalysis.location || 'Niet specifiek'}
+
+🎯 GEBRUIK deze informatie om RELEVANTERE commerciële vragen te genereren die aansluiten bij wat het bedrijf DAADWERKELIJK aanbiedt.
+`;
+  }
   
   // ============================================
   // ✨ STRICTER CUSTOM TERMS
@@ -336,7 +572,7 @@ Dit is een HARDE VEREISTE. Als je minder dan 7 vragen met deze termen hebt, is d
 **GEBRUIK DEZE TERMEN OP EEN NATUURLIJKE MANIER:**
 ${customTerms.include.slice(0, 3).map(term => 
   `✅ "Kun je ${term} bedrijven aanbevelen?" → CORRECT! Natuurlijk gebruik
-✅ "Welke ${term} bureaus zijn er?" → CORRECT! Natuurlijk geïntegreerd`
+✅ "Welke ${term} specialisten zijn er?" → CORRECT! Natuurlijk geïntegreerd`
 ).join('\n')}
 
 **NIET ZO (geforceerd):**
@@ -418,9 +654,9 @@ Mensen die dit zoeken willen concrete bedrijven/dienstverleners vinden.
 
 **NATUURLIJKE PATRONEN (zo moet het):**
 - "Kun je bedrijven aanbevelen die..."
-- "Welke zijn de beste bureaus voor..."
+- "Welke zijn de beste specialisten voor..."
 - "Geef voorbeelden van bedrijven met..."
-- "Lijst bureaus op die gespecialiseerd zijn in..."
+- "Lijst aanbieders op die gespecialiseerd zijn in..."
 
 **GEFORCEERD (zo NIET):**
 - "Welke bedrijven bieden ${primaryKeyword} diensten?" → TE ROBOT-ACHTIG!
@@ -468,7 +704,7 @@ ${customTermsInstruction}`,
 - Bedrijfscategorie: "${companyCategory}"
 - Zoek naar bedrijven die vergelijkbare diensten leveren
 - Focus op Nederlandse markt
-
+${websiteContext}
 **🚨 KRITIEKE REGEL: BEDRIJFSNEUTRALITEIT**
 De vragen moeten **algemeen en bedrijfsneutraal** zijn:
 - Vermeld NIET de naam "${companyName}"
@@ -483,16 +719,37 @@ Start elke vraag IDEALITER met een direct verzoek om concrete bedrijfsnamen:
 
 ✅ **COMMERCIAL PATTERNS (zo moet het):**
 - "Kun je een aantal **bedrijven** noemen die..."
-- "Welke zijn de top **bureaus** die gespecialiseerd zijn in..."
+- "Welke zijn de top **specialisten** die gespecialiseerd zijn in..."
 - "Geef voorbeelden van gerenommeerde **bedrijven** voor..."
 - "Lijst aanbevolen **leveranciers** op van..."
 - "Welke **bedrijven** hebben bewezen expertise in..."
-- "Ken je **bureaus** met uitstekende reviews voor..."
-- "Wat zijn de beste **leveranciers** voor..."
+- "Ken je **specialisten** met uitstekende reviews voor..."
+- "Wat zijn de beste **aanbieders** voor..."
 - "Heb je tips voor **bedrijven** die..."
 
-**LET OP:** Gebruik VARIATIE! Wissel af tussen:
-- bedrijven / bureaus / leveranciers / aanbieders
+**🚨 KRITIEK - JUISTE TERMINOLOGIE:**
+
+Kies de JUISTE term op basis van het type bedrijf:
+
+✅ Voor DIENSTVERLENERS (marketing, advies, consulting, IT):
+- bureaus, agencies, adviesbureaus
+
+✅ Voor AMBACHTEN (schilders, stukadoors, loodgieters, bouwvakkers):
+- bedrijven, vakmensen, specialisten, professionals
+
+✅ Voor WINKELS/RETAIL (gordijnen, meubels, kleding):
+- winkels, leveranciers, aanbieders, speciaalzaken
+
+✅ Voor FABRIKANTEN/MAKERS (op maat, custom):
+- bedrijven, ateliers, werkplaatsen, makers
+
+❌ NOOIT "bureaus" gebruiken voor:
+- Winkels (een gordijnwinkel is GEEN bureau)
+- Ambachtslieden (een schilder is GEEN bureau)
+- Makers/Ateliers (een meubelmaker is GEEN bureau)
+
+**LET OP:** Gebruik VARIATIE! Wissel af tussen PASSENDE termen:
+- bedrijven / specialisten / leveranciers / aanbieders / vakmensen
 - Kun je... / Welke... / Geef... / Lijst... / Ken je... / Wat zijn...
 
 ❌ **VERMIJD (niet commercieel genoeg):**
@@ -514,7 +771,7 @@ ${customTerms.include?.length > 0 ? `
 
 Voorbeelden:
 ✅ "Kun je ${customTerms.include[0]} bedrijven aanbevelen..."
-✅ "Welke ${customTerms.include[0]} bureaus zijn er..."
+✅ "Welke ${customTerms.include[0]} specialisten zijn er..."
 ❌ "Welke bedrijven bieden ${customTerms.include[0]} diensten..." (geforceerd!)
 ` : ''}
 
@@ -681,7 +938,7 @@ Simuleer hoe een AI Overview of geavanceerde chatbot zou reageren op de zoekopdr
 
 4. **WEL VERMELDEN:**
    ✅ Nederlandse lokale dienstverleners
-   ✅ Regionale bureaus en bedrijven
+   ✅ Regionale specialisten en bedrijven
    ✅ Specialistische B2B-aanbieders
    ✅ Kleinere tot middelgrote bedrijven in Nederland
 
@@ -695,7 +952,7 @@ Stel je voor dat je een Nederlands kind bent dat bedrijven aanbeveelt:
 - NOEM NOOIT Semrush of andere tools
 
 **VOORBEELD GOED:**
-"Er zijn verschillende Nederlandse bureaus die hierin gespecialiseerd zijn, zoals [Klein Bureau X], [Lokaal Bedrijf Y], en [Regionaal Bureau Z]. Deze bedrijven hebben ervaring met..."
+"Er zijn verschillende Nederlandse bedrijven die hierin gespecialiseerd zijn, zoals [Bedrijf X], [Lokaal Bedrijf Y], en [Specialist Z]. Deze bedrijven hebben ervaring met..."
 
 **VOORBEELD FOUT:**
 "You can find services at..." ❌ (Engels!)
