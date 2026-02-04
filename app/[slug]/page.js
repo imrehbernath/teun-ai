@@ -368,7 +368,9 @@ export default async function BlogPost({ params }) {
             {headings.length > 0 && (
               <div className="col-span-12 lg:col-span-4">
                 <div className="lg:sticky lg:top-24 lg:pb-28">
-                  <TableOfContents headings={headings} />
+                  <div className={styles.tocWrapper}>
+                    <TableOfContents headings={headings} />
+                  </div>
                   
                   <div className="hidden lg:block">
                     <EmailSignup 

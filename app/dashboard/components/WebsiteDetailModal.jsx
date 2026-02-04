@@ -20,17 +20,23 @@ import {
   MessageSquare,
   ChevronDown,
   ChevronUp,
-  Plus
+  Plus,
+  Save,
+  Loader2,
+  Zap
 } from 'lucide-react'
 import ScoreChart from './ScoreChart'
 
-export default function WebsiteDetailModal({ website, onClose, onDeleteScan, onStartScanWithPrompts }) {
-  const [activeTab, setActiveTab] = useState('overview') // overview, prompts, scans
+export default function WebsiteDetailModal({ website, onClose, onDeleteScan, onStartScanWithPrompts, onSavePrompts, onRefresh, initialTab = 'overview' }) {
+  const [activeTab, setActiveTab] = useState(initialTab) // overview, prompts, scans
   const [expandedScan, setExpandedScan] = useState(null)
   const [editingPrompts, setEditingPrompts] = useState(null)
+  const [editingScanId, setEditingScanId] = useState(null) // Track which scan we're editing
   const [editedPrompts, setEditedPrompts] = useState([])
   const [copiedPrompt, setCopiedPrompt] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [saveSuccess, setSaveSuccess] = useState(false)
 
   const getScoreColor = (score) => {
     if (score >= 70) return 'text-green-500'
@@ -127,6 +133,7 @@ export default function WebsiteDetailModal({ website, onClose, onDeleteScan, onS
   const handleStartEditingPrompts = (scan) => {
     const prompts = getScanPrompts(scan)
     setEditedPrompts([...prompts])
+    setEditingScanId(scan.id) // Track which scan we're editing
     setEditingPrompts('editing')
     setActiveTab('prompts') // Switch to prompts tab
   }
@@ -134,6 +141,12 @@ export default function WebsiteDetailModal({ website, onClose, onDeleteScan, onS
   const handleEditAllPrompts = () => {
     const prompts = getAllPrompts()
     setEditedPrompts([...prompts])
+    // Get the most recent scan ID for saving
+    const mostRecentScan = website.scans[0]
+    console.log('Most recent scan:', mostRecentScan)
+    console.log('Scan ID:', mostRecentScan?.id)
+    console.log('All scans:', website.scans)
+    setEditingScanId(mostRecentScan?.id || null)
     setEditingPrompts('editing')
   }
 
@@ -152,27 +165,89 @@ export default function WebsiteDetailModal({ website, onClose, onDeleteScan, onS
     setEditedPrompts(newPrompts)
   }
 
-  const handleStartNewScanWithPrompts = () => {
+  // NEW: Save prompts to database without starting new scan
+  const handleSavePrompts = async () => {
     const validPrompts = editedPrompts.filter(p => p.trim() !== '')
     if (validPrompts.length === 0) {
       alert('Voeg minimaal 1 prompt toe')
       return
     }
-    
-    if (onStartScanWithPrompts) {
-      onStartScanWithPrompts({
-        companyName: website.name,
-        category: website.category,
-        website: website.website,
-        prompts: validPrompts
-      })
+
+    if (!editingScanId) {
+      alert('Geen scan gevonden om op te slaan')
+      return
     }
-    onClose()
+
+    setSaving(true)
+    try {
+      const response = await fetch('/api/prompts/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scanId: editingScanId,
+          prompts: validPrompts
+        })
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        setSaveSuccess(true)
+        setTimeout(() => setSaveSuccess(false), 3000)
+        
+        // Call parent callback if provided
+        if (onSavePrompts) {
+          onSavePrompts(editingScanId, validPrompts)
+        }
+        
+        // Exit edit mode
+        setEditingPrompts(null)
+        setEditedPrompts([])
+        setEditingScanId(null)
+      } else {
+        alert(result.error || 'Fout bij opslaan')
+      }
+    } catch (error) {
+      console.error('Save error:', error)
+      alert('Fout bij opslaan van prompts')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Redirect to scanner tool with custom prompts
+  const handleRescanPrompts = () => {
+    const validPrompts = editedPrompts.filter(p => p.trim() !== '')
+    if (validPrompts.length === 0) {
+      alert('Voeg minimaal 1 prompt toe')
+      return
+    }
+
+    // Store prompts and company data in sessionStorage for the scanner
+    const scanData = {
+      companyName: website.name,
+      companyCategory: website.category || 'Algemeen',
+      websiteUrl: website.website,
+      customPrompts: validPrompts,
+      fromDashboard: true
+    }
+    
+    sessionStorage.setItem('pendingScan', JSON.stringify(scanData))
+    
+    // Redirect to scanner tool step 3 (prompts bevestigen)
+    window.location.href = '/tools/ai-visibility?step=3'
+  }
+
+  // Legacy function for backwards compatibility
+  const handleStartNewScanWithPrompts = () => {
+    // Use the new rescan function instead
+    handleRescanPrompts()
   }
 
   const handleCancelEditing = () => {
     setEditingPrompts(null)
     setEditedPrompts([])
+    setEditingScanId(null)
   }
 
   const handleDeleteScan = (scanId) => {
@@ -444,17 +519,48 @@ export default function WebsiteDetailModal({ website, onClose, onDeleteScan, onS
                   </button>
 
                   {/* Action Buttons */}
-                  <div className="flex gap-3">
-                    <button
-                      onClick={handleStartNewScanWithPrompts}
-                      className="flex-1 px-5 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      Start Scan met {editedPrompts.filter(p => p.trim()).length} Prompts
-                    </button>
+                  <div className="flex flex-col gap-3">
+                    {/* Save Success Message */}
+                    {saveSuccess && (
+                      <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Prompts succesvol opgeslagen!
+                      </div>
+                    )}
+                    
+                    <div className="flex gap-3">
+                      {/* Save Button - saves without starting new scan */}
+                      <button
+                        onClick={handleSavePrompts}
+                        disabled={saving}
+                        className="flex-1 px-5 py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {saving ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Opslaan...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-4 h-4" />
+                            Alleen Opslaan
+                          </>
+                        )}
+                      </button>
+                      
+                      {/* Start Scan Button - Redirects to scanner tool */}
+                      <button
+                        onClick={handleRescanPrompts}
+                        className="flex-1 px-5 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                      >
+                        <Zap className="w-4 h-4" />
+                        Scan {editedPrompts.filter(p => p.trim()).length} Prompts
+                      </button>
+                    </div>
+                    
                     <button
                       onClick={handleCancelEditing}
-                      className="px-5 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-all"
+                      className="w-full px-5 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-all text-sm"
                     >
                       Annuleer
                     </button>

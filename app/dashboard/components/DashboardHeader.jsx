@@ -22,14 +22,14 @@ export default function DashboardHeader({ stats, onRefresh }) {
   return (
     <div className="mb-8">
       {/* Title Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+        <div className="flex-1">
           <h1 className="text-3xl font-bold text-slate-900">Mijn Scans</h1>
           <p className="text-slate-500 mt-1">
             Volg de AI-zichtbaarheid van al je websites en bekijk hoe je scoort over tijd.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 sm:mr-32">
           <button
             onClick={onRefresh}
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer shadow-sm"

@@ -46,8 +46,8 @@ export default function CTASection() {
           <div className="absolute inset-0 bg-gradient-to-l from-white/5 to-transparent"></div>
           
           <Image
-            src="/Teun-ai-blij-met-resultaat.png"
-            alt="Teun is blij"
+            src="/teun-ai-mascotte.png"
+            alt="Teun helpt je"
             width={200}
             height={250}
             className="drop-shadow-2xl relative z-10"

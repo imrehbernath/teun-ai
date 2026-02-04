@@ -436,6 +436,8 @@ export async function POST(request) {
           user_id: userId,
           tool_name: 'ai-visibility',
           company_name: companyName,
+          company_category: companyCategory,
+          website: websiteUrl,
           keyword: identifiedQueriesSummary?.[0] || companyCategory,
           commercial_prompts: generatedPrompts,
           prompts_count: generatedPrompts.length,
@@ -636,37 +638,48 @@ Als je niet aan AL deze eisen voldoet, begin dan OPNIEUW.
   const searchConsoleContext = queries.length > 0 
     ? `
 
-**ZOEKWOORDEN ANALYSE:**
-Analyseer de context van deze belangrijke zoekwoorden om de relevantie van de gegenereerde vragen te optimaliseren.
-    
-**BELANGRIJKSTE ZOEKWOORD (HOOFDFOCUS):** "${primaryKeyword}"
+**🚨 ZOEKWOORDEN - GEBRUIK EXACT DEZE TERMEN:**
 
-**AANVULLENDE ZOEKWOORDEN:**
-${queries.slice(1).map(q => `- "${q}"`).join('\n') || 'Geen aanvullende zoekwoorden'}
+**OPGEGEVEN ZOEKWOORDEN:**
+${queries.map((q, i) => `${i + 1}. "${q}"`).join('\n')}
 
-**🎯 GEBRUIK ZOEKWOORDEN NATUURLIJK - FOCUS OP INTENTIE:**
+**⚠️ KRITIEKE VERDELING - ALLE ZOEKWOORDEN MOETEN TERUGKOMEN:**
 
-Zoekwoorden geven CONTEXT over wat mensen zoeken. Gebruik ze als INSPIRATIE voor natuurlijke vragen die leiden tot concrete bedrijfsnamen.
+${queries.length === 1 ? `
+- Alle 10 prompts moeten "${queries[0]}" of een directe variant bevatten
+` : queries.length === 2 ? `
+- "${queries[0]}": gebruik in 5 prompts
+- "${queries[1]}": gebruik in 5 prompts
+` : queries.length === 3 ? `
+- "${queries[0]}": gebruik in 3-4 prompts
+- "${queries[1]}": gebruik in 3-4 prompts
+- "${queries[2]}": gebruik in 3 prompts
+` : queries.length === 4 ? `
+- "${queries[0]}": gebruik in 2-3 prompts
+- "${queries[1]}": gebruik in 2-3 prompts
+- "${queries[2]}": gebruik in 2-3 prompts
+- "${queries[3]}": gebruik in 2-3 prompts
+` : `
+- Verdeel de 10 prompts EERLIJK over alle ${queries.length} zoekwoorden
+- Elk zoekwoord moet minimaal 1x terugkomen
+- Het eerste zoekwoord "${queries[0]}" mag maximaal 2-3x voorkomen
+`}
 
-${primaryKeyword ? `
-**CONTEXT VOOR "${primaryKeyword}":**
-Mensen die dit zoeken willen concrete bedrijven/dienstverleners vinden.
+**⚠️ GEBRUIK DE EXACTE ZOEKWOORDEN - GEEN ANDERE SYNONIEMEN:**
 
-**NATUURLIJKE PATRONEN (zo moet het):**
-- "Kun je bedrijven aanbevelen die..."
-- "Welke zijn de beste specialisten voor..."
-- "Geef voorbeelden van bedrijven met..."
-- "Lijst aanbieders op die gespecialiseerd zijn in..."
+- "Advocaten" = advocaten, advocatenkantoor, advocaat
+- "Advocaten" ≠ rechtsbijstand, juridisch adviseur, notaris (ANDERE BEROEPEN!)
+- "SEO specialist" = SEO, zoekmachine-optimalisatie  
+- "SEO specialist" ≠ webdesigner, marketeer (ANDERE DIENSTEN!)
 
-**GEFORCEERD (zo NIET):**
-- "Welke bedrijven bieden ${primaryKeyword} diensten?" → TE ROBOT-ACHTIG!
-- "Waar vind ik ${primaryKeyword} werk?" → ONNATUURLIJK!
-` : ''}
+**TOEGESTANE VARIATIES:**
+- Enkelvoud ↔ meervoud (advocaat ↔ advocaten)
+- Met/zonder kantoor/bureau (advocaat ↔ advocatenkantoor)
 
-**KRITIEKE INSTRUCTIE:** 
-- Alle 10 prompts MOETEN direct gerelateerd zijn aan de opgegeven zoekwoorden
-- Focus op de INTENTIE: mensen willen concrete bedrijven vinden
-- Blijf binnen de context van wat de klant zoekt`
+**VERBODEN:**
+- Compleet andere beroepsgroepen
+- Gerelateerde maar ANDERE diensten
+- "Creatieve" synoniemen die de betekenis veranderen`
     : ''
 
   try {

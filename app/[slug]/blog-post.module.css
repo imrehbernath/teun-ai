@@ -437,7 +437,7 @@
   background-size: 100% 60%;
 }
 
-:global(.toc-heading-underline) {
+.tocWrapper :global(.toc-heading-underline) {
   font-size: 20px;
   font-weight: 700;
   color: #1E1E1E;
@@ -447,7 +447,7 @@
   border-image: linear-gradient(90deg, #1A7DFF, #6C3FF2) 1;
 }
 
-:global(.toc-container) {
+.tocWrapper :global(.toc-container) {
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
@@ -455,7 +455,7 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-:global(.toc-link) {
+.tocWrapper :global(.toc-link) {
   color: #3730a3;
   text-decoration: none;
   padding: 4px 8px;
@@ -468,22 +468,22 @@
   font-weight: 600;
 }
 
-:global(.toc-link.level-2) {
+.tocWrapper :global(.toc-link.level-2) {
   padding-left: 8px;
 }
 
-:global(.toc-link.level-3) {
+.tocWrapper :global(.toc-link.level-3) {
   padding-left: 24px;
   color: #4338ca;
 }
 
-:global(.toc-link:hover),
-:global(.toc-link.active) {
+.tocWrapper :global(.toc-link:hover),
+.tocWrapper :global(.toc-link.active) {
   background-color: #1E1E3F;
   color: white !important;
 }
 
-:global(.toc-arrow) {
+.tocWrapper :global(.toc-arrow) {
   display: inline-flex;
   align-items: center;
   transition: transform 0.2s ease;
@@ -491,13 +491,13 @@
   color: currentColor;
 }
 
-:global(.toc-arrow) svg {
+.tocWrapper :global(.toc-arrow) svg {
   width: 15px;
   height: 15px;
 }
 
-:global(.toc-link:hover .toc-arrow),
-:global(.toc-link.active .toc-arrow) {
+.tocWrapper :global(.toc-link:hover .toc-arrow),
+.tocWrapper :global(.toc-link.active .toc-arrow) {
   transform: translateX(3px);
 }
 
@@ -822,25 +822,25 @@
   }
 
   /* TOC Mobile */
-  :global(.toc-container) {
+  .tocWrapper :global(.toc-container) {
     padding: 1rem;
     border-radius: 8px;
   }
 
-  :global(.toc-link) {
+  .tocWrapper :global(.toc-link) {
     font-size: 13px;
     padding: 3px 6px;
   }
 
-  :global(.toc-link.level-2) {
+  .tocWrapper :global(.toc-link.level-2) {
     padding-left: 6px;
   }
 
-  :global(.toc-link.level-3) {
+  .tocWrapper :global(.toc-link.level-3) {
     padding-left: 20px;
   }
 
-  :global(.toc-arrow) svg {
+  .tocWrapper :global(.toc-arrow) svg {
     width: 13px;
     height: 13px;
   }
@@ -917,6 +917,6 @@
    UTILITIES
    ============================================ */
 
-:global(#rank-math-faq) {
+.blogContent :global(#rank-math-faq) {
   display: none !important;
 }

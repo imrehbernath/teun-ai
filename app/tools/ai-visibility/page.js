@@ -51,6 +51,36 @@ function AIVisibilityToolContent() {
   useEffect(() => {
     if (!searchParams) return;
 
+    // ✨ Check for pending scan from dashboard modal
+    const pendingScan = sessionStorage.getItem('pendingScan')
+    if (pendingScan) {
+      try {
+        const data = JSON.parse(pendingScan)
+        sessionStorage.removeItem('pendingScan') // Clean up
+        console.log('📝 Pending scan loaded from dashboard:', data)
+        
+        setFormData(prev => ({
+          ...prev,
+          companyName: data.companyName || prev.companyName,
+          companyCategory: data.companyCategory || prev.companyCategory,
+          website: data.websiteUrl || prev.website
+        }))
+        
+        if (data.customPrompts && data.customPrompts.length > 0) {
+          setCustomPrompts(data.customPrompts)
+        }
+        
+        setStep(3) // Go to step 3 (confirm prompts)
+        return // Don't process other params
+      } catch (e) {
+        console.error('Error loading pending scan:', e)
+        sessionStorage.removeItem('pendingScan')
+      }
+    }
+
+    // Check for direct step navigation (e.g., ?step=3)
+    const stepParam = searchParams.get('step')
+    
     const company = searchParams.get('company');
     const category = searchParams.get('category');
     const keywords = searchParams.get('keywords');
@@ -761,33 +791,36 @@ function AIVisibilityToolContent() {
         )}
 
         {/* ====================================== */}
-        {/* STEP 3 - Analyse (DARK THEME)         */}
+        {/* STEP 3 - Analyse (LIGHT THEME)        */}
         {/* ====================================== */}
         {step === 3 && (
-          <section className="rounded-2xl p-6 sm:p-8 shadow-xl mb-8 bg-gradient-to-br from-[#1E1E3F] via-[#2D2D5F] to-[#1E1E3F] border border-slate-700 text-white">
-            <div className="grid lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2">
+          <section className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 sm:p-8 mb-8">
+            <div className="grid lg:grid-cols-5 gap-6 lg:gap-8">
+              {/* Left: Content - 3 columns */}
+              <div className="lg:col-span-3">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-lg flex items-center justify-center border border-yellow-400/30">
-                    <Zap className="w-5 h-5 text-yellow-300" />
+                  <div className="w-10 h-10 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-lg flex items-center justify-center border border-yellow-200">
+                    <Zap className="w-5 h-5 text-yellow-600" />
                   </div>
-                  <h2 className="text-2xl font-bold">3. Start de Analyse</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900">3. Start de Analyse</h2>
                 </div>
 
                 {analyzing ? (
                   <div className="space-y-6">
-                    {/* Mobile Teun during scanning - overlaps onto scan box */}
-                    <div className="flex lg:hidden justify-center relative z-10" style={{ marginBottom: 0 }}>
-                      <Image src="/teun-ai-mascotte.png" alt="Teun analyseert" width={160} height={200} className="drop-shadow-2xl" />
+                    {/* Mobile Teun during scanning */}
+                    <div className="flex lg:hidden justify-center mb-4">
+                      <Image src="/teun-ai-mascotte.png" alt="Teun analyseert" width={140} height={175} className="drop-shadow-xl" />
                     </div>
-                    <div className="bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border-2 border-purple-400/40 rounded-2xl p-6 pt-10 text-center">
-                      <Loader2 className="w-12 h-12 text-purple-300 mx-auto mb-4 animate-spin" />
-                      <h3 className="text-xl font-bold text-white mb-2">Bezig met analyseren...</h3>
-                      <p className="text-purple-200 mb-4">{currentStep}</p>
+                    
+                    {/* Scanning Progress Box */}
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 text-center">
+                      <Loader2 className="w-12 h-12 text-blue-500 mx-auto mb-4 animate-spin" />
+                      <h3 className="text-xl font-bold text-slate-900 mb-2">Bezig met analyseren...</h3>
+                      <p className="text-slate-600 mb-4">{currentStep}</p>
                       
-                      <div className="w-full bg-white/10 rounded-full h-4 overflow-hidden border border-white/20">
+                      <div className="w-full bg-slate-200 rounded-full h-4 overflow-hidden">
                         <div 
-                          className="h-full bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 transition-all duration-300 flex items-center justify-end pr-2"
+                          className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all duration-300 flex items-center justify-end pr-2"
                           style={{ width: `${Math.floor(progress)}%` }}
                         >
                           <span className="text-xs font-bold text-white drop-shadow-lg">
@@ -797,16 +830,17 @@ function AIVisibilityToolContent() {
                       </div>
                     </div>
 
+                    {/* Progress Steps */}
                     <div className="space-y-3 text-sm">
-                      <div className={'flex items-center gap-2 transition-colors duration-300 ' + (progress >= 20 ? 'text-green-300' : progress > 10 ? 'text-purple-300' : 'text-gray-500')}>
+                      <div className={'flex items-center gap-2 transition-colors duration-300 ' + (progress >= 20 ? 'text-green-600' : progress > 10 ? 'text-blue-600' : 'text-slate-400')}>
                         {progress >= 20 ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border-2 border-current" />}
                         <span>{customPrompts ? 'Aangepaste prompts voorbereiden...' : 'Commerciële AI-prompts genereren...'}</span>
                       </div>
-                      <div className={'flex items-center gap-2 transition-colors duration-300 ' + (progress >= 90 ? 'text-green-300' : progress > 20 ? 'text-purple-300' : 'text-gray-500')}>
+                      <div className={'flex items-center gap-2 transition-colors duration-300 ' + (progress >= 90 ? 'text-green-600' : progress > 20 ? 'text-blue-600' : 'text-slate-400')}>
                         {progress >= 90 ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border-2 border-current" />}
                         <span>Analyseren via geavanceerde AI-zoekmachine...</span>
                       </div>
-                      <div className={'flex items-center gap-2 transition-colors duration-300 ' + (progress === 100 ? 'text-green-300' : progress > 90 ? 'text-purple-300' : 'text-gray-500')}>
+                      <div className={'flex items-center gap-2 transition-colors duration-300 ' + (progress === 100 ? 'text-green-600' : progress > 90 ? 'text-blue-600' : 'text-slate-400')}>
                         {progress === 100 ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border-2 border-current" />}
                         <span>Resultaten verwerken en rapport genereren...</span>
                       </div>
@@ -814,54 +848,55 @@ function AIVisibilityToolContent() {
                   </div>
                 ) : (
                   <>
-                    <div className="bg-white/5 rounded-lg p-4 mb-6 space-y-3 text-sm border border-white/10">
+                    {/* Summary Card */}
+                    <div className="bg-slate-50 rounded-xl p-4 mb-6 space-y-3 text-sm border border-slate-200">
                       <div className="flex justify-between items-start gap-3">
-                        <span className="text-gray-400 flex-shrink-0">Bedrijf:</span>
-                        <span className="text-white font-medium text-right">{formData.companyName}</span>
+                        <span className="text-slate-500 flex-shrink-0">Bedrijf:</span>
+                        <span className="text-slate-900 font-medium text-right">{formData.companyName}</span>
                       </div>
                       <div className="flex justify-between items-start gap-3">
-                        <span className="text-gray-400 flex-shrink-0">Branche:</span>
-                        <span className="text-white font-medium text-right">{formData.companyCategory}</span>
+                        <span className="text-slate-500 flex-shrink-0">Branche:</span>
+                        <span className="text-slate-900 font-medium text-right">{formData.companyCategory}</span>
                       </div>
                       {formData.queries && !customPrompts && (
                         <div className="flex justify-between items-start gap-3">
-                          <span className="text-gray-400 flex-shrink-0">Zoekwoord:</span>
-                          <span className="text-white font-medium text-right">
+                          <span className="text-slate-500 flex-shrink-0">Zoekwoord:</span>
+                          <span className="text-slate-900 font-medium text-right">
                             {formData.queries.split(/[,\n]/)[0]?.trim() || 'Geen opgegeven'}
                           </span>
                         </div>
                       )}
                       <div className="flex justify-between items-start gap-3">
-                        <span className="text-gray-400 flex-shrink-0">Prompts:</span>
-                        <span className="text-white font-medium text-right">
+                        <span className="text-slate-500 flex-shrink-0">Prompts:</span>
+                        <span className="text-slate-900 font-medium text-right">
                           {customPrompts ? `${customPrompts.length} aangepast` : `${user ? '10' : '5'} AI-prompts`}
                         </span>
                       </div>
                       {referralSource && (
                         <div className="flex justify-between items-start gap-3">
-                          <span className="text-gray-400 flex-shrink-0">Bron:</span>
-                          <span className="text-blue-300 font-medium text-right capitalize">{referralSource}</span>
+                          <span className="text-slate-500 flex-shrink-0">Bron:</span>
+                          <span className="text-blue-600 font-medium text-right capitalize">{referralSource}</span>
                         </div>
                       )}
                     </div>
 
                     {/* Custom Prompts from Dashboard */}
                     {customPrompts && customPrompts.length > 0 && (
-                      <div className="bg-purple-500/20 border border-purple-400/40 rounded-xl p-4 mb-6">
-                        <div className="text-sm text-purple-200 font-semibold mb-3 flex items-center gap-2">
+                      <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-6">
+                        <div className="text-sm text-purple-800 font-semibold mb-3 flex items-center gap-2">
                           <span>📝</span>
                           <span>Aangepaste prompts ({customPrompts.length}):</span>
                         </div>
                         <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
                           {customPrompts.map((prompt, idx) => (
                             <div key={idx} className="flex items-start gap-2 text-sm">
-                              <span className="text-purple-300 flex-shrink-0 w-5">{idx + 1}.</span>
-                              <span className="text-gray-300">{prompt}</span>
+                              <span className="text-purple-600 flex-shrink-0 w-5">{idx + 1}.</span>
+                              <span className="text-slate-700">{prompt}</span>
                             </div>
                           ))}
                         </div>
                         <button onClick={() => setCustomPrompts(null)}
-                          className="mt-3 text-xs text-purple-300 hover:text-purple-200 underline">
+                          className="mt-3 text-xs text-purple-600 hover:text-purple-800 underline">
                           Annuleer en genereer nieuwe prompts
                         </button>
                       </div>
@@ -869,38 +904,42 @@ function AIVisibilityToolContent() {
 
                     {/* Advanced Settings in Step 3 */}
                     {(excludeTermsInput || includeTermsInput || locationTermsInput) && (
-                      <div className="bg-purple-500/10 border border-purple-400/30 rounded-lg p-4 mb-6">
-                        <div className="text-sm text-purple-200 font-semibold mb-3 flex items-center gap-2">
+                      <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6">
+                        <div className="text-sm text-indigo-800 font-semibold mb-3 flex items-center gap-2">
                           <span>⚙️</span>
                           <span>Geavanceerde Instellingen:</span>
                         </div>
                         <div className="space-y-2 text-xs">
-                          {excludeTermsInput && <div className="flex items-start gap-2"><span className="text-red-400 flex-shrink-0">❌ Vermijd:</span><span className="text-gray-300">{excludeTermsInput}</span></div>}
-                          {includeTermsInput && <div className="flex items-start gap-2"><span className="text-green-400 flex-shrink-0">✅ Gebruik:</span><span className="text-gray-300">{includeTermsInput}</span></div>}
-                          {locationTermsInput && <div className="flex items-start gap-2"><span className="text-blue-400 flex-shrink-0">📍 Locatie:</span><span className="text-gray-300">{locationTermsInput}</span></div>}
+                          {excludeTermsInput && <div className="flex items-start gap-2"><span className="text-red-600 flex-shrink-0">❌ Vermijd:</span><span className="text-slate-700">{excludeTermsInput}</span></div>}
+                          {includeTermsInput && <div className="flex items-start gap-2"><span className="text-green-600 flex-shrink-0">✅ Gebruik:</span><span className="text-slate-700">{includeTermsInput}</span></div>}
+                          {locationTermsInput && <div className="flex items-start gap-2"><span className="text-blue-600 flex-shrink-0">📍 Locatie:</span><span className="text-slate-700">{locationTermsInput}</span></div>}
                         </div>
                       </div>
                     )}
 
+                    {/* Action Buttons */}
                     <div className="flex items-center gap-3 mt-6">
                       <button onClick={() => { setStep(2); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                        className="px-5 py-3 bg-white/10 text-white rounded-xl font-semibold hover:bg-white/20 transition cursor-pointer text-sm sm:text-base whitespace-nowrap">
+                        className="px-5 py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition cursor-pointer text-sm sm:text-base whitespace-nowrap border border-slate-200">
                         ← Terug
                       </button>
                       <button
                         onClick={() => { setFromHomepage(false); handleAnalyze(); }}
-                        className={`flex-1 px-5 py-3 sm:py-4 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold rounded-xl hover:from-purple-600 hover:to-indigo-700 transition shadow-lg flex items-center justify-center gap-2 cursor-pointer text-sm sm:text-base ${fromHomepage ? 'animate-bounce' : ''}`}>
+                        className={`flex-1 px-5 py-3 sm:py-4 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white font-bold rounded-xl hover:from-[#2D2D5F] hover:to-[#3D3D7F] transition shadow-lg flex items-center justify-center gap-2 cursor-pointer text-sm sm:text-base ${fromHomepage ? 'animate-bounce' : ''}`}>
                         <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
-                        Start Analyse
+                        Start Analyse →
                       </button>
                     </div>
                   </>
                 )}
               </div>
 
-              {/* Right: Teun Mascotte */}
-              <div className="hidden lg:flex flex-col items-center justify-center">
+              {/* Right: Teun Mascotte - 2 columns */}
+              <div className="hidden lg:flex lg:col-span-2 flex-col items-center justify-center">
                 <Image src="/teun-ai-mascotte.png" alt="Teun helpt je analyseren" width={280} height={350} className="drop-shadow-2xl" />
+                <p className="text-sm text-slate-500 mt-4 text-center">
+                  Klaar om te scannen!
+                </p>
               </div>
             </div>
           </section>
@@ -910,7 +949,7 @@ function AIVisibilityToolContent() {
         {/* STEP 4 - Rapport (LIGHT THEME)        */}
         {/* ====================================== */}
         {step === 4 && results && (
-          <section className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 sm:p-8 mb-8">
+          <section className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 sm:p-8 mb-8">
             {/* Teun above results - mobile */}
             <div className="flex lg:hidden justify-center -mt-2 mb-4">
               <div className="text-center">
@@ -918,17 +957,26 @@ function AIVisibilityToolContent() {
               </div>
             </div>
 
-            <div className="grid lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2">
-                {/* Success Header */}
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6">
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Analyse voltooid!</h2>
-                      <p className="text-green-700 text-sm sm:text-base">Je AI-zichtbaarheidsrapport voor {formData.companyName}</p>
+            <div className="grid lg:grid-cols-5 gap-6 lg:gap-8">
+              {/* Left: Content - 3 columns */}
+              <div className="lg:col-span-3">
+                {/* Header with icon */}
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg flex items-center justify-center border border-green-200">
+                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900">4. Jouw Rapport</h2>
+                </div>
+
+                {/* Success Banner */}
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 mb-6">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-slate-700">
+                      <strong className="text-green-800">Analyse voltooid!</strong>
+                      <p className="mt-1 text-slate-600">
+                        Je AI-zichtbaarheidsrapport voor <strong>{formData.companyName}</strong> is klaar.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -971,7 +1019,7 @@ function AIVisibilityToolContent() {
                   </div>
                 )}
 
-                {/* Stats Cards */}
+                {/* Website Analyzed Badge */}
                 {results.websiteAnalyzed && (
                   <div className="mb-4 sm:mb-6 p-3 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl">
                     <div className="flex items-center gap-2">
@@ -989,20 +1037,22 @@ function AIVisibilityToolContent() {
                     </div>
                   </div>
                 )}
+
+                {/* Stats Cards */}
                 <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
-                  <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 text-center shadow-sm">
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 text-center">
                     <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-1">{results.total_company_mentions}</div>
                     <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-medium leading-tight">
                       <span className="hidden sm:inline">Vermeldingen</span><span className="sm:hidden">Vermeld</span>
                     </div>
                   </div>
-                  <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 text-center shadow-sm">
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 text-center">
                     <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">{results.analysis_results.length}</div>
                     <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-medium leading-tight">
                       <span className="hidden sm:inline">AI Prompts</span><span className="sm:hidden">Prompts</span>
                     </div>
                   </div>
-                  <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 text-center shadow-sm">
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 text-center">
                     <div className="text-2xl sm:text-3xl font-bold text-purple-600 mb-1">
                       {[...new Set(results.analysis_results.flatMap(r => r.competitors_mentioned || []))].length}
                     </div>
@@ -1015,12 +1065,12 @@ function AIVisibilityToolContent() {
                 {/* Results List */}
                 <div className="space-y-3 mb-4 sm:mb-6">
                   {results.analysis_results.map((result, idx) => (
-                    <div key={idx} className="bg-white hover:bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 transition-all shadow-sm">
+                    <div key={idx} className="bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl p-3 sm:p-4 transition-all">
                       <div className="flex gap-2 sm:gap-3">
                         <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-xs sm:text-sm ${
                           result.company_mentioned
                             ? 'bg-green-100 text-green-700 border border-green-200'
-                            : 'bg-slate-100 text-slate-500 border border-slate-200'
+                            : 'bg-slate-200 text-slate-500 border border-slate-300'
                         }`}>
                           {idx + 1}
                         </div>
@@ -1050,6 +1100,64 @@ function AIVisibilityToolContent() {
                   ))}
                 </div>
 
+                {/* GEO DIY CTA - Only for non-logged in users */}
+                {!user && (
+                  <div id="geo-cta" className="bg-gradient-to-br from-[#1E1E3F] via-[#2D2D5F] to-[#1E1E3F] rounded-2xl p-6 mb-6 text-white relative overflow-hidden">
+                    {/* Background decoration */}
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/10 rounded-full translate-y-1/2 -translate-x-1/2" />
+                    
+                    <div className="relative">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-2xl">🚀</span>
+                        <h3 className="text-lg font-bold">Start met GEO Optimalisatie</h3>
+                      </div>
+                      
+                      <p className="text-purple-200 text-sm mb-4">
+                        Verbeter je AI-zichtbaarheid met onze gratis DIY tools. Maak een account en krijg toegang tot:
+                      </p>
+                      
+                      <ul className="space-y-2 mb-5">
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
+                          <span>Onbeperkt Perplexity + ChatGPT scans</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
+                          <span>Dashboard met alle resultaten</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
+                          <span>GEO optimalisatie tips & handleidingen</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
+                          <span>Chrome extensie voor snelle scans</span>
+                        </li>
+                      </ul>
+                      
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <Link 
+                          href="/signup"
+                          className="flex-1 px-5 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold rounded-xl hover:from-green-600 hover:to-emerald-600 transition shadow-lg text-center text-sm sm:text-base"
+                        >
+                          ✨ Gratis Account Aanmaken
+                        </Link>
+                        <Link 
+                          href="/login"
+                          className="px-5 py-3 bg-white/10 text-white font-semibold rounded-xl hover:bg-white/20 transition text-center text-sm sm:text-base border border-white/20"
+                        >
+                          Inloggen
+                        </Link>
+                      </div>
+                      
+                      <p className="text-purple-300 text-xs mt-3 text-center">
+                        100% gratis • Geen creditcard nodig
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
                   <button
@@ -1059,7 +1167,7 @@ function AIVisibilityToolContent() {
                       setExcludeTermsInput(''); setIncludeTermsInput(''); setLocationTermsInput('');
                       setResults(null); setReferralSource(null); setFromHomepage(false);
                     }}
-                    className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-white border-2 border-slate-300 text-slate-700 rounded-xl font-semibold hover:border-slate-400 hover:bg-slate-50 transition cursor-pointer text-sm sm:text-base"
+                    className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-100 border border-slate-200 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition cursor-pointer text-sm sm:text-base"
                   >
                     🔄 Nieuwe analyse
                   </button>
@@ -1086,17 +1194,79 @@ function AIVisibilityToolContent() {
                 />
               </div>
 
-              {/* Right: Teun Mascotte */}
-              <div className="hidden lg:flex flex-col items-center justify-start pt-8">
-                <Image src="/Teun-ai-blij-met-resultaat.png" alt="Teun is blij met je resultaat!" width={300} height={380} className="drop-shadow-2xl" />
-                <div className="mt-4 text-center">
-                  <p className="text-lg font-semibold text-slate-900">Goed bezig! 🎉</p>
-                  <p className="text-sm text-slate-600">
-                    {results.total_company_mentions > 0 
-                      ? `Je bent ${results.total_company_mentions}x genoemd!` 
-                      : 'Tijd om je AI-zichtbaarheid te verbeteren!'}
-                  </p>
-                </div>
+              {/* Right: Teun Mascotte + Competitor Ranking - 2 columns */}
+              <div className="hidden lg:flex lg:col-span-2 flex-col items-center justify-start pt-8">
+                <Image src="/Teun-ai-blij-met-resultaat.png" alt="Teun is blij met je resultaat!" width={240} height={300} className="drop-shadow-2xl" />
+                <p className="text-sm text-slate-500 mt-4 text-center font-medium">
+                  {results.total_company_mentions > 0 
+                    ? `Goed bezig! Je bent ${results.total_company_mentions}x genoemd! 🎉` 
+                    : 'Tijd om je AI-zichtbaarheid te verbeteren!'}
+                </p>
+
+                {/* Competitor Ranking */}
+                {(() => {
+                  // Calculate mentions per company (including user's company)
+                  const mentionCounts = {};
+                  mentionCounts[formData.companyName] = results.total_company_mentions;
+                  
+                  results.analysis_results.forEach(result => {
+                    (result.competitors_mentioned || []).forEach(comp => {
+                      mentionCounts[comp] = (mentionCounts[comp] || 0) + 1;
+                    });
+                  });
+                  
+                  // Sort by mentions (descending)
+                  const ranking = Object.entries(mentionCounts)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 6); // Top 6
+                  
+                  if (ranking.length <= 1) return null;
+                  
+                  return (
+                    <div className="mt-6 w-full bg-slate-50 rounded-xl p-4 border border-slate-200">
+                      <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                        <span>🏆</span> AI Zichtbaarheid Ranking
+                      </h4>
+                      <div className="space-y-2">
+                        {ranking.map(([name, count], idx) => {
+                          const isUser = name === formData.companyName;
+                          const medals = ['🥇', '🥈', '🥉'];
+                          return (
+                            <div 
+                              key={idx} 
+                              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+                                isUser 
+                                  ? 'bg-green-100 border border-green-300 text-green-800 font-semibold' 
+                                  : 'bg-white border border-slate-200 text-slate-700'
+                              }`}
+                            >
+                              <span className="w-6 text-center">
+                                {idx < 3 ? medals[idx] : `${idx + 1}.`}
+                              </span>
+                              <span className="flex-1 truncate">{name}</span>
+                              <span className={`font-bold ${isUser ? 'text-green-700' : 'text-slate-500'}`}>
+                                {count}x
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Scroll to GEO CTA button - only for non-logged in users */}
+                {!user && (
+                  <button
+                    onClick={() => document.getElementById('geo-cta')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="mt-6 flex flex-col items-center gap-1 text-purple-600 hover:text-purple-800 transition group cursor-pointer"
+                  >
+                    <span className="text-sm font-medium">Start met GEO optimalisatie</span>
+                    <svg className="w-6 h-6 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                  </button>
+                )}
               </div>
             </div>
           </section>

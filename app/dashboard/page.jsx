@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import Image from 'next/image'
 
 // Dashboard Components
 import DashboardHeader from './components/DashboardHeader'
@@ -26,6 +28,7 @@ export default function DashboardPage() {
     scoreChange: 0
   })
   const [selectedWebsite, setSelectedWebsite] = useState(null)
+  const [initialTab, setInitialTab] = useState('overview') // For URL param tab selection
   const [extensionInstalled, setExtensionInstalled] = useState(false)
   const [showInstructionsModal, setShowInstructionsModal] = useState(false)
   const [filter, setFilter] = useState('all') // all, best, recent
@@ -35,6 +38,7 @@ export default function DashboardPage() {
   const authSentRef = useRef(false)
   
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   // ============================================
@@ -51,6 +55,27 @@ export default function DashboardPage() {
       sendAuthToExtension()
     }
   }, [user])
+
+  // Handle URL parameters to open website modal (e.g., from GEO Analyse "Bewerken" button)
+  useEffect(() => {
+    if (!loading && websites.length > 0) {
+      const openWebsite = searchParams.get('openWebsite')
+      const tab = searchParams.get('tab')
+      
+      if (openWebsite) {
+        // Find the website by name
+        const website = websites.find(w => w.name === openWebsite)
+        if (website) {
+          setSelectedWebsite(website)
+          if (tab) {
+            setInitialTab(tab) // 'prompts', 'overview', or 'history'
+          }
+          // Clean up URL params
+          router.replace('/dashboard', { scroll: false })
+        }
+      }
+    }
+  }, [loading, websites, searchParams])
 
   // ============================================
   // EXTENSION HANDLING
@@ -381,6 +406,33 @@ export default function DashboardPage() {
     router.push(`/tools/ai-visibility?${params.toString()}`)
   }
 
+  // Handle saving edited prompts - update local state after API call
+  const handleSavePrompts = (scanId, newPrompts) => {
+    // Update local websites state with new prompts
+    setWebsites(prevWebsites => 
+      prevWebsites.map(site => ({
+        ...site,
+        scans: site.scans.map(scan => 
+          scan.id === scanId 
+            ? { ...scan, prompts: newPrompts }
+            : scan
+        )
+      }))
+    )
+    
+    // Also update selectedWebsite if it's the one being edited
+    if (selectedWebsite) {
+      setSelectedWebsite(prev => ({
+        ...prev,
+        scans: prev.scans.map(scan => 
+          scan.id === scanId 
+            ? { ...scan, prompts: newPrompts }
+            : scan
+        )
+      }))
+    }
+  }
+
   const handleDeleteWebsite = async (website) => {
     setDeleteConfirm(website)
   }
@@ -491,21 +543,93 @@ export default function DashboardPage() {
 
   if (websites.length === 0) {
     return (
-      <EmptyState 
-        userName={user?.user_metadata?.full_name || user?.email?.split('@')[0]}
-      />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
+          {/* Teun Mascot - Top Right, above content */}
+          <div className="hidden xl:block absolute -top-2 right-4 z-0">
+            <Image 
+              src="/Teun-ai-blij-met-resultaat.png" 
+              alt="Teun helpt je!" 
+              width={100} 
+              height={125} 
+              className="drop-shadow-xl opacity-90"
+            />
+          </div>
+
+          {/* Navigation Menu */}
+          <div className="mb-6 flex flex-wrap gap-2">
+            <Link 
+              href="/dashboard"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#1E1E3F] text-white rounded-lg font-medium text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              Dashboard
+            </Link>
+            <Link 
+              href="/dashboard/geo-analyse"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 border-2 border-purple-200 rounded-lg font-medium text-sm hover:from-purple-100 hover:to-indigo-100 hover:border-purple-300 transition shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              GEO Analyse
+              <span className="px-2 py-0.5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-xs font-bold rounded-full shadow-sm">PRO</span>
+            </Link>
+          </div>
+          
+          <EmptyState 
+            userName={user?.user_metadata?.full_name || user?.email?.split('@')[0]}
+          />
+        </div>
+      </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
         
+        {/* Teun Mascot - Top Right, above content */}
+        <div className="hidden xl:block absolute -top-2 right-4 z-0">
+          <Image 
+            src="/Teun-ai-blij-met-resultaat.png" 
+            alt="Teun helpt je!" 
+            width={100} 
+            height={125} 
+            className="drop-shadow-xl opacity-90"
+          />
+        </div>
+
         {/* Header with Stats */}
         <DashboardHeader 
           stats={stats}
           onRefresh={handleRefresh}
         />
+
+        {/* Navigation Menu */}
+        <div className="mb-6 flex flex-wrap gap-2">
+          <Link 
+            href="/dashboard"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#1E1E3F] text-white rounded-lg font-medium text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Dashboard
+          </Link>
+          <Link 
+            href="/dashboard/geo-analyse"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 border-2 border-purple-200 rounded-lg font-medium text-sm hover:from-purple-100 hover:to-indigo-100 hover:border-purple-300 transition shadow-sm"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            GEO Analyse
+            <span className="px-2 py-0.5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-xs font-bold rounded-full shadow-sm">PRO</span>
+          </Link>
+        </div>
 
         {/* Website List */}
         <WebsiteList 
@@ -531,9 +655,14 @@ export default function DashboardPage() {
       {selectedWebsite && (
         <WebsiteDetailModal 
           website={selectedWebsite}
-          onClose={() => setSelectedWebsite(null)}
+          onClose={() => {
+            setSelectedWebsite(null)
+            setInitialTab('overview') // Reset tab when closing
+          }}
           onDeleteScan={handleDeleteScan}
           onStartScanWithPrompts={handleStartScanWithPrompts}
+          onSavePrompts={handleSavePrompts}
+          initialTab={initialTab}
         />
       )}
 
