@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { 
@@ -65,7 +65,7 @@ const GEO_CHECKLIST = {
 // ============================================
 // MAIN COMPONENT
 // ============================================
-export default function GEOAnalysePROPage() {
+function GEOAnalysePROContent() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [step, setStep] = useState(1)
@@ -1434,5 +1434,23 @@ export default function GEOAnalysePROPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// ============================================
+// EXPORT WITH SUSPENSE WRAPPER
+// ============================================
+export default function GEOAnalysePROPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600">GEO Analyse laden...</p>
+        </div>
+      </div>
+    }>
+      <GEOAnalysePROContent />
+    </Suspense>
   )
 }
