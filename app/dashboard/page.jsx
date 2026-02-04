@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -16,6 +16,14 @@ import ExtensionPromo from './components/ExtensionPromo'
 import LoadingState from './components/LoadingState'
 
 export default function DashboardPage() {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <DashboardContent />
+    </Suspense>
+  )
+}
+
+function DashboardContent() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState(null)
   const [websites, setWebsites] = useState([])
