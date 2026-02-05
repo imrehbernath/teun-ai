@@ -1,23 +1,23 @@
 import Homepage from './components/Homepage';
 
 export const metadata = {
-  title: 'Teun.ai – AI Zichtbaarheidsanalyse | Gratis GEO Scanner',
-  description: 'Ontdek hoe zichtbaar jouw bedrijf is in ChatGPT, Perplexity, Claude en Gemini. Gratis AI visibility scan in 30 seconden. Start nu!',
+  title: 'Teun.ai | Word jij genoemd in ChatGPT? Check het gratis',
+  description: 'Gratis GEO analyse: zie wie AI aanbeveelt in jouw branche + krijg advies om hoger te scoren. Scan ChatGPT, Perplexity & Claude in 30 sec.',
   keywords: ['AI zichtbaarheid', 'GEO audit', 'AI-SEO analyse', 'Generative Engine Optimization', 'ChatGPT SEO', 'Perplexity SEO', 'AI visibility scanner'],
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: 'Teun.ai – AI Zichtbaarheidsanalyse | Gratis GEO Scanner',
-    description: 'Ontdek hoe zichtbaar jouw bedrijf is in ChatGPT, Perplexity, Claude en Gemini. Gratis AI visibility scan in 30 seconden.',
+    title: 'Teun.ai | Word jij genoemd in ChatGPT? Check het gratis',
+    description: 'Gratis GEO analyse: zie wie AI aanbeveelt in jouw branche + krijg advies om hoger te scoren. Scan ChatGPT, Perplexity & Claude in 30 sec.',
     images: ['/og-image-teun-ai.webp'],
     type: 'website',
     locale: 'nl_NL',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Teun.ai – AI Zichtbaarheidsanalyse | Gratis GEO Scanner',
-    description: 'Ontdek hoe zichtbaar jouw bedrijf is in ChatGPT, Perplexity, Claude en Gemini. Gratis AI visibility scan in 30 seconden.',
+    title: 'Teun.ai | Word jij genoemd in ChatGPT? Check het gratis',
+    description: 'Gratis GEO analyse: zie wie AI aanbeveelt in jouw branche + krijg advies om hoger te scoren. Scan ChatGPT, Perplexity & Claude in 30 sec.',
     images: ['/og-image-teun-ai.webp'],
   },
 };
@@ -105,7 +105,7 @@ export default function Home() {
         "@type": "WebPage",
         "@id": `${siteUrl}/#webpage`,
         "url": siteUrl,
-        "name": "Teun.ai – AI Zichtbaarheidsanalyse | Gratis GEO Scanner",
+        "name": "Teun.ai | Word jij genoemd in ChatGPT? Check het gratis",
         "datePublished": "2025-10-01T00:00:00+00:00",
         "dateModified": new Date().toISOString(),
         "about": {
