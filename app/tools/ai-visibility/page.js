@@ -10,6 +10,223 @@ import Link from 'next/link';
 import Image from 'next/image';
 import FeedbackWidget from '@/app/components/FeedbackWidget';
 
+// ====================================
+// BRANCHE TAALDETECTIE (EN → NL)
+// ====================================
+const BRANCHE_EN_TO_NL = {
+  // Marketing & Communicatie
+  'agency': ['Marketingbureau', 'Reclamebureau'],
+  'marketing agency': ['Marketingbureau', 'Online marketingbureau'],
+  'digital agency': ['Digitaal bureau', 'Online marketingbureau'],
+  'advertising agency': ['Reclamebureau', 'Advertentiebureau'],
+  'creative agency': ['Creatief bureau', 'Reclamebureau'],
+  'branding agency': ['Merkbureau', 'Branding bureau'],
+  'pr agency': ['PR-bureau', 'Communicatiebureau'],
+  'social media agency': ['Social media bureau', 'Online marketingbureau'],
+  'seo agency': ['SEO-bureau', 'Zoekmachine optimalisatie bureau'],
+  'media agency': ['Mediabureau'],
+  'content agency': ['Contentbureau', 'Content marketing bureau'],
+  'communications': ['Communicatie', 'Communicatiebureau'],
+  'public relations': ['Public relations', 'PR-bureau'],
+  // IT & Tech
+  'software development': ['Softwareontwikkeling', 'Software bureau'],
+  'software company': ['Softwarebedrijf', 'IT-bedrijf'],
+  'web development': ['Webontwikkeling', 'Webdesign bureau'],
+  'web design': ['Webdesign', 'Webdesign bureau'],
+  'it services': ['IT-dienstverlening', 'IT-bedrijf'],
+  'it consulting': ['IT-consultancy', 'IT-adviesbureau'],
+  'tech company': ['Technologiebedrijf', 'IT-bedrijf'],
+  'saas': ['SaaS-platform', 'Softwarebedrijf'],
+  'cloud services': ['Clouddiensten', 'Cloud hosting'],
+  'cybersecurity': ['Cybersecurity', 'IT-beveiliging'],
+  'data analytics': ['Data-analyse', 'Data-analysebureau'],
+  'ai company': ['AI-bedrijf', 'Kunstmatige intelligentie'],
+  // Zakelijke diensten
+  'consulting': ['Consultancy', 'Adviesbureau'],
+  'consultancy': ['Consultancy', 'Adviesbureau'],
+  'accounting': ['Accountancy', 'Boekhoudkantoor'],
+  'accounting firm': ['Accountantskantoor', 'Boekhoudkantoor'],
+  'law firm': ['Advocatenkantoor'],
+  'legal services': ['Juridische dienstverlening', 'Advocatenkantoor'],
+  'recruitment': ['Werving & selectie', 'Uitzendbureau'],
+  'staffing': ['Uitzendbureau', 'Detachering'],
+  'real estate': ['Vastgoed', 'Makelaar'],
+  'real estate agency': ['Makelaarskantoor', 'Vastgoedkantoor'],
+  'insurance': ['Verzekeringen', 'Verzekeringsmaatschappij'],
+  'financial services': ['Financiële dienstverlening'],
+  'investment': ['Beleggingen', 'Vermogensbeheer'],
+  'training': ['Training & opleiding', 'Opleidingsinstituut'],
+  'coaching': ['Coaching', 'Coachingpraktijk'],
+  'logistics': ['Logistiek', 'Transport & logistiek'],
+  'shipping': ['Scheepvaart', 'Verzenddienst'],
+  'cleaning services': ['Schoonmaakbedrijf', 'Schoonmaakdiensten'],
+  'security': ['Beveiliging', 'Beveiligingsbedrijf'],
+  // Bouw & Techniek
+  'construction': ['Bouw', 'Bouwbedrijf', 'Aannemer'],
+  'contractor': ['Aannemer', 'Bouwbedrijf'],
+  'architecture': ['Architectuur', 'Architectenbureau'],
+  'interior design': ['Interieurontwerp', 'Interieurarchitectuur'],
+  'plumbing': ['Loodgieter', 'Loodgietersbedrijf'],
+  'electrical': ['Elektra', 'Elektricien'],
+  'electrician': ['Elektricien', 'Installatiebedrijf'],
+  'hvac': ['Klimaattechniek', 'Airconditioning & verwarming'],
+  'painting': ['Schildersbedrijf', 'Schilder'],
+  'roofing': ['Dakdekker', 'Dakdekkersbedrijf'],
+  'landscaping': ['Hoveniersbedrijf', 'Tuinarchitectuur'],
+  'engineering': ['Ingenieursbureau', 'Technisch adviesbureau'],
+  // Horeca & Retail
+  'restaurant': ['Restaurant', 'Horeca'],
+  'catering': ['Catering', 'Cateringbedrijf'],
+  'hotel': ['Hotel', 'Horeca'],
+  'hospitality': ['Horeca', 'Gastvrijheid'],
+  'retail': ['Detailhandel', 'Winkel'],
+  'e-commerce': ['Webshop', 'Online winkel'],
+  'ecommerce': ['Webshop', 'Online winkel'],
+  'wholesale': ['Groothandel'],
+  'bakery': ['Bakkerij'],
+  'butcher': ['Slagerij'],
+  'florist': ['Bloemist', 'Bloemenwinkel'],
+  // Gezondheid & Welzijn
+  'healthcare': ['Gezondheidszorg', 'Zorginstelling'],
+  'dental': ['Tandarts', 'Tandartspraktijk'],
+  'dentist': ['Tandarts', 'Tandartspraktijk'],
+  'physiotherapy': ['Fysiotherapie', 'Fysiotherapiepraktijk'],
+  'pharmacy': ['Apotheek'],
+  'gym': ['Sportschool', 'Fitnesscentrum'],
+  'fitness': ['Fitness', 'Sportschool'],
+  'beauty salon': ['Schoonheidssalon'],
+  'hair salon': ['Kapsalon'],
+  'spa': ['Spa', 'Wellnesscentrum'],
+  'wellness': ['Wellness', 'Wellnesscentrum'],
+  'therapy': ['Therapie', 'Therapeut'],
+  'psychology': ['Psychologie', 'Psychologenpraktijk'],
+  'veterinary': ['Dierenarts', 'Dierenkliniek'],
+  // Overig
+  'photography': ['Fotografie', 'Fotograaf'],
+  'videography': ['Videografie', 'Videoproductie'],
+  'printing': ['Drukkerij'],
+  'automotive': ['Automotive', 'Autobedrijf'],
+  'car dealer': ['Autodealer', 'Autobedrijf'],
+  'garage': ['Garage', 'Autogarage'],
+  'travel agency': ['Reisbureau'],
+  'education': ['Onderwijs', 'Opleidingsinstituut'],
+  'nonprofit': ['Non-profit', 'Stichting'],
+  'non-profit': ['Non-profit', 'Stichting'],
+  'charity': ['Goed doel', 'Stichting'],
+  'event planning': ['Evenementenbureau', 'Eventorganisatie'],
+  'events': ['Evenementen', 'Evenementenbureau'],
+  'manufacturing': ['Productie', 'Productiebedrijf'],
+  'fashion': ['Mode', 'Modebedrijf'],
+  'furniture': ['Meubelzaak', 'Meubelmaker'],
+  'jewelry': ['Juwelier', 'Sieradenwinkel'],
+};
+
+// Detecteer Engelse branche en geef NL suggesties
+function detectBranchLanguage(input) {
+  if (!input || input.length < 2) return null;
+  const lower = input.toLowerCase().trim();
+  
+  // Exacte match
+  if (BRANCHE_EN_TO_NL[lower]) {
+    return { type: 'exact', suggestions: BRANCHE_EN_TO_NL[lower], original: input };
+  }
+  
+  // Gedeeltelijke match (input bevat een Engelse term)
+  for (const [en, nl] of Object.entries(BRANCHE_EN_TO_NL)) {
+    if (lower.includes(en) || en.includes(lower)) {
+      return { type: 'partial', suggestions: nl, original: input, matchedTerm: en };
+    }
+  }
+  
+  // Heuristiek: veelvoorkomende Engelse woorden die op een Engelse branche duiden
+  const englishIndicators = [
+    'company', 'services', 'solutions', 'group', 'studio', 'shop', 'store',
+    'firm', 'business', 'industry', 'provider', 'specialist', 'expert',
+    'management', 'development', 'design', 'digital', 'creative', 'professional',
+    'international', 'global', 'supply', 'trading', 'repair', 'maintenance'
+  ];
+  
+  const words = lower.split(/\s+/);
+  const hasEnglishWord = words.some(w => englishIndicators.includes(w));
+  
+  if (hasEnglishWord) {
+    return { type: 'generic', suggestions: [], original: input };
+  }
+  
+  return null;
+}
+
+// ====================================
+// BEDRIJFSNAAM FUZZY MATCHING
+// ====================================
+function findNameInCompetitors(companyName, analysisResults) {
+  if (!companyName || !analysisResults?.length) return null;
+  
+  const nameLower = companyName.toLowerCase().trim();
+  const nameWords = nameLower.split(/\s+/).filter(w => w.length > 2);
+  
+  // Verzamel alle concurrenten
+  const allCompetitors = {};
+  analysisResults.forEach(result => {
+    (result.competitors_mentioned || []).forEach(comp => {
+      allCompetitors[comp] = (allCompetitors[comp] || 0) + 1;
+    });
+  });
+  
+  const matches = [];
+  
+  for (const [comp, count] of Object.entries(allCompetitors)) {
+    const compLower = comp.toLowerCase().trim();
+    
+    // Skip als het exact hetzelfde is (dan zou company_mentioned true zijn)
+    if (compLower === nameLower) continue;
+    
+    // Check 1: Levenshtein-achtige overeenkomst (substring)
+    if (compLower.includes(nameLower) || nameLower.includes(compLower)) {
+      matches.push({ name: comp, count, confidence: 'high', reason: 'substring' });
+      continue;
+    }
+    
+    // Check 2: Woord-overlap (minstens 1 significant woord)
+    const compWords = compLower.split(/\s+/).filter(w => w.length > 2);
+    const sharedWords = nameWords.filter(w => compWords.some(cw => 
+      cw.includes(w) || w.includes(cw) || levenshteinDistance(w, cw) <= 2
+    ));
+    
+    if (sharedWords.length > 0 && (sharedWords.length / Math.max(nameWords.length, 1)) >= 0.5) {
+      matches.push({ name: comp, count, confidence: 'medium', reason: 'word_overlap' });
+      continue;
+    }
+    
+    // Check 3: Levenshtein distance op de hele string
+    const distance = levenshteinDistance(nameLower, compLower);
+    const maxLen = Math.max(nameLower.length, compLower.length);
+    if (distance <= 3 && (distance / maxLen) < 0.3) {
+      matches.push({ name: comp, count, confidence: 'high', reason: 'typo' });
+    }
+  }
+  
+  // Sorteer op confidence en count
+  return matches.sort((a, b) => {
+    if (a.confidence !== b.confidence) return a.confidence === 'high' ? -1 : 1;
+    return b.count - a.count;
+  })[0] || null;
+}
+
+function levenshteinDistance(a, b) {
+  const matrix = Array.from({ length: a.length + 1 }, (_, i) =>
+    Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  );
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      matrix[i][j] = a[i-1] === b[j-1]
+        ? matrix[i-1][j-1]
+        : 1 + Math.min(matrix[i-1][j], matrix[i][j-1], matrix[i-1][j-1]);
+    }
+  }
+  return matrix[a.length][b.length];
+}
+
 function AIVisibilityToolContent() {
   const searchParams = useSearchParams();
   
@@ -38,6 +255,8 @@ function AIVisibilityToolContent() {
   const [includeTermsInput, setIncludeTermsInput] = useState('');
   const [locationTermsInput, setLocationTermsInput] = useState('');
   const [activeTooltip, setActiveTooltip] = useState(null);
+  const [brancheSuggestion, setBrancheSuggestion] = useState(null);
+  const [nameMismatch, setNameMismatch] = useState(null);
 
   // Close tooltip on outside tap
   useEffect(() => {
@@ -305,6 +524,14 @@ function AIVisibilityToolContent() {
       setCurrentStep('Voltooid!');
       setResults(data);
       setCustomPrompts(null);
+
+      // Check voor bedrijfsnaam mismatch in concurrenten
+      if (data.total_company_mentions === 0 && data.analysis_results) {
+        const mismatch = findNameInCompetitors(formData.companyName, data.analysis_results);
+        setNameMismatch(mismatch);
+      } else {
+        setNameMismatch(null);
+      }
 
       setTimeout(() => {
         setAnalyzing(false);
@@ -685,11 +912,57 @@ function AIVisibilityToolContent() {
                     <input
                       type="text"
                       value={formData.companyCategory}
-                      onChange={(e) => setFormData({ ...formData, companyCategory: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData({ ...formData, companyCategory: val });
+                        setBrancheSuggestion(detectBranchLanguage(val));
+                      }}
                       placeholder="Jouw branche"
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 bg-white"
                       required
                     />
+
+                    {/* Branche taaldetectie suggestie */}
+                    {brancheSuggestion && (
+                      <div className={`mt-2 p-3 rounded-xl text-sm transition-all animate-in fade-in ${
+                        brancheSuggestion.type === 'generic' 
+                          ? 'bg-amber-50 border border-amber-200' 
+                          : 'bg-blue-50 border border-blue-200'
+                      }`}>
+                        {brancheSuggestion.type === 'generic' ? (
+                          <div className="flex items-start gap-2">
+                            <span className="text-amber-500 flex-shrink-0">⚠️</span>
+                            <p className="text-amber-800 text-xs">
+                              Dit lijkt een Engelse term. Nederlandse AI-zoekmachines geven betere resultaten met een <strong>Nederlandse branchenaam</strong>.
+                            </p>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="flex items-start gap-2 mb-2">
+                              <span className="flex-shrink-0">💡</span>
+                              <p className="text-blue-800 text-xs">
+                                <strong>&quot;{brancheSuggestion.original}&quot;</strong> is Engels. Voor betere resultaten, gebruik:
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 ml-6">
+                              {brancheSuggestion.suggestions.map((suggestion, idx) => (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData({ ...formData, companyCategory: suggestion });
+                                    setBrancheSuggestion(null);
+                                  }}
+                                  className="px-3 py-1.5 bg-white hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium transition-all border border-blue-300 hover:border-blue-400 cursor-pointer shadow-sm hover:shadow"
+                                >
+                                  {suggestion}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* ✨ Website URL field for smart analysis */}
@@ -983,6 +1256,38 @@ function AIVisibilityToolContent() {
 
                 {/* Perplexity Badge */}
                 <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
+
+                {/* Bedrijfsnaam mismatch waarschuwing */}
+                {nameMismatch && (
+                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-xl p-4 mb-4 sm:mb-6">
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl flex-shrink-0">🔍</span>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-amber-900 mb-1">
+                          Bedoelde je &quot;{nameMismatch.name}&quot;?
+                        </p>
+                        <p className="text-xs text-amber-700 mb-3">
+                          Je bedrijf <strong>&quot;{formData.companyName}&quot;</strong> werd 0x gevonden, maar{' '}
+                          <strong>&quot;{nameMismatch.name}&quot;</strong> verschijnt {nameMismatch.count}x bij de concurrenten.
+                          {nameMismatch.reason === 'typo' && ' Dit kan een typfout zijn.'}
+                          {nameMismatch.reason === 'substring' && ' Dit lijkt een variant van je bedrijfsnaam.'}
+                        </p>
+                        <button
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, companyName: nameMismatch.name }));
+                            setNameMismatch(null);
+                            setResults(null);
+                            setStep(3);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-lg hover:from-amber-600 hover:to-orange-600 transition shadow-sm cursor-pointer"
+                        >
+                          🔄 Opnieuw scannen als &quot;{nameMismatch.name}&quot;
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
                   <div className="flex items-center gap-3 flex-wrap">
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 bg-gradient-to-br from-[#20B8CD] to-[#1AA3B3] rounded-lg flex items-center justify-center">
@@ -1165,7 +1470,7 @@ function AIVisibilityToolContent() {
                       setStep(1);
                       setFormData({ companyName: '', companyCategory: '', queries: '', website: '' });
                       setExcludeTermsInput(''); setIncludeTermsInput(''); setLocationTermsInput('');
-                      setResults(null); setReferralSource(null); setFromHomepage(false);
+                      setResults(null); setReferralSource(null); setFromHomepage(false); setNameMismatch(null); setBrancheSuggestion(null);
                     }}
                     className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-100 border border-slate-200 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition cursor-pointer text-sm sm:text-base"
                   >

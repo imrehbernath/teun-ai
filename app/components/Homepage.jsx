@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { detectBranchLanguage } from '@/lib/branche-detect';
 
 // ============================================
 // HOMEPAGE COMPONENT - Teun.ai
@@ -17,6 +18,7 @@ export default function Homepage() {
   });
   const [openFaq, setOpenFaq] = useState(0);
   const [activeTooltip, setActiveTooltip] = useState(null);
+  const [brancheSuggestion, setBrancheSuggestion] = useState(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -146,9 +148,17 @@ export default function Homepage() {
                       <input
                         type="text"
                         value={formData.branche}
-                        onChange={(e) => setFormData({...formData, branche: e.target.value})}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormData({...formData, branche: val});
+                          setBrancheSuggestion(detectBranchLanguage(val));
+                        }}
                         placeholder="Jouw branche"
-                        className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400"
+                        className={`w-full px-4 py-3 rounded-lg border focus:ring-2 outline-none transition-all text-slate-900 placeholder:text-slate-400 ${
+                          brancheSuggestion 
+                            ? 'border-amber-300 focus:border-amber-500 focus:ring-amber-500/20' 
+                            : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500/20'
+                        }`}
                         required
                       />
                     </div>
@@ -218,6 +228,44 @@ export default function Homepage() {
                       )}
                     </div>
                   </div>
+
+                  {/* Branche taaldetectie suggestie - compact voor homepage */}
+                  {brancheSuggestion && (
+                    <div className={`-mt-1 p-3 rounded-xl text-sm transition-all ${
+                      brancheSuggestion.type === 'generic'
+                        ? 'bg-amber-50 border border-amber-200'
+                        : 'bg-blue-50 border border-blue-200'
+                    }`}>
+                      {brancheSuggestion.type === 'generic' ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-amber-500 flex-shrink-0">⚠️</span>
+                          <p className="text-amber-800 text-xs">
+                            Dit lijkt Engels. Gebruik een <strong>Nederlandse branchenaam</strong> voor betere AI-resultaten.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="flex-shrink-0">💡</span>
+                          <span className="text-blue-800 text-xs">
+                            <strong>&quot;{brancheSuggestion.original}&quot;</strong> → 
+                          </span>
+                          {brancheSuggestion.suggestions.map((suggestion, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => {
+                                setFormData({...formData, branche: suggestion});
+                                setBrancheSuggestion(null);
+                              }}
+                              className="px-2.5 py-1 bg-white hover:bg-blue-100 text-blue-700 rounded-md text-xs font-medium transition-all border border-blue-300 hover:border-blue-400 cursor-pointer shadow-sm"
+                            >
+                              {suggestion}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <button
                     type="submit"
