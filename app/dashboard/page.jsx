@@ -252,25 +252,28 @@ function DashboardContent() {
           }
           
           const site = websiteMap.get(key)
-          const results = scan.chatgpt_query_results || []
-          const mentions = results.filter(r => r.company_mentioned)?.length || 0
+          const queryResults = scan.chatgpt_query_results || []
+          
+          // Use found_count from scan object, fallback to counting from query results
+          const mentions = scan.found_count || queryResults.filter(r => r.company_mentioned)?.length || 0
+          const totalQueries = scan.total_queries || queryResults.length || 0
           
           site.scans.push({
             id: scan.id,
             type: 'chatgpt',
             date: scan.created_at,
-            results,
+            results: queryResults,
             mentions,
-            totalQueries: results.length
+            totalQueries
           })
           
           site.platforms.chatgpt = true
           site.totalMentions += mentions
-          site.totalQueries += results.length
+          site.totalQueries += totalQueries
           
           // Add to score history
-          const scanScore = results.length > 0 
-            ? Math.round((mentions / results.length) * 100)
+          const scanScore = totalQueries > 0 
+            ? Math.round((mentions / totalQueries) * 100)
             : 0
           site.scoreHistory.push({
             date: scan.created_at,
