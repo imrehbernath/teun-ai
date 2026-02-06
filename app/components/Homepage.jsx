@@ -76,23 +76,29 @@ export default function Homepage() {
                 </h1>
                 
                 <p className="text-lg text-slate-600 mb-4">
-                  Wordt jouw bedrijf aanbevolen door ChatGPT, Perplexity, Gemini of Claude?
+                  Ontdek of jouw bedrijf wordt aanbevolen door ChatGPT, Perplexity en Google.
                   <br />
                   <span className="font-medium text-slate-700">Gratis scan in 30 seconden.</span>
                 </p>
 
-                {/* AI Platform badges */}
-                <div className="flex flex-wrap gap-3 mb-8">
-                  {['OpenAI', 'Perplexity', 'Gemini', 'Claude'].map((platform) => (
-                    <span 
-                      key={platform}
-                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                      {platform}
-                    </span>
-                  ))}
+                {/* AI Platform badges - simple and clean */}
+                <div className="flex flex-wrap gap-3 mb-2">
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                    Perplexity
+                  </span>
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                    ChatGPT
+                    <span className="text-[10px] text-slate-400">account</span>
+                  </span>
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                    Google AI
+                    <span className="text-[10px] text-slate-400">account</span>
+                  </span>
                 </div>
+                <p className="text-xs text-slate-400 mb-6">ChatGPT & Google AI scans met gratis account</p>
 
                 {/* Mobile Mascotte - above form */}
                 <div className="lg:hidden flex justify-center">
@@ -453,10 +459,10 @@ export default function Homepage() {
                 <div className="text-4xl font-bold text-[#1E1E3F]">2.</div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 mb-2">
-                    We scannen 4 AI's
+                    We scannen 3 AI's
                   </h3>
                   <p className="text-slate-600">
-                    ChatGPT, Perplexity, Claude en Google AI worden realtime bevraagd.
+                    ChatGPT, Perplexity en Google AI worden realtime bevraagd.
                   </p>
                 </div>
               </div>
@@ -501,7 +507,7 @@ export default function Homepage() {
             </p>
           </div>
 
-          {/* Main Feature Cards */}
+          {/* Main Feature Cards - 2 columns, clean */}
           <div className="grid lg:grid-cols-2 gap-6 max-w-5xl mx-auto mb-12">
             
             {/* Card 1: Dashboard Preview */}
@@ -535,8 +541,8 @@ export default function Homepage() {
                 </div>
                 <div className="flex gap-2">
                   <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-md">ChatGPT ✓</span>
-                  <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-md">Perplexity ✓</span>
-                  <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-xs rounded-md">↑ 6 punten</span>
+                  <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-md">Perplexity ✓</span>
+                  <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-md">Google ✓</span>
                 </div>
               </div>
 
@@ -545,7 +551,7 @@ export default function Homepage() {
                   <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Alle websites in één overzicht
+                  Perplexity + Google AI Overview scans
                 </li>
                 <li className="flex items-center gap-2 text-slate-300 text-sm">
                   <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -557,7 +563,7 @@ export default function Homepage() {
                   <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Prompts bewerken & opnieuw scannen
+                  Tot 10 prompts per scan
                 </li>
               </ul>
             </div>
@@ -566,7 +572,7 @@ export default function Homepage() {
             <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/10 backdrop-blur-sm rounded-2xl border border-green-400/30 p-6 hover:border-green-400/50 transition-all group relative overflow-hidden">
               {/* Highlight badge */}
               <div className="absolute top-4 right-4">
-                <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full animate-pulse">
+                <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
                   UNIEK
                 </span>
               </div>
@@ -578,7 +584,7 @@ export default function Homepage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">ChatGPT Realtime Scanner</h3>
+                  <h3 className="text-xl font-bold text-white">ChatGPT Scanner</h3>
                   <p className="text-green-300 text-sm">Chrome Extensie - Gratis bij account</p>
                 </div>
               </div>
@@ -625,7 +631,7 @@ export default function Homepage() {
             </div>
           </div>
 
-          {/* Bottom: What's included */}
+          {/* Bottom: What's included - simplified */}
           <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 max-w-3xl mx-auto">
             <div className="text-center mb-6">
               <h3 className="text-xl font-bold text-white mb-2">Gratis account = Gratis features</h3>
@@ -633,10 +639,10 @@ export default function Homepage() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { icon: '🔍', label: 'Perplexity scan', desc: '1x per dag' },
+                { icon: '🔍', label: 'Perplexity + Google', desc: '1x per dag' },
                 { icon: '💬', label: 'ChatGPT extensie', desc: 'Onbeperkt' },
                 { icon: '📊', label: 'Dashboard', desc: 'Volledig' },
-                { icon: '📈', label: 'Historie', desc: 'Altijd beschikbaar' },
+                { icon: '📝', label: 'Tot 10 prompts', desc: 'Per scan' },
               ].map((feature, idx) => (
                 <div key={idx} className="text-center p-3 bg-white/5 rounded-xl">
                   <div className="text-2xl mb-2">{feature.icon}</div>
@@ -675,11 +681,11 @@ export default function Homepage() {
                 {[
                   {
                     question: 'Hoe werkt Teun.AI precies?',
-                    answer: 'Teun.AI scant hoe zichtbaar jouw bedrijf is in AI-zoekmachines. Onze gratis tool scant via Perplexity AI met realtime webresultaten. Met een account krijg je ook toegang tot ChatGPT scans via onze Chrome extensie. Je voert je bedrijfsgegevens en zoekwoorden in, en wij genereren de commerciële prompts die jouw potentiële klanten gebruiken.'
+                    answer: 'Teun.AI scant hoe zichtbaar jouw bedrijf is in AI-zoekmachines zoals ChatGPT, Perplexity en Google. Je voert je bedrijfsgegevens in, wij genereren tot 10 commerciële prompts, en je ziet direct of je wordt aanbevolen.'
                   },
                   {
                     question: 'Wat kost Teun.AI?',
-                    answer: 'Je kunt 2x gratis scannen zonder account. Met een gratis account krijg je 1 scan per dag + toegang tot je dashboard en onze Chrome extensie voor onbeperkte ChatGPT scans.'
+                    answer: 'Je kunt 2x gratis scannen zonder account. Met een gratis account krijg je dagelijks scans, toegang tot je dashboard, en onze Chrome extensie voor onbeperkte ChatGPT scans.'
                   },
                   {
                     question: 'Is Teun.AI geschikt voor mijn bedrijf?',

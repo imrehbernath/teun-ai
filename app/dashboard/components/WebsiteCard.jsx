@@ -1,9 +1,11 @@
 'use client'
 
 import { Clock, TrendingUp, TrendingDown, Trash2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import ScoreChart from './ScoreChart'
 
 export default function WebsiteCard({ website, onClick, onDelete }) {
+  const router = useRouter()
   const getScoreColor = (score) => {
     if (score >= 70) return 'text-green-600'
     if (score >= 40) return 'text-amber-600'
@@ -43,10 +45,16 @@ export default function WebsiteCard({ website, onClick, onDelete }) {
     }
   }
 
+  const handleClick = () => {
+    // Navigate to detail page
+    const websiteId = encodeURIComponent(website.id)
+    router.push(`/dashboard/website/${websiteId}`)
+  }
+
   return (
     <div 
       className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-lg hover:border-slate-300 transition-all cursor-pointer group relative"
-      onClick={onClick}
+      onClick={handleClick}
     >
       {/* Delete Button - Always visible */}
       <button
@@ -100,7 +108,7 @@ export default function WebsiteCard({ website, onClick, onDelete }) {
         </div>
       )}
 
-      {/* Platform Badges */}
+      {/* Platform Badges - Only 3: Perplexity, ChatGPT, Google AI */}
       <div className="flex flex-wrap gap-2 mb-4">
         <span className={`px-2.5 py-1 text-xs rounded-lg font-medium ${
           website.platforms.perplexity 
@@ -116,10 +124,11 @@ export default function WebsiteCard({ website, onClick, onDelete }) {
         }`}>
           ChatGPT
         </span>
-        <span className="px-2.5 py-1 text-xs rounded-lg font-medium bg-slate-100 text-slate-400 border border-slate-200">
-          Claude
-        </span>
-        <span className="px-2.5 py-1 text-xs rounded-lg font-medium bg-slate-100 text-slate-400 border border-slate-200">
+        <span className={`px-2.5 py-1 text-xs rounded-lg font-medium ${
+          website.platforms.google 
+            ? 'bg-blue-100 text-blue-700 border border-blue-200' 
+            : 'bg-slate-100 text-slate-400 border border-slate-200'
+        }`}>
           Google AI
         </span>
       </div>

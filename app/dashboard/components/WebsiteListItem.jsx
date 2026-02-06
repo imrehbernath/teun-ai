@@ -1,8 +1,10 @@
 'use client'
 
 import { TrendingUp, TrendingDown, ChevronRight, Trash2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 export default function WebsiteListItem({ website, onClick, onDelete }) {
+  const router = useRouter()
   const getScoreColor = (score) => {
     if (score >= 70) return 'text-green-600'
     if (score >= 40) return 'text-amber-600'
@@ -31,10 +33,16 @@ export default function WebsiteListItem({ website, onClick, onDelete }) {
     }
   }
 
+  const handleClick = () => {
+    // Navigate to detail page
+    const websiteId = encodeURIComponent(website.id)
+    router.push(`/dashboard/website/${websiteId}`)
+  }
+
   return (
     <div 
       className="flex items-center justify-between p-4 hover:bg-slate-50 cursor-pointer transition-colors group"
-      onClick={onClick}
+      onClick={handleClick}
     >
       {/* Left: Logo + Name */}
       <div className="flex items-center gap-3 flex-1 min-w-0">

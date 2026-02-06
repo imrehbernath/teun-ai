@@ -173,18 +173,6 @@ function DashboardContent() {
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
 
-      // Load Google AI scans
-      let googleScans = []
-      const { data: googleData, error: googleError } = await supabase
-        .from('google_ai_scans')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-      
-      if (!googleError && googleData) {
-        googleScans = googleData
-      }
-
       // Group scans by company/website
       const websiteMap = new Map()
       
@@ -203,18 +191,18 @@ function DashboardContent() {
               scoreHistory: [],
               totalMentions: 0,
               totalQueries: 0,
-              platforms: { perplexity: false, chatgpt: false, google: false }
+              platforms: { perplexity: false, chatgpt: false, claude: false, google: false }
             })
           }
           
           const site = websiteMap.get(key)
           const prompts = scan.commercial_prompts || []
-          const results = scan.results || []  // Column is 'results', not 'scan_results'
+          const results = scan.scan_results || []
           
           // ✅ FIX: Calculate mentions from results if total_company_mentions is not available
           let mentions = scan.total_company_mentions || scan.total_mentions || 0
           
-          // Fallback: count mentions from results
+          // Fallback: count mentions from scan_results
           if (mentions === 0 && results.length > 0) {
             mentions = results.filter(r => r.company_mentioned === true).length
           }
@@ -259,7 +247,7 @@ function DashboardContent() {
               scoreHistory: [],
               totalMentions: 0,
               totalQueries: 0,
-              platforms: { perplexity: false, chatgpt: false, google: false }
+              platforms: { perplexity: false, chatgpt: false, claude: false, google: false }
             })
           }
           
@@ -280,60 +268,6 @@ function DashboardContent() {
           })
           
           site.platforms.chatgpt = true
-          site.totalMentions += mentions
-          site.totalQueries += totalQueries
-          
-          // Add to score history
-          const scanScore = totalQueries > 0 
-            ? Math.round((mentions / totalQueries) * 100)
-            : 0
-          site.scoreHistory.push({
-            date: scan.created_at,
-            score: scanScore
-          })
-        })
-      }
-
-      // Process Google AI scans
-      if (googleScans) {
-        googleScans.forEach(scan => {
-          const company = scan.company_name || 'Onbekend'
-          const key = company.toLowerCase().trim()
-          
-          if (!websiteMap.has(key)) {
-            websiteMap.set(key, {
-              id: key,
-              name: company,
-              website: scan.website,
-              category: null,
-              scans: [],
-              scoreHistory: [],
-              totalMentions: 0,
-              totalQueries: 0,
-              platforms: { perplexity: false, chatgpt: false, google: false }
-            })
-          }
-          
-          const site = websiteMap.get(key)
-          const results = scan.results || []
-          
-          // ✅ FIX: Calculate mentions from results array (companyMentioned is camelCase from API)
-          let mentions = scan.found_count || 0
-          if (mentions === 0 && results.length > 0) {
-            mentions = results.filter(r => r.companyMentioned === true).length
-          }
-          const totalQueries = results.length || scan.total_queries || 0
-          
-          site.scans.push({
-            id: scan.id,
-            type: 'google',
-            date: scan.created_at,
-            results,
-            mentions,
-            totalQueries
-          })
-          
-          site.platforms.google = true
           site.totalMentions += mentions
           site.totalQueries += totalQueries
           
@@ -644,15 +578,16 @@ function DashboardContent() {
               </svg>
               Dashboard
             </Link>
-            <div 
-              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-400 border border-slate-200 rounded-lg font-medium text-sm cursor-not-allowed"
+            <Link 
+              href="/dashboard/geo-analyse"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 border-2 border-purple-200 rounded-lg font-medium text-sm hover:from-purple-100 hover:to-indigo-100 hover:border-purple-300 transition shadow-sm"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
               GEO Analyse
-              <span className="px-2 py-0.5 bg-slate-300 text-slate-500 text-xs font-bold rounded-full">SOON</span>
-            </div>
+              <span className="px-2 py-0.5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-xs font-bold rounded-full shadow-sm">PRO</span>
+            </Link>
           </div>
           
           <EmptyState 
@@ -695,15 +630,16 @@ function DashboardContent() {
             </svg>
             Dashboard
           </Link>
-          <div 
-            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-400 border border-slate-200 rounded-lg font-medium text-sm cursor-not-allowed"
+          <Link 
+            href="/dashboard/geo-analyse"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 border-2 border-purple-200 rounded-lg font-medium text-sm hover:from-purple-100 hover:to-indigo-100 hover:border-purple-300 transition shadow-sm"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
             GEO Analyse
-            <span className="px-2 py-0.5 bg-slate-300 text-slate-500 text-xs font-bold rounded-full">SOON</span>
-          </div>
+            <span className="px-2 py-0.5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-xs font-bold rounded-full shadow-sm">PRO</span>
+          </Link>
         </div>
 
         {/* Website List */}

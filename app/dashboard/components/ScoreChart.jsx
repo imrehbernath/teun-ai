@@ -3,83 +3,101 @@
 export default function ScoreChart({ data }) {
   if (!data || data.length < 2) return null
 
-  // Take last 6 data points max
-  const chartData = data.slice(-6)
-  const scores = chartData.map(d => d.score)
-  const maxScore = Math.max(...scores, 100)
+  // Sort by date and take last 10 points
+  const sortedData = [...data]
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .slice(-10)
+
+  const scores = sortedData.map(d => d.score)
   const minScore = Math.min(...scores, 0)
+  const maxScore = Math.max(...scores, 100)
   const range = maxScore - minScore || 1
 
-  // Calculate SVG path
-  const width = 200
-  const height = 48
-  const padding = 4
-  
-  const points = chartData.map((d, i) => {
-    const x = padding + (i / (chartData.length - 1)) * (width - padding * 2)
-    const y = height - padding - ((d.score - minScore) / range) * (height - padding * 2)
-    return { x, y, score: d.score }
-  })
+  const lastScore = scores[scores.length - 1]
 
-  // Create smooth curve path
-  const pathD = points.reduce((acc, point, i) => {
-    if (i === 0) return `M ${point.x} ${point.y}`
-    const prev = points[i - 1]
-    const cpX = (prev.x + point.x) / 2
-    return `${acc} Q ${cpX} ${prev.y} ${point.x} ${point.y}`
-  }, '')
+  // Determine color based on score
+  const getColor = (score) => {
+    if (score >= 70) return '#22c55e' // green
+    if (score >= 40) return '#f59e0b' // amber
+    return '#ef4444' // red
+  }
 
-  // Gradient fill path
-  const fillD = `${pathD} L ${points[points.length - 1].x} ${height} L ${points[0].x} ${height} Z`
+  const color = getColor(lastScore)
 
-  // Get color based on trend
-  const lastScore = points[points.length - 1].score
-  const firstScore = points[0].score
-  const isPositive = lastScore >= firstScore
-  
-  const strokeColor = isPositive ? '#10b981' : '#ef4444'
-  const fillColor = isPositive ? 'url(#greenGradient)' : 'url(#redGradient)'
+  // SVG viewBox dimensions
+  const width = 100
+  const height = 50
+
+  // Calculate points in viewBox coordinates
+  const points = sortedData.map((d, i) => ({
+    x: (i / (sortedData.length - 1)) * width,
+    y: height - ((d.score - minScore) / range) * height
+  }))
+
+  const lastPoint = points[points.length - 1]
+
+  // Create path string
+  const pathD = points.map((p, i) => 
+    `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`
+  ).join(' ')
+
+  // Area path for gradient fill
+  const areaD = `${pathD} L ${width} ${height} L 0 ${height} Z`
+
+  // Calculate percentage position for CSS dot
+  const dotLeftPercent = (lastPoint.x / width) * 100
+  const dotTopPercent = (lastPoint.y / height) * 100
 
   return (
-    <svg 
-      viewBox={`0 0 ${width} ${height}`} 
-      className="w-full h-full"
-      preserveAspectRatio="none"
-    >
-      <defs>
-        <linearGradient id="greenGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
-          <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
-        </linearGradient>
-        <linearGradient id="redGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#ef4444" stopOpacity="0.3" />
-          <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      
-      {/* Fill area */}
-      <path 
-        d={fillD} 
-        fill={fillColor}
-      />
-      
-      {/* Line */}
-      <path 
-        d={pathD} 
-        fill="none" 
-        stroke={strokeColor} 
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      
-      {/* End point dot */}
-      <circle 
-        cx={points[points.length - 1].x} 
-        cy={points[points.length - 1].y} 
-        r="3" 
-        fill={strokeColor}
-      />
-    </svg>
+    <div className="relative w-full h-full">
+      {/* SVG for line and area - stretches to fill */}
+      <svg 
+        viewBox={`0 0 ${width} ${height}`}
+        className="absolute inset-0 w-full h-full"
+        preserveAspectRatio="none"
+      >
+        {/* Gradient fill under line */}
+        <defs>
+          <linearGradient id={`gradient-${lastScore}`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor={color} stopOpacity="0.15" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* Area fill */}
+        <path
+          d={areaD}
+          fill={`url(#gradient-${lastScore})`}
+        />
+
+        {/* Main line */}
+        <path
+          d={pathD}
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+
+      {/* Dot positioned with CSS - stays perfectly round */}
+      <div 
+        className="absolute w-3 h-3 rounded-full border-2 bg-white shadow-sm"
+        style={{
+          left: `${dotLeftPercent}%`,
+          top: `${dotTopPercent}%`,
+          transform: 'translate(-50%, -50%)',
+          borderColor: color,
+        }}
+      >
+        {/* Inner dot */}
+        <div 
+          className="absolute inset-1 rounded-full"
+          style={{ backgroundColor: color }}
+        />
+      </div>
+    </div>
   )
 }
