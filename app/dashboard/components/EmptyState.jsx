@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { Search, TrendingUp, ExternalLink, Globe, Zap, BarChart3, Chrome, Sparkles } from 'lucide-react'
+import { Search, TrendingUp, ExternalLink, Globe, Zap, BarChart3 } from 'lucide-react'
 
 export default function EmptyState({ userName }) {
   return (
@@ -30,7 +30,7 @@ export default function EmptyState({ userName }) {
               </h2>
               <p className="text-lg text-slate-600 mb-8 leading-relaxed">
                 Ontdek hoe vaak jouw bedrijf wordt aanbevolen in AI-zoekmachines zoals 
-                ChatGPT, Perplexity en Claude. Binnen 30 seconden weet je waar je staat.
+                ChatGPT, Perplexity en Google AI. Binnen 30 seconden weet je waar je staat.
               </p>
               
               {/* CTAs */}
@@ -61,8 +61,8 @@ export default function EmptyState({ userName }) {
                     <Globe className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900">4 Platforms</p>
-                    <p className="text-xs text-slate-500">ChatGPT, Perplexity, Claude, Gemini</p>
+                    <p className="font-semibold text-slate-900">3 Platforms</p>
+                    <p className="text-xs text-slate-500">ChatGPT, Perplexity, Google AI</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
@@ -87,11 +87,11 @@ export default function EmptyState({ userName }) {
             </div>
 
             {/* Teun Mascotte - 2 columns */}
-            <div className="lg:col-span-2 bg-gradient-to-br from-[#1E1E3F] via-[#2D2D5F] to-[#1E1E3F] flex items-center justify-center p-8 relative overflow-hidden">
+            <div className="lg:col-span-2 bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 flex items-center justify-center p-8 relative overflow-hidden">
               {/* Background decoration */}
-              <div className="absolute inset-0 opacity-10">
-                <div className="absolute top-10 right-10 w-40 h-40 bg-white rounded-full blur-3xl"></div>
-                <div className="absolute bottom-10 left-10 w-32 h-32 bg-purple-400 rounded-full blur-3xl"></div>
+              <div className="absolute inset-0 opacity-30">
+                <div className="absolute top-10 right-10 w-40 h-40 bg-blue-200 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-10 left-10 w-32 h-32 bg-indigo-200 rounded-full blur-3xl"></div>
               </div>
               
               <div className="text-center relative z-10">
@@ -103,44 +103,16 @@ export default function EmptyState({ userName }) {
                   className="drop-shadow-2xl mx-auto"
                   priority
                 />
-                <div className="mt-6 bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                  <p className="text-white font-medium">
+                <div className="mt-6 bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-slate-200 shadow-sm">
+                  <p className="text-slate-800 font-medium">
                     Hoi! Ik ben Teun 👋
                   </p>
-                  <p className="text-white/70 text-sm mt-1">
+                  <p className="text-slate-500 text-sm mt-1">
                     Ik help je met je AI-zichtbaarheid
                   </p>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Chrome Extension Promo */}
-        <div className="mt-8 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 p-6">
-          <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-md flex-shrink-0">
-              <Chrome className="w-8 h-8 text-green-600" />
-            </div>
-            <div className="flex-1 text-center md:text-left">
-              <h3 className="text-lg font-bold text-slate-900 mb-1">
-                🔥 Realtime ChatGPT Scanner
-              </h3>
-              <p className="text-slate-600">
-                Installeer onze gratis Chrome extensie en scan je AI-zichtbaarheid direct in ChatGPT. 
-                Krijg instant inzichten terwijl je ChatGPT gebruikt!
-              </p>
-            </div>
-            <a
-              href="https://chromewebstore.google.com/detail/teunai-chatgpt-visibility/jjhjnmkanlmjhmobcgemjakkjdbkkfmk"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all whitespace-nowrap"
-            >
-              <Sparkles className="w-5 h-5" />
-              Installeer Extensie
-              <ExternalLink className="w-4 h-4" />
-            </a>
           </div>
         </div>
 
@@ -163,7 +135,7 @@ export default function EmptyState({ userName }) {
               </div>
               <h4 className="font-semibold text-slate-900 mb-2">AI analyseert je zichtbaarheid</h4>
               <p className="text-sm text-slate-600">
-                We checken 4 AI-platforms met commerciële prompts
+                We checken 3 AI-platforms met commerciële prompts
               </p>
             </div>
             <div className="text-center">
@@ -198,7 +170,7 @@ export default function EmptyState({ userName }) {
                 </div>
                 <div className="text-left">
                   <p className="font-medium text-slate-900">Ingelogd</p>
-                  <p className="text-sm text-slate-500">1 gratis scan per dag + Chrome extensie</p>
+                  <p className="text-sm text-slate-500">1 gratis scan per dag</p>
                 </div>
               </div>
             </div>

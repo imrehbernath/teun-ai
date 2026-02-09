@@ -22,7 +22,9 @@ import {
   Trash2,
   Plus,
   X,
-  Edit3
+  Edit3,
+  BarChart3,
+  AlertCircle
 } from 'lucide-react'
 
 export default function WebsiteDetailPage() {
@@ -38,6 +40,7 @@ export default function WebsiteDetailPage() {
   const [deletingId, setDeletingId] = useState(null)
   const [activeTab, setActiveTab] = useState('perplexity')
   const [scanning, setScanning] = useState(false)
+  const [showGeoPopup, setShowGeoPopup] = useState(false) // Popup for missing scans
   
   // Prompt editing
   const [editingPrompts, setEditingPrompts] = useState(false)
@@ -589,10 +592,49 @@ export default function WebsiteDetailPage() {
             {activeTab === 'chatgpt' && (
               <div>
                 {website.platforms.chatgpt.scans.length === 0 ? (
-                  <div className="text-center py-8 text-slate-500">
-                    <Image src="/chatgpt-logo.png" alt="ChatGPT" width={40} height={40} className="mx-auto mb-2 opacity-30" />
-                    <p>Nog geen ChatGPT scans</p>
-                    <p className="text-sm">Gebruik de Chrome extensie</p>
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <Image src="/chatgpt-logo.png" alt="ChatGPT" width={32} height={32} />
+                    </div>
+                    <p className="font-medium text-slate-700 mb-1">Nog geen ChatGPT scans</p>
+                    <p className="text-sm text-slate-500 mb-4">Check je zichtbaarheid in ChatGPT</p>
+                    
+                    <div className="space-y-3 max-w-sm mx-auto">
+                      {/* Step 1: Chrome extensie */}
+                      <a 
+                        href="https://chromewebstore.google.com/detail/teunai-chatgpt-visibility/jjhjnmkanlmjhmobcgemjakkjdbkkfmk"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-green-600 transition shadow-md"
+                      >
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                          <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.2"/>
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
+                        1. Installeer Chrome Extensie
+                      </a>
+                      
+                      {/* Step 2: Open ChatGPT */}
+                      <a 
+                        href="https://chatgpt.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-700 font-medium rounded-xl hover:bg-slate-200 transition text-sm"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M22.2 9.4c.4-1.2.2-2.5-.5-3.6-.7-1-1.8-1.7-3-1.9-.6-.1-1.2 0-1.8.2-.5-1.3-1.5-2.3-2.8-2.8-1.3-.5-2.8-.4-4 .3C9.4.6 8.2.2 7 .5c-1.2.3-2.3 1.1-2.9 2.2-.6 1.1-.7 2.4-.3 3.6-1.3.5-2.3 1.5-2.8 2.8s-.4 2.8.3 4c-1 .8-1.6 2-1.7 3.3-.1 1.3.4 2.6 1.4 3.5 1 .9 2.3 1.3 3.6 1.2.5 1.3 1.5 2.3 2.8 2.8 1.3.5 2.8.4 4-.3.8 1 2 1.6 3.3 1.7 1.3.1 2.6-.4 3.5-1.4.9-1 1.3-2.3 1.2-3.6 1.3-.5 2.3-1.5 2.8-2.8.5-1.3.4-2.8-.3-4 1-.8 1.6-2 1.7-3.3.1-1.3-.4-2.6-1.4-3.5z"/>
+                        </svg>
+                        2. Open ChatGPT
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                    
+                    <div className="mt-5 p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-left max-w-sm mx-auto">
+                      <p className="text-xs font-semibold text-emerald-800 mb-1">✨ Let the magic begin!</p>
+                      <p className="text-xs text-emerald-700">
+                        Na installatie: log in via de extensie en open ChatGPT. Je resultaten worden automatisch opgeslagen.
+                      </p>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -625,12 +667,24 @@ export default function WebsiteDetailPage() {
             {activeTab === 'perplexity' && (
               <div>
                 {!latestPerplexity ? (
-                  <div className="text-center py-8 text-slate-500">
-                    <Image src="/perplexity-logo.svg" alt="Perplexity" width={40} height={40} className="mx-auto mb-2 opacity-30" />
-                    <p>Nog geen Perplexity scans</p>
-                    <Link href="/tools/ai-visibility" className="text-purple-600 hover:underline text-sm">
-                      Start een scan →
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <Image src="/perplexity-logo.svg" alt="Perplexity" width={32} height={32} />
+                    </div>
+                    <p className="font-medium text-slate-700 mb-1">Nog geen Perplexity scans</p>
+                    <p className="text-sm text-slate-500 mb-4">Check je zichtbaarheid in Perplexity AI</p>
+                    
+                    <Link 
+                      href={`/tools/ai-visibility?company=${encodeURIComponent(website.name)}&website=${encodeURIComponent(website.website || '')}`}
+                      className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-xl hover:from-purple-600 hover:to-indigo-600 transition shadow-md"
+                    >
+                      <Search className="w-5 h-5" />
+                      Start Perplexity Scan
                     </Link>
+                    
+                    <p className="text-xs text-slate-400 mt-4">
+                      ✨ Gratis scan met realtime resultaten
+                    </p>
                   </div>
                 ) : (
                   <div>
@@ -737,10 +791,40 @@ export default function WebsiteDetailPage() {
             {activeTab === 'google' && (
               <div>
                 {!latestGoogle ? (
-                  <div className="text-center py-8 text-slate-500">
-                    <Sparkles className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                    <p>Nog geen Google AI scans</p>
-                    <p className="text-sm mt-1">Scan je prompts hierboven</p>
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <Sparkles className="w-8 h-8 text-blue-500" />
+                    </div>
+                    <p className="font-medium text-slate-700 mb-1">Nog geen Google AI scans</p>
+                    <p className="text-sm text-slate-500 mb-4">Scan je zichtbaarheid in Google AI Overviews</p>
+                    
+                    <button
+                      onClick={startGoogleScan}
+                      disabled={scanning || prompts.length === 0}
+                      className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-600 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {scanning ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Scannen...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-5 h-5" />
+                          Start Google AI Scan
+                        </>
+                      )}
+                    </button>
+                    
+                    {prompts.length === 0 && (
+                      <p className="text-xs text-amber-600 mt-3">
+                        ⚠️ Voeg eerst prompts toe bovenaan de pagina
+                      </p>
+                    )}
+                    
+                    <p className="text-xs text-slate-400 mt-4">
+                      🔍 Scant {prompts.length} prompts in Google AI Overviews
+                    </p>
                   </div>
                 ) : (
                   <div>
@@ -854,19 +938,95 @@ export default function WebsiteDetailPage() {
           </div>
         </div>
 
-        {/* Action Button - Only GEO Optimalisatie */}
+        {/* Action Button - Open GEO Analyse */}
         <div className="mt-8 flex justify-center">
-          <a
-            href="https://www.onlinelabs.nl/skills/geo-optimalisatie"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition-colors"
+          <button
+            onClick={() => {
+              // Check if all 3 platforms have been scanned
+              const hasPerplexity = website.platforms.perplexity.scans.length > 0
+              const hasChatgpt = website.platforms.chatgpt.scans.length > 0
+              const hasGoogle = website.platforms.google.scans.length > 0
+              
+              if (hasPerplexity && hasChatgpt && hasGoogle) {
+                // All scans done - navigate to GEO Analyse
+                router.push(`/dashboard/geo-analyse?website=${encodeURIComponent(website.name)}`)
+              } else {
+                // Show popup
+                setShowGeoPopup(true)
+              }
+            }}
+            className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl font-medium hover:from-purple-600 hover:to-indigo-600 transition-all shadow-lg"
           >
-            GEO Optimalisatie <ExternalLink className="w-4 h-4" />
-          </a>
+            <BarChart3 className="w-5 h-5" />
+            GEO Analyse
+          </button>
         </div>
 
       </div>
+      
+      {/* Missing Scans Popup */}
+      {showGeoPopup && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowGeoPopup(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-8 h-8 text-amber-500" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Scan eerst alle platforms</h3>
+              <p className="text-slate-600 mb-6">
+                Voor een complete GEO Analyse heb je scans nodig van alle 3 de AI platforms.
+              </p>
+              
+              {/* Platform status */}
+              <div className="space-y-2 mb-6 text-left">
+                <div className={`flex items-center gap-3 p-3 rounded-lg ${website.platforms.perplexity.scans.length > 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                  {website.platforms.perplexity.scans.length > 0 ? (
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  ) : (
+                    <XCircle className="w-5 h-5 text-red-500" />
+                  )}
+                  <span className={website.platforms.perplexity.scans.length > 0 ? 'text-green-700' : 'text-red-700'}>
+                    Perplexity {website.platforms.perplexity.scans.length > 0 ? '✓' : '- nog niet gescand'}
+                  </span>
+                </div>
+                <div className={`flex items-center gap-3 p-3 rounded-lg ${website.platforms.chatgpt.scans.length > 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                  {website.platforms.chatgpt.scans.length > 0 ? (
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  ) : (
+                    <XCircle className="w-5 h-5 text-red-500" />
+                  )}
+                  <span className={website.platforms.chatgpt.scans.length > 0 ? 'text-green-700' : 'text-red-700'}>
+                    ChatGPT {website.platforms.chatgpt.scans.length > 0 ? '✓' : '- nog niet gescand'}
+                  </span>
+                </div>
+                <div className={`flex items-center gap-3 p-3 rounded-lg ${website.platforms.google.scans.length > 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                  {website.platforms.google.scans.length > 0 ? (
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  ) : (
+                    <XCircle className="w-5 h-5 text-red-500" />
+                  )}
+                  <span className={website.platforms.google.scans.length > 0 ? 'text-green-700' : 'text-red-700'}>
+                    Google AI {website.platforms.google.scans.length > 0 ? '✓' : '- nog niet gescand'}
+                  </span>
+                </div>
+              </div>
+              
+              <button
+                onClick={() => setShowGeoPopup(false)}
+                className="w-full px-4 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition"
+              >
+                Begrepen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

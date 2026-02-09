@@ -579,9 +579,20 @@ function AIVisibilityToolContent() {
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 text-slate-900 leading-tight px-4">
             AI Zichtbaarheidsanalyse
           </h1>
-          <p className="text-base sm:text-lg md:text-xl text-slate-600 px-4">
+          <p className="text-base sm:text-lg md:text-xl text-slate-600 px-4 mb-4">
             Hoe vermelden AI-modellen jouw bedrijf bij commerciële zoekvragen?
           </p>
+          {/* GRATIS badge for non-logged in users */}
+          {!user && (
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-full">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              <span className="text-sm font-semibold text-emerald-700">Perplexity scan gratis</span>
+              <span className="text-xs text-emerald-600">• Maak account voor ChatGPT + Google AI</span>
+            </div>
+          )}
         </header>
 
         {/* Step Indicator - Pill style matching homepage CTA */}
@@ -1302,23 +1313,49 @@ function AIVisibilityToolContent() {
                   </div>
                 </div>
 
-                {/* ChatGPT Login Prompt */}
+                {/* ChatGPT + Google AI Unlock Prompt */}
                 {!user && (
-                  <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
-                    <div className="flex items-start sm:items-center gap-3 flex-col sm:flex-row">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gradient-to-br from-[#10A37F] to-[#0D8A6A] rounded-lg flex items-center justify-center flex-shrink-0">
-                          <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M22.2 9.4c.4-1.2.2-2.5-.5-3.6-.7-1-1.8-1.7-3-1.9-.6-.1-1.2 0-1.8.2-.5-1.3-1.5-2.3-2.8-2.8-1.3-.5-2.8-.4-4 .3C9.4.6 8.2.2 7 .5c-1.2.3-2.3 1.1-2.9 2.2-.6 1.1-.7 2.4-.3 3.6-1.3.5-2.3 1.5-2.8 2.8s-.4 2.8.3 4c-1 .8-1.6 2-1.7 3.3-.1 1.3.4 2.6 1.4 3.5 1 .9 2.3 1.3 3.6 1.2.5 1.3 1.5 2.3 2.8 2.8 1.3.5 2.8.4 4-.3.8 1 2 1.6 3.3 1.7 1.3.1 2.6-.4 3.5-1.4.9-1 1.3-2.3 1.2-3.6 1.3-.5 2.3-1.5 2.8-2.8.5-1.3.4-2.8-.3-4 1-.8 1.6-2 1.7-3.3.1-1.3-.4-2.6-1.4-3.5z"/>
-                          </svg>
+                  <div className="bg-gradient-to-r from-emerald-50 via-green-50 to-teal-50 border-2 border-emerald-200 rounded-xl p-4 sm:p-5 mb-4 sm:mb-6 relative overflow-hidden">
+                    {/* GRATIS Badge */}
+                    <div className="absolute top-0 right-0">
+                      <div className="bg-gradient-to-r from-emerald-500 to-green-500 text-white text-[10px] sm:text-xs font-bold px-3 py-1 rounded-bl-lg">
+                        GRATIS
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex -space-x-2">
+                          {/* ChatGPT icon */}
+                          <div className="w-9 h-9 bg-gradient-to-br from-[#10A37F] to-[#0D8A6A] rounded-lg flex items-center justify-center border-2 border-white shadow-sm">
+                            <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M22.2 9.4c.4-1.2.2-2.5-.5-3.6-.7-1-1.8-1.7-3-1.9-.6-.1-1.2 0-1.8.2-.5-1.3-1.5-2.3-2.8-2.8-1.3-.5-2.8-.4-4 .3C9.4.6 8.2.2 7 .5c-1.2.3-2.3 1.1-2.9 2.2-.6 1.1-.7 2.4-.3 3.6-1.3.5-2.3 1.5-2.8 2.8s-.4 2.8.3 4c-1 .8-1.6 2-1.7 3.3-.1 1.3.4 2.6 1.4 3.5 1 .9 2.3 1.3 3.6 1.2.5 1.3 1.5 2.3 2.8 2.8 1.3.5 2.8.4 4-.3.8 1 2 1.6 3.3 1.7 1.3.1 2.6-.4 3.5-1.4.9-1 1.3-2.3 1.2-3.6 1.3-.5 2.3-1.5 2.8-2.8.5-1.3.4-2.8-.3-4 1-.8 1.6-2 1.7-3.3.1-1.3-.4-2.6-1.4-3.5z"/>
+                            </svg>
+                          </div>
+                          {/* Google AI icon */}
+                          <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center border-2 border-white shadow-sm">
+                            <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                            </svg>
+                          </div>
                         </div>
-                        <span className="font-semibold text-slate-800 text-sm sm:text-base">ChatGPT scan?</span>
+                        <div className="flex-1">
+                          <span className="font-bold text-slate-800 text-sm sm:text-base block">Unlock ChatGPT + Google AI</span>
+                          <span className="text-xs text-slate-500">Maak een gratis account - geen creditcard nodig</span>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <span className="text-xs sm:text-sm text-slate-600">Log in voor een extra ChatGPT analyse + toegang tot het dashboard</span>
+                      
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        <span className="px-2 py-1 bg-white/80 rounded-full text-slate-600 border border-slate-200">✓ ChatGPT scans</span>
+                        <span className="px-2 py-1 bg-white/80 rounded-full text-slate-600 border border-slate-200">✓ Google AI Overviews</span>
+                        <span className="px-2 py-1 bg-white/80 rounded-full text-slate-600 border border-slate-200">✓ GEO Analyse</span>
                       </div>
-                      <Link href="/login" className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-sm font-semibold rounded-lg hover:from-emerald-600 hover:to-green-600 transition whitespace-nowrap">
-                        Inloggen
+                      
+                      <Link 
+                        href="/signup" 
+                        className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-sm font-bold rounded-lg hover:from-emerald-600 hover:to-green-600 transition shadow-md text-center"
+                      >
+                        Gratis account maken →
                       </Link>
                     </div>
                   </div>
@@ -1408,6 +1445,13 @@ function AIVisibilityToolContent() {
                 {/* GEO DIY CTA - Only for non-logged in users */}
                 {!user && (
                   <div id="geo-cta" className="bg-gradient-to-br from-[#1E1E3F] via-[#2D2D5F] to-[#1E1E3F] rounded-2xl p-6 mb-6 text-white relative overflow-hidden">
+                    {/* GRATIS badge */}
+                    <div className="absolute top-3 right-3">
+                      <span className="px-3 py-1 bg-gradient-to-r from-emerald-400 to-green-400 text-slate-900 text-xs font-bold rounded-full shadow-lg">
+                        100% GRATIS
+                      </span>
+                    </div>
+                    
                     {/* Background decoration */}
                     <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full -translate-y-1/2 translate-x-1/2" />
                     <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/10 rounded-full translate-y-1/2 -translate-x-1/2" />
@@ -1415,25 +1459,29 @@ function AIVisibilityToolContent() {
                     <div className="relative">
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-2xl">🚀</span>
-                        <h3 className="text-lg font-bold">Start met GEO Optimalisatie</h3>
+                        <h3 className="text-lg font-bold">Unlock alle AI platforms</h3>
                       </div>
                       
                       <p className="text-purple-200 text-sm mb-4">
-                        Verbeter je AI-zichtbaarheid met onze gratis DIY tools. Maak een account en krijg toegang tot:
+                        Maak een gratis account en krijg direct toegang tot alle AI-zichtbaarheid tools:
                       </p>
                       
                       <ul className="space-y-2 mb-5">
                         <li className="flex items-center gap-2 text-sm">
                           <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
-                          <span>Onbeperkt Perplexity + ChatGPT scans</span>
+                          <span><strong>ChatGPT</strong> scan resultaten</span>
                         </li>
                         <li className="flex items-center gap-2 text-sm">
                           <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
-                          <span>Dashboard met alle resultaten</span>
+                          <span><strong>Google AI Overviews</strong> analyse</span>
                         </li>
                         <li className="flex items-center gap-2 text-sm">
                           <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
-                          <span>GEO optimalisatie tips & handleidingen</span>
+                          <span><strong>GEO Analyse PRO</strong> met aanbevelingen</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-sm">
+                          <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
+                          <span>Dashboard met alle scan resultaten</span>
                         </li>
                         <li className="flex items-center gap-2 text-sm">
                           <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
@@ -1456,8 +1504,8 @@ function AIVisibilityToolContent() {
                         </Link>
                       </div>
                       
-                      <p className="text-purple-300 text-xs mt-3 text-center">
-                        100% gratis • Geen creditcard nodig
+                      <p className="text-emerald-300 text-xs mt-3 text-center font-medium">
+                        ✨ Geen creditcard • Geen verborgen kosten • Voor altijd gratis
                       </p>
                     </div>
                   </div>
@@ -1562,15 +1610,88 @@ function AIVisibilityToolContent() {
 
                 {/* Scroll to GEO CTA button - only for non-logged in users */}
                 {!user && (
-                  <button
-                    onClick={() => document.getElementById('geo-cta')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="mt-6 flex flex-col items-center gap-1 text-purple-600 hover:text-purple-800 transition group cursor-pointer"
-                  >
-                    <span className="text-sm font-medium">Start met GEO optimalisatie</span>
-                    <svg className="w-6 h-6 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                    </svg>
-                  </button>
+                  <>
+                    {/* GRATIS Account Promo Box */}
+                    <div className="mt-6 w-full bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 rounded-2xl p-5 border-2 border-emerald-200 shadow-lg relative overflow-hidden">
+                      {/* GRATIS Badge */}
+                      <div className="absolute -top-1 -right-1">
+                        <div className="bg-gradient-to-r from-emerald-500 to-green-500 text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl rounded-tr-xl shadow-md">
+                          100% GRATIS
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-md">
+                          <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-slate-800 text-sm">Unlock meer inzichten</h4>
+                          <p className="text-xs text-slate-500">Geen creditcard nodig</p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <span className="text-slate-700"><strong>ChatGPT</strong> scan resultaten</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <span className="text-slate-700"><strong>Google AI Overviews</strong> analyse</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <span className="text-slate-700"><strong>GEO Analyse</strong> + aanbevelingen</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <span className="text-slate-700">Persoonlijk <strong>dashboard</strong></span>
+                        </div>
+                      </div>
+                      
+                      <Link 
+                        href="/signup" 
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-green-600 transition shadow-md hover:shadow-lg"
+                      >
+                        <span>Maak gratis account</span>
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                      </Link>
+                      
+                      <p className="text-center text-xs text-slate-500 mt-2">
+                        ✨ Geen verborgen kosten, voor altijd gratis
+                      </p>
+                    </div>
+                    
+                    <button
+                      onClick={() => document.getElementById('geo-cta')?.scrollIntoView({ behavior: 'smooth' })}
+                      className="mt-4 flex flex-col items-center gap-1 text-purple-600 hover:text-purple-800 transition group cursor-pointer"
+                    >
+                      <span className="text-sm font-medium">Of bekijk onze GEO diensten</span>
+                      <svg className="w-6 h-6 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                      </svg>
+                    </button>
+                  </>
                 )}
               </div>
             </div>

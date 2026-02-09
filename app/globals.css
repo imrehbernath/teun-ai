@@ -25,7 +25,11 @@ body {
   color: var(--foreground);
   font-family: var(--font-nunito), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
-
+@layer utilities {
+  .top-\[190px\] {
+    top: 230px;
+  }
+}
 /* Custom Font Utilities */
 @layer utilities {
   .font-montserrat {

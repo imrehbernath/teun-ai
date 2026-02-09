@@ -261,8 +261,7 @@ export default function WebsiteDetailModal({ website, onClose, onDeleteScan, onS
   const platformStats = {
     perplexity: website.scans.filter(s => s.type === 'perplexity'),
     chatgpt: website.scans.filter(s => s.type === 'chatgpt'),
-    claude: [],
-    google: []
+    google: website.scans.filter(s => s.type === 'google')
   }
 
   const getPlatformScore = (scans) => {
@@ -394,15 +393,45 @@ export default function WebsiteDetailModal({ website, onClose, onDeleteScan, onS
                   <BarChart3 className="w-5 h-5 text-slate-400" />
                   Platform Performance
                 </h3>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   {[
-                    { name: 'ChatGPT', key: 'chatgpt', color: 'green', icon: '💬' },
-                    { name: 'Perplexity', key: 'perplexity', color: 'purple', icon: '🔍' },
-                    { name: 'Claude', key: 'claude', color: 'orange', icon: '🤖' },
-                    { name: 'Google AI', key: 'google', color: 'blue', icon: '🌐' }
+                    { name: 'ChatGPT', key: 'chatgpt', icon: '💬', gradient: 'from-emerald-500 to-green-500', hasInfo: true },
+                    { name: 'Perplexity', key: 'perplexity', icon: '🔍', gradient: 'from-purple-500 to-indigo-500' },
+                    { name: 'Google AI', key: 'google', icon: '🌐', gradient: 'from-blue-500 to-indigo-500' }
                   ].map((platform) => {
                     const score = getPlatformScore(platformStats[platform.key])
                     const isActive = platformStats[platform.key].length > 0
+                    
+                    // Generate scan action based on platform
+                    const getScanAction = () => {
+                      if (platform.key === 'perplexity') {
+                        return {
+                          type: 'link',
+                          href: `/tools/ai-visibility?company=${encodeURIComponent(website.name)}&website=${encodeURIComponent(website.website || '')}`
+                        }
+                      }
+                      if (platform.key === 'chatgpt') {
+                        return {
+                          type: 'external',
+                          href: 'https://chatgpt.com'
+                        }
+                      }
+                      if (platform.key === 'google') {
+                        return {
+                          type: 'action',
+                          action: () => onStartScanWithPrompts && onStartScanWithPrompts({
+                            companyName: website.name,
+                            category: website.category,
+                            website: website.website,
+                            prompts: allPrompts,
+                            scanType: 'google'
+                          })
+                        }
+                      }
+                      return null
+                    }
+                    
+                    const scanAction = getScanAction()
                     
                     return (
                       <div 
@@ -418,17 +447,63 @@ export default function WebsiteDetailModal({ website, onClose, onDeleteScan, onS
                           {isActive ? (
                             <CheckCircle2 className="w-4 h-4 text-green-500" />
                           ) : (
-                            <span className="text-xs text-slate-400">Niet gescand</span>
+                            <span className="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded font-medium">GRATIS</span>
                           )}
                         </div>
                         <p className={`font-medium text-sm ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>
                           {platform.name}
                         </p>
-                        {isActive && score !== null && (
+                        {isActive && score !== null ? (
                           <p className={`text-2xl font-bold mt-1 ${getScoreColor(score)}`}>
                             {score}%
                           </p>
-                        )}
+                        ) : scanAction ? (
+                          <div className="flex items-center gap-1 mt-2">
+                            {scanAction.type === 'link' ? (
+                              <Link
+                                href={scanAction.href}
+                                className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg bg-gradient-to-r ${platform.gradient} text-white hover:opacity-90 transition`}
+                              >
+                                Scan nu
+                              </Link>
+                            ) : scanAction.type === 'external' ? (
+                              <>
+                                <a
+                                  href={scanAction.href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg bg-gradient-to-r ${platform.gradient} text-white hover:opacity-90 transition`}
+                                >
+                                  Open →
+                                </a>
+                                {platform.hasInfo && (
+                                  <div className="relative group">
+                                    <button className="w-5 h-5 rounded-full bg-slate-200 text-slate-500 text-xs flex items-center justify-center hover:bg-slate-300 transition">
+                                      ?
+                                    </button>
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 p-3 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                      <p className="font-semibold mb-2">Hoe werkt dit?</p>
+                                      <ol className="list-decimal list-inside space-y-1 text-slate-200">
+                                        <li>Installeer de Chrome extensie</li>
+                                        <li>Log in bij Teun.ai via de extensie</li>
+                                        <li>Open ChatGPT in je browser</li>
+                                        <li>Let the magic begin! ✨</li>
+                                      </ol>
+                                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            ) : scanAction.type === 'action' ? (
+                              <button
+                                onClick={scanAction.action}
+                                className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg bg-gradient-to-r ${platform.gradient} text-white hover:opacity-90 transition`}
+                              >
+                                Scan nu
+                              </button>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </div>
                     )
                   })}

@@ -41,6 +41,7 @@ function DashboardContent() {
   const [showInstructionsModal, setShowInstructionsModal] = useState(false)
   const [filter, setFilter] = useState('all') // all, best, recent
   const [deleteConfirm, setDeleteConfirm] = useState(null) // Website to delete
+  const [showGeoPopup, setShowGeoPopup] = useState(false) // Popup for GEO Analyse
   
   const alertShownRef = useRef(false)
   const authSentRef = useRef(false)
@@ -439,9 +440,18 @@ function DashboardContent() {
           .eq('user_id', user.id)
 
         if (chatError) {
-          console.error('Error deleting scan:', chatError)
-          alert('Er ging iets mis bij het verwijderen. Probeer het opnieuw.')
-          return
+          // Try google_ai_scans table
+          const { error: googleError } = await supabase
+            .from('google_ai_scans')
+            .delete()
+            .eq('id', scanId)
+            .eq('user_id', user.id)
+          
+          if (googleError) {
+            console.error('Error deleting scan:', googleError)
+            alert('Er ging iets mis bij het verwijderen. Probeer het opnieuw.')
+            return
+          }
         }
       }
 
@@ -563,6 +573,24 @@ function DashboardContent() {
             console.warn('⚠️ ChatGPT scan NOT deleted (RLS policy blocked?)')
             failedCount++
           }
+        } else if (scan.type === 'google') {
+          // Handle Google AI scans
+          const { data, error } = await supabase
+            .from('google_ai_scans')
+            .delete()
+            .eq('id', scan.id)
+            .select()
+          
+          if (error) {
+            console.error('❌ Error deleting google scan:', error)
+            failedCount++
+          } else if (data && data.length > 0) {
+            console.log('✅ Google AI scan deleted:', data)
+            deletedCount++
+          } else {
+            console.warn('⚠️ Google AI scan NOT deleted (RLS policy blocked?)')
+            failedCount++
+          }
         }
       }
 
@@ -610,6 +638,28 @@ function DashboardContent() {
     return filtered
   }
 
+  // Check if all platforms are scanned before opening GEO Analyse
+  const handleGeoAnalyseClick = () => {
+    // Check if there's at least one website with all 3 platforms scanned
+    const hasCompleteWebsite = websites.some(w => 
+      w.platforms?.perplexity && w.platforms?.chatgpt && w.platforms?.google
+    )
+    
+    if (hasCompleteWebsite) {
+      router.push('/dashboard/geo-analyse')
+    } else {
+      setShowGeoPopup(true)
+    }
+  }
+
+  // Get platform scan status for popup
+  const getPlatformStatus = () => {
+    const hasPerplexity = websites.some(w => w.platforms?.perplexity)
+    const hasChatgpt = websites.some(w => w.platforms?.chatgpt)
+    const hasGoogle = websites.some(w => w.platforms?.google)
+    return { hasPerplexity, hasChatgpt, hasGoogle }
+  }
+
   // ============================================
   // RENDER
   // ============================================
@@ -644,15 +694,15 @@ function DashboardContent() {
               </svg>
               Dashboard
             </Link>
-            <div 
-              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-400 border border-slate-200 rounded-lg font-medium text-sm cursor-not-allowed"
+            <button 
+              onClick={handleGeoAnalyseClick}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 border-2 border-purple-200 rounded-lg font-medium text-sm hover:from-purple-100 hover:to-indigo-100 hover:border-purple-300 transition shadow-sm cursor-pointer"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
               GEO Analyse
-              <span className="px-2 py-0.5 bg-slate-300 text-slate-500 text-xs font-bold rounded-full">SOON</span>
-            </div>
+            </button>
           </div>
           
           <EmptyState 
@@ -695,15 +745,15 @@ function DashboardContent() {
             </svg>
             Dashboard
           </Link>
-          <div 
-            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-400 border border-slate-200 rounded-lg font-medium text-sm cursor-not-allowed"
+          <button 
+            onClick={handleGeoAnalyseClick}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 border-2 border-purple-200 rounded-lg font-medium text-sm hover:from-purple-100 hover:to-indigo-100 hover:border-purple-300 transition shadow-sm cursor-pointer"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
             GEO Analyse
-            <span className="px-2 py-0.5 bg-slate-300 text-slate-500 text-xs font-bold rounded-full">SOON</span>
-          </div>
+          </button>
         </div>
 
         {/* Website List */}
@@ -834,6 +884,91 @@ function DashboardContent() {
                   Ja, verwijder
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GEO Analyse Popup - Missing Scans */}
+      {showGeoPopup && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowGeoPopup(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Scan eerst alle platforms</h3>
+              <p className="text-slate-600 mb-6">
+                Voor een complete GEO Analyse heb je scans nodig van alle 3 de AI platforms.
+              </p>
+              
+              {/* Platform status */}
+              <div className="space-y-2 mb-6 text-left">
+                {(() => {
+                  const status = getPlatformStatus()
+                  return (
+                    <>
+                      <div className={`flex items-center gap-3 p-3 rounded-lg ${status.hasPerplexity ? 'bg-green-50' : 'bg-red-50'}`}>
+                        {status.hasPerplexity ? (
+                          <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        )}
+                        <span className={status.hasPerplexity ? 'text-green-700' : 'text-red-700'}>
+                          Perplexity {status.hasPerplexity ? '✓' : '- nog niet gescand'}
+                        </span>
+                      </div>
+                      <div className={`flex items-center gap-3 p-3 rounded-lg ${status.hasChatgpt ? 'bg-green-50' : 'bg-red-50'}`}>
+                        {status.hasChatgpt ? (
+                          <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        )}
+                        <span className={status.hasChatgpt ? 'text-green-700' : 'text-red-700'}>
+                          ChatGPT {status.hasChatgpt ? '✓' : '- nog niet gescand'}
+                        </span>
+                      </div>
+                      <div className={`flex items-center gap-3 p-3 rounded-lg ${status.hasGoogle ? 'bg-green-50' : 'bg-red-50'}`}>
+                        {status.hasGoogle ? (
+                          <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        )}
+                        <span className={status.hasGoogle ? 'text-green-700' : 'text-red-700'}>
+                          Google AI {status.hasGoogle ? '✓' : '- nog niet gescand'}
+                        </span>
+                      </div>
+                    </>
+                  )
+                })()}
+              </div>
+              
+              <button
+                onClick={() => setShowGeoPopup(false)}
+                className="w-full px-4 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition cursor-pointer"
+              >
+                Begrepen
+              </button>
             </div>
           </div>
         </div>

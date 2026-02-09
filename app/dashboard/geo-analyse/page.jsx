@@ -14,53 +14,109 @@ import {
 import Image from 'next/image'
 
 // ============================================
-// GEO CHECKLIST DATA
+// GEO CHECKLIST DATA (Complete from Excel)
 // ============================================
 const GEO_CHECKLIST = {
   basisinformatie: {
     label: 'Basisinformatie',
+    icon: 'Building2',
     items: [
       { id: 'owner_info', label: 'Duidelijke eigenaar en bedrijfsinformatie', autoCheck: true },
       { id: 'contact_visible', label: 'Contactgegevens zichtbaar en vindbaar', autoCheck: true },
       { id: 'about_page', label: 'Over-ons pagina met team/auteurs', autoCheck: true },
+      { id: 'business_registration', label: 'Bedrijfsregistratie of officiële vermeldingen', autoCheck: true },
       { id: 'nap_consistent', label: 'Consistente NAP (naam, adres, telefoon)', autoCheck: true },
     ]
   },
   technisch: {
     label: 'Technische Fundamenten',
+    icon: 'Zap',
     items: [
-      { id: 'mobile_friendly', label: 'Mobielvriendelijk ontwerp', autoCheck: true },
+      { id: 'mobile_friendly', label: 'Mobielvriendelijk ontwerp en snelle laadtijd', autoCheck: true },
       { id: 'https', label: 'HTTPS beveiliging actief', autoCheck: true },
-      { id: 'core_web_vitals', label: 'Core Web Vitals geoptimaliseerd', autoCheck: false },
+      { id: 'no_index_issues', label: 'Geen indexatieproblemen (robots.txt, sitemaps)', autoCheck: true },
+      { id: 'core_web_vitals', label: 'Core Web Vitals geoptimaliseerd', autoCheck: true },
+      { id: 'accessibility', label: 'Toegankelijkheid (alt-teksten, ARIA-labels)', autoCheck: true },
     ]
   },
-  content: {
-    label: 'Content Optimalisatie',
+  content_relevantie: {
+    label: 'Content - Relevantie & Volledigheid',
+    icon: 'FileText',
     items: [
       { id: 'clear_answers', label: 'Duidelijke antwoorden op zoekvragen', autoCheck: true },
+      { id: 'expert_content', label: 'Inhoud door experts of ervaringsdeskundigen', autoCheck: true },
+      { id: 'eeat_principles', label: 'E-E-A-T principes toegepast', autoCheck: true },
+      { id: 'content_updated', label: 'Inhoud actueel en regelmatig bijgewerkt', autoCheck: true },
+      { id: 'faq_present', label: 'FAQ-secties of Q&A-structuur aanwezig', autoCheck: true },
+    ]
+  },
+  content_structuur: {
+    label: 'Content - Structuur & Leesbaarheid',
+    icon: 'BookOpen',
+    items: [
       { id: 'headings', label: 'Duidelijke koppen (H1, H2, H3)', autoCheck: true },
-      { id: 'faq_present', label: 'FAQ-secties of Q&A-structuur', autoCheck: true },
+      { id: 'paragraph_structure', label: 'Logische alinea-opbouw en korte zinnen', autoCheck: true },
+      { id: 'visual_support', label: 'Afbeeldingen, tabellen en opsommingen', autoCheck: true },
       { id: 'internal_links', label: 'Interne links naar relevante pagina\'s', autoCheck: true },
+      { id: 'external_references', label: 'Externe verwijzingen naar betrouwbare bronnen', autoCheck: true },
     ]
   },
   structured_data: {
-    label: 'Structured Data & Metadata',
+    label: 'Structured Data',
+    icon: 'Database',
     items: [
-      { id: 'jsonld', label: 'JSON-LD markup aanwezig', autoCheck: true },
-      { id: 'title_meta', label: 'Titels en meta descriptions', autoCheck: true },
-      { id: 'og_tags', label: 'Social media OG-tags', autoCheck: true },
+      { id: 'jsonld', label: 'JSON-LD markup (Organization, FAQ, Product)', autoCheck: true },
+      { id: 'rich_snippets', label: 'Rich snippets getest in Google testtool', autoCheck: true },
+      { id: 'image_alt', label: 'Afbeeldingen met alt-teksten', autoCheck: true },
+      { id: 'knowledge_panel', label: 'Knowledge panel triggers toegepast', autoCheck: true },
+    ]
+  },
+  metadata: {
+    label: 'Metadata & Tags',
+    icon: 'FileText',
+    items: [
+      { id: 'title_meta', label: 'Titels en meta descriptions geoptimaliseerd', autoCheck: true },
+      { id: 'og_tags', label: 'Social media OG-tags en Twitter Cards', autoCheck: true },
+      { id: 'canonical_tags', label: 'Canonical-tags correct gebruikt', autoCheck: true },
+      { id: 'image_optimized', label: 'Afbeeldingen geoptimaliseerd (WebP, lazy load)', autoCheck: true },
+    ]
+  },
+  ai_geo: {
+    label: 'AI & GEO-specifieke Signalen',
+    icon: 'Sparkles',
+    items: [
+      { id: 'qa_format', label: 'Content in Q&A-formaat voor AI-antwoorden', autoCheck: true },
+      { id: 'short_answers', label: 'Korte antwoorden bovenaan pagina\'s', autoCheck: true },
+      { id: 'longtail_keywords', label: 'Long-tail zoekvragen verwerkt', autoCheck: true },
+      { id: 'conversational_style', label: 'Conversatiestijl afgestemd op vragen', autoCheck: true },
+      { id: 'ai_structured_data', label: 'Structured data voor generatieve AI', autoCheck: true },
+      { id: 'context_links', label: 'Interne links voor context en verbanden', autoCheck: true },
+      { id: 'synonyms_entities', label: 'Synoniemen en entiteiten verwerkt', autoCheck: true },
+      { id: 'local_info', label: 'Lokaal relevante informatie toegevoegd', autoCheck: true },
     ]
   },
   autoriteit: {
-    label: 'Autoriteit & Vertrouwen (handmatig)',
+    label: 'Autoriteit & Vertrouwen',
+    icon: 'Shield',
+    manual: true,
     items: [
       { id: 'directory_listings', label: 'Vermeldingen op directories', manual: true },
       { id: 'backlinks', label: 'Kwalitatieve backlinks', manual: true },
+      { id: 'media_presence', label: 'PR- of media-aanwezigheid', manual: true },
       { id: 'reviews', label: 'Reviews op Google/Trustpilot', manual: true },
       { id: 'social_profiles', label: 'Actieve social media profielen', manual: true },
+      { id: 'brand_consistency', label: 'Consistente merkboodschap', manual: true },
     ]
   },
 }
+
+// All checklist items flattened for animation
+const ALL_CHECKLIST_ITEMS = Object.values(GEO_CHECKLIST)
+  .filter(section => !section.manual)
+  .flatMap(section => section.items.map(item => ({
+    ...item,
+    section: section.label
+  })))
 
 // ============================================
 // MAIN COMPONENT
@@ -94,6 +150,10 @@ function GEOAnalysePROContent() {
   const [matches, setMatches] = useState([]) // { prompt, page }
   const [draggedItem, setDraggedItem] = useState(null)
   const [unmatchedPrompts, setUnmatchedPrompts] = useState([])
+  const [pageSearch, setPageSearch] = useState('') // Search filter for pages
+  const [autoMatching, setAutoMatching] = useState(false)
+  const [editingPromptIndex, setEditingPromptIndex] = useState(null)
+  const [editingPromptText, setEditingPromptText] = useState('')
   
   // Step 4: GEO Checklist Scan
   const [geoScanning, setGeoScanning] = useState(false)
@@ -101,9 +161,19 @@ function GEOAnalysePROContent() {
   const [geoResults, setGeoResults] = useState({}) // pageUrl -> { checklist, score, issues }
   const [manualChecks, setManualChecks] = useState({})
   
+  // Animated scan state
+  const [currentScanPage, setCurrentScanPage] = useState(null)
+  const [currentCheckItem, setCurrentCheckItem] = useState(null)
+  const [completedChecks, setCompletedChecks] = useState([]) // { id, label, passed, section }
+  const [scanPhase, setScanPhase] = useState('idle') // 'loading', 'scanning', 'analyzing', 'complete'
+  
   // Step 5: Results
   const [overallScore, setOverallScore] = useState(null)
   const [generating, setGenerating] = useState(false)
+  
+  // Google AI Mode Scan
+  const [googleAiScanning, setGoogleAiScanning] = useState(false)
+  const [googleAiProgress, setGoogleAiProgress] = useState(0)
   
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -155,9 +225,10 @@ function GEOAnalysePROContent() {
     localStorage.removeItem(SESSION_KEY)
   }
 
-  // Auto-save session on changes
+  // Auto-save session on meaningful changes only
   useEffect(() => {
-    if (step > 1 || matches.length > 0) {
+    // Only save if we're past step 2 AND have actual progress
+    if (step >= 3 && (matches.length > 0 || Object.keys(geoResults).length > 0)) {
       saveSession()
     }
   }, [step, matches, geoResults, overallScore, manualChecks])
@@ -177,27 +248,41 @@ function GEOAnalysePROContent() {
     }
     setUser(user)
     
-    // Try to restore session first
-    const savedSession = loadSession()
-    if (savedSession && savedSession.companyName) {
-      // Restore saved state
-      setStep(savedSession.step || 1)
-      setCompanyName(savedSession.companyName || '')
-      setCompanyWebsite(savedSession.companyWebsite || '')
-      setCompanyCategory(savedSession.companyCategory || '')
-      setExistingPrompts(savedSession.existingPrompts || [])
-      setExistingAiResults(savedSession.existingAiResults || [])
-      setScPages(savedSession.scPages || [])
-      setMatches(savedSession.matches || [])
-      setUnmatchedPrompts(savedSession.unmatchedPrompts || [])
-      setGeoResults(savedSession.geoResults || {})
-      setManualChecks(savedSession.manualChecks || {})
-      setOverallScore(savedSession.overallScore || null)
-      setSelectedProperty(savedSession.selectedProperty || '')
-    }
-    
+    // Load existing websites first
     await loadExistingWebsites(user.id)
     await checkGoogleConnection()
+    
+    // Try to restore session AFTER loading websites
+    const savedSession = loadSession()
+    if (savedSession && savedSession.companyName && savedSession.step > 1) {
+      // Only restore if session is recent (1 hour) and has meaningful progress
+      const sessionAge = Date.now() - savedSession.timestamp
+      const isRecent = sessionAge < 60 * 60 * 1000 // 1 hour
+      const hasProgress = savedSession.step >= 3 || (savedSession.matches && savedSession.matches.length > 0)
+      
+      if (isRecent && hasProgress) {
+        // Restore saved state
+        setStep(savedSession.step || 1)
+        setCompanyName(savedSession.companyName || '')
+        setCompanyWebsite(savedSession.companyWebsite || '')
+        setCompanyCategory(savedSession.companyCategory || '')
+        setExistingPrompts(savedSession.existingPrompts || [])
+        setExistingAiResults(savedSession.existingAiResults || [])
+        setScPages(savedSession.scPages || [])
+        setMatches(savedSession.matches || [])
+        setUnmatchedPrompts(savedSession.unmatchedPrompts || [])
+        setGeoResults(savedSession.geoResults || {})
+        setManualChecks(savedSession.manualChecks || {})
+        setOverallScore(savedSession.overallScore || null)
+        setSelectedProperty(savedSession.selectedProperty || '')
+        console.log('Restored session for:', savedSession.companyName, 'Step:', savedSession.step)
+      } else {
+        // Clear stale session
+        clearSession()
+        console.log('Cleared stale session (age:', Math.round(sessionAge / 60000), 'min)')
+      }
+    }
+    
     setLoading(false)
   }
 
@@ -206,12 +291,11 @@ function GEOAnalysePROContent() {
   // ============================================
   const loadExistingWebsites = async (userId) => {
     try {
-      // Load from tool_integrations (Perplexity scans) - includes AI results!
-      const { data: integrations } = await supabase
-        .from('tool_integrations')
+      // Load from perplexity_scans (new system) - has real scan results
+      const { data: perplexityScans } = await supabase
+        .from('perplexity_scans')
         .select('*')
         .eq('user_id', userId)
-        .not('commercial_prompts', 'is', null)
         .order('created_at', { ascending: false })
 
       // Load from chatgpt_scans
@@ -221,88 +305,260 @@ function GEOAnalysePROContent() {
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
 
-      console.log('Loaded integrations:', integrations)
+      // Load from google_ai_scans
+      const { data: googleAiScans } = await supabase
+        .from('google_ai_scans')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
 
-      // Deduplicate and combine
+      // Load from tool_integrations as fallback (older data)
+      const { data: integrations } = await supabase
+        .from('tool_integrations')
+        .select('*')
+        .eq('user_id', userId)
+        .not('commercial_prompts', 'is', null)
+        .order('created_at', { ascending: false })
+
+      console.log('Loaded perplexity scans:', perplexityScans)
+      console.log('Loaded chatgpt scans:', chatgptScans)
+      console.log('Loaded google ai scans:', googleAiScans)
+      console.log('Loaded tool_integrations:', integrations)
+      
+      // Debug: log first perplexity scan structure
+      if (perplexityScans?.[0]) {
+        console.log('First perplexity scan structure:', {
+          id: perplexityScans[0].id,
+          company_name: perplexityScans[0].company_name,
+          website: perplexityScans[0].website,
+          website_url: perplexityScans[0].website_url,
+          hasResults: !!perplexityScans[0].results,
+          resultsLength: perplexityScans[0].results?.length,
+          prompts: perplexityScans[0].prompts?.length
+        })
+      }
+      
+      // Debug: log first tool_integration structure
+      if (integrations?.[0]) {
+        console.log('First tool_integration structure:', {
+          id: integrations[0].id,
+          company_name: integrations[0].company_name,
+          website: integrations[0].website,
+          hasResults: !!integrations[0].results,
+          resultsLength: integrations[0].results?.length,
+          commercial_prompts: integrations[0].commercial_prompts?.length
+        })
+      }
+
+      // Deduplicate and combine - prioritize perplexity_scans
       const websiteMap = new Map()
       
-      integrations?.forEach(scan => {
+      // First, process perplexity_scans (most accurate data)
+      perplexityScans?.forEach(scan => {
         const key = (scan.company_name || scan.website || '').toLowerCase().trim()
         if (key && !websiteMap.has(key)) {
-          // Extract AI results - check multiple possible locations
-          let aiResults = []
+          const prompts = scan.prompts || []
           
-          // Try scan.results first (array of query results)
+          // Start with empty combined results
+          let combinedResults = {
+            perplexity: { mentioned: 0, total: 0, results: [] },
+            chatgpt: { mentioned: 0, total: 0, results: [] },
+            googleAi: { mentioned: 0, total: 0, results: [] }
+          }
+          
+          // Add Perplexity results
           if (Array.isArray(scan.results) && scan.results.length > 0) {
-            aiResults = scan.results.map(r => ({
+            combinedResults.perplexity.results = scan.results.map(r => ({
               prompt: r.query || r.prompt || '',
-              mentioned: r.mentioned || r.company_mentioned || r.is_mentioned || false,
-              mentionCount: r.mention_count || r.mentions_count || 0,
-              competitors: r.competitors || r.competitors_mentioned || [],
-              snippet: r.snippet || r.response_snippet || r.simulated_ai_response_snippet || ''
+              mentioned: r.companyMentioned === true || r.mentioned === true,
+              snippet: r.snippet || r.aiResponse || ''
             }))
-          }
-          // Try scan.scan_results 
-          else if (Array.isArray(scan.scan_results) && scan.scan_results.length > 0) {
-            aiResults = scan.scan_results.map(r => ({
-              prompt: r.query || r.prompt || '',
-              mentioned: r.mentioned || r.company_mentioned || false,
-              mentionCount: r.mention_count || 0,
-              competitors: r.competitors || [],
-              snippet: r.snippet || ''
-            }))
-          }
-          // Fallback: create from commercial_prompts (no AI data yet)
-          else if (Array.isArray(scan.commercial_prompts) && scan.commercial_prompts.length > 0) {
-            aiResults = scan.commercial_prompts.map(prompt => ({
-              prompt: prompt,
-              mentioned: false, // Unknown - needs scan
-              mentionCount: 0,
-              competitors: [],
-              snippet: ''
-            }))
+            combinedResults.perplexity.total = scan.results.length
+            combinedResults.perplexity.mentioned = scan.results.filter(r => 
+              r.companyMentioned === true || r.mentioned === true
+            ).length
           }
           
           websiteMap.set(key, {
+            id: scan.id, // Store the ID for linking to detail page
             name: scan.company_name || scan.website,
-            website: scan.website,
-            category: scan.company_category,
-            prompts: scan.commercial_prompts || [],
-            aiResults: aiResults,
+            website: scan.website || scan.website_url || scan.url || '', // Try multiple field names
+            category: scan.company_category || scan.category,
+            prompts: prompts,
+            combinedResults: combinedResults,
             source: 'perplexity',
             hasRealAiData: Array.isArray(scan.results) && scan.results.length > 0
           })
-        } else if (key && websiteMap.has(key)) {
-          const existing = websiteMap.get(key)
-          const newPrompts = scan.commercial_prompts || []
-          existing.prompts = [...new Set([...existing.prompts, ...newPrompts])]
+          
+          console.log('Added website from perplexity:', scan.company_name, 'URL:', scan.website || scan.website_url || scan.url)
         }
       })
 
+      // Add ChatGPT results to existing websites
       chatgptScans?.forEach(scan => {
         const key = (scan.company_name || '').toLowerCase().trim()
-        if (key && !websiteMap.has(key)) {
+        if (key && websiteMap.has(key)) {
+          const existing = websiteMap.get(key)
+          const results = scan.chatgpt_query_results || []
+          
+          // Update category if missing
+          if (!existing.category && (scan.company_category || scan.category)) {
+            existing.category = scan.company_category || scan.category
+          }
+          
+          existing.combinedResults.chatgpt = {
+            mentioned: results.filter(r => r.mentioned === true).length,
+            total: results.length,
+            results: results.map(r => ({
+              prompt: r.query,
+              mentioned: r.mentioned || false,
+              snippet: r.response_snippet || ''
+            }))
+          }
+        } else if (key && !websiteMap.has(key)) {
+          // Create new entry if not exists
           const prompts = scan.chatgpt_query_results?.map(r => r.query) || []
-          const aiResults = scan.chatgpt_query_results?.map(r => ({
-            prompt: r.query,
-            mentioned: r.mentioned || false,
-            mentionCount: r.mention_count || 0,
-            competitors: [],
-            snippet: r.response_snippet || ''
-          })) || []
+          const results = scan.chatgpt_query_results || []
           
           websiteMap.set(key, {
+            id: scan.id,
             name: scan.company_name,
             website: null,
-            category: null,
+            category: scan.company_category || scan.category || null,
             prompts,
-            aiResults,
+            combinedResults: {
+              perplexity: { mentioned: 0, total: 0, results: [] },
+              chatgpt: {
+                mentioned: results.filter(r => r.mentioned === true).length,
+                total: results.length,
+                results: results.map(r => ({
+                  prompt: r.query,
+                  mentioned: r.mentioned || false,
+                  snippet: r.response_snippet || ''
+                }))
+              },
+              googleAi: { mentioned: 0, total: 0, results: [] }
+            },
             source: 'chatgpt'
           })
         }
       })
 
-      const websites = [...websiteMap.values()]
+      // Add Google AI results to existing websites AND get website URL if missing
+      googleAiScans?.forEach(scan => {
+        const key = (scan.company_name || '').toLowerCase().trim()
+        if (key && websiteMap.has(key)) {
+          const existing = websiteMap.get(key)
+          const results = scan.results || []
+          
+          // Update website URL if we have it and it's missing
+          if (!existing.website && scan.website) {
+            existing.website = scan.website
+          }
+          
+          // Update category if missing
+          if (!existing.category && (scan.company_category || scan.category)) {
+            existing.category = scan.company_category || scan.category
+          }
+          
+          // Handle both old (AI Overview) and new (AI Mode) format
+          existing.combinedResults.googleAi = {
+            mentioned: results.filter(r => r.companyMentioned === true).length,
+            total: results.length,
+            results: results.map(r => ({
+              prompt: r.query || r.prompt,
+              mentioned: r.companyMentioned === true,
+              // Support both old aiOverviewText and new aiResponse field
+              snippet: r.aiResponse || r.aiOverviewText || r.textContent || ''
+            }))
+          }
+          
+          // Mark as having real AI data if we have responses
+          if (results.length > 0 && results.some(r => r.hasAiResponse || r.hasAiOverview)) {
+            existing.hasRealAiData = true
+          }
+        }
+      })
+
+      // Fallback: add from tool_integrations if not already in map (legacy data)
+      // Also use tool_integrations to add Perplexity results if perplexity_scans didn't have them
+      integrations?.forEach(scan => {
+        const key = (scan.company_name || scan.website || '').toLowerCase().trim()
+        
+        // If website already exists, try to add Perplexity results from tool_integrations
+        if (key && websiteMap.has(key)) {
+          const existing = websiteMap.get(key)
+          
+          // Add website URL if missing
+          if (!existing.website && scan.website) {
+            existing.website = scan.website
+          }
+          
+          // Add Perplexity results if existing entry doesn't have them
+          if (existing.combinedResults.perplexity.total === 0) {
+            if (Array.isArray(scan.results) && scan.results.length > 0) {
+              existing.combinedResults.perplexity = {
+                mentioned: scan.results.filter(r => r.mentioned || r.company_mentioned || r.companyMentioned).length,
+                total: scan.results.length,
+                results: scan.results.map(r => ({
+                  prompt: r.query || r.prompt || '',
+                  mentioned: r.mentioned || r.company_mentioned || r.companyMentioned || false,
+                  snippet: r.snippet || r.response_snippet || ''
+                }))
+              }
+              console.log('Added Perplexity results from tool_integrations for:', key)
+            }
+          }
+        }
+        // Create new entry if doesn't exist
+        else if (key && !websiteMap.has(key) && Array.isArray(scan.commercial_prompts)) {
+          websiteMap.set(key, {
+            id: scan.id,
+            name: scan.company_name || scan.website,
+            website: scan.website,
+            category: scan.company_category,
+            prompts: scan.commercial_prompts || [],
+            combinedResults: {
+              perplexity: { mentioned: 0, total: 0, results: [] },
+              chatgpt: { mentioned: 0, total: 0, results: [] },
+              googleAi: { mentioned: 0, total: 0, results: [] }
+            },
+            source: 'tool_integrations',
+            hasRealAiData: false
+          })
+        }
+      })
+
+      // Convert combinedResults to legacy aiResults format for backward compatibility
+      const websites = [...websiteMap.values()].map(site => {
+        const cr = site.combinedResults || {
+          perplexity: { mentioned: 0, total: 0, results: [] },
+          chatgpt: { mentioned: 0, total: 0, results: [] },
+          googleAi: { mentioned: 0, total: 0, results: [] }
+        }
+        
+        // Calculate totals across all platforms
+        const totalMentioned = cr.perplexity.mentioned + cr.chatgpt.mentioned + cr.googleAi.mentioned
+        const totalScanned = cr.perplexity.total + cr.chatgpt.total + cr.googleAi.total
+        
+        // Create combined aiResults array for legacy compatibility
+        const allResults = [
+          ...cr.perplexity.results.map(r => ({ ...r, platform: 'perplexity' })),
+          ...cr.chatgpt.results.map(r => ({ ...r, platform: 'chatgpt' })),
+          ...cr.googleAi.results.map(r => ({ ...r, platform: 'google' }))
+        ]
+        
+        console.log(`Website ${site.name}: ${totalMentioned}/${totalScanned} total (P:${cr.perplexity.mentioned}/${cr.perplexity.total}, C:${cr.chatgpt.mentioned}/${cr.chatgpt.total}, G:${cr.googleAi.mentioned}/${cr.googleAi.total})`)
+        
+        return {
+          ...site,
+          aiResults: allResults,
+          combinedResults: cr,
+          totalMentioned,
+          totalScanned
+        }
+      })
+      
       setExistingWebsites(websites)
       
       // Auto-select first website if available
@@ -311,11 +567,13 @@ function GEOAnalysePROContent() {
         setCompanyName(firstSite.name || '')
         setCompanyWebsite(firstSite.website || '')
         setCompanyCategory(firstSite.category || '')
-        setExistingPrompts(firstSite.prompts || [])
+        // Deduplicate prompts
+        const uniquePrompts = [...new Set(firstSite.prompts || [])]
+        setExistingPrompts(uniquePrompts)
         setExistingAiResults(firstSite.aiResults || [])
         setSelectedExistingWebsite(firstSite)
-        // Initialize unmatched prompts
-        setUnmatchedPrompts(firstSite.prompts || [])
+        // Initialize unmatched prompts (deduplicated)
+        setUnmatchedPrompts(uniquePrompts)
       }
     } catch (error) {
       console.error('Error loading existing websites:', error)
@@ -323,17 +581,28 @@ function GEOAnalysePROContent() {
   }
 
   const selectExistingWebsite = (website) => {
+    // Clear any existing session to prevent stale data
+    clearSession()
+    
     setSelectedExistingWebsite(website)
     setCompanyName(website.name || '')
-    if (website.website) setCompanyWebsite(website.website)
-    if (website.category) setCompanyCategory(website.category)
-    setExistingPrompts(website.prompts || [])
-    setExistingAiResults(website.aiResults || [])
-    // Reset matching
-    setUnmatchedPrompts(website.prompts || [])
-    setMatches([])
+    setCompanyWebsite(website.website || '')
+    setCompanyCategory(website.category || '')
     
-    console.log('Selected website AI results:', website.aiResults)
+    // Deduplicate prompts
+    const uniquePrompts = [...new Set(website.prompts || [])]
+    setExistingPrompts(uniquePrompts)
+    setExistingAiResults(website.aiResults || [])
+    
+    // Reset matching state completely
+    setUnmatchedPrompts(uniquePrompts)
+    setMatches([])
+    setScPages([])
+    setGeoResults({})
+    setManualChecks({})
+    setOverallScore(null)
+    
+    console.log('Selected website:', website.name, 'Prompts:', uniquePrompts.length)
   }
 
   // ============================================
@@ -353,7 +622,8 @@ function GEOAnalysePROContent() {
   }
 
   const connectGoogle = () => {
-    window.location.href = '/api/auth/google?returnUrl=/dashboard/geo-analyse'
+    // Add prompt=select_account to force Google to show account picker
+    window.location.href = '/api/auth/google?returnUrl=/dashboard/geo-analyse&prompt=select_account'
   }
 
   const disconnectGoogle = async () => {
@@ -364,6 +634,8 @@ function GEOAnalysePROContent() {
       setScProperties([])
       setSelectedProperty('')
       setScPages([])
+      // Clear any cached state
+      localStorage.removeItem('gsc_last_property')
     } catch (error) {
       console.error('Error disconnecting:', error)
     }
@@ -528,6 +800,86 @@ function GEOAnalysePROContent() {
   }
 
   // ============================================
+  // GOOGLE AI MODE SCAN
+  // ============================================
+  const runGoogleAiModeScan = async () => {
+    if (existingPrompts.length === 0) {
+      alert('Geen prompts beschikbaar. Selecteer eerst een bedrijf met prompts.')
+      return
+    }
+    
+    setGoogleAiScanning(true)
+    setGoogleAiProgress(0)
+    
+    try {
+      // Scan max 10 prompts for Google AI Mode (API credits)
+      const promptsToScan = existingPrompts.slice(0, 10)
+      
+      console.log('Starting Google AI Mode scan for:', companyName)
+      console.log('Prompts:', promptsToScan)
+      
+      const response = await fetch('/api/scan-google-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName,
+          website: companyWebsite,
+          category: companyCategory,
+          prompts: promptsToScan
+        })
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Scan mislukt')
+      }
+      
+      const data = await response.json()
+      console.log('Google AI Mode scan results:', data)
+      
+      // Update existingAiResults with Google AI Mode results
+      if (data.results && data.results.length > 0) {
+        const googleResults = data.results.map(r => ({
+          prompt: r.query,
+          mentioned: r.companyMentioned,
+          snippet: r.aiResponsePreview || '',
+          platform: 'google'
+        }))
+        
+        // Merge with existing results or replace
+        const existingNonGoogle = existingAiResults.filter(r => r.platform !== 'google')
+        setExistingAiResults([...existingNonGoogle, ...googleResults])
+        
+        // Also update the selectedExistingWebsite if available
+        if (selectedExistingWebsite) {
+          const updatedWebsite = { ...selectedExistingWebsite }
+          updatedWebsite.combinedResults = updatedWebsite.combinedResults || {
+            perplexity: { mentioned: 0, total: 0, results: [] },
+            chatgpt: { mentioned: 0, total: 0, results: [] },
+            googleAi: { mentioned: 0, total: 0, results: [] }
+          }
+          updatedWebsite.combinedResults.googleAi = {
+            mentioned: data.foundCount || 0,
+            total: data.totalQueries || 0,
+            results: googleResults
+          }
+          setSelectedExistingWebsite(updatedWebsite)
+        }
+        
+        alert(`✅ Google AI Mode scan voltooid!\n\n${data.foundCount} van ${data.totalQueries} zoekwoorden vermelden ${companyName}`)
+      }
+      
+      setGoogleAiProgress(100)
+      
+    } catch (error) {
+      console.error('Google AI Mode scan error:', error)
+      alert('Fout bij Google AI scan: ' + error.message)
+    }
+    
+    setGoogleAiScanning(false)
+  }
+
+  // ============================================
   // STEP 4: DRAG & DROP MATCHING
   // ============================================
   const handleDragStart = (e, prompt, sourceType) => {
@@ -589,6 +941,107 @@ function GEOAnalysePROContent() {
     setUnmatchedPrompts(prev => [...prev, ...matchesForPage.map(m => m.prompt)])
   }
 
+  // Edit unmatched prompt
+  const editUnmatchedPrompt = (index, currentText) => {
+    setEditingPromptIndex(index)
+    setEditingPromptText(currentText)
+  }
+
+  const saveEditedPrompt = (index) => {
+    if (!editingPromptText.trim()) return
+    setUnmatchedPrompts(prev => {
+      const updated = [...prev]
+      updated[index] = editingPromptText.trim()
+      return updated
+    })
+    setEditingPromptIndex(null)
+    setEditingPromptText('')
+  }
+
+  const cancelEditPrompt = () => {
+    setEditingPromptIndex(null)
+    setEditingPromptText('')
+  }
+
+  // Delete unmatched prompt
+  const deleteUnmatchedPrompt = (index) => {
+    setUnmatchedPrompts(prev => prev.filter((_, i) => i !== index))
+  }
+
+  // AI Auto-Match: Match prompts to pages based on keyword similarity
+  const autoMatchPrompts = async () => {
+    if (unmatchedPrompts.length === 0 || scPages.length === 0) return
+    
+    setAutoMatching(true)
+    const newMatches = []
+    const stillUnmatched = []
+    const alreadyMatchedPrompts = new Set(matches.map(m => m.prompt)) // Track already matched
+    
+    for (const prompt of unmatchedPrompts) {
+      // Skip if already matched
+      if (alreadyMatchedPrompts.has(prompt)) {
+        continue
+      }
+      
+      // Extract keywords from prompt (remove common words)
+      const stopWords = ['je', 'de', 'het', 'een', 'van', 'in', 'op', 'met', 'voor', 'die', 'dat', 'zijn', 'worden', 'heeft', 'kan', 'kun', 'wat', 'welke', 'hoe', 'waar', 'wie', 'beste', 'top', 'goed', 'goede']
+      const promptWords = prompt.toLowerCase()
+        .replace(/[?.,!]/g, '')
+        .split(' ')
+        .filter(word => word.length > 2 && !stopWords.includes(word))
+      
+      let bestMatch = null
+      let bestScore = 0
+      
+      for (const pageObj of scPages) {
+        const pagePath = pageObj.page.toLowerCase()
+        let score = 0
+        
+        // Check how many prompt keywords appear in the page URL
+        for (const word of promptWords) {
+          if (pagePath.includes(word)) {
+            score += 2 // Direct match in URL
+          }
+          // Also check partial matches (e.g., "ooglidcorrectie" contains "ooglid")
+          const pathParts = pagePath.split(/[\/\-_]/).filter(p => p.length > 2)
+          for (const part of pathParts) {
+            if (part.includes(word) || word.includes(part)) {
+              score += 1
+            }
+          }
+        }
+        
+        if (score > bestScore) {
+          bestScore = score
+          bestMatch = pageObj.page
+        }
+      }
+      
+      // Only match if we have a reasonable confidence (score >= 2)
+      if (bestMatch && bestScore >= 2) {
+        newMatches.push({ prompt, page: bestMatch })
+        alreadyMatchedPrompts.add(prompt) // Mark as matched
+      } else {
+        stillUnmatched.push(prompt)
+      }
+    }
+    
+    // Apply matches - filter out any that are already in existing matches
+    const uniqueNewMatches = newMatches.filter(nm => 
+      !matches.some(m => m.prompt === nm.prompt)
+    )
+    
+    setMatches(prev => [...prev, ...uniqueNewMatches])
+    setUnmatchedPrompts(stillUnmatched)
+    setAutoMatching(false)
+  }
+
+  // Filter pages based on search
+  const filteredPages = scPages.filter(pageObj => {
+    if (!pageSearch) return true
+    return pageObj.page.toLowerCase().includes(pageSearch.toLowerCase())
+  })
+
   // ============================================
   // STEP 5: GEO CHECKLIST SCAN
   // ============================================
@@ -598,18 +1051,45 @@ function GEOAnalysePROContent() {
     
     setGeoScanning(true)
     setGeoScanProgress(0)
+    setCompletedChecks([])
+    setScanPhase('loading')
     const results = {}
     
     for (let i = 0; i < uniquePages.length; i++) {
       const pageUrl = uniquePages[i]
-      setGeoScanProgress(Math.round((i / uniquePages.length) * 100))
+      setCurrentScanPage(pageUrl)
+      setCompletedChecks([])
+      setScanPhase('loading')
+      
+      await new Promise(r => setTimeout(r, 600))
+      setScanPhase('scanning')
       
       try {
-        const response = await fetch('/api/geo-scan-page', {
+        // Start the actual scan
+        const scanPromise = fetch('/api/geo-scan-page', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: pageUrl })
         })
+        
+        // Show random checklist items while scanning (simplified - just a few items)
+        const shuffledItems = [...ALL_CHECKLIST_ITEMS].sort(() => Math.random() - 0.5)
+        let itemIndex = 0
+        
+        const animationInterval = setInterval(() => {
+          if (itemIndex < Math.min(8, shuffledItems.length)) { // Max 8 items shown
+            const item = shuffledItems[itemIndex]
+            setCurrentCheckItem(item)
+            itemIndex++
+          }
+        }, 500)
+        
+        const response = await scanPromise
+        clearInterval(animationInterval)
+        
+        setScanPhase('analyzing')
+        setCurrentCheckItem(null)
+        await new Promise(r => setTimeout(r, 400))
         
         if (response.ok) {
           const data = await response.json()
@@ -625,13 +1105,21 @@ function GEOAnalysePROContent() {
       } catch (error) {
         results[pageUrl] = { checklist: {}, score: 0, issues: [error.message], scanned: false }
       }
+      
+      setGeoScanProgress(Math.round(((i + 1) / uniquePages.length) * 100))
+      
+      if (i < uniquePages.length - 1) {
+        setScanPhase('complete')
+        await new Promise(r => setTimeout(r, 800))
+      }
     }
     
+    setScanPhase('complete')
     setGeoResults(results)
-    setGeoScanProgress(100)
     setGeoScanning(false)
+    setCurrentScanPage(null)
+    setCurrentCheckItem(null)
     
-    // Calculate overall score
     calculateOverallScore(results)
   }
 
@@ -685,7 +1173,7 @@ function GEOAnalysePROContent() {
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `GEO-Rapport-${companyName.replace(/\s+/g, '-')}.docx`
+        a.download = `GEO-Rapport-${companyName.replace(/\s+/g, '-')}.pdf`
         a.click()
         window.URL.revokeObjectURL(url)
       }
@@ -756,8 +1244,8 @@ function GEOAnalysePROContent() {
                 <p className="text-sm text-slate-500">Complete AI zichtbaarheid & GEO optimalisatie analyse</p>
               </div>
             </div>
-            <div className="hidden xl:block">
-              <Image src="/images/teun-ai-mascotte.png" alt="Teun" width={80} height={100} className="opacity-80" />
+            <div className="hidden lg:block">
+              <Image src="/images/teun-ai-mascotte.png" alt="Teun" width={80} height={80} className="opacity-90" />
             </div>
           </div>
         </div>
@@ -862,8 +1350,18 @@ function GEOAnalysePROContent() {
                     <p className="text-green-800 font-medium">✅ {existingPrompts.length} commerciële prompts geladen</p>
                     <button
                       onClick={() => {
-                        const websiteName = selectedExistingWebsite?.name || companyName
-                        router.push(`/dashboard?openWebsite=${encodeURIComponent(websiteName)}&tab=prompts`)
+                        console.log('Bewerken clicked, website:', selectedExistingWebsite)
+                        // Go to website detail page if we have an ID from perplexity_scans
+                        if (selectedExistingWebsite?.id && selectedExistingWebsite?.source === 'perplexity') {
+                          router.push(`/dashboard/website/${selectedExistingWebsite.id}`)
+                        } else if (selectedExistingWebsite?.id) {
+                          // For other sources, try the ID but it might not work
+                          router.push(`/dashboard/website/${selectedExistingWebsite.id}`)
+                        } else {
+                          // Fallback: go to dashboard with search param
+                          const name = selectedExistingWebsite?.name || companyName
+                          router.push(`/dashboard?search=${encodeURIComponent(name)}`)
+                        }
                       }}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-white border border-green-300 rounded-lg hover:bg-green-100 cursor-pointer"
                     >
@@ -882,8 +1380,96 @@ function GEOAnalysePROContent() {
                     )}
                   </div>
                   
-                  {/* AI scan status */}
-                  {existingAiResults.length > 0 && existingAiResults.some(r => r.mentioned !== undefined) ? (
+                  {/* AI scan status - combined from all platforms */}
+                  {selectedExistingWebsite?.combinedResults ? (
+                    <div className="mt-3 space-y-2">
+                      {/* Calculate totals excluding ChatGPT (extension needs update) */}
+                      {(() => {
+                        const cr = selectedExistingWebsite.combinedResults
+                        const perplexityMentioned = cr.perplexity?.mentioned || 0
+                        const perplexityTotal = cr.perplexity?.total || 0
+                        const googleMentioned = cr.googleAi?.mentioned || 0
+                        const googleTotal = cr.googleAi?.total || 0
+                        // Don't include ChatGPT in total for now (extension update pending)
+                        const totalMentioned = perplexityMentioned + googleMentioned
+                        const totalScanned = perplexityTotal + googleTotal
+                        
+                        return (
+                          <>
+                            {totalScanned > 0 && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <Eye className="w-4 h-4 text-violet-500" />
+                                <span className="text-violet-700 font-medium">
+                                  AI Visibility: {totalMentioned}/{totalScanned} vermeld
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        )
+                      })()}
+                      {/* Platform breakdown - always show all 3 platforms */}
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        {/* Perplexity */}
+                        {selectedExistingWebsite.combinedResults?.perplexity?.total > 0 ? (
+                          <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded">
+                            Perplexity: {selectedExistingWebsite.combinedResults.perplexity.mentioned}/{selectedExistingWebsite.combinedResults.perplexity.total}
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 bg-slate-100 text-slate-500 rounded">
+                            Perplexity: -
+                          </span>
+                        )}
+                        {/* ChatGPT - always show "binnenkort" for now */}
+                        <span className="px-2 py-1 bg-slate-100 text-slate-500 rounded">
+                          ChatGPT: <span className="italic">binnenkort</span>
+                        </span>
+                        {/* Google AI */}
+                        {selectedExistingWebsite.combinedResults?.googleAi?.total > 0 ? (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                            Google AI: {selectedExistingWebsite.combinedResults.googleAi.mentioned}/{selectedExistingWebsite.combinedResults.googleAi.total}
+                          </span>
+                        ) : (
+                          <button
+                            onClick={runGoogleAiModeScan}
+                            disabled={googleAiScanning || existingPrompts.length === 0}
+                            className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-medium disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                          >
+                            {googleAiScanning ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                Scannen...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-3 h-3" />
+                                Scan Google AI
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                      {/* Rescan button if Google AI data exists */}
+                      {selectedExistingWebsite.combinedResults?.googleAi?.total > 0 && (
+                        <button
+                          onClick={runGoogleAiModeScan}
+                          disabled={googleAiScanning}
+                          className="mt-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                        >
+                          {googleAiScanning ? (
+                            <>
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              Opnieuw scannen...
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw className="w-3 h-3" />
+                              Google AI opnieuw scannen
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  ) : existingAiResults.length > 0 ? (
                     <div className="mt-3 flex items-center gap-2 text-sm">
                       <Eye className="w-4 h-4 text-violet-500" />
                       <span className="text-violet-700">
@@ -892,7 +1478,7 @@ function GEOAnalysePROContent() {
                     </div>
                   ) : (
                     <p className="text-amber-600 text-xs mt-3">
-                      ⚠️ Geen AI scan resultaten - AI Visibility score zal 0% zijn
+                      ⚠️ Geen AI scan resultaten - voer eerst een scan uit in het dashboard
                     </p>
                   )}
                 </div>
@@ -1063,6 +1649,28 @@ function GEOAnalysePROContent() {
                 </div>
               </div>
 
+              {/* Total prompts overview */}
+              <div className="bg-slate-100 rounded-xl p-4 mb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-700">
+                      Totaal: {existingPrompts.length} prompts
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {matches.length} gekoppeld • {unmatchedPrompts.length} nog te koppelen
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${matches.length > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-500'}`}>
+                      ✓ {matches.length}
+                    </span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${unmatchedPrompts.length > 0 ? 'bg-red-100 text-red-700' : 'bg-slate-200 text-slate-500'}`}>
+                      ⏳ {unmatchedPrompts.length}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               {/* AI Results Summary */}
               {existingAiResults.length > 0 && (
                 <div className="grid grid-cols-3 gap-4 mb-4">
@@ -1084,99 +1692,240 @@ function GEOAnalysePROContent() {
               )}
 
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                <p className="text-blue-800 text-sm">
-                  <strong>Tip:</strong> Sleep prompts naar de pagina die het beste bij die zoekvraag past. 
-                  Klik op ✕ om een pagina te verwijderen.
-                </p>
+                <div className="flex items-start justify-between gap-4">
+                  <p className="text-blue-800 text-sm">
+                    <strong>Tip:</strong> Koppel prompts aan de pagina die het beste bij die zoekvraag past. 
+                    Gebruik de AI auto-match of sleep handmatig.
+                  </p>
+                  <button
+                    onClick={autoMatchPrompts}
+                    disabled={autoMatching || unmatchedPrompts.length === 0}
+                    className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg font-medium text-sm hover:from-purple-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {autoMatching ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Matching...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        AI Auto-Match
+                      </>
+                    )}
+                  </button>
+                </div>
+                
+                {/* Status feedback after matching */}
+                {matches.length > 0 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
+                    <p className="text-amber-800 text-sm font-medium flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4" />
+                      Controleer de koppelingen!
+                    </p>
+                    <p className="text-amber-700 text-xs mt-1">
+                      ✓ {matches.length} prompt{matches.length !== 1 ? 's' : ''} automatisch gekoppeld
+                      {unmatchedPrompts.length > 0 && (
+                        <span className="text-red-600 font-medium"> • {unmatchedPrompts.length} nog niet gekoppeld</span>
+                      )}
+                    </p>
+                    <p className="text-amber-600 text-xs mt-2">
+                      → Sleep prompts naar een andere pagina als de match niet klopt<br/>
+                      → Verwijder of bewerk prompts die niet relevant zijn
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="grid lg:grid-cols-2 gap-6">
-                {/* Unmatched Prompts */}
+                {/* Unmatched Prompts - Full width display */}
                 <div 
-                  className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl p-4 min-h-[300px]"
+                  className={`border-2 border-dashed rounded-xl p-4 min-h-[300px] ${
+                    unmatchedPrompts.length > 0 
+                      ? 'bg-red-50 border-red-300' 
+                      : 'bg-slate-50 border-slate-300'
+                  }`}
                   onDragOver={handleDragOver}
                   onDrop={handleDropOnUnmatched}
                 >
-                  <h3 className="font-semibold text-slate-700 mb-3">🔍 Prompts ({unmatchedPrompts.length})</h3>
-                  <div className="space-y-2 max-h-[350px] overflow-y-auto">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className={`font-semibold ${unmatchedPrompts.length > 0 ? 'text-red-700' : 'text-slate-700'}`}>
+                      {unmatchedPrompts.length > 0 ? '⚠️' : '✅'} Nog te koppelen ({unmatchedPrompts.length})
+                    </h3>
+                    {unmatchedPrompts.length > 0 && (
+                      <span className="text-xs text-red-600 bg-red-100 px-2 py-1 rounded">Sleep naar rechts →</span>
+                    )}
+                  </div>
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto">
                     {unmatchedPrompts.map((prompt, i) => {
                       const result = existingAiResults.find(r => r.prompt === prompt)
+                      const isEditing = editingPromptIndex === i
+                      
+                      if (isEditing) {
+                        return (
+                          <div key={i} className="p-3 rounded-lg border border-blue-300 bg-blue-50">
+                            <textarea
+                              value={editingPromptText}
+                              onChange={(e) => setEditingPromptText(e.target.value)}
+                              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg resize-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none"
+                              rows={3}
+                              autoFocus
+                            />
+                            <div className="flex justify-end gap-2 mt-2">
+                              <button 
+                                onClick={cancelEditPrompt}
+                                className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                              >
+                                Annuleren
+                              </button>
+                              <button 
+                                onClick={() => saveEditedPrompt(i)}
+                                className="px-3 py-1.5 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 cursor-pointer"
+                              >
+                                Opslaan
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      }
+                      
                       return (
                         <div
                           key={i}
                           draggable
                           onDragStart={(e) => handleDragStart(e, prompt, 'unmatched')}
-                          className={`flex items-center gap-2 p-3 rounded-lg border cursor-grab active:cursor-grabbing ${
-                            result?.mentioned ? 'bg-green-50 border-green-200' : 'bg-white border-slate-200'
+                          className={`p-3 rounded-lg border cursor-grab active:cursor-grabbing transition-all group ${
+                            result?.mentioned ? 'bg-green-50 border-green-200' : 'bg-white border-slate-200 hover:border-purple-300'
                           }`}
                         >
-                          <GripVertical className="w-4 h-4 text-slate-400" />
-                          <span className="flex-1 text-sm text-slate-700 truncate">{prompt}</span>
-                          {result?.mentioned && <span className="text-xs text-green-600">✓ AI</span>}
+                          <div className="flex items-start gap-2">
+                            <GripVertical className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                            <p className="flex-1 text-sm text-slate-700">{prompt}</p>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                              {result?.mentioned && (
+                                <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full mr-1">✓ AI</span>
+                              )}
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); editUnmatchedPrompt(i, prompt) }}
+                                className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded cursor-pointer"
+                                title="Bewerken"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); deleteUnmatchedPrompt(i) }}
+                                className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded cursor-pointer"
+                                title="Verwijderen"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       )
                     })}
-                    {unmatchedPrompts.length === 0 && (
-                      <p className="text-slate-400 text-sm text-center py-8">Alle prompts zijn gekoppeld!</p>
+                    {unmatchedPrompts.length === 0 && matches.length > 0 && (
+                      <div className="text-center py-6">
+                        <p className="text-green-600 text-sm font-medium">✅ Alle prompts gekoppeld!</p>
+                        <p className="text-slate-500 text-xs mt-1">Controleer de koppelingen rechts</p>
+                      </div>
+                    )}
+                    {unmatchedPrompts.length === 0 && matches.length === 0 && (
+                      <p className="text-slate-400 text-sm text-center py-8">
+                        Klik op "AI Auto-Match" om te starten
+                      </p>
                     )}
                   </div>
                 </div>
 
-                {/* Pages to drop on */}
-                <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-slate-700">📄 Pagina's ({scPages.length})</h3>
-                    <span className="text-xs text-slate-500">Klik ✕ om te verwijderen</span>
+                {/* Pages with search */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="font-semibold text-slate-700">
+                      📄 Gekoppelde pagina's ({matches.length} prompts)
+                    </h3>
+                    <span className="text-xs text-slate-500">Sleep om te verplaatsen</span>
                   </div>
-                  {scPages.map((pageObj, i) => {
-                    const pageUrl = pageObj.page
-                    const matchedPrompts = matches.filter(m => m.page === pageUrl)
-                    
-                    return (
-                      <div
-                        key={i}
-                        className="bg-white border-2 border-slate-200 rounded-xl p-3 hover:border-purple-300 transition group"
-                        onDragOver={handleDragOver}
-                        onDrop={(e) => handleDropOnPage(e, pageUrl)}
+                  
+                  {/* Search input */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      value={pageSearch}
+                      onChange={(e) => setPageSearch(e.target.value)}
+                      placeholder="Zoek pagina..."
+                      className="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 text-sm focus:border-purple-400 focus:ring-2 focus:ring-purple-100 outline-none"
+                    />
+                    {pageSearch && (
+                      <button 
+                        onClick={() => setPageSearch('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                       >
-                        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-100">
-                          <Globe className="w-4 h-4 text-slate-400" />
-                          <span className="text-xs text-slate-600 truncate flex-1">
-                            {pageUrl.replace(/^https?:\/\/[^\/]+/, '')}
-                          </span>
-                          {/* Remove page button */}
-                          <button 
-                            onClick={() => removePage(pageUrl)}
-                            className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition cursor-pointer"
-                            title="Pagina verwijderen"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                        
-                        {matchedPrompts.length > 0 ? (
-                          <div className="space-y-1">
-                            {matchedPrompts.map((match, j) => (
-                              <div
-                                key={j}
-                                draggable
-                                onDragStart={(e) => handleDragStart(e, match.prompt, 'matched')}
-                                className="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded px-2 py-1.5 cursor-grab group/prompt"
-                              >
-                                <GripVertical className="w-3 h-3 text-purple-400" />
-                                <span className="flex-1 text-xs text-slate-700 truncate">{match.prompt}</span>
-                                <button onClick={() => removeMatch(match.prompt)} className="opacity-0 group-hover/prompt:opacity-100 text-red-500 cursor-pointer">
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              </div>
-                            ))}
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-3 max-h-[350px] overflow-y-auto">
+                    {filteredPages.map((pageObj, i) => {
+                      const pageUrl = pageObj.page
+                      const matchedPrompts = matches.filter(m => m.page === pageUrl)
+                      const shortUrl = pageUrl.replace(/^https?:\/\/[^\/]+/, '')
+                      
+                      return (
+                        <div
+                          key={i}
+                          className="bg-white border-2 border-slate-200 rounded-xl p-3 hover:border-purple-300 transition group"
+                          onDragOver={handleDragOver}
+                          onDrop={(e) => handleDropOnPage(e, pageUrl)}
+                        >
+                          <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-100">
+                            <Globe className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                            <span className="text-xs text-slate-600 flex-1 break-all">
+                              {shortUrl || '/'}
+                            </span>
+                            <button 
+                              onClick={() => removePage(pageUrl)}
+                              className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition cursor-pointer"
+                              title="Pagina verwijderen"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
-                        ) : (
-                          <p className="text-xs text-slate-400 italic">Sleep een prompt hierheen...</p>
-                        )}
-                      </div>
-                    )
-                  })}
+                          
+                          {matchedPrompts.length > 0 ? (
+                            <div className="space-y-1.5">
+                              {matchedPrompts.map((match, j) => (
+                                <div
+                                  key={j}
+                                  draggable
+                                  onDragStart={(e) => handleDragStart(e, match.prompt, 'matched')}
+                                  className="flex items-start gap-2 bg-purple-50 border border-purple-200 rounded px-2 py-2 cursor-grab group/prompt"
+                                >
+                                  <GripVertical className="w-3 h-3 text-purple-400 mt-0.5 flex-shrink-0" />
+                                  <p className="flex-1 text-xs text-slate-700">{match.prompt}</p>
+                                  <button 
+                                    onClick={() => removeMatch(match.prompt)} 
+                                    className="opacity-0 group-hover/prompt:opacity-100 text-red-500 cursor-pointer flex-shrink-0"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-slate-400 italic py-2">Sleep een prompt hierheen...</p>
+                          )}
+                        </div>
+                      )
+                    })}
+                    {filteredPages.length === 0 && pageSearch && (
+                      <p className="text-slate-400 text-sm text-center py-8">
+                        Geen pagina's gevonden voor "{pageSearch}"
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -1185,13 +1934,20 @@ function GEOAnalysePROContent() {
                 <button onClick={() => setStep(2)} className="flex items-center gap-2 px-6 py-3 border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 cursor-pointer">
                   <ArrowLeft className="w-5 h-5" /> Vorige
                 </button>
-                <button
-                  onClick={() => { setStep(4); runGeoScan(); }}
-                  disabled={matches.length === 0}
-                  className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Start GEO Scan <ArrowRight className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-3">
+                  {unmatchedPrompts.length > 0 && matches.length > 0 && (
+                    <span className="text-amber-600 text-xs">
+                      ⚠️ {unmatchedPrompts.length} prompt{unmatchedPrompts.length !== 1 ? 's' : ''} niet gekoppeld
+                    </span>
+                  )}
+                  <button
+                    onClick={() => { setStep(4); runGeoScan(); }}
+                    disabled={matches.length === 0}
+                    className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Start GEO Scan <ArrowRight className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1211,16 +1967,152 @@ function GEOAnalysePROContent() {
                 </div>
               </div>
 
+              {/* Scanning Animation */}
               {geoScanning && (
-                <div className="bg-orange-50 border border-orange-200 rounded-xl p-6 text-center">
-                  <Loader2 className="w-12 h-12 text-orange-500 mx-auto mb-4 animate-spin" />
-                  <p className="text-orange-800 font-medium">Pagina's scannen...</p>
-                  <div className="mt-4 h-2 bg-orange-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-orange-600 transition-all duration-300" style={{ width: `${geoScanProgress}%` }} />
+                <div className="space-y-6">
+                  {/* Progress bar */}
+                  <div className="bg-slate-100 rounded-full h-3 overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-orange-500 via-purple-500 to-blue-500 transition-all duration-500 ease-out"
+                      style={{ width: `${geoScanProgress}%` }}
+                    />
+                  </div>
+                  <p className="text-center text-sm text-slate-600">
+                    Pagina {Math.ceil((geoScanProgress / 100) * [...new Set(matches.map(m => m.page))].length)} van {[...new Set(matches.map(m => m.page))].length}
+                  </p>
+
+                  <div className="grid lg:grid-cols-2 gap-6">
+                    {/* Left: Page Preview with Scan Animation */}
+                    <div className="bg-slate-900 rounded-2xl p-4 relative overflow-hidden">
+                      {/* Browser chrome */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="flex gap-1.5">
+                          <div className="w-3 h-3 rounded-full bg-red-500" />
+                          <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                          <div className="w-3 h-3 rounded-full bg-green-500" />
+                        </div>
+                        <div className="flex-1 bg-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-400 truncate">
+                          {currentScanPage?.replace(/^https?:\/\//, '')}
+                        </div>
+                      </div>
+                      
+                      {/* Page content area with scan line */}
+                      <div className="relative bg-white rounded-lg overflow-hidden" style={{ height: '280px' }}>
+                        {/* Fake page content */}
+                        <div className="p-4 space-y-3 opacity-60">
+                          <div className="h-8 bg-slate-200 rounded w-3/4" />
+                          <div className="h-4 bg-slate-100 rounded w-full" />
+                          <div className="h-4 bg-slate-100 rounded w-5/6" />
+                          <div className="h-4 bg-slate-100 rounded w-4/6" />
+                          <div className="h-20 bg-slate-50 rounded mt-4" />
+                          <div className="h-4 bg-slate-100 rounded w-full" />
+                          <div className="h-4 bg-slate-100 rounded w-3/4" />
+                          <div className="grid grid-cols-3 gap-2 mt-4">
+                            <div className="h-16 bg-slate-100 rounded" />
+                            <div className="h-16 bg-slate-100 rounded" />
+                            <div className="h-16 bg-slate-100 rounded" />
+                          </div>
+                        </div>
+                        
+                        {/* Teun mascotte met vergrootglas */}
+                        <div className="absolute bottom-16 right-2 z-10 animate-bounce" style={{ animationDuration: '2s' }}>
+                          <div className="relative">
+                            <Image 
+                              src="/images/teun-ai-mascotte.png" 
+                              alt="Teun scant" 
+                              width={70} 
+                              height={70} 
+                              className="drop-shadow-lg"
+                            />
+                            {/* Vergrootglas */}
+                            <div className="absolute -top-1 -left-3 bg-white rounded-full p-1 shadow-lg border-2 border-cyan-400">
+                              <Search className="w-4 h-4 text-cyan-500" />
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Scanning line animation */}
+                        <div 
+                          className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent scan-line-animation"
+                          style={{
+                            boxShadow: '0 0 20px 5px rgba(34, 211, 238, 0.4)'
+                          }}
+                        />
+                        
+                        {/* Scan overlay effect */}
+                        <div 
+                          className="absolute inset-0 pointer-events-none pulse-animation"
+                          style={{
+                            background: 'linear-gradient(180deg, rgba(34,211,238,0.1) 0%, transparent 50%, rgba(34,211,238,0.1) 100%)'
+                          }}
+                        />
+                        
+                        {/* Phase indicator */}
+                        <div className="absolute bottom-3 left-3 right-3">
+                          <div className={`px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 ${
+                            scanPhase === 'loading' ? 'bg-blue-500 text-white' :
+                            scanPhase === 'scanning' ? 'bg-cyan-500 text-white' :
+                            scanPhase === 'analyzing' ? 'bg-purple-500 text-white' :
+                            'bg-green-500 text-white'
+                          }`}>
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            {scanPhase === 'loading' && 'Pagina laden...'}
+                            {scanPhase === 'scanning' && 'GEO checklist scannen...'}
+                            {scanPhase === 'analyzing' && 'Resultaten analyseren...'}
+                            {scanPhase === 'complete' && 'Scan voltooid!'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Current Scan Status */}
+                    <div className="bg-slate-50 rounded-2xl p-4">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Sparkles className="w-5 h-5 text-purple-500" />
+                        <h3 className="font-semibold text-slate-800">GEO Checklist</h3>
+                      </div>
+                      
+                      {/* Current check being processed */}
+                      {currentCheckItem ? (
+                        <div className="p-4 bg-gradient-to-r from-purple-100 to-blue-100 rounded-xl border-2 border-purple-300">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center">
+                              <Loader2 className="w-5 h-5 text-white animate-spin" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs text-purple-600 font-medium mb-1">{currentCheckItem.section}</p>
+                              <p className="text-sm text-slate-800 font-medium">{currentCheckItem.label}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-4 bg-slate-100 rounded-xl text-center">
+                          <Loader2 className="w-6 h-6 text-slate-400 animate-spin mx-auto mb-2" />
+                          <p className="text-sm text-slate-500">
+                            {scanPhase === 'loading' && 'Pagina ophalen...'}
+                            {scanPhase === 'analyzing' && 'Resultaten verwerken...'}
+                            {scanPhase === 'complete' && 'Volgende pagina...'}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Scan info */}
+                      <div className="mt-4 p-3 bg-white rounded-lg border border-slate-200">
+                        <p className="text-xs text-slate-500 mb-2">Controleert op:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {['HTTPS', 'Meta tags', 'Headings', 'FAQ', 'Schema', 'Mobile'].map(tag => (
+                            <span key={tag} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
 
+              {/* Results after scanning */}
               {!geoScanning && Object.keys(geoResults).length > 0 && (
                 <>
                   {/* Manual Authority Checks */}
@@ -1283,6 +2175,45 @@ function GEOAnalysePROContent() {
               </div>
             </div>
           )}
+
+          {/* CSS Animations - using style tag */}
+          <style>{`
+            @keyframes scanLine {
+              0% { top: 0; opacity: 1; }
+              45% { top: calc(100% - 4px); opacity: 1; }
+              50% { top: calc(100% - 4px); opacity: 0.5; }
+              55% { top: calc(100% - 4px); opacity: 1; }
+              100% { top: 0; opacity: 1; }
+            }
+            
+            @keyframes slideIn {
+              from {
+                opacity: 0;
+                transform: translateX(-20px);
+              }
+              to {
+                opacity: 1;
+                transform: translateX(0);
+              }
+            }
+            
+            @keyframes pulse {
+              0%, 100% { opacity: 0.3; }
+              50% { opacity: 0.6; }
+            }
+            
+            .scan-line-animation {
+              animation: scanLine 2s ease-in-out infinite;
+            }
+            
+            .slide-in-animation {
+              animation: slideIn 0.3s ease-out;
+            }
+            
+            .pulse-animation {
+              animation: pulse 2s ease-in-out infinite;
+            }
+          `}</style>
 
           {/* ============================================ */}
           {/* STEP 5: RESULTS & REPORT */}
@@ -1406,7 +2337,7 @@ function GEOAnalysePROContent() {
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                   <div>
                     <h3 className="text-xl font-bold mb-1">📄 Download Volledig Rapport</h3>
-                    <p className="text-indigo-200 text-sm">Professioneel DOCX rapport met alle resultaten en aanbevelingen</p>
+                    <p className="text-indigo-200 text-sm">Professioneel PDF rapport met alle resultaten en aanbevelingen</p>
                   </div>
                   <button
                     onClick={generateReport}
@@ -1414,7 +2345,7 @@ function GEOAnalysePROContent() {
                     className="flex items-center gap-2 px-8 py-4 bg-white text-indigo-600 rounded-xl font-bold hover:bg-indigo-50 disabled:opacity-50 transition shadow-lg cursor-pointer whitespace-nowrap"
                   >
                     {generating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
-                    {generating ? 'Genereren...' : 'Download DOCX'}
+                    {generating ? 'Genereren...' : 'Download PDF'}
                   </button>
                 </div>
               </div>

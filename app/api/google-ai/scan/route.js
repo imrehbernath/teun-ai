@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-const SERPAPI_KEY = process.env.SERPAPI_KEY
+const SEARCHAPI_KEY = process.env.SEARCHAPI_KEY || process.env.SEARCH_API_KEY
 
 // Helper to check if company is mentioned in text
 function checkCompanyMention(text, companyName) {
@@ -14,148 +14,178 @@ function checkCompanyMention(text, companyName) {
     normalizedCompany,
     normalizedCompany.replace(/\s+/g, ''),  // No spaces
     normalizedCompany.replace(/[.-]/g, ' '), // Replace dots/dashes with spaces
+    normalizedCompany.split(' ')[0], // First word only (e.g., "SAM" from "SAM Kliniek")
   ]
   
-  return variations.some(v => normalizedText.includes(v))
+  return variations.some(v => v.length > 2 && normalizedText.includes(v))
 }
 
-// Helper to extract company mentions from AI Overview
-function analyzeAIOverview(aiOverview, companyName) {
-  if (!aiOverview) {
+// Analyze Google AI Mode response
+function analyzeAIModeResponse(data, companyName) {
+  if (!data) {
     return {
-      hasAiOverview: false,
+      hasAiResponse: false,
       companyMentioned: false,
       mentionCount: 0,
-      textContent: '',
-      textBlocks: [],
-      references: [],
-      competitorsInSources: []
+      aiResponse: '',
+      sources: [],
+      competitorsMentioned: []
     }
   }
 
-  let textContent = ''
+  let aiResponse = ''
   let mentionCount = 0
-  const references = []
-  const competitorsInSources = []
+  const sources = []
+  const competitorsMentioned = []
 
-  // Extract text from text_blocks
-  const textBlocks = aiOverview.text_blocks || []
-  textBlocks.forEach(block => {
-    if (block.snippet) {
-      textContent += block.snippet + ' '
-      // Count mentions in snippet
-      const regex = new RegExp(companyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
-      const matches = block.snippet.match(regex)
-      if (matches) mentionCount += matches.length
-    }
-    // Handle list items
-    if (block.list) {
-      block.list.forEach(item => {
-        if (item.snippet) {
-          textContent += item.snippet + ' '
-          const regex = new RegExp(companyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
-          const matches = item.snippet.match(regex)
-          if (matches) mentionCount += matches.length
-        }
-      })
-    }
-  })
+  // Extract AI response text
+  // Google AI Mode returns the response in different possible fields
+  if (data.ai_response) {
+    aiResponse = data.ai_response
+  } else if (data.answer) {
+    aiResponse = data.answer
+  } else if (data.ai_overview?.text) {
+    aiResponse = data.ai_overview.text
+  } else if (data.answer_box?.answer) {
+    aiResponse = data.answer_box.answer
+  } else if (data.answer_box?.snippet) {
+    aiResponse = data.answer_box.snippet
+  }
 
-  // Process references (sources)
-  const rawReferences = aiOverview.references || []
-  rawReferences.forEach(ref => {
-    const isCompany = checkCompanyMention(ref.title || '', companyName) || 
-                      checkCompanyMention(ref.link || '', companyName) ||
-                      checkCompanyMention(ref.source || '', companyName)
+  // Also check ai_overview text_blocks
+  if (data.ai_overview?.text_blocks) {
+    data.ai_overview.text_blocks.forEach(block => {
+      if (block.snippet) {
+        aiResponse += ' ' + block.snippet
+      }
+      if (block.list) {
+        block.list.forEach(item => {
+          if (item.snippet) {
+            aiResponse += ' ' + item.snippet
+          }
+        })
+      }
+    })
+  }
+
+  // Check conversation array (Google AI Mode specific)
+  if (data.conversation && Array.isArray(data.conversation)) {
+    data.conversation.forEach(turn => {
+      if (turn.content) {
+        aiResponse += ' ' + turn.content
+      }
+    })
+  }
+
+  // Count company mentions in response
+  if (aiResponse && companyName) {
+    const regex = new RegExp(companyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+    const matches = aiResponse.match(regex)
+    if (matches) mentionCount = matches.length
     
-    references.push({
-      title: ref.title || '',
-      link: ref.link || '',
-      source: ref.source || '',
-      snippet: ref.snippet || '',
+    // Also check for partial matches (first word)
+    const firstName = companyName.split(' ')[0]
+    if (firstName.length > 2 && !matches) {
+      const firstNameRegex = new RegExp(firstName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+      const firstNameMatches = aiResponse.match(firstNameRegex)
+      if (firstNameMatches) mentionCount = firstNameMatches.length
+    }
+  }
+
+  // Process sources/references
+  const rawSources = data.sources || data.organic_results || data.ai_overview?.references || []
+  rawSources.forEach(source => {
+    const title = source.title || ''
+    const link = source.link || source.url || ''
+    const snippet = source.snippet || source.description || ''
+    const domain = source.source || source.displayed_link || source.domain || ''
+    
+    const isCompany = checkCompanyMention(title, companyName) || 
+                      checkCompanyMention(link, companyName) ||
+                      checkCompanyMention(domain, companyName)
+    
+    sources.push({
+      title,
+      link,
+      snippet,
+      domain,
       isCompany
     })
 
-    // Track competitors (sources that are not the company)
-    if (!isCompany && ref.source) {
-      competitorsInSources.push(ref.source)
+    // Track competitors
+    if (!isCompany && domain) {
+      competitorsMentioned.push(domain)
     }
   })
 
-  const companyMentioned = mentionCount > 0 || references.some(r => r.isCompany)
+  // Also check inline sources if present
+  if (data.inline_sources) {
+    data.inline_sources.forEach(source => {
+      const isCompany = checkCompanyMention(source.title || '', companyName) ||
+                        checkCompanyMention(source.link || '', companyName)
+      if (isCompany) {
+        mentionCount++
+      }
+    })
+  }
+
+  const companyMentioned = mentionCount > 0 || sources.some(s => s.isCompany)
 
   return {
-    hasAiOverview: true,
+    hasAiResponse: aiResponse.length > 0,
     companyMentioned,
     mentionCount,
-    textContent: textContent.trim(),
-    textBlocks,
-    references,
-    competitorsInSources: [...new Set(competitorsInSources)] // Unique competitors
+    aiResponse: aiResponse.trim().slice(0, 2000), // Limit response length
+    sources,
+    competitorsMentioned: [...new Set(competitorsMentioned)]
   }
 }
 
-// Fetch AI Overview from SerpAPI
-async function fetchGoogleAIOverview(query, companyName) {
+// Fetch from SearchAPI Google AI Mode
+async function fetchGoogleAIMode(query, companyName) {
   const params = new URLSearchParams({
-    engine: 'google',
+    engine: 'google_ai_mode',
     q: query,
-    location: 'Netherlands',
-    hl: 'nl',
-    gl: 'nl',
-    api_key: SERPAPI_KEY,
-    no_cache: 'true'  // Always get fresh results
+    gl: 'nl',           // Country: Netherlands
+    hl: 'nl',           // Language: Dutch
+    api_key: SEARCHAPI_KEY
   })
 
   try {
-    const response = await fetch(`https://serpapi.com/search.json?${params}`)
+    console.log(`Fetching Google AI Mode for: "${query}"`)
+    
+    const response = await fetch(`https://www.searchapi.io/api/v1/search?${params}`)
     
     if (!response.ok) {
-      throw new Error(`SerpAPI error: ${response.status}`)
+      const errorText = await response.text()
+      console.error(`SearchAPI error: ${response.status}`, errorText)
+      throw new Error(`SearchAPI error: ${response.status}`)
     }
 
     const data = await response.json()
-    let aiOverview = data.ai_overview
-
-    // Check if we need to make a follow-up request for AI Overview
-    if (aiOverview?.page_token) {
-      console.log(`Fetching AI Overview with page_token for: ${query}`)
-      
-      const overviewParams = new URLSearchParams({
-        engine: 'google_ai_overview',
-        page_token: aiOverview.page_token,
-        api_key: SERPAPI_KEY
-      })
-
-      const overviewResponse = await fetch(`https://serpapi.com/search.json?${overviewParams}`)
-      
-      if (overviewResponse.ok) {
-        const overviewData = await overviewResponse.json()
-        aiOverview = overviewData.ai_overview || overviewData
-      }
-    }
-
-    const analysis = analyzeAIOverview(aiOverview, companyName)
+    
+    // Debug log to see response structure
+    console.log(`AI Mode response keys for "${query}":`, Object.keys(data))
+    
+    const analysis = analyzeAIModeResponse(data, companyName)
 
     return {
       query,
       ...analysis,
-      creditsUsed: aiOverview?.page_token ? 2 : 1  // 2 credits if follow-up was needed
+      rawResponse: data // Store for debugging
     }
 
   } catch (error) {
-    console.error(`Error fetching AI Overview for "${query}":`, error)
+    console.error(`Error fetching Google AI Mode for "${query}":`, error)
     return {
       query,
-      hasAiOverview: false,
+      hasAiResponse: false,
       companyMentioned: false,
       mentionCount: 0,
-      textContent: '',
-      textBlocks: [],
-      references: [],
-      competitorsInSources: [],
-      error: error.message,
-      creditsUsed: 1
+      aiResponse: '',
+      sources: [],
+      competitorsMentioned: [],
+      error: error.message
     }
   }
 }
@@ -163,15 +193,15 @@ async function fetchGoogleAIOverview(query, companyName) {
 export async function POST(request) {
   try {
     // Check for API key
-    if (!SERPAPI_KEY) {
+    if (!SEARCHAPI_KEY) {
       return NextResponse.json(
-        { error: 'SerpAPI key not configured' },
+        { error: 'SearchAPI key not configured. Set SEARCHAPI_KEY or SEARCH_API_KEY in environment.' },
         { status: 500 }
       )
     }
 
     const body = await request.json()
-    const { companyName, website, prompts } = body
+    const { companyName, website, category, prompts } = body
 
     if (!companyName) {
       return NextResponse.json(
@@ -204,10 +234,12 @@ export async function POST(request) {
       .insert({
         user_id: user.id,
         company_name: companyName,
+        company_category: category || null,
         website: website || null,
         prompts: prompts,
         total_queries: prompts.length,
-        status: 'processing'
+        status: 'processing',
+        scan_type: 'google_ai_mode' // Track which engine was used
       })
       .select()
       .single()
@@ -223,21 +255,24 @@ export async function POST(request) {
     // Process each query
     const results = []
     let foundCount = 0
-    let hasAiOverviewCount = 0
-    let totalCreditsUsed = 0
+    let hasAiResponseCount = 0
 
     for (const query of prompts) {
-      // Add small delay between requests to avoid rate limiting
+      // Add delay between requests to avoid rate limiting
       if (results.length > 0) {
-        await new Promise(resolve => setTimeout(resolve, 500))
+        await new Promise(resolve => setTimeout(resolve, 800))
       }
 
-      const result = await fetchGoogleAIOverview(query, companyName)
-      results.push(result)
+      const result = await fetchGoogleAIMode(query, companyName)
+      
+      // Remove rawResponse before storing to save space
+      const { rawResponse, ...resultToStore } = result
+      results.push(resultToStore)
 
-      if (result.hasAiOverview) hasAiOverviewCount++
+      if (result.hasAiResponse) hasAiResponseCount++
       if (result.companyMentioned) foundCount++
-      totalCreditsUsed += result.creditsUsed
+      
+      console.log(`Query "${query}": AI Response=${result.hasAiResponse}, Mentioned=${result.companyMentioned}`)
     }
 
     // Update scan record with results
@@ -246,8 +281,7 @@ export async function POST(request) {
       .update({
         results: results,
         found_count: foundCount,
-        has_ai_overview_count: hasAiOverviewCount,
-        api_credits_used: totalCreditsUsed,
+        has_ai_overview_count: hasAiResponseCount,
         status: 'completed'
       })
       .eq('id', scan.id)
@@ -262,13 +296,20 @@ export async function POST(request) {
       companyName,
       totalQueries: prompts.length,
       foundCount,
-      hasAiOverviewCount,
-      creditsUsed: totalCreditsUsed,
-      results
+      hasAiResponseCount,
+      results: results.map(r => ({
+        query: r.query,
+        hasAiResponse: r.hasAiResponse,
+        companyMentioned: r.companyMentioned,
+        mentionCount: r.mentionCount,
+        aiResponsePreview: r.aiResponse?.slice(0, 200) + (r.aiResponse?.length > 200 ? '...' : ''),
+        sourcesCount: r.sources?.length || 0,
+        competitorsCount: r.competitorsMentioned?.length || 0
+      }))
     })
 
   } catch (error) {
-    console.error('Google AI scan error:', error)
+    console.error('Google AI Mode scan error:', error)
     return NextResponse.json(
       { error: 'Internal server error', details: error.message },
       { status: 500 }
