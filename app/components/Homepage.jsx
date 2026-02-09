@@ -19,9 +19,23 @@ export default function Homepage() {
   const [openFaq, setOpenFaq] = useState(0);
   const [activeTooltip, setActiveTooltip] = useState(null);
   const [brancheSuggestion, setBrancheSuggestion] = useState(null);
+  const [showKeywordWarning, setShowKeywordWarning] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Check keyword count - warn if 0 or 1
+    const keywords = formData.zoekwoorden.split(',').filter(k => k.trim());
+    if (keywords.length <= 1) {
+      setShowKeywordWarning(true);
+      return;
+    }
+    
+    proceedToScan();
+  };
+
+  const proceedToScan = () => {
+    setShowKeywordWarning(false);
     
     // Bouw query params op (alleen niet-lege waarden)
     const params = new URLSearchParams();
@@ -691,6 +705,72 @@ export default function Homepage() {
           </div>
         </div>
       </section>
+
+      {/* Keyword Warning Modal */}
+      {showKeywordWarning && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowKeywordWarning(false)}>
+          <div 
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setShowKeywordWarning(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Icon */}
+            <div className="w-14 h-14 bg-amber-100 rounded-xl flex items-center justify-center mb-5">
+              <svg className="w-7 h-7 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+
+            {/* Title */}
+            <h3 className="text-xl font-bold text-slate-900 mb-2">Meer zoekwoorden = beter resultaat</h3>
+            
+            {/* Explanation */}
+            <p className="text-slate-600 mb-4">
+              Met maar 1 zoekwoord genereert de AI minder relevante prompts en krijg je een onvolledig beeld van je zichtbaarheid.
+            </p>
+
+            {/* Tip box */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+              <p className="text-sm font-semibold text-blue-800 mb-2">💡 Tip: gebruik Google Search Console</p>
+              <p className="text-sm text-blue-700">
+                Ga naar <strong>Search Console → Prestaties</strong>, filter op <strong>meeste vertoningen</strong> en gebruik die zoekwoorden. Dit zijn de termen waarvoor jouw website al gevonden wordt — perfect voor een AI-scan.
+              </p>
+            </div>
+
+            {/* Example */}
+            <div className="bg-slate-50 rounded-xl p-4 mb-6 border border-slate-200">
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Voorbeeld</p>
+              <p className="text-sm text-slate-400 line-through mb-1">❌ "loodgieter"</p>
+              <p className="text-sm text-green-700">✅ "loodgieter amsterdam, cv ketel storing, lekkage verhelpen, spoed loodgieter, warmtepomp installatie"</p>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => setShowKeywordWarning(false)}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-semibold hover:shadow-lg transition cursor-pointer"
+              >
+                Zoekwoorden toevoegen
+              </button>
+              <button
+                onClick={proceedToScan}
+                className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-medium hover:bg-slate-200 transition cursor-pointer"
+              >
+                Toch doorgaan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
