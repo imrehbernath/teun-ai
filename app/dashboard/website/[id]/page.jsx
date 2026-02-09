@@ -316,7 +316,7 @@ export default function WebsiteDetailPage() {
     
     setScanning(true)
     try {
-      const response = await fetch('/api/google-ai/scan', {
+      const response = await fetch('/api/scan-google-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
