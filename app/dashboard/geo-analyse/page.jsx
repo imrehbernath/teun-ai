@@ -175,8 +175,11 @@ function GEOAnalysePROContent() {
   const [googleAiScanning, setGoogleAiScanning] = useState(false)
   const [googleAiProgress, setGoogleAiProgress] = useState(0)
   
+  // Google AI Overview Scan
+  const [googleAiOverviewScanning, setGoogleAiOverviewScanning] = useState(false)
+  
   // Expanded platform results
-  const [expandedPlatform, setExpandedPlatform] = useState(null) // 'perplexity' | 'googleAi' | null
+  const [expandedPlatform, setExpandedPlatform] = useState(null) // 'perplexity' | 'googleAi' | 'googleAiOverview' | null
   const [expandedPromptIndex, setExpandedPromptIndex] = useState(null)
   
   const router = useRouter()
@@ -316,6 +319,13 @@ function GEOAnalysePROContent() {
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
 
+      // Load from google_ai_overview_scans
+      const { data: googleAiOverviewScans } = await supabase
+        .from('google_ai_overview_scans')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+
       // Load from tool_integrations as fallback (older data)
       const { data: integrations } = await supabase
         .from('tool_integrations')
@@ -327,6 +337,7 @@ function GEOAnalysePROContent() {
       console.log('Loaded perplexity scans:', perplexityScans)
       console.log('Loaded chatgpt scans:', chatgptScans)
       console.log('Loaded google ai scans:', googleAiScans)
+      console.log('Loaded google ai overview scans:', googleAiOverviewScans)
       console.log('Loaded tool_integrations:', integrations)
       
       // Debug: log first perplexity scan structure
@@ -367,7 +378,8 @@ function GEOAnalysePROContent() {
           let combinedResults = {
             perplexity: { mentioned: 0, total: 0, results: [] },
             chatgpt: { mentioned: 0, total: 0, results: [] },
-            googleAi: { mentioned: 0, total: 0, results: [] }
+            googleAi: { mentioned: 0, total: 0, results: [] },
+            googleAiOverview: { mentioned: 0, total: 0, results: [] }
           }
           
           // Add Perplexity results
@@ -441,7 +453,8 @@ function GEOAnalysePROContent() {
                   snippet: r.response_snippet || ''
                 }))
               },
-              googleAi: { mentioned: 0, total: 0, results: [] }
+              googleAi: { mentioned: 0, total: 0, results: [] },
+            googleAiOverview: { mentioned: 0, total: 0, results: [] }
             },
             source: 'chatgpt'
           })
@@ -472,13 +485,43 @@ function GEOAnalysePROContent() {
             results: results.map(r => ({
               prompt: r.query || r.prompt,
               mentioned: r.companyMentioned === true,
-              // Support both old aiOverviewText and new aiResponse field
-              snippet: r.aiResponse || r.aiOverviewText || r.textContent || ''
+              hasAiResponse: r.hasAiResponse === true || r.hasAiOverview === true,
+              snippet: r.aiResponse || r.aiResponsePreview || r.aiOverviewText || r.textContent || '',
+              competitors: r.competitors || r.competitorsInSources || r.competitorsMentioned || []
             }))
           }
           
           // Mark as having real AI data if we have responses
           if (results.length > 0 && results.some(r => r.hasAiResponse || r.hasAiOverview)) {
+            existing.hasRealAiData = true
+          }
+        }
+      })
+
+      // Add Google AI Overview results to existing websites
+      googleAiOverviewScans?.forEach(scan => {
+        const key = (scan.company_name || '').toLowerCase().trim()
+        if (key && websiteMap.has(key)) {
+          const existing = websiteMap.get(key)
+          const results = scan.results || []
+
+          if (!existing.website && scan.website) {
+            existing.website = scan.website
+          }
+
+          existing.combinedResults.googleAiOverview = {
+            mentioned: results.filter(r => r.companyMentioned === true).length,
+            total: results.length,
+            results: results.map(r => ({
+              prompt: r.query || r.prompt,
+              mentioned: r.companyMentioned === true,
+              hasAiOverview: r.hasAiOverview === true,
+              snippet: r.aiOverviewText || '',
+              competitors: r.competitorsMentioned || []
+            }))
+          }
+
+          if (results.length > 0 && results.some(r => r.hasAiOverview)) {
             existing.hasRealAiData = true
           }
         }
@@ -525,7 +568,8 @@ function GEOAnalysePROContent() {
             combinedResults: {
               perplexity: { mentioned: 0, total: 0, results: [] },
               chatgpt: { mentioned: 0, total: 0, results: [] },
-              googleAi: { mentioned: 0, total: 0, results: [] }
+              googleAi: { mentioned: 0, total: 0, results: [] },
+            googleAiOverview: { mentioned: 0, total: 0, results: [] }
             },
             source: 'tool_integrations',
             hasRealAiData: false
@@ -538,21 +582,23 @@ function GEOAnalysePROContent() {
         const cr = site.combinedResults || {
           perplexity: { mentioned: 0, total: 0, results: [] },
           chatgpt: { mentioned: 0, total: 0, results: [] },
-          googleAi: { mentioned: 0, total: 0, results: [] }
+          googleAi: { mentioned: 0, total: 0, results: [] },
+            googleAiOverview: { mentioned: 0, total: 0, results: [] }
         }
         
         // Calculate totals across all platforms
-        const totalMentioned = cr.perplexity.mentioned + cr.chatgpt.mentioned + cr.googleAi.mentioned
-        const totalScanned = cr.perplexity.total + cr.chatgpt.total + cr.googleAi.total
+        const totalMentioned = cr.perplexity.mentioned + cr.chatgpt.mentioned + cr.googleAi.mentioned + (cr.googleAiOverview?.mentioned || 0)
+        const totalScanned = cr.perplexity.total + cr.chatgpt.total + cr.googleAi.total + (cr.googleAiOverview?.total || 0)
         
         // Create combined aiResults array for legacy compatibility
         const allResults = [
           ...cr.perplexity.results.map(r => ({ ...r, platform: 'perplexity' })),
           ...cr.chatgpt.results.map(r => ({ ...r, platform: 'chatgpt' })),
-          ...cr.googleAi.results.map(r => ({ ...r, platform: 'google' }))
+          ...cr.googleAi.results.map(r => ({ ...r, platform: 'google' })),
+          ...(cr.googleAiOverview?.results || []).map(r => ({ ...r, platform: 'google_overview' }))
         ]
         
-        console.log(`Website ${site.name}: ${totalMentioned}/${totalScanned} total (P:${cr.perplexity.mentioned}/${cr.perplexity.total}, C:${cr.chatgpt.mentioned}/${cr.chatgpt.total}, G:${cr.googleAi.mentioned}/${cr.googleAi.total})`)
+        console.log(`Website ${site.name}: ${totalMentioned}/${totalScanned} total (P:${cr.perplexity.mentioned}/${cr.perplexity.total}, C:${cr.chatgpt.mentioned}/${cr.chatgpt.total}, G:${cr.googleAi.mentioned}/${cr.googleAi.total}, OV:${cr.googleAiOverview?.mentioned || 0}/${cr.googleAiOverview?.total || 0})`)
         
         return {
           ...site,
@@ -861,7 +907,8 @@ function GEOAnalysePROContent() {
           updatedWebsite.combinedResults = updatedWebsite.combinedResults || {
             perplexity: { mentioned: 0, total: 0, results: [] },
             chatgpt: { mentioned: 0, total: 0, results: [] },
-            googleAi: { mentioned: 0, total: 0, results: [] }
+            googleAi: { mentioned: 0, total: 0, results: [] },
+            googleAiOverview: { mentioned: 0, total: 0, results: [] }
           }
           updatedWebsite.combinedResults.googleAi = {
             mentioned: data.foundCount || 0,
@@ -871,16 +918,93 @@ function GEOAnalysePROContent() {
           setSelectedExistingWebsite(updatedWebsite)
         }
         
-        alert(`✅ Google AI Mode scan voltooid!\n\n${data.foundCount} van ${data.totalQueries} prompts vermelden ${companyName}`)
+        alert(`✅ Google AI Modus scan voltooid!\n\n${data.foundCount} van ${data.totalQueries} prompts vermelden ${companyName}`)
       }
       
       setGoogleAiProgress(100)
       
     } catch (error) {
       console.error('Google AI Mode scan error:', error)
-      alert('Fout bij Google AI scan: ' + error.message)
+      alert('Fout bij AI Modus scan: ' + error.message)
     } finally {
       setGoogleAiScanning(false)
+    }
+  }
+
+  // ============================================
+  // GOOGLE AI OVERVIEW SCAN
+  // ============================================
+  const runGoogleAiOverviewScan = async () => {
+    if (existingPrompts.length === 0) {
+      alert('Geen prompts beschikbaar. Selecteer eerst een bedrijf met prompts.')
+      return
+    }
+
+    setGoogleAiOverviewScanning(true)
+
+    try {
+      const promptsToScan = existingPrompts.slice(0, 10)
+
+      console.log('Starting Google AI Overview scan for:', companyName)
+
+      const response = await fetch('/api/scan-google-ai-overview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName,
+          website: companyWebsite,
+          category: companyCategory,
+          prompts: promptsToScan
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Scan mislukt')
+      }
+
+      const data = await response.json()
+      console.log('Google AI Overview scan results:', data)
+
+      if (data.results && data.results.length > 0) {
+        const overviewResults = data.results.map(r => ({
+          prompt: r.query,
+          mentioned: r.companyMentioned,
+          hasAiOverview: r.hasAiOverview,
+          snippet: r.aiOverviewText || '',
+          competitors: r.competitorsMentioned || [],
+          platform: 'google_overview'
+        }))
+
+        // Merge with existing results
+        const existingNonOverview = existingAiResults.filter(r => r.platform !== 'google_overview')
+        setExistingAiResults([...existingNonOverview, ...overviewResults])
+
+        // Update selectedExistingWebsite
+        if (selectedExistingWebsite) {
+          const updatedWebsite = { ...selectedExistingWebsite }
+          updatedWebsite.combinedResults = updatedWebsite.combinedResults || {
+            perplexity: { mentioned: 0, total: 0, results: [] },
+            chatgpt: { mentioned: 0, total: 0, results: [] },
+            googleAi: { mentioned: 0, total: 0, results: [] },
+            googleAiOverview: { mentioned: 0, total: 0, results: [] }
+          }
+          updatedWebsite.combinedResults.googleAiOverview = {
+            mentioned: data.foundCount || 0,
+            total: data.totalQueries || 0,
+            results: overviewResults
+          }
+          setSelectedExistingWebsite(updatedWebsite)
+        }
+
+        alert(`✅ Google AI Overviews scan voltooid!\n\n${data.hasAiOverviewCount} van ${data.totalQueries} prompts hebben een AI Overview\n${data.foundCount} vermelden ${companyName}`)
+      }
+
+    } catch (error) {
+      console.error('Google AI Overview scan error:', error)
+      alert('Fout bij Google AI Overview scan: ' + error.message)
+    } finally {
+      setGoogleAiOverviewScanning(false)
     }
   }
 
@@ -1395,9 +1519,11 @@ function GEOAnalysePROContent() {
                         const perplexityTotal = cr.perplexity?.total || 0
                         const googleMentioned = cr.googleAi?.mentioned || 0
                         const googleTotal = cr.googleAi?.total || 0
+                        const overviewMentioned = cr.googleAiOverview?.mentioned || 0
+                        const overviewTotal = cr.googleAiOverview?.total || 0
                         // Don't include ChatGPT in total for now (extension update pending)
-                        const totalMentioned = perplexityMentioned + googleMentioned
-                        const totalScanned = perplexityTotal + googleTotal
+                        const totalMentioned = perplexityMentioned + googleMentioned + overviewMentioned
+                        const totalScanned = perplexityTotal + googleTotal + overviewTotal
                         
                         return (
                           <>
@@ -1431,7 +1557,7 @@ function GEOAnalysePROContent() {
                         {/* Google AI */}
                         {selectedExistingWebsite.combinedResults?.googleAi?.total > 0 ? (
                           <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">
-                            Google AI: {selectedExistingWebsite.combinedResults.googleAi.mentioned}/{selectedExistingWebsite.combinedResults.googleAi.total}
+                            AI Modus: {selectedExistingWebsite.combinedResults.googleAi.mentioned}/{selectedExistingWebsite.combinedResults.googleAi.total}
                           </span>
                         ) : (
                           <button
@@ -1447,13 +1573,37 @@ function GEOAnalysePROContent() {
                             ) : (
                               <>
                                 <Sparkles className="w-3 h-3" />
-                                Scan Google AI
+                                Scan AI Modus
+                              </>
+                            )}
+                          </button>
+                        )}
+                        {/* Google AI Overviews */}
+                        {selectedExistingWebsite.combinedResults?.googleAiOverview?.total > 0 ? (
+                          <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded">
+                            AI Overviews: {selectedExistingWebsite.combinedResults.googleAiOverview.mentioned}/{selectedExistingWebsite.combinedResults.googleAiOverview.total}
+                          </span>
+                        ) : (
+                          <button
+                            onClick={runGoogleAiOverviewScan}
+                            disabled={googleAiOverviewScanning || existingPrompts.length === 0}
+                            className="px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded text-xs font-medium disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                          >
+                            {googleAiOverviewScanning ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                Scannen...
+                              </>
+                            ) : (
+                              <>
+                                <Globe className="w-3 h-3" />
+                                Scan AI Overviews
                               </>
                             )}
                           </button>
                         )}
                       </div>
-                      {/* Rescan button if Google AI data exists */}
+                      {/* Rescan button if AI Modus data exists */}
                       {selectedExistingWebsite.combinedResults?.googleAi?.total > 0 && (
                         <button
                           onClick={runGoogleAiModeScan}
@@ -1468,13 +1618,13 @@ function GEOAnalysePROContent() {
                           ) : (
                             <>
                               <RefreshCw className="w-3 h-3" />
-                              Google AI opnieuw scannen
+                              AI Modus opnieuw scannen
                             </>
                           )}
                         </button>
                       )}
                       
-                      {/* Expandable Google AI Results */}
+                      {/* Expandable AI Modus Results */}
                       {selectedExistingWebsite.combinedResults?.googleAi?.total > 0 && (
                         <div className="mt-4">
                           <div className="border border-blue-200 rounded-lg overflow-hidden">
@@ -1484,7 +1634,7 @@ function GEOAnalysePROContent() {
                             >
                               <span className="flex items-center gap-2 text-sm font-medium text-blue-800">
                                 <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                                Google AI Resultaten
+                                Google AI Modus Resultaten
                                 <span className="text-blue-600">
                                   ({selectedExistingWebsite.combinedResults.googleAi.mentioned}/{selectedExistingWebsite.combinedResults.googleAi.total})
                                 </span>
@@ -1516,10 +1666,10 @@ function GEOAnalysePROContent() {
                                       <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expandedPromptIndex === `g-${idx}` ? 'rotate-180' : ''}`} />
                                     </button>
                                     {expandedPromptIndex === `g-${idx}` && (
-                                      <div className="px-4 pb-4 pt-2 bg-green-50 border-t border-green-100 ml-9">
+                                      <div className={`px-4 pb-4 pt-2 border-t ml-9 ${result.mentioned ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
                                         {result.snippet && (
                                           <div className="mb-3">
-                                            <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">AI Response</p>
+                                            <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">AI Modus Response</p>
                                             <p className="text-sm text-slate-700 leading-relaxed">{result.snippet}</p>
                                           </div>
                                         )}
@@ -1546,7 +1696,121 @@ function GEOAnalysePROContent() {
                                           </button>
                                         )}
                                         {!result.snippet && (!result.competitors || result.competitors.length === 0) && (
-                                          <p className="text-xs text-slate-400 italic">Geen AI response beschikbaar</p>
+                                          <p className="text-xs text-slate-400 italic">
+                                            {result.mentioned ? 'Vermeld, maar geen response preview opgeslagen' : 'Niet vermeld in Google AI Modus'}
+                                          </p>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Rescan button if Google AI Overview data exists */}
+                      {selectedExistingWebsite.combinedResults?.googleAiOverview?.total > 0 && (
+                        <button
+                          onClick={runGoogleAiOverviewScan}
+                          disabled={googleAiOverviewScanning}
+                          className="mt-2 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-medium disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                        >
+                          {googleAiOverviewScanning ? (
+                            <>
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              Opnieuw scannen...
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw className="w-3 h-3" />
+                              AI Overviews opnieuw scannen
+                            </>
+                          )}
+                        </button>
+                      )}
+
+                      {/* Expandable Google AI Overview Results */}
+                      {selectedExistingWebsite.combinedResults?.googleAiOverview?.total > 0 && (
+                        <div className="mt-4">
+                          <div className="border border-emerald-200 rounded-lg overflow-hidden">
+                            <button
+                              onClick={() => setExpandedPlatform(expandedPlatform === 'googleAiOverview' ? null : 'googleAiOverview')}
+                              className="w-full flex items-center justify-between px-3 py-2 bg-emerald-50 hover:bg-emerald-100 transition-colors cursor-pointer"
+                            >
+                              <span className="flex items-center gap-2 text-sm font-medium text-emerald-800">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                Google AI Overviews
+                                <span className="text-emerald-600">
+                                  ({selectedExistingWebsite.combinedResults.googleAiOverview.mentioned}/{selectedExistingWebsite.combinedResults.googleAiOverview.total})
+                                </span>
+                              </span>
+                              {expandedPlatform === 'googleAiOverview' ? (
+                                <ChevronUp className="w-4 h-4 text-emerald-600" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4 text-emerald-600" />
+                              )}
+                            </button>
+                            {expandedPlatform === 'googleAiOverview' && (
+                              <div className="divide-y divide-emerald-100">
+                                {selectedExistingWebsite.combinedResults.googleAiOverview.results?.map((result, idx) => (
+                                  <div key={idx} className="bg-white">
+                                    <button
+                                      onClick={() => setExpandedPromptIndex(expandedPromptIndex === `ov-${idx}` ? null : `ov-${idx}`)}
+                                      className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer text-left"
+                                    >
+                                      <span className={`mt-0.5 flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
+                                        result.mentioned ? 'bg-green-100 text-green-600' : result.hasAiOverview ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400'
+                                      }`}>
+                                        {result.mentioned ? (
+                                          <CheckCircle2 className="w-4 h-4" />
+                                        ) : result.hasAiOverview ? (
+                                          <span className="text-sm font-medium">!</span>
+                                        ) : (
+                                          <span className="text-sm font-medium">—</span>
+                                        )}
+                                      </span>
+                                      <div className="flex-1">
+                                        <span className="text-sm text-slate-800">{result.prompt}</span>
+                                        {!result.hasAiOverview && (
+                                          <span className="ml-2 text-xs text-slate-400 italic">geen AI Overview</span>
+                                        )}
+                                      </div>
+                                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expandedPromptIndex === `ov-${idx}` ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    {expandedPromptIndex === `ov-${idx}` && (
+                                      <div className="px-4 pb-4 pt-2 bg-emerald-50 border-t border-emerald-100 ml-9">
+                                        {result.snippet && (
+                                          <div className="mb-3">
+                                            <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">AI Overview</p>
+                                            <p className="text-sm text-slate-700 leading-relaxed">{result.snippet}</p>
+                                          </div>
+                                        )}
+                                        {result.competitors && result.competitors.length > 0 && (
+                                          <div className="mb-3">
+                                            <p className="text-xs text-slate-500 mb-2">Bronnen/Concurrenten:</p>
+                                            <div className="flex flex-wrap gap-1.5">
+                                              {result.competitors.map((comp, ci) => (
+                                                <span key={ci} className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded border border-amber-200 text-xs font-medium">{comp}</span>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                        {result.snippet && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              navigator.clipboard.writeText(result.snippet)
+                                            }}
+                                            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 cursor-pointer"
+                                          >
+                                            <FileText className="w-3.5 h-3.5" />
+                                            Kopieer
+                                          </button>
+                                        )}
+                                        {!result.hasAiOverview && (
+                                          <p className="text-xs text-slate-400 italic">Geen AI Overview voor deze zoekopdracht</p>
                                         )}
                                       </div>
                                     )}

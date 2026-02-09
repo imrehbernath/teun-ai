@@ -40,6 +40,7 @@ export default function WebsiteDetailPage() {
   const [deletingId, setDeletingId] = useState(null)
   const [activeTab, setActiveTab] = useState('perplexity')
   const [scanning, setScanning] = useState(false)
+  const [scanningOverview, setScanningOverview] = useState(false)
   const [showGeoPopup, setShowGeoPopup] = useState(false) // Popup for missing scans
   
   // Prompt editing
@@ -89,6 +90,14 @@ export default function WebsiteDetailPage() {
         .order('created_at', { ascending: false })
       if (googleData) googleScans = googleData
 
+      let googleOverviewScans = []
+      const { data: googleOverviewData } = await supabase
+        .from('google_ai_overview_scans')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false })
+      if (googleOverviewData) googleOverviewScans = googleOverviewData
+
       let websiteData = {
         id: websiteId,
         name: '',
@@ -97,7 +106,8 @@ export default function WebsiteDetailPage() {
         platforms: {
           perplexity: { scans: [], mentions: 0, total: 0 },
           chatgpt: { scans: [], mentions: 0, total: 0 },
-          google: { scans: [], mentions: 0, total: 0 }
+          google: { scans: [], mentions: 0, total: 0 },
+          googleOverview: { scans: [], mentions: 0, total: 0 }
         },
         prompts: []
       }
@@ -181,6 +191,30 @@ export default function WebsiteDetailPage() {
         }
       })
 
+      // Process Google AI Overviews
+      googleOverviewScans.forEach(scan => {
+        const key = (scan.company_name || '').toLowerCase().trim()
+        if (key === websiteId) {
+          if (!websiteData.name) websiteData.name = scan.company_name
+          if (!websiteData.website && scan.website) websiteData.website = scan.website
+          
+          const results = scan.results || []
+          const mentions = results.filter(r => r.companyMentioned === true).length
+          const hasOverview = results.filter(r => r.hasAiOverview === true).length
+          
+          websiteData.platforms.googleOverview.scans.push({
+            id: scan.id,
+            date: scan.created_at,
+            results,
+            mentions,
+            total: results.length || scan.total_queries || 0,
+            hasOverview
+          })
+          websiteData.platforms.googleOverview.mentions += mentions
+          websiteData.platforms.googleOverview.total += results.length || scan.total_queries || 0
+        }
+      })
+
       if (!websiteData.name) {
         router.push('/dashboard')
         return
@@ -213,6 +247,7 @@ export default function WebsiteDetailPage() {
     
     const table = type === 'perplexity' ? 'tool_integrations' 
                 : type === 'chatgpt' ? 'chatgpt_scans' 
+                : type === 'googleOverview' ? 'google_ai_overview_scans'
                 : 'google_ai_scans'
     
     const { error } = await supabase.from(table).delete().eq('id', scanId)
@@ -303,6 +338,36 @@ export default function WebsiteDetailPage() {
     setScanning(false)
   }
 
+  const startGoogleOverviewScan = async () => {
+    if (prompts.length === 0) {
+      alert('Voeg eerst prompts toe')
+      return
+    }
+    
+    setScanningOverview(true)
+    try {
+      const response = await fetch('/api/scan-google-ai-overview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: website.name,
+          website: website.website,
+          prompts
+        })
+      })
+      const data = await response.json()
+      if (data.success) {
+        await loadWebsiteData()
+        setActiveTab('googleOverview')
+      } else {
+        alert('Fout: ' + (data.error || 'Onbekend'))
+      }
+    } catch (e) {
+      alert('Fout bij scannen')
+    }
+    setScanningOverview(false)
+  }
+
   const formatDate = (d) => {
     if (!d) return '-'
     return new Date(d).toLocaleDateString('nl-NL', { 
@@ -328,12 +393,13 @@ export default function WebsiteDetailPage() {
 
   if (!website) return null
 
-  const totalMentions = website.platforms.perplexity.mentions + website.platforms.chatgpt.mentions + website.platforms.google.mentions
-  const totalQueries = website.platforms.perplexity.total + website.platforms.chatgpt.total + website.platforms.google.total
+  const totalMentions = website.platforms.perplexity.mentions + website.platforms.chatgpt.mentions + website.platforms.google.mentions + website.platforms.googleOverview.mentions
+  const totalQueries = website.platforms.perplexity.total + website.platforms.chatgpt.total + website.platforms.google.total + website.platforms.googleOverview.total
   const overallScore = getScore(totalMentions, totalQueries)
 
   const latestPerplexity = website.platforms.perplexity.scans[0]
   const latestGoogle = website.platforms.google.scans[0]
+  const latestGoogleOverview = website.platforms.googleOverview.scans[0]
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -504,7 +570,15 @@ export default function WebsiteDetailPage() {
                   className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  Google AI scan
+                  AI Modus scan
+                </button>
+                <button
+                  onClick={startGoogleOverviewScan}
+                  disabled={scanningOverview}
+                  className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  {scanningOverview ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
+                  AI Overviews scan
                 </button>
               </div>
             </div>
@@ -566,7 +640,7 @@ export default function WebsiteDetailPage() {
               </span>
             </button>
 
-            {/* Google AI Tab */}
+            {/* Google AI Modus Tab */}
             <button
               onClick={() => setActiveTab('google')}
               className={`flex-1 px-4 py-4 flex items-center justify-center gap-2 text-sm font-medium transition-all cursor-pointer border-b-2 ${
@@ -576,13 +650,33 @@ export default function WebsiteDetailPage() {
               }`}
             >
               <Sparkles className={`w-5 h-5 ${activeTab === 'google' ? 'text-blue-600' : 'text-slate-400'}`} />
-              <span>Google AI</span>
+              <span>AI Modus</span>
               <span className={`ml-2 px-2.5 py-1 rounded-full text-xs font-bold ${
                 activeTab === 'google'
                   ? `${getScoreColor(getScore(website.platforms.google.mentions, website.platforms.google.total))} bg-white` 
                   : 'text-slate-500 bg-slate-100'
               }`}>
                 {website.platforms.google.mentions}/{website.platforms.google.total}
+              </span>
+            </button>
+
+            {/* Google AI Overviews Tab */}
+            <button
+              onClick={() => setActiveTab('googleOverview')}
+              className={`flex-1 px-4 py-4 flex items-center justify-center gap-2 text-sm font-medium transition-all cursor-pointer border-b-2 ${
+                activeTab === 'googleOverview'
+                  ? 'text-slate-900 border-emerald-500 bg-emerald-50' 
+                  : 'text-slate-500 border-transparent hover:text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <Globe className={`w-5 h-5 ${activeTab === 'googleOverview' ? 'text-emerald-600' : 'text-slate-400'}`} />
+              <span>AI Overviews</span>
+              <span className={`ml-2 px-2.5 py-1 rounded-full text-xs font-bold ${
+                activeTab === 'googleOverview'
+                  ? `${getScoreColor(getScore(website.platforms.googleOverview.mentions, website.platforms.googleOverview.total))} bg-white` 
+                  : 'text-slate-500 bg-slate-100'
+              }`}>
+                {website.platforms.googleOverview.mentions}/{website.platforms.googleOverview.total}
               </span>
             </button>
           </div>
@@ -795,8 +889,8 @@ export default function WebsiteDetailPage() {
                     <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                       <Sparkles className="w-8 h-8 text-blue-500" />
                     </div>
-                    <p className="font-medium text-slate-700 mb-1">Nog geen Google AI scans</p>
-                    <p className="text-sm text-slate-500 mb-4">Scan je zichtbaarheid in Google AI Overviews</p>
+                    <p className="font-medium text-slate-700 mb-1">Nog geen Google AI Modus scans</p>
+                    <p className="text-sm text-slate-500 mb-4">Scan je zichtbaarheid in Google AI Modus</p>
                     
                     <button
                       onClick={startGoogleScan}
@@ -811,7 +905,7 @@ export default function WebsiteDetailPage() {
                       ) : (
                         <>
                           <Sparkles className="w-5 h-5" />
-                          Start Google AI Scan
+                          Start Google AI Modus Scan
                         </>
                       )}
                     </button>
@@ -823,7 +917,7 @@ export default function WebsiteDetailPage() {
                     )}
                     
                     <p className="text-xs text-slate-400 mt-4">
-                      🔍 Scant {prompts.length} prompts in Google AI Overviews
+                      🔍 Scant {prompts.length} prompts in Google AI Modus
                     </p>
                   </div>
                 ) : (
@@ -935,6 +1029,146 @@ export default function WebsiteDetailPage() {
                 )}
               </div>
             )}
+
+            {/* Google AI Overviews Tab */}
+            {activeTab === 'googleOverview' && (
+              <div>
+                {!latestGoogleOverview ? (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <Globe className="w-8 h-8 text-emerald-500" />
+                    </div>
+                    <p className="font-medium text-slate-700 mb-1">Nog geen AI Overviews scans</p>
+                    <p className="text-sm text-slate-500 mb-4">Scan je zichtbaarheid in Google AI Overviews</p>
+                    
+                    <button
+                      onClick={startGoogleOverviewScan}
+                      disabled={scanningOverview || prompts.length === 0}
+                      className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-green-600 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {scanningOverview ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Scannen...
+                        </>
+                      ) : (
+                        <>
+                          <Globe className="w-5 h-5" />
+                          Start AI Overviews Scan
+                        </>
+                      )}
+                    </button>
+                    
+                    {prompts.length === 0 && (
+                      <p className="text-xs text-amber-600 mt-3">
+                        ⚠️ Voeg eerst prompts toe bovenaan de pagina
+                      </p>
+                    )}
+                    
+                    <p className="text-xs text-slate-400 mt-4">
+                      🔍 Scant {prompts.length} prompts in Google AI Overviews
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    {/* Scan header */}
+                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                      <div>
+                        <p className="text-sm text-slate-500">{formatDate(latestGoogleOverview.date)}</p>
+                        <p className="font-medium">{latestGoogleOverview.mentions}/{latestGoogleOverview.total} vermeldingen</p>
+                        <p className="text-xs text-slate-500">{latestGoogleOverview.hasOverview}/{latestGoogleOverview.total} had AI Overview</p>
+                      </div>
+                      <button onClick={() => deleteScan(latestGoogleOverview.id, 'googleOverview')} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                        {deletingId === latestGoogleOverview.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                      </button>
+                    </div>
+
+                    {/* Results list */}
+                    <div className="space-y-2">
+                      {latestGoogleOverview.results.map((result, idx) => {
+                        const key = `ov-${idx}`
+                        const expanded = expandedItems[key]
+                        const mentioned = result.companyMentioned
+                        const hasOverview = result.hasAiOverview
+                        
+                        return (
+                          <div key={idx} className={`rounded-lg border ${
+                            !hasOverview ? 'bg-slate-50 border-slate-200' :
+                            mentioned ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                          }`}>
+                            <button
+                              onClick={() => hasOverview && toggleExpand(key)}
+                              className="w-full px-4 py-3 flex items-center gap-3 text-left"
+                              disabled={!hasOverview}
+                            >
+                              {!hasOverview ? (
+                                <span className="w-5 h-5 flex items-center justify-center text-slate-400 text-lg">—</span>
+                              ) : mentioned ? (
+                                <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+                              ) : (
+                                <XCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                              )}
+                              <span className={`flex-1 text-sm ${!hasOverview ? 'text-slate-400' : 'text-slate-700'}`}>
+                                {result.query}
+                              </span>
+                              {!hasOverview && <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded">Geen AI Overview</span>}
+                              {hasOverview && (expanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />)}
+                            </button>
+                            
+                            {expanded && hasOverview && (
+                              <div className="px-4 pb-4 space-y-3 border-t border-slate-200 bg-white/50 pt-3">
+                                {result.aiOverviewText && (
+                                  <div className="bg-white p-3 rounded-lg text-sm text-slate-600">
+                                    <p className="text-xs text-slate-400 mb-1 uppercase">AI Overview</p>
+                                    <p className="line-clamp-4">{result.aiOverviewText}</p>
+                                  </div>
+                                )}
+                                
+                                {result.competitorsMentioned?.length > 0 && (
+                                  <div>
+                                    <p className="text-xs text-slate-500 mb-1">Concurrenten/Bronnen:</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {result.competitorsMentioned.map((c, i) => (
+                                        <span key={i} className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs">{c}</span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); copyPrompt(result.aiOverviewText || result.query, key); }}
+                                  className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1"
+                                >
+                                  {copiedPrompt === key ? <><Check className="w-3 h-3 text-green-500" /> Gekopieerd</> : <><Copy className="w-3 h-3" /> Kopieer</>}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* Older scans */}
+                    {website.platforms.googleOverview.scans.length > 1 && (
+                      <div className="mt-4 pt-4 border-t border-slate-100">
+                        <p className="text-sm text-slate-500 mb-2">Eerdere scans:</p>
+                        {website.platforms.googleOverview.scans.slice(1).map(scan => (
+                          <div key={scan.id} className="flex items-center justify-between py-2 text-sm">
+                            <span className="text-slate-600">{formatDate(scan.date)}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{scan.mentions}/{scan.total}</span>
+                              <button onClick={() => deleteScan(scan.id, 'googleOverview')} className="p-1 text-slate-400 hover:text-red-500">
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -946,8 +1180,9 @@ export default function WebsiteDetailPage() {
               const hasPerplexity = website.platforms.perplexity.scans.length > 0
               const hasChatgpt = website.platforms.chatgpt.scans.length > 0
               const hasGoogle = website.platforms.google.scans.length > 0
+              const hasGoogleOverview = website.platforms.googleOverview.scans.length > 0
               
-              if (hasPerplexity && hasChatgpt && hasGoogle) {
+              if (hasPerplexity && hasChatgpt && hasGoogle && hasGoogleOverview) {
                 // All scans done - navigate to GEO Analyse
                 router.push(`/dashboard/geo-analyse?website=${encodeURIComponent(website.name)}`)
               } else {
@@ -980,7 +1215,7 @@ export default function WebsiteDetailPage() {
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-2">Scan eerst alle platforms</h3>
               <p className="text-slate-600 mb-6">
-                Voor een complete GEO Analyse heb je scans nodig van alle 3 de AI platforms.
+                Voor een complete GEO Analyse heb je scans nodig van alle AI platforms.
               </p>
               
               {/* Platform status */}
@@ -1012,7 +1247,17 @@ export default function WebsiteDetailPage() {
                     <XCircle className="w-5 h-5 text-red-500" />
                   )}
                   <span className={website.platforms.google.scans.length > 0 ? 'text-green-700' : 'text-red-700'}>
-                    Google AI {website.platforms.google.scans.length > 0 ? '✓' : '- nog niet gescand'}
+                    Google AI Modus {website.platforms.google.scans.length > 0 ? '✓' : '- nog niet gescand'}
+                  </span>
+                </div>
+                <div className={`flex items-center gap-3 p-3 rounded-lg ${website.platforms.googleOverview.scans.length > 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                  {website.platforms.googleOverview.scans.length > 0 ? (
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  ) : (
+                    <XCircle className="w-5 h-5 text-red-500" />
+                  )}
+                  <span className={website.platforms.googleOverview.scans.length > 0 ? 'text-green-700' : 'text-red-700'}>
+                    Google AI Overviews {website.platforms.googleOverview.scans.length > 0 ? '✓' : '- nog niet gescand'}
                   </span>
                 </div>
               </div>

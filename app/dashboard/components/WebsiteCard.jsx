@@ -108,7 +108,7 @@ export default function WebsiteCard({ website, onClick, onDelete }) {
         </div>
       )}
 
-      {/* Platform Badges - Only 3: Perplexity, ChatGPT, Google AI */}
+      {/* Platform Badges - 4 platforms: Perplexity, ChatGPT, AI Modus, AI Overviews */}
       <div className="flex flex-wrap gap-2 mb-4">
         <span className={`px-2.5 py-1 text-xs rounded-lg font-medium ${
           website.platforms.perplexity 
@@ -129,7 +129,14 @@ export default function WebsiteCard({ website, onClick, onDelete }) {
             ? 'bg-blue-100 text-blue-700 border border-blue-200' 
             : 'bg-slate-100 text-slate-400 border border-slate-200'
         }`}>
-          Google AI
+          AI Modus
+        </span>
+        <span className={`px-2.5 py-1 text-xs rounded-lg font-medium ${
+          website.platforms.googleOverview 
+            ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
+            : 'bg-slate-100 text-slate-400 border border-slate-200'
+        }`}>
+          AI Overviews
         </span>
       </div>
 

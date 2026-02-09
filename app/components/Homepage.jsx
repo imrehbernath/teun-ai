@@ -94,11 +94,16 @@ export default function Homepage() {
                   </span>
                   <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
                     <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                    Google AI
+                    AI Modus
+                    <span className="text-[10px] text-slate-400">account</span>
+                  </span>
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                    AI Overviews
                     <span className="text-[10px] text-slate-400">account</span>
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mb-6">ChatGPT & Google AI scans met gratis account</p>
+                <p className="text-xs text-slate-400 mb-6">ChatGPT, AI Modus & AI Overviews met gratis account</p>
 
                 {/* Mobile Mascotte - above form */}
                 <div className="lg:hidden flex justify-center">
@@ -476,7 +481,7 @@ export default function Homepage() {
                     We scannen 3 AI's
                   </h3>
                   <p className="text-slate-600">
-                    ChatGPT, Perplexity en Google AI worden realtime bevraagd.
+                    ChatGPT, Perplexity, AI Modus en AI Overviews worden realtime bevraagd.
                   </p>
                 </div>
               </div>
@@ -567,8 +572,8 @@ export default function Homepage() {
           <div className="bg-white border border-slate-200 rounded-2xl p-6 mb-10 shadow-sm">
             <div className="grid md:grid-cols-2 gap-6 text-center">
               <div>
-                <p className="text-2xl font-bold text-slate-900 mb-1">3 platforms</p>
-                <p className="text-slate-500 text-sm">ChatGPT, Perplexity & Google AI</p>
+                <p className="text-2xl font-bold text-slate-900 mb-1">4 platforms</p>
+                <p className="text-slate-500 text-sm">ChatGPT, Perplexity, AI Modus & AI Overviews</p>
               </div>
               <div>
                 <p className="text-2xl font-bold text-slate-900 mb-1">Score tracking</p>

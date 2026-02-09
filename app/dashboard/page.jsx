@@ -186,6 +186,18 @@ function DashboardContent() {
         googleScans = googleData
       }
 
+      // Load Google AI Overview scans
+      let googleOverviewScans = []
+      const { data: overviewData, error: overviewError } = await supabase
+        .from('google_ai_overview_scans')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+      
+      if (!overviewError && overviewData) {
+        googleOverviewScans = overviewData
+      }
+
       // Group scans by company/website
       const websiteMap = new Map()
       
@@ -204,7 +216,7 @@ function DashboardContent() {
               scoreHistory: [],
               totalMentions: 0,
               totalQueries: 0,
-              platforms: { perplexity: false, chatgpt: false, google: false }
+              platforms: { perplexity: false, chatgpt: false, google: false, googleOverview: false }
             })
           }
           
@@ -260,7 +272,7 @@ function DashboardContent() {
               scoreHistory: [],
               totalMentions: 0,
               totalQueries: 0,
-              platforms: { perplexity: false, chatgpt: false, google: false }
+              platforms: { perplexity: false, chatgpt: false, google: false, googleOverview: false }
             })
           }
           
@@ -311,7 +323,7 @@ function DashboardContent() {
               scoreHistory: [],
               totalMentions: 0,
               totalQueries: 0,
-              platforms: { perplexity: false, chatgpt: false, google: false }
+              platforms: { perplexity: false, chatgpt: false, google: false, googleOverview: false }
             })
           }
           
@@ -339,6 +351,59 @@ function DashboardContent() {
           site.totalQueries += totalQueries
           
           // Add to score history
+          const scanScore = totalQueries > 0 
+            ? Math.round((mentions / totalQueries) * 100)
+            : 0
+          site.scoreHistory.push({
+            date: scan.created_at,
+            score: scanScore
+          })
+        })
+      }
+
+      // Process Google AI Overview scans
+      if (googleOverviewScans) {
+        googleOverviewScans.forEach(scan => {
+          const company = scan.company_name || 'Onbekend'
+          const key = company.toLowerCase().trim()
+          
+          if (!websiteMap.has(key)) {
+            websiteMap.set(key, {
+              id: key,
+              name: company,
+              website: scan.website,
+              category: null,
+              scans: [],
+              scoreHistory: [],
+              totalMentions: 0,
+              totalQueries: 0,
+              platforms: { perplexity: false, chatgpt: false, google: false, googleOverview: false }
+            })
+          }
+          
+          const site = websiteMap.get(key)
+          if (!site.website && scan.website) site.website = scan.website
+          const results = scan.results || []
+          
+          let mentions = scan.found_count || 0
+          if (mentions === 0 && results.length > 0) {
+            mentions = results.filter(r => r.companyMentioned === true).length
+          }
+          const totalQueries = results.length || scan.total_queries || 0
+          
+          site.scans.push({
+            id: scan.id,
+            type: 'googleOverview',
+            date: scan.created_at,
+            results,
+            mentions,
+            totalQueries
+          })
+          
+          site.platforms.googleOverview = true
+          site.totalMentions += mentions
+          site.totalQueries += totalQueries
+          
           const scanScore = totalQueries > 0 
             ? Math.round((mentions / totalQueries) * 100)
             : 0
@@ -448,9 +513,18 @@ function DashboardContent() {
             .eq('user_id', user.id)
           
           if (googleError) {
-            console.error('Error deleting scan:', googleError)
-            alert('Er ging iets mis bij het verwijderen. Probeer het opnieuw.')
-            return
+            // Try google_ai_overview_scans table
+            const { error: overviewError } = await supabase
+              .from('google_ai_overview_scans')
+              .delete()
+              .eq('id', scanId)
+              .eq('user_id', user.id)
+            
+            if (overviewError) {
+              console.error('Error deleting scan:', overviewError)
+              alert('Er ging iets mis bij het verwijderen. Probeer het opnieuw.')
+              return
+            }
           }
         }
       }
@@ -574,7 +648,7 @@ function DashboardContent() {
             failedCount++
           }
         } else if (scan.type === 'google') {
-          // Handle Google AI scans
+          // Handle Google AI Mode scans
           const { data, error } = await supabase
             .from('google_ai_scans')
             .delete()
@@ -585,10 +659,28 @@ function DashboardContent() {
             console.error('❌ Error deleting google scan:', error)
             failedCount++
           } else if (data && data.length > 0) {
-            console.log('✅ Google AI scan deleted:', data)
+            console.log('✅ Google AI Modus scan deleted:', data)
             deletedCount++
           } else {
-            console.warn('⚠️ Google AI scan NOT deleted (RLS policy blocked?)')
+            console.warn('⚠️ Google AI Modus scan NOT deleted (RLS policy blocked?)')
+            failedCount++
+          }
+        } else if (scan.type === 'googleOverview') {
+          // Handle Google AI Overview scans
+          const { data, error } = await supabase
+            .from('google_ai_overview_scans')
+            .delete()
+            .eq('id', scan.id)
+            .select()
+          
+          if (error) {
+            console.error('❌ Error deleting overview scan:', error)
+            failedCount++
+          } else if (data && data.length > 0) {
+            console.log('✅ Google AI Overview scan deleted:', data)
+            deletedCount++
+          } else {
+            console.warn('⚠️ Google AI Overview scan NOT deleted (RLS policy blocked?)')
             failedCount++
           }
         }
@@ -640,9 +732,9 @@ function DashboardContent() {
 
   // Check if all platforms are scanned before opening GEO Analyse
   const handleGeoAnalyseClick = () => {
-    // Check if there's at least one website with all 3 platforms scanned
+    // Check if there's at least one website with all platforms scanned
     const hasCompleteWebsite = websites.some(w => 
-      w.platforms?.perplexity && w.platforms?.chatgpt && w.platforms?.google
+      w.platforms?.perplexity && w.platforms?.chatgpt && w.platforms?.google && w.platforms?.googleOverview
     )
     
     if (hasCompleteWebsite) {
@@ -657,7 +749,8 @@ function DashboardContent() {
     const hasPerplexity = websites.some(w => w.platforms?.perplexity)
     const hasChatgpt = websites.some(w => w.platforms?.chatgpt)
     const hasGoogle = websites.some(w => w.platforms?.google)
-    return { hasPerplexity, hasChatgpt, hasGoogle }
+    const hasGoogleOverview = websites.some(w => w.platforms?.googleOverview)
+    return { hasPerplexity, hasChatgpt, hasGoogle, hasGoogleOverview }
   }
 
   // ============================================
@@ -907,7 +1000,7 @@ function DashboardContent() {
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-2">Scan eerst alle platforms</h3>
               <p className="text-slate-600 mb-6">
-                Voor een complete GEO Analyse heb je scans nodig van alle 3 de AI platforms.
+                Voor een complete GEO Analyse heb je scans nodig van alle AI platforms.
               </p>
               
               {/* Platform status */}
@@ -955,7 +1048,21 @@ function DashboardContent() {
                           </svg>
                         )}
                         <span className={status.hasGoogle ? 'text-green-700' : 'text-red-700'}>
-                          Google AI {status.hasGoogle ? '✓' : '- nog niet gescand'}
+                          AI Modus {status.hasGoogle ? '✓' : '- nog niet gescand'}
+                        </span>
+                      </div>
+                      <div className={`flex items-center gap-3 p-3 rounded-lg ${status.hasGoogleOverview ? 'bg-green-50' : 'bg-red-50'}`}>
+                        {status.hasGoogleOverview ? (
+                          <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        )}
+                        <span className={status.hasGoogleOverview ? 'text-green-700' : 'text-red-700'}>
+                          AI Overviews {status.hasGoogleOverview ? '✓' : '- nog niet gescand'}
                         </span>
                       </div>
                     </>

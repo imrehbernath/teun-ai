@@ -582,17 +582,29 @@ function AIVisibilityToolContent() {
           <p className="text-base sm:text-lg md:text-xl text-slate-600 px-4 mb-4">
             Hoe vermelden AI-modellen jouw bedrijf bij commerciële zoekvragen?
           </p>
-          {/* GRATIS badge for non-logged in users */}
-          {!user && (
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 rounded-full">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-              </span>
-              <span className="text-sm font-semibold text-emerald-700">Perplexity scan gratis</span>
-              <span className="text-xs text-emerald-600">• Maak account voor ChatGPT + Google AI</span>
-            </div>
-          )}
+          {/* AI Platform badges - matching homepage style */}
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-1">
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+              Perplexity
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+              ChatGPT
+              <span className="text-[10px] text-slate-400">account</span>
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+              AI Modus
+              <span className="text-[10px] text-slate-400">account</span>
+            </span>
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+              AI Overviews
+              <span className="text-[10px] text-slate-400">account</span>
+            </span>
+          </div>
+          <p className="text-xs text-slate-400">ChatGPT, AI Modus & AI Overviews met gratis account</p>
         </header>
 
         {/* Step Indicator - Pill style matching homepage CTA */}
@@ -1340,14 +1352,15 @@ function AIVisibilityToolContent() {
                           </div>
                         </div>
                         <div className="flex-1">
-                          <span className="font-bold text-slate-800 text-sm sm:text-base block">Unlock ChatGPT + Google AI</span>
+                          <span className="font-bold text-slate-800 text-sm sm:text-base block">Unlock ChatGPT + AI Modus</span>
                           <span className="text-xs text-slate-500">Maak een gratis account - geen creditcard nodig</span>
                         </div>
                       </div>
                       
                       <div className="flex flex-wrap gap-2 text-xs">
                         <span className="px-2 py-1 bg-white/80 rounded-full text-slate-600 border border-slate-200">✓ ChatGPT scans</span>
-                        <span className="px-2 py-1 bg-white/80 rounded-full text-slate-600 border border-slate-200">✓ Google AI Overviews</span>
+                        <span className="px-2 py-1 bg-white/80 rounded-full text-slate-600 border border-slate-200">✓ AI Modus scans</span>
+                        <span className="px-2 py-1 bg-white/80 rounded-full text-slate-600 border border-slate-200">✓ AI Overviews</span>
                         <span className="px-2 py-1 bg-white/80 rounded-full text-slate-600 border border-slate-200">✓ GEO Analyse</span>
                       </div>
                       
@@ -1473,7 +1486,7 @@ function AIVisibilityToolContent() {
                         </li>
                         <li className="flex items-center gap-2 text-sm">
                           <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
-                          <span><strong>Google AI Overviews</strong> analyse</span>
+                          <span><strong>AI Modus + AI Overviews</strong> analyse</span>
                         </li>
                         <li className="flex items-center gap-2 text-sm">
                           <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
@@ -1647,7 +1660,7 @@ function AIVisibilityToolContent() {
                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
                           </div>
-                          <span className="text-slate-700"><strong>Google AI Overviews</strong> analyse</span>
+                          <span className="text-slate-700"><strong>AI Modus + AI Overviews</strong> analyse</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm">
                           <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
