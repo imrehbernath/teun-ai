@@ -270,12 +270,11 @@ export async function POST(request) {
       .insert({
         user_id: user.id,
         company_name: companyName,
-        company_category: category || null,
         website: website || null,
         prompts: prompts,
         total_queries: prompts.length,
         status: 'processing',
-        scan_type: 'google_ai_mode' // Track which engine was used
+        scan_type: 'google_ai_mode'
       })
       .select()
       .single()
@@ -340,7 +339,7 @@ export async function POST(request) {
         mentionCount: r.mentionCount,
         aiResponsePreview: r.aiResponse?.slice(0, 200) + (r.aiResponse?.length > 200 ? '...' : ''),
         sourcesCount: r.sources?.length || 0,
-        competitorsCount: r.competitorsMentioned?.length || 0
+        competitors: r.competitorsMentioned || []
       }))
     })
 

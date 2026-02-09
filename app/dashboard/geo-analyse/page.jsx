@@ -175,6 +175,10 @@ function GEOAnalysePROContent() {
   const [googleAiScanning, setGoogleAiScanning] = useState(false)
   const [googleAiProgress, setGoogleAiProgress] = useState(0)
   
+  // Expanded platform results
+  const [expandedPlatform, setExpandedPlatform] = useState(null) // 'perplexity' | 'googleAi' | null
+  const [expandedPromptIndex, setExpandedPromptIndex] = useState(null)
+  
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
@@ -843,6 +847,7 @@ function GEOAnalysePROContent() {
           prompt: r.query,
           mentioned: r.companyMentioned,
           snippet: r.aiResponsePreview || '',
+          competitors: r.competitors || [],
           platform: 'google'
         }))
         
@@ -866,7 +871,7 @@ function GEOAnalysePROContent() {
           setSelectedExistingWebsite(updatedWebsite)
         }
         
-        alert(`✅ Google AI Mode scan voltooid!\n\n${data.foundCount} van ${data.totalQueries} zoekwoorden vermelden ${companyName}`)
+        alert(`✅ Google AI Mode scan voltooid!\n\n${data.foundCount} van ${data.totalQueries} prompts vermelden ${companyName}`)
       }
       
       setGoogleAiProgress(100)
@@ -874,9 +879,9 @@ function GEOAnalysePROContent() {
     } catch (error) {
       console.error('Google AI Mode scan error:', error)
       alert('Fout bij Google AI scan: ' + error.message)
+    } finally {
+      setGoogleAiScanning(false)
     }
-    
-    setGoogleAiScanning(false)
   }
 
   // ============================================
@@ -1467,6 +1472,74 @@ function GEOAnalysePROContent() {
                             </>
                           )}
                         </button>
+                      )}
+                      
+                      {/* Expandable Google AI Results */}
+                      {selectedExistingWebsite.combinedResults?.googleAi?.total > 0 && (
+                        <div className="mt-4">
+                          <div className="border border-blue-200 rounded-lg overflow-hidden">
+                            <button
+                              onClick={() => setExpandedPlatform(expandedPlatform === 'googleAi' ? null : 'googleAi')}
+                              className="w-full flex items-center justify-between px-3 py-2 bg-blue-50 hover:bg-blue-100 transition-colors cursor-pointer"
+                            >
+                              <span className="flex items-center gap-2 text-sm font-medium text-blue-800">
+                                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                Google AI Resultaten
+                                <span className="text-blue-600">
+                                  ({selectedExistingWebsite.combinedResults.googleAi.mentioned}/{selectedExistingWebsite.combinedResults.googleAi.total})
+                                </span>
+                              </span>
+                              {expandedPlatform === 'googleAi' ? (
+                                <ChevronUp className="w-4 h-4 text-blue-600" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4 text-blue-600" />
+                              )}
+                            </button>
+                            {expandedPlatform === 'googleAi' && (
+                              <div className="divide-y divide-blue-100">
+                                {selectedExistingWebsite.combinedResults.googleAi.results?.map((result, idx) => (
+                                  <div key={idx} className="bg-white">
+                                    <button
+                                      onClick={() => setExpandedPromptIndex(expandedPromptIndex === `g-${idx}` ? null : `g-${idx}`)}
+                                      className="w-full flex items-start gap-3 px-3 py-2 hover:bg-slate-50 transition-colors cursor-pointer text-left"
+                                    >
+                                      <span className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs ${
+                                        result.mentioned ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                                      }`}>
+                                        {result.mentioned ? '✓' : '✗'}
+                                      </span>
+                                      <span className="flex-1 text-sm text-slate-700 line-clamp-1">{result.prompt}</span>
+                                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expandedPromptIndex === `g-${idx}` ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    {expandedPromptIndex === `g-${idx}` && (
+                                      <div className="px-3 pb-3 pt-1 bg-slate-50 border-t border-slate-100">
+                                        {result.snippet && (
+                                          <div className="mb-2">
+                                            <p className="text-xs text-slate-500 mb-1">AI Antwoord:</p>
+                                            <p className="text-sm text-slate-700 bg-white rounded p-2 border border-slate-200">{result.snippet}</p>
+                                          </div>
+                                        )}
+                                        {result.competitors && result.competitors.length > 0 && (
+                                          <div>
+                                            <p className="text-xs text-slate-500 mb-1">Concurrenten genoemd:</p>
+                                            <div className="flex flex-wrap gap-1">
+                                              {result.competitors.map((comp, ci) => (
+                                                <span key={ci} className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs">{comp}</span>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+                                        {!result.snippet && (!result.competitors || result.competitors.length === 0) && (
+                                          <p className="text-xs text-slate-400 italic">Geen details beschikbaar</p>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       )}
                     </div>
                   ) : existingAiResults.length > 0 ? (
