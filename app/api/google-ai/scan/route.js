@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-const SEARCHAPI_KEY = process.env.SEARCHAPI_KEY || process.env.SEARCH_API_KEY
+const SERPAPI_KEY = process.env.SERPAPI_KEY
 
 // Helper to check if company is mentioned in text
 function checkCompanyMention(text, companyName) {
@@ -141,25 +141,25 @@ function analyzeAIModeResponse(data, companyName) {
   }
 }
 
-// Fetch from SearchAPI Google AI Mode
+// Fetch from SerpAPI Google AI Mode
 async function fetchGoogleAIMode(query, companyName) {
   const params = new URLSearchParams({
     engine: 'google_ai_mode',
     q: query,
     gl: 'nl',           // Country: Netherlands
     hl: 'nl',           // Language: Dutch
-    api_key: SEARCHAPI_KEY
+    api_key: SERPAPI_KEY
   })
 
   try {
     console.log(`Fetching Google AI Mode for: "${query}"`)
     
-    const response = await fetch(`https://www.searchapi.io/api/v1/search?${params}`)
+    const response = await fetch(`https://serpapi.com/search.json?${params}`)
     
     if (!response.ok) {
       const errorText = await response.text()
-      console.error(`SearchAPI error: ${response.status}`, errorText)
-      throw new Error(`SearchAPI error: ${response.status}`)
+      console.error(`SerpAPI error: ${response.status}`, errorText)
+      throw new Error(`SerpAPI error: ${response.status}`)
     }
 
     const data = await response.json()
@@ -193,9 +193,9 @@ async function fetchGoogleAIMode(query, companyName) {
 export async function POST(request) {
   try {
     // Check for API key
-    if (!SEARCHAPI_KEY) {
+    if (!SERPAPI_KEY) {
       return NextResponse.json(
-        { error: 'SearchAPI key not configured. Set SEARCHAPI_KEY or SEARCH_API_KEY in environment.' },
+        { error: 'SerpAPI key not configured. Set SERPAPI_KEY in environment.' },
         { status: 500 }
       )
     }
