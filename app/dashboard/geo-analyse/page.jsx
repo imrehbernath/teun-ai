@@ -1501,36 +1501,52 @@ function GEOAnalysePROContent() {
                                   <div key={idx} className="bg-white">
                                     <button
                                       onClick={() => setExpandedPromptIndex(expandedPromptIndex === `g-${idx}` ? null : `g-${idx}`)}
-                                      className="w-full flex items-start gap-3 px-3 py-2 hover:bg-slate-50 transition-colors cursor-pointer text-left"
+                                      className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer text-left"
                                     >
-                                      <span className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs ${
+                                      <span className={`mt-0.5 flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
                                         result.mentioned ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
                                       }`}>
-                                        {result.mentioned ? '✓' : '✗'}
+                                        {result.mentioned ? (
+                                          <CheckCircle2 className="w-4 h-4" />
+                                        ) : (
+                                          <span className="text-sm font-medium">✗</span>
+                                        )}
                                       </span>
-                                      <span className="flex-1 text-sm text-slate-700 line-clamp-1">{result.prompt}</span>
+                                      <span className="flex-1 text-sm text-slate-800">{result.prompt}</span>
                                       <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expandedPromptIndex === `g-${idx}` ? 'rotate-180' : ''}`} />
                                     </button>
                                     {expandedPromptIndex === `g-${idx}` && (
-                                      <div className="px-3 pb-3 pt-1 bg-slate-50 border-t border-slate-100">
+                                      <div className="px-4 pb-4 pt-2 bg-green-50 border-t border-green-100 ml-9">
                                         {result.snippet && (
-                                          <div className="mb-2">
-                                            <p className="text-xs text-slate-500 mb-1">AI Antwoord:</p>
-                                            <p className="text-sm text-slate-700 bg-white rounded p-2 border border-slate-200">{result.snippet}</p>
+                                          <div className="mb-3">
+                                            <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">AI Response</p>
+                                            <p className="text-sm text-slate-700 leading-relaxed">{result.snippet}</p>
                                           </div>
                                         )}
                                         {result.competitors && result.competitors.length > 0 && (
-                                          <div>
-                                            <p className="text-xs text-slate-500 mb-1">Concurrenten genoemd:</p>
-                                            <div className="flex flex-wrap gap-1">
+                                          <div className="mb-3">
+                                            <p className="text-xs text-slate-500 mb-2">Concurrenten:</p>
+                                            <div className="flex flex-wrap gap-1.5">
                                               {result.competitors.map((comp, ci) => (
-                                                <span key={ci} className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs">{comp}</span>
+                                                <span key={ci} className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded border border-amber-200 text-xs font-medium">{comp}</span>
                                               ))}
                                             </div>
                                           </div>
                                         )}
+                                        {result.snippet && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              navigator.clipboard.writeText(result.snippet)
+                                            }}
+                                            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 cursor-pointer"
+                                          >
+                                            <FileText className="w-3.5 h-3.5" />
+                                            Kopieer
+                                          </button>
+                                        )}
                                         {!result.snippet && (!result.competitors || result.competitors.length === 0) && (
-                                          <p className="text-xs text-slate-400 italic">Geen details beschikbaar</p>
+                                          <p className="text-xs text-slate-400 italic">Geen AI response beschikbaar</p>
                                         )}
                                       </div>
                                     )}

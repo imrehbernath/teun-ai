@@ -128,11 +128,41 @@ function analyzeAIModeResponse(data, companyName) {
       isCompany
     })
 
-    // Track competitors
-    if (!isCompany && domain) {
-      competitorsMentioned.push(domain)
+    // Track competitors - use title (business name) instead of domain
+    if (!isCompany && title && title.length > 2) {
+      // Clean up title - remove common suffixes
+      let cleanTitle = title
+        .replace(/\s*[-|–]\s*.*/g, '') // Remove everything after dash/pipe
+        .replace(/\s*\(.*\)/g, '')      // Remove parentheses
+        .trim()
+      if (cleanTitle.length > 2 && cleanTitle.length < 50) {
+        competitorsMentioned.push(cleanTitle)
+      }
     }
   })
+
+  // Also extract competitor names from AI response text
+  // Look for patterns like "Name Clinic", "Name Kliniek", "Name Centrum", etc.
+  if (aiResponse && companyName) {
+    // Common Dutch business suffixes
+    const businessPatterns = [
+      /([A-Z][a-zA-Z\s]+(?:Kliniek|Clinic|Centrum|Center|Praktijk|Studio|Salon|Institut|Instituut|Medical|Medisch))/g,
+      /(?:The\s+)?([A-Z][a-zA-Z\s]+(?:Kliniek|Clinic))/gi
+    ]
+    
+    businessPatterns.forEach(pattern => {
+      const matches = aiResponse.match(pattern) || []
+      matches.forEach(match => {
+        const cleanMatch = match.trim()
+        // Don't add if it's the target company
+        if (!checkCompanyMention(cleanMatch, companyName) && 
+            cleanMatch.length > 3 && 
+            cleanMatch.length < 50) {
+          competitorsMentioned.push(cleanMatch)
+        }
+      })
+    })
+  }
 
   // Also check inline sources if present
   if (data.inline_sources) {
@@ -337,7 +367,7 @@ export async function POST(request) {
         hasAiResponse: r.hasAiResponse,
         companyMentioned: r.companyMentioned,
         mentionCount: r.mentionCount,
-        aiResponsePreview: r.aiResponse?.slice(0, 200) + (r.aiResponse?.length > 200 ? '...' : ''),
+        aiResponsePreview: r.aiResponse?.slice(0, 800) || '', // Longer preview
         sourcesCount: r.sources?.length || 0,
         competitors: r.competitorsMentioned || []
       }))
