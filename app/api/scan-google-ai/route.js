@@ -42,17 +42,30 @@ function analyzeAIModeResponse(data, companyName) {
   
   // SerpAPI google_ai_mode returns text_blocks at root level
   if (data.text_blocks && Array.isArray(data.text_blocks)) {
-    data.text_blocks.forEach(block => {
-      if (block.text) aiResponse += ' ' + block.text
-      if (block.snippet) aiResponse += ' ' + block.snippet
-      if (block.list) {
-        block.list.forEach(item => {
-          if (typeof item === 'string') aiResponse += ' ' + item
-          else if (item.snippet) aiResponse += ' ' + item.snippet
-          else if (item.text) aiResponse += ' ' + item.text
-        })
-      }
-    })
+    const extractTextFromBlocks = (blocks) => {
+      let text = ''
+      blocks.forEach(block => {
+        if (block.snippet) text += ' ' + block.snippet
+        if (block.text) text += ' ' + block.text
+        if (block.list && Array.isArray(block.list)) {
+          block.list.forEach(item => {
+            if (typeof item === 'string') text += ' ' + item
+            else if (item.snippet) text += ' ' + item.snippet
+            else if (item.text) text += ' ' + item.text
+            // Handle nested text_blocks inside list items
+            if (item.text_blocks && Array.isArray(item.text_blocks)) {
+              text += extractTextFromBlocks(item.text_blocks)
+            }
+          })
+        }
+        // Handle nested text_blocks (expandable sections)
+        if (block.text_blocks && Array.isArray(block.text_blocks)) {
+          text += extractTextFromBlocks(block.text_blocks)
+        }
+      })
+      return text
+    }
+    aiResponse = extractTextFromBlocks(data.text_blocks)
   }
   
   // Also try other common response fields
@@ -108,8 +121,8 @@ function analyzeAIModeResponse(data, companyName) {
     }
   }
 
-  // Process sources/references
-  const rawSources = data.sources || data.organic_results || data.ai_overview?.references || []
+  // Process sources/references - Google AI Mode uses 'references' field
+  const rawSources = data.references || data.sources || data.organic_results || data.ai_overview?.references || []
   rawSources.forEach(source => {
     const title = source.title || ''
     const link = source.link || source.url || ''
@@ -232,6 +245,12 @@ async function fetchGoogleAIMode(query, companyName) {
     if (data.text_blocks) {
       console.log(`text_blocks count: ${data.text_blocks.length}`)
     }
+    if (data.references) {
+      console.log(`references count: ${data.references.length}`)
+    }
+    if (data.search_metadata?.status) {
+      console.log(`search status: ${data.search_metadata.status}`)
+    }
     
     const analysis = analyzeAIModeResponse(data, companyName)
 
@@ -331,7 +350,20 @@ export async function POST(request) {
       const result = await fetchGoogleAIMode(query, companyName)
       
       // Remove rawResponse before storing to save space
-      const { rawResponse, ...resultToStore } = result
+      // Map field names to what the frontend detail page expects
+      const resultToStore = {
+        query: result.query,
+        hasAiResponse: result.hasAiResponse,
+        hasAiOverview: result.hasAiResponse,          // Frontend reads this
+        companyMentioned: result.companyMentioned,
+        mentionCount: result.mentionCount,
+        aiResponse: result.aiResponse || '',
+        textContent: result.aiResponse || '',          // Frontend reads this
+        sources: result.sources || [],
+        references: result.sources || [],              // Frontend reads this
+        competitorsMentioned: result.competitorsMentioned || [],
+        competitorsInSources: result.competitorsMentioned || [],  // Frontend reads this
+      }
       results.push(resultToStore)
 
       if (result.hasAiResponse) hasAiResponseCount++
@@ -367,9 +399,14 @@ export async function POST(request) {
         hasAiResponse: r.hasAiResponse,
         companyMentioned: r.companyMentioned,
         mentionCount: r.mentionCount,
-        aiResponsePreview: r.aiResponse?.slice(0, 800) || '', // Longer preview
+        aiResponsePreview: r.aiResponse?.slice(0, 800) || '',
+        aiResponse: r.aiResponse || '',
+        textContent: r.aiResponse || '',
         sourcesCount: r.sources?.length || 0,
-        competitors: r.competitorsMentioned || []
+        sources: r.sources || [],
+        competitors: r.competitorsMentioned || [],
+        competitorsInSources: r.competitorsMentioned || [],
+        hasAiOverview: r.hasAiResponse
       }))
     })
 

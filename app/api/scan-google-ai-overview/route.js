@@ -1,14 +1,108 @@
+import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
+const SERPAPI_KEY = process.env.SERPAPI_KEY
+
+// Recursively extract text from text_blocks (handles nested expandable, lists, etc.)
+function extractTextFromBlocks(blocks) {
+  if (!blocks || !Array.isArray(blocks)) return ''
+  let text = ''
+  blocks.forEach(block => {
+    if (block.snippet) text += block.snippet + '\n'
+    if (block.text) text += block.text + '\n'
+    if (block.title && block.type === 'expandable') text += block.title + ':\n'
+    if (block.list && Array.isArray(block.list)) {
+      block.list.forEach(item => {
+        if (typeof item === 'string') text += '• ' + item + '\n'
+        else if (item.snippet) text += '• ' + item.snippet + '\n'
+        else if (item.text) text += '• ' + item.text + '\n'
+        if (item.text_blocks) text += extractTextFromBlocks(item.text_blocks)
+      })
+    }
+    // Nested text_blocks (expandable sections)
+    if (block.text_blocks) text += extractTextFromBlocks(block.text_blocks)
+  })
+  return text
+}
+
+// Extract sources/references from AI Overview
+function extractReferences(aiOverview, companyName) {
+  const sources = []
+  const competitors = []
+  const companyLower = companyName.toLowerCase()
+
+  const refArrays = [
+    aiOverview.references || [],
+    aiOverview.sources || []
+  ]
+
+  refArrays.forEach(refs => {
+    refs.forEach(ref => {
+      const title = ref.title || ''
+      const link = ref.link || ref.url || ''
+      const snippet = ref.snippet || ''
+      const domain = ref.source || ref.displayed_link || ''
+
+      const isCompany = [title, link, domain].some(t =>
+        t.toLowerCase().includes(companyLower)
+      )
+
+      sources.push({ title, link, snippet, domain, isCompany })
+
+      if (!isCompany && title && title.length > 2) {
+        const cleanName = title.split(' - ')[0].split(' | ')[0].trim()
+        if (cleanName.length > 2 && cleanName.length < 60) {
+          competitors.push(cleanName)
+        }
+      }
+    })
+  })
+
+  return { sources, competitors: [...new Set(competitors)].slice(0, 10) }
+}
+
+// Fetch AI Overview via page_token (two-step flow)
+async function fetchAiOverviewByToken(pageToken) {
+  try {
+    const params = new URLSearchParams({
+      engine: 'google_ai_overview',
+      page_token: pageToken,
+      api_key: SERPAPI_KEY,
+      no_cache: 'true'  // Tokens expire quickly, don't use cache
+    })
+
+    console.log('Fetching AI Overview with page_token...')
+    const response = await fetch(`https://serpapi.com/search.json?${params}`)
+
+    if (!response.ok) {
+      console.error(`AI Overview token fetch failed: ${response.status}`)
+      return null
+    }
+
+    const data = await response.json()
+
+    if (data.error) {
+      console.error('AI Overview token error:', data.error)
+      return null
+    }
+
+    return data
+  } catch (error) {
+    console.error('AI Overview token fetch error:', error)
+    return null
+  }
+}
 
 export async function POST(request) {
   try {
-    const { companyName, website, category, prompts } = await request.json()
+    if (!SERPAPI_KEY) {
+      return NextResponse.json(
+        { error: 'SerpAPI key not configured' },
+        { status: 500 }
+      )
+    }
+
+    const { companyName, website, prompts } = await request.json()
 
     if (!companyName || !prompts || prompts.length === 0) {
       return NextResponse.json(
@@ -17,131 +111,133 @@ export async function POST(request) {
       )
     }
 
-    // Max 10 prompts per scan
+    // Get authenticated user
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
     const promptsToScan = prompts.slice(0, 10)
     const results = []
 
     for (const prompt of promptsToScan) {
       try {
-        // Use regular Google search engine - SerpAPI returns ai_overview if present
+        // Add delay between requests
+        if (results.length > 0) {
+          await new Promise(resolve => setTimeout(resolve, 800))
+        }
+
+        // Step 1: Regular Google search to check for AI Overview
         const params = new URLSearchParams({
           engine: 'google',
           q: prompt,
-          api_key: process.env.SERPAPI_KEY,
+          api_key: SERPAPI_KEY,
           gl: 'nl',
           hl: 'nl',
           num: 10
         })
 
+        console.log(`Fetching Google search for: "${prompt}"`)
         const response = await fetch(`https://serpapi.com/search.json?${params}`)
         const data = await response.json()
 
-        // Check if AI Overview exists in the response
-        const aiOverview = data.ai_overview || null
-        const hasAiOverview = !!aiOverview
+        console.log(`Google search keys for "${prompt}":`, Object.keys(data))
 
+        let aiOverview = data.ai_overview || null
+        let hasAiOverview = false
+        let aiOverviewText = ''
+        let sources = []
+        let competitors = []
         let companyMentioned = false
         let mentionCount = 0
-        let aiOverviewText = ''
-        let competitorsMentioned = []
 
-        if (hasAiOverview) {
+        // Step 2: If page_token present, fetch full AI Overview
+        if (aiOverview?.page_token) {
+          console.log(`Found page_token for "${prompt}", fetching full AI Overview...`)
+          const fullOverview = await fetchAiOverviewByToken(aiOverview.page_token)
+          if (fullOverview) {
+            // The full overview response has text_blocks at root or in ai_overview
+            aiOverview = fullOverview.ai_overview || fullOverview
+          }
+        }
+
+        if (aiOverview) {
           // Extract text from AI Overview
-          // SerpAPI ai_overview can have different structures
-          if (aiOverview.text) {
+          if (aiOverview.text_blocks && Array.isArray(aiOverview.text_blocks)) {
+            aiOverviewText = extractTextFromBlocks(aiOverview.text_blocks)
+          } else if (aiOverview.text) {
             aiOverviewText = aiOverview.text
-          } else if (aiOverview.text_blocks) {
-            aiOverviewText = aiOverview.text_blocks
-              .map(block => block.snippet || block.text || '')
-              .join('\n')
           } else if (typeof aiOverview === 'string') {
             aiOverviewText = aiOverview
           }
 
-          // Also check references/sources in the AI Overview
-          const sourceTexts = []
-          if (aiOverview.references) {
-            aiOverview.references.forEach(ref => {
-              if (ref.title) sourceTexts.push(ref.title)
-              if (ref.snippet) sourceTexts.push(ref.snippet)
-              if (ref.link) sourceTexts.push(ref.link)
-            })
-          }
-          if (aiOverview.sources) {
-            aiOverview.sources.forEach(src => {
-              if (src.title) sourceTexts.push(src.title)
-              if (src.snippet) sourceTexts.push(src.snippet)
-              if (src.link) sourceTexts.push(src.link)
-            })
-          }
+          hasAiOverview = aiOverviewText.length > 0
 
-          const allText = (aiOverviewText + ' ' + sourceTexts.join(' ')).toLowerCase()
+          if (hasAiOverview) {
+            // Extract references and competitors
+            const refData = extractReferences(aiOverview, companyName)
+            sources = refData.sources
+            competitors = refData.competitors
 
-          // Check for company mention
-          const companyLower = companyName.toLowerCase()
-          companyMentioned = allText.includes(companyLower)
+            // Check company mention in text + sources
+            const companyLower = companyName.toLowerCase()
+            const allText = (aiOverviewText + ' ' + sources.map(s => `${s.title} ${s.link} ${s.domain}`).join(' ')).toLowerCase()
 
-          // Also check website domain if provided
-          if (!companyMentioned && website) {
-            const domain = website.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '').toLowerCase()
-            companyMentioned = allText.includes(domain)
+            companyMentioned = allText.includes(companyLower)
+
+            // Also check website domain
+            if (!companyMentioned && website) {
+              const domain = website.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '').toLowerCase()
+              companyMentioned = allText.includes(domain)
+            }
+
+            // Count mentions
+            if (companyMentioned) {
+              const regex = new RegExp(companyLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+              const matches = allText.match(regex)
+              mentionCount = matches ? matches.length : 1
+            }
           }
-
-          // Count mentions
-          if (companyMentioned) {
-            const regex = new RegExp(companyLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
-            const matches = allText.match(regex)
-            mentionCount = matches ? matches.length : 1
-          }
-
-          // Extract competitor names from references/sources
-          if (aiOverview.references) {
-            aiOverview.references.forEach(ref => {
-              if (ref.title && !ref.title.toLowerCase().includes(companyLower)) {
-                // Extract domain or title as competitor
-                const name = ref.title.split(' - ')[0].split(' | ')[0].trim()
-                if (name && name.length > 2 && name.length < 60) {
-                  competitorsMentioned.push(name)
-                }
-              }
-            })
-          }
-          if (aiOverview.sources) {
-            aiOverview.sources.forEach(src => {
-              if (src.title && !src.title.toLowerCase().includes(companyLower)) {
-                const name = src.title.split(' - ')[0].split(' | ')[0].trim()
-                if (name && name.length > 2 && name.length < 60) {
-                  competitorsMentioned.push(name)
-                }
-              }
-            })
-          }
-
-          // Deduplicate competitors
-          competitorsMentioned = [...new Set(competitorsMentioned)].slice(0, 10)
         }
+
+        console.log(`Query "${prompt}": hasAiOverview=${hasAiOverview}, mentioned=${companyMentioned}, sources=${sources.length}`)
 
         results.push({
           query: prompt,
+          // Store with both field names for frontend compatibility
           hasAiOverview,
+          hasAiResponse: hasAiOverview,
           companyMentioned,
           mentionCount,
-          aiOverviewText: aiOverviewText.substring(0, 800),
-          competitorsMentioned
+          aiOverviewText: aiOverviewText.slice(0, 2000),
+          textContent: aiOverviewText.slice(0, 2000),
+          aiResponse: aiOverviewText.slice(0, 2000),
+          sources,
+          references: sources,
+          competitorsMentioned: competitors,
+          competitorsInSources: competitors
         })
-
-        // Small delay between requests to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 800))
 
       } catch (queryError) {
         console.error(`Error scanning query "${prompt}":`, queryError)
         results.push({
           query: prompt,
           hasAiOverview: false,
+          hasAiResponse: false,
           companyMentioned: false,
           mentionCount: 0,
           aiOverviewText: '',
-          competitorsMentioned: []
+          textContent: '',
+          aiResponse: '',
+          sources: [],
+          references: [],
+          competitorsMentioned: [],
+          competitorsInSources: []
         })
       }
     }
@@ -150,31 +246,11 @@ export async function POST(request) {
     const foundCount = results.filter(r => r.companyMentioned).length
     const hasAiOverviewCount = results.filter(r => r.hasAiOverview).length
 
-    // Get user from auth header (optional - for logged-in users)
-    let userId = null
-    try {
-      const authHeader = request.headers.get('authorization')
-      if (authHeader) {
-        const token = authHeader.replace('Bearer ', '')
-        const { data: { user } } = await supabase.auth.getUser(token)
-        userId = user?.id
-      } else {
-        // Try cookie-based auth
-        const cookieHeader = request.headers.get('cookie')
-        if (cookieHeader) {
-          const { data: { user } } = await supabase.auth.getUser()
-          userId = user?.id
-        }
-      }
-    } catch (e) {
-      // Continue without user
-    }
-
     // Save to database
     const { data: scanRecord, error: dbError } = await supabase
       .from('google_ai_overview_scans')
       .insert({
-        user_id: userId,
+        user_id: user.id,
         company_name: companyName,
         website: website || null,
         prompts: promptsToScan,
@@ -182,15 +258,13 @@ export async function POST(request) {
         found_count: foundCount,
         has_ai_overview_count: hasAiOverviewCount,
         total_queries: promptsToScan.length,
-        status: 'completed',
-        created_at: new Date().toISOString()
+        status: 'completed'
       })
       .select()
       .single()
 
     if (dbError) {
       console.error('Database error:', dbError)
-      // Still return results even if DB save fails
     }
 
     return NextResponse.json({

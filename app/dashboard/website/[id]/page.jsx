@@ -176,7 +176,7 @@ export default function WebsiteDetailPage() {
           
           const results = scan.results || []
           const mentions = results.filter(r => r.companyMentioned === true).length
-          const hasOverview = results.filter(r => r.hasAiOverview === true).length
+          const hasOverview = results.filter(r => r.hasAiOverview === true || r.hasAiResponse === true).length
           
           websiteData.platforms.google.scans.push({
             id: scan.id,
@@ -200,7 +200,7 @@ export default function WebsiteDetailPage() {
           
           const results = scan.results || []
           const mentions = results.filter(r => r.companyMentioned === true).length
-          const hasOverview = results.filter(r => r.hasAiOverview === true).length
+          const hasOverview = results.filter(r => r.hasAiOverview === true || r.hasAiResponse === true).length
           
           websiteData.platforms.googleOverview.scans.push({
             id: scan.id,
@@ -927,7 +927,7 @@ export default function WebsiteDetailPage() {
                       <div>
                         <p className="text-sm text-slate-500">{formatDate(latestGoogle.date)}</p>
                         <p className="font-medium">{latestGoogle.mentions}/{latestGoogle.total} vermeldingen</p>
-                        <p className="text-xs text-slate-500">{latestGoogle.hasOverview}/{latestGoogle.total} had AI Overview</p>
+                        <p className="text-xs text-slate-500">{latestGoogle.hasOverview}/{latestGoogle.total} had AI antwoord</p>
                       </div>
                       <button onClick={() => deleteScan(latestGoogle.id, 'google')} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
                         {deletingId === latestGoogle.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
@@ -940,7 +940,10 @@ export default function WebsiteDetailPage() {
                         const key = `g-${idx}`
                         const expanded = expandedItems[key]
                         const mentioned = result.companyMentioned
-                        const hasOverview = result.hasAiOverview
+                        const hasOverview = result.hasAiOverview || result.hasAiResponse
+                        const textContent = result.textContent || result.aiResponse || ''
+                        const references = result.references || result.sources || []
+                        const competitors = result.competitorsInSources || result.competitorsMentioned || []
                         
                         return (
                           <div key={idx} className={`rounded-lg border ${
@@ -962,24 +965,24 @@ export default function WebsiteDetailPage() {
                               <span className={`flex-1 text-sm ${!hasOverview ? 'text-slate-400' : 'text-slate-700'}`}>
                                 {result.query}
                               </span>
-                              {!hasOverview && <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded">Geen AI Overview</span>}
+                              {!hasOverview && <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded">Geen AI antwoord</span>}
                               {hasOverview && (expanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />)}
                             </button>
                             
                             {expanded && hasOverview && (
                               <div className="px-4 pb-4 space-y-3 border-t border-slate-200 bg-white/50 pt-3">
-                                {result.textContent && (
+                                {textContent && (
                                   <div className="bg-white p-3 rounded-lg text-sm text-slate-600">
-                                    <p className="text-xs text-slate-400 mb-1 uppercase">AI Overview</p>
-                                    <p className="line-clamp-4">{result.textContent}</p>
+                                    <p className="text-xs text-slate-400 mb-1 uppercase">AI Modus antwoord</p>
+                                    <p className="whitespace-pre-wrap">{textContent}</p>
                                   </div>
                                 )}
                                 
-                                {result.references?.length > 0 && (
+                                {references.length > 0 && (
                                   <div>
-                                    <p className="text-xs text-slate-500 mb-1">Bronnen in AI Overview:</p>
+                                    <p className="text-xs text-slate-500 mb-1">Bronnen ({references.length}):</p>
                                     <div className="space-y-1">
-                                      {result.references.slice(0, 5).map((ref, i) => (
+                                      {references.slice(0, 10).map((ref, i) => (
                                         <div key={i} className={`text-xs p-2 rounded flex items-center gap-2 ${ref.isCompany ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
                                           {ref.isCompany ? <CheckCircle2 className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
                                           <a href={ref.link} target="_blank" rel="noopener noreferrer" className="truncate hover:underline">
@@ -991,11 +994,11 @@ export default function WebsiteDetailPage() {
                                   </div>
                                 )}
                                 
-                                {result.competitorsInSources?.length > 0 && (
+                                {competitors.length > 0 && (
                                   <div>
                                     <p className="text-xs text-slate-500 mb-1">Concurrenten in bronnen:</p>
                                     <div className="flex flex-wrap gap-1">
-                                      {result.competitorsInSources.map((c, i) => (
+                                      {competitors.map((c, i) => (
                                         <span key={i} className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs">{c}</span>
                                       ))}
                                     </div>
@@ -1089,7 +1092,10 @@ export default function WebsiteDetailPage() {
                         const key = `ov-${idx}`
                         const expanded = expandedItems[key]
                         const mentioned = result.companyMentioned
-                        const hasOverview = result.hasAiOverview
+                        const hasOverview = result.hasAiOverview || result.hasAiResponse
+                        const textContent = result.aiOverviewText || result.textContent || result.aiResponse || ''
+                        const references = result.references || result.sources || []
+                        const competitors = result.competitorsInSources || result.competitorsMentioned || []
                         
                         return (
                           <div key={idx} className={`rounded-lg border ${
@@ -1117,18 +1123,34 @@ export default function WebsiteDetailPage() {
                             
                             {expanded && hasOverview && (
                               <div className="px-4 pb-4 space-y-3 border-t border-slate-200 bg-white/50 pt-3">
-                                {result.aiOverviewText && (
+                                {textContent && (
                                   <div className="bg-white p-3 rounded-lg text-sm text-slate-600">
                                     <p className="text-xs text-slate-400 mb-1 uppercase">AI Overview</p>
-                                    <p className="line-clamp-4">{result.aiOverviewText}</p>
+                                    <p className="whitespace-pre-wrap">{textContent}</p>
                                   </div>
                                 )}
                                 
-                                {result.competitorsMentioned?.length > 0 && (
+                                {references.length > 0 && (
                                   <div>
-                                    <p className="text-xs text-slate-500 mb-1">Concurrenten/Bronnen:</p>
+                                    <p className="text-xs text-slate-500 mb-1">Bronnen ({references.length}):</p>
+                                    <div className="space-y-1">
+                                      {references.slice(0, 10).map((ref, i) => (
+                                        <div key={i} className={`text-xs p-2 rounded flex items-center gap-2 ${ref.isCompany ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
+                                          {ref.isCompany ? <CheckCircle2 className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
+                                          <a href={ref.link} target="_blank" rel="noopener noreferrer" className="truncate hover:underline">
+                                            {ref.title || ref.source || ref.link}
+                                          </a>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {competitors.length > 0 && (
+                                  <div>
+                                    <p className="text-xs text-slate-500 mb-1">Concurrenten in bronnen:</p>
                                     <div className="flex flex-wrap gap-1">
-                                      {result.competitorsMentioned.map((c, i) => (
+                                      {competitors.map((c, i) => (
                                         <span key={i} className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs">{c}</span>
                                       ))}
                                     </div>
@@ -1136,7 +1158,7 @@ export default function WebsiteDetailPage() {
                                 )}
                                 
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); copyPrompt(result.aiOverviewText || result.query, key); }}
+                                  onClick={(e) => { e.stopPropagation(); copyPrompt(textContent || result.query, key); }}
                                   className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1"
                                 >
                                   {copiedPrompt === key ? <><Check className="w-3 h-3 text-green-500" /> Gekopieerd</> : <><Copy className="w-3 h-3" /> Kopieer</>}
