@@ -38,17 +38,33 @@ function analyzeAIModeResponse(data, companyName) {
   const sources = []
   const competitorsMentioned = []
 
-  // Extract AI response text
-  // Google AI Mode returns the response in different possible fields
-  if (data.ai_response) {
+  // Extract AI response text - handle multiple possible structures
+  
+  // SerpAPI google_ai_mode returns text_blocks at root level
+  if (data.text_blocks && Array.isArray(data.text_blocks)) {
+    data.text_blocks.forEach(block => {
+      if (block.text) aiResponse += ' ' + block.text
+      if (block.snippet) aiResponse += ' ' + block.snippet
+      if (block.list) {
+        block.list.forEach(item => {
+          if (typeof item === 'string') aiResponse += ' ' + item
+          else if (item.snippet) aiResponse += ' ' + item.snippet
+          else if (item.text) aiResponse += ' ' + item.text
+        })
+      }
+    })
+  }
+  
+  // Also try other common response fields
+  if (!aiResponse && data.ai_response) {
     aiResponse = data.ai_response
-  } else if (data.answer) {
+  } else if (!aiResponse && data.answer) {
     aiResponse = data.answer
-  } else if (data.ai_overview?.text) {
+  } else if (!aiResponse && data.ai_overview?.text) {
     aiResponse = data.ai_overview.text
-  } else if (data.answer_box?.answer) {
+  } else if (!aiResponse && data.answer_box?.answer) {
     aiResponse = data.answer_box.answer
-  } else if (data.answer_box?.snippet) {
+  } else if (!aiResponse && data.answer_box?.snippet) {
     aiResponse = data.answer_box.snippet
   }
 
@@ -154,18 +170,38 @@ async function fetchGoogleAIMode(query, companyName) {
   try {
     console.log(`Fetching Google AI Mode for: "${query}"`)
     
-    const response = await fetch(`https://serpapi.com/search.json?${params}`)
+    const url = `https://serpapi.com/search.json?${params}`
+    console.log('Requesting URL:', url.replace(SERPAPI_KEY, 'HIDDEN'))
+    
+    const response = await fetch(url)
+    
+    // Get raw text first to debug
+    const rawText = await response.text()
+    console.log(`Response status: ${response.status}, length: ${rawText.length}`)
     
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error(`SerpAPI error: ${response.status}`, errorText)
+      console.error(`SerpAPI error: ${response.status}`, rawText.slice(0, 500))
       throw new Error(`SerpAPI error: ${response.status}`)
     }
+    
+    if (!rawText || rawText.length === 0) {
+      console.error('Empty response from SerpAPI')
+      throw new Error('Empty response from SerpAPI')
+    }
 
-    const data = await response.json()
+    let data
+    try {
+      data = JSON.parse(rawText)
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError.message, 'Raw:', rawText.slice(0, 500))
+      throw new Error(`JSON parse error: ${parseError.message}`)
+    }
     
     // Debug log to see response structure
     console.log(`AI Mode response keys for "${query}":`, Object.keys(data))
+    if (data.text_blocks) {
+      console.log(`text_blocks count: ${data.text_blocks.length}`)
+    }
     
     const analysis = analyzeAIModeResponse(data, companyName)
 
