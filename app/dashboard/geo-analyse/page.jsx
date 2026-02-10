@@ -1797,7 +1797,7 @@ function GEOAnalyseContent() {
               )}
               
               {/* Manual input fields */}
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Bedrijfsnaam</label>
                   <input
@@ -1813,6 +1813,16 @@ function GEOAnalyseContent() {
                     type="text"
                     value={companyWebsite}
                     onChange={(e) => setCompanyWebsite(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Branche</label>
+                  <input
+                    type="text"
+                    value={companyCategory}
+                    onChange={(e) => setCompanyCategory(e.target.value)}
+                    placeholder="Bijv. Plastische chirurgie"
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none"
                   />
                 </div>
