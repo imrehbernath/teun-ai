@@ -12,6 +12,8 @@ import {
   Eye, TrendingUp, Award, Pencil, Play, RefreshCw
 } from 'lucide-react'
 import Image from 'next/image'
+import useClientAccess from '../hooks/useClientAccess'
+import ClientBanner from '../components/ClientBanner'
 
 // ============================================
 // GEO CHECKLIST DATA (Complete from Excel)
@@ -186,8 +188,19 @@ function GEOAnalyseContent() {
   const searchParams = useSearchParams()
   const supabase = createClient()
   
+  // Client access detection
+  const clientAccess = useClientAccess(user?.email)
+  
   // Session key for localStorage
   const SESSION_KEY = 'geo_analyse_session'
+  
+  // Reload data when client access is detected (async)
+  useEffect(() => {
+    if (!clientAccess.loading && clientAccess.isClient && user) {
+      console.log('🔗 Client access detected, reloading websites...')
+      loadExistingWebsites(user.id)
+    }
+  }, [clientAccess.loading, clientAccess.isClient])
 
   // ============================================
   // SESSION PERSISTENCE
@@ -298,41 +311,62 @@ function GEOAnalyseContent() {
   // ============================================
   const loadExistingWebsites = async (userId) => {
     try {
+      // Determine which user_id(s) and company names to load
+      let queryUserId = userId
+      let companyFilter = null
+      
+      // If client with shared access, load owner's data instead
+      if (clientAccess.isClient && clientAccess.shares.length > 0) {
+        queryUserId = clientAccess.shares[0].owner_id
+        companyFilter = clientAccess.sharedCompanies
+        console.log('🔗 Client view: loading shared data from owner', queryUserId, 'companies:', companyFilter)
+      }
+      
       // Load from perplexity_scans (new system) - has real scan results
-      const { data: perplexityScans } = await supabase
+      let perplexityQuery = supabase
         .from('perplexity_scans')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', queryUserId)
         .order('created_at', { ascending: false })
+      if (companyFilter) perplexityQuery = perplexityQuery.in('company_name', companyFilter)
+      const { data: perplexityScans } = await perplexityQuery
 
       // Load from chatgpt_scans
-      const { data: chatgptScans } = await supabase
+      let chatgptQuery = supabase
         .from('chatgpt_scans')
         .select('*, chatgpt_query_results(*)')
-        .eq('user_id', userId)
+        .eq('user_id', queryUserId)
         .order('created_at', { ascending: false })
+      if (companyFilter) chatgptQuery = chatgptQuery.in('company_name', companyFilter)
+      const { data: chatgptScans } = await chatgptQuery
 
       // Load from google_ai_scans
-      const { data: googleAiScans } = await supabase
+      let googleQuery = supabase
         .from('google_ai_scans')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', queryUserId)
         .order('created_at', { ascending: false })
+      if (companyFilter) googleQuery = googleQuery.in('company_name', companyFilter)
+      const { data: googleAiScans } = await googleQuery
 
       // Load from google_ai_overview_scans
-      const { data: googleAiOverviewScans } = await supabase
+      let overviewQuery = supabase
         .from('google_ai_overview_scans')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', queryUserId)
         .order('created_at', { ascending: false })
+      if (companyFilter) overviewQuery = overviewQuery.in('company_name', companyFilter)
+      const { data: googleAiOverviewScans } = await overviewQuery
 
       // Load from tool_integrations as fallback (older data)
-      const { data: integrations } = await supabase
+      let integrationsQuery = supabase
         .from('tool_integrations')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', queryUserId)
         .not('commercial_prompts', 'is', null)
         .order('created_at', { ascending: false })
+      if (companyFilter) integrationsQuery = integrationsQuery.in('company_name', companyFilter)
+      const { data: integrations } = await integrationsQuery
 
       console.log('Loaded perplexity scans:', perplexityScans)
       console.log('Loaded chatgpt scans:', chatgptScans)
@@ -1415,6 +1449,12 @@ function GEOAnalyseContent() {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 py-8">
+        
+        {/* Client Access Banner */}
+        {clientAccess.isClient && (
+          <ClientBanner shares={clientAccess.shares} sharedCompanies={clientAccess.sharedCompanies} />
+        )}
+        
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
           
           {/* ============================================ */}

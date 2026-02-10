@@ -20,22 +20,33 @@ export default function Homepage() {
   const [activeTooltip, setActiveTooltip] = useState(null);
   const [brancheSuggestion, setBrancheSuggestion] = useState(null);
   const [showKeywordWarning, setShowKeywordWarning] = useState(false);
+  const [showUrlWarning, setShowUrlWarning] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Check keyword count - warn if 0 or 1
     const keywords = formData.zoekwoorden.split(',').filter(k => k.trim());
-    if (keywords.length <= 1) {
-      setShowKeywordWarning(true);
+    const hasUrl = formData.website && formData.website.trim().length > 0;
+    
+    // Als er een URL is ingevuld → altijd doorgaan (backend scraped keywords)
+    if (hasUrl) {
+      proceedToScan();
       return;
     }
     
+    // Geen URL en weinig keywords → vraag om URL
+    if (!hasUrl && keywords.length <= 1) {
+      setShowUrlWarning(true);
+      return;
+    }
+    
+    // Genoeg keywords, geen URL → doorgaan
     proceedToScan();
   };
 
   const proceedToScan = () => {
     setShowKeywordWarning(false);
+    setShowUrlWarning(false);
     
     // Bouw query params op (alleen niet-lege waarden)
     const params = new URLSearchParams();
@@ -189,14 +200,52 @@ export default function Homepage() {
                     </div>
                     <div>
                       <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
-                        Zoekwoorden
+                        Website *
+                        <span className="relative" onClick={() => setActiveTooltip(activeTooltip === 'website' ? null : 'website')}>
+                          <svg className="w-4 h-4 text-slate-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          {activeTooltip === 'website' && (
+                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap z-50">
+                              Wij scannen je website en halen automatisch zoekwoorden op
+                            </span>
+                          )}
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.website}
+                        onChange={(e) => setFormData({...formData, website: e.target.value})}
+                        placeholder="jouwwebsite.nl"
+                        className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400"
+                      />
+                      {formData.website ? (
+                        <p className="mt-1.5 text-xs text-green-600 flex items-center gap-1">
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                          We scannen je pagina automatisch op zoekwoorden
+                        </p>
+                      ) : (
+                        <p className="mt-1.5 text-xs text-purple-600">
+                          <span className="flex items-center gap-1">
+                            <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
+                            </svg>
+                            Wij halen zoekwoorden automatisch uit je website
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+                        <span className="text-slate-400">Zoekwoorden</span>
+                        <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">optioneel</span>
                         <span className="relative" onClick={() => setActiveTooltip(activeTooltip === 'zoekwoorden' ? null : 'zoekwoorden')}>
                           <svg className="w-4 h-4 text-slate-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           {activeTooltip === 'zoekwoorden' && (
                             <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap z-50">
-                              Scheid met komma's • Max. 10 zoekwoorden
+                              Extra zoekwoorden voor betere resultaten • Scheid met komma's
                             </span>
                           )}
                         </span>
@@ -210,45 +259,12 @@ export default function Homepage() {
                             setFormData({...formData, zoekwoorden: e.target.value});
                           }
                         }}
-                        placeholder="Keyword 1, Keyword 2, Keyword 3"
+                        placeholder={formData.website ? "Optioneel – we halen ze uit je website" : "Keyword 1, Keyword 2, Keyword 3"}
                         className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400"
                       />
                       {formData.zoekwoorden && (
                         <p className="mt-1 text-xs text-slate-400">
                           {formData.zoekwoorden.split(',').filter(k => k.trim()).length}/10 zoekwoorden
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
-                        Website
-                        <span className="relative" onClick={() => setActiveTooltip(activeTooltip === 'website' ? null : 'website')}>
-                          <svg className="w-4 h-4 text-slate-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          {activeTooltip === 'website' && (
-                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap z-50">
-                              ✨ Wij analyseren je pagina voor betere prompts
-                            </span>
-                          )}
-                        </span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.website}
-                        onChange={(e) => setFormData({...formData, website: e.target.value})}
-                        placeholder="jouwwebsite.nl"
-                        className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400"
-                      />
-                      {!formData.website && (
-                        <p className="mt-1.5 text-xs text-purple-600">
-                          <span className="flex items-center gap-1">
-                            <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
-                            </svg>
-                            Tip: Vul je URL in
-                          </span>
-                          <span className="block pl-4">voor nóg betere prompts</span>
                         </p>
                       )}
                     </div>
@@ -480,7 +496,7 @@ export default function Homepage() {
                     Vul je gegevens in
                   </h3>
                   <p className="text-slate-600">
-                    Bedrijfsnaam, branche en zoekwoorden. Wij maken de commerciële prompts.
+                    Bedrijfsnaam, branche en website. Wij halen automatisch zoekwoorden op en maken de prompts.
                   </p>
                 </div>
               </div>
@@ -706,16 +722,16 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* Keyword Warning Modal */}
-      {showKeywordWarning && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowKeywordWarning(false)}>
+      {/* URL Warning Modal - Shown when no URL and no keywords */}
+      {showUrlWarning && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowUrlWarning(false)}>
           <div 
             className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 relative"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close button */}
             <button
-              onClick={() => setShowKeywordWarning(false)}
+              onClick={() => setShowUrlWarning(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -724,48 +740,61 @@ export default function Homepage() {
             </button>
 
             {/* Icon */}
-            <div className="w-14 h-14 bg-amber-100 rounded-xl flex items-center justify-center mb-5">
-              <svg className="w-7 h-7 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-5">
+              <svg className="w-7 h-7 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
               </svg>
             </div>
 
             {/* Title */}
-            <h3 className="text-xl font-bold text-slate-900 mb-2">Meer zoekwoorden = beter resultaat</h3>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">Vul je website URL in</h3>
             
             {/* Explanation */}
             <p className="text-slate-600 mb-4">
-              Met maar 1 zoekwoord genereert de AI minder relevante prompts en krijg je een onvolledig beeld van je zichtbaarheid.
+              Wij scannen je website en halen automatisch de juiste zoekwoorden op uit je pagina&apos;s, menu en diensten. Zo krijg je een veel nauwkeuriger resultaat.
             </p>
 
-            {/* Tip box */}
+            {/* What we scan */}
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-              <p className="text-sm font-semibold text-blue-800 mb-2">💡 Tip: gebruik Google Search Console</p>
-              <p className="text-sm text-blue-700">
-                Ga naar <strong>Search Console → Prestaties</strong>, filter op <strong>meeste vertoningen</strong> en gebruik die zoekwoorden. Dit zijn de termen waarvoor jouw website al gevonden wordt — perfect voor een AI-scan.
-              </p>
+              <p className="text-sm font-semibold text-blue-800 mb-2">🔍 Wat we automatisch scannen:</p>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>• Meta titel &amp; beschrijving</li>
+                <li>• H1 &amp; H2 koppen</li>
+                <li>• Menu-items (diensten, producten)</li>
+                <li>• Pagina-inhoud &amp; USP&apos;s</li>
+              </ul>
             </div>
 
-            {/* Example */}
-            <div className="bg-slate-50 rounded-xl p-4 mb-6 border border-slate-200">
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Voorbeeld</p>
-              <p className="text-sm text-slate-400 line-through mb-1">❌ "loodgieter"</p>
-              <p className="text-sm text-green-700">✅ "loodgieter amsterdam, cv ketel storing, lekkage verhelpen, spoed loodgieter, warmtepomp installatie"</p>
+            {/* Inline URL input */}
+            <div className="mb-6">
+              <input
+                type="text"
+                value={formData.website}
+                onChange={(e) => setFormData({...formData, website: e.target.value})}
+                placeholder="jouwwebsite.nl"
+                className="w-full px-4 py-3 rounded-xl border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400"
+                autoFocus
+              />
             </div>
 
             {/* Buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
               <button
-                onClick={() => setShowKeywordWarning(false)}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-semibold hover:shadow-lg transition cursor-pointer"
+                onClick={() => {
+                  if (formData.website && formData.website.trim()) {
+                    proceedToScan();
+                  }
+                }}
+                disabled={!formData.website || !formData.website.trim()}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-semibold hover:shadow-lg transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Zoekwoorden toevoegen
+                Scan met website-analyse →
               </button>
               <button
                 onClick={proceedToScan}
-                className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-medium hover:bg-slate-200 transition cursor-pointer"
+                className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-medium hover:bg-slate-200 transition cursor-pointer text-sm"
               >
-                Toch doorgaan
+                Toch doorgaan zonder URL
               </button>
             </div>
           </div>

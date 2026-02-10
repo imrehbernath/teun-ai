@@ -134,13 +134,50 @@ function parseHtmlContent(html) {
                         html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']description["']/i)
   const metaDescription = metaDescMatch ? metaDescMatch[1].trim() : ''
   
-  // Extract H1s
-  const h1Matches = html.match(/<h1[^>]*>([^<]+)<\/h1>/gi) || []
+  // Extract H1s (support nested tags like <h1><span>Text</span></h1>)
+  const h1Matches = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/gi) || []
   const h1s = h1Matches.map(h => h.replace(/<[^>]+>/g, '').trim()).filter(h => h.length > 0).slice(0, 3)
   
   // Extract H2s  
-  const h2Matches = html.match(/<h2[^>]*>([^<]+)<\/h2>/gi) || []
-  const h2s = h2Matches.map(h => h.replace(/<[^>]+>/g, '').trim()).filter(h => h.length > 0).slice(0, 5)
+  const h2Matches = html.match(/<h2[^>]*>([\s\S]*?)<\/h2>/gi) || []
+  const h2s = h2Matches.map(h => h.replace(/<[^>]+>/g, '').trim()).filter(h => h.length > 0).slice(0, 8)
+  
+  // Extract H3s (often contain specific services/products)
+  const h3Matches = html.match(/<h3[^>]*>([\s\S]*?)<\/h3>/gi) || []
+  const h3s = h3Matches.map(h => h.replace(/<[^>]+>/g, '').trim()).filter(h => h.length > 0).slice(0, 8)
+  
+  // ✨ Extract navigation/menu items (crucial for finding services)
+  const navItems = []
+  
+  // Method 1: Links inside <nav> tags
+  const navBlocks = html.match(/<nav[^>]*>([\s\S]*?)<\/nav>/gi) || []
+  navBlocks.forEach(nav => {
+    const links = nav.match(/<a[^>]*>([\s\S]*?)<\/a>/gi) || []
+    links.forEach(link => {
+      const text = link.replace(/<[^>]+>/g, '').trim()
+      if (text.length > 1 && text.length < 60) navItems.push(text)
+    })
+  })
+  
+  // Method 2: Links with common menu/nav class names
+  const menuLinks = html.match(/<a[^>]*class=["'][^"']*(?:menu|nav|header)[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi) || []
+  menuLinks.forEach(link => {
+    const text = link.replace(/<[^>]+>/g, '').trim()
+    if (text.length > 1 && text.length < 60 && !navItems.includes(text)) navItems.push(text)
+  })
+  
+  // ✨ Extract internal links to service/product pages
+  const serviceLinks = []
+  const internalLinks = html.match(/<a[^>]*href=["']\/[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi) || []
+  internalLinks.forEach(link => {
+    const hrefMatch = link.match(/href=["']([^"']+)["']/)
+    const text = link.replace(/<[^>]+>/g, '').trim()
+    const href = hrefMatch ? hrefMatch[1] : ''
+    if (href && text.length > 2 && text.length < 80 && 
+        /dienst|service|product|oploss|behandel|specialist|aanbod|werkgebied|wat-we|over-ons/i.test(href + text)) {
+      serviceLinks.push(`${text} (${href})`)
+    }
+  })
   
   // Extract main content (strip tags, limit size)
   let bodyContent = html
@@ -159,6 +196,9 @@ function parseHtmlContent(html) {
     metaDescription,
     h1s,
     h2s,
+    h3s,
+    navItems: [...new Set(navItems)].slice(0, 15),
+    serviceLinks: [...new Set(serviceLinks)].slice(0, 10),
     bodyContent
   }
 }
@@ -177,7 +217,7 @@ async function analyzeWebsiteForKeywords(websiteUrl, companyName, companyCategor
     // Step 2: Parse HTML
     const parsed = parseHtmlContent(scrapeResult.html)
     
-    // Step 3: Analyze with Claude
+    // Step 3: Analyze with Claude (now with nav items, H3s, service links)
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
@@ -187,6 +227,9 @@ Je analyseert websites om te begrijpen:
 2. Wat hun USPs (unique selling points) zijn
 3. Welke zoekwoorden potentiële klanten zouden gebruiken
 4. Welke locatie-focus ze hebben
+
+Let EXTRA op menu-items en navigatie — daar staan vaak de kernactiviteiten.
+Diensten-pagina's en H3-koppen bevatten vaak de beste zoekwoorden.
 
 Antwoord ALTIJD in het Nederlands. Wees CONCREET en SPECIFIEK.`,
       messages: [{
@@ -201,6 +244,12 @@ Antwoord ALTIJD in het Nederlands. Wees CONCREET en SPECIFIEK.`,
 
 **H2 KOPPEN:** ${parsed.h2s.length > 0 ? parsed.h2s.join(' | ') : 'Niet gevonden'}
 
+**H3 KOPPEN:** ${parsed.h3s?.length > 0 ? parsed.h3s.join(' | ') : 'Niet gevonden'}
+
+**NAVIGATIE/MENU-ITEMS:** ${parsed.navItems?.length > 0 ? parsed.navItems.join(' | ') : 'Niet gevonden'}
+
+**DIENSTEN/SERVICE LINKS:** ${parsed.serviceLinks?.length > 0 ? parsed.serviceLinks.join(' | ') : 'Niet gevonden'}
+
 **PAGINA CONTENT (fragment):** ${parsed.bodyContent.slice(0, 1500)}
 
 ---
@@ -208,7 +257,7 @@ Antwoord ALTIJD in het Nederlands. Wees CONCREET en SPECIFIEK.`,
 Geef je analyse in EXACT dit JSON-formaat:
 
 {
-  "keywords": ["zoekwoord1", "zoekwoord2", "zoekwoord3", "zoekwoord4", "zoekwoord5"],
+  "keywords": ["zoekwoord1", "zoekwoord2", "zoekwoord3", "zoekwoord4", "zoekwoord5", "zoekwoord6", "zoekwoord7", "zoekwoord8", "zoekwoord9", "zoekwoord10"],
   "services": ["dienst1", "dienst2", "dienst3"],
   "usps": ["usp1", "usp2"],
   "location": "locatie of regio focus (of null)",
@@ -216,10 +265,12 @@ Geef je analyse in EXACT dit JSON-formaat:
 }
 
 BELANGRIJKE REGELS:
-- keywords: 5-8 commerciële zoekwoorden die potentiële klanten zouden gebruiken om dit type bedrijf te vinden
+- keywords: geef PRECIES 10 commerciële zoekwoorden die potentiële klanten zouden gebruiken
+- Haal zoekwoorden uit: menu-items, diensten-links, H1/H2/H3 koppen, meta beschrijving
 - Focus op zoekwoorden die NIET de bedrijfsnaam bevatten
 - Denk vanuit de klant: wat zou iemand typen die dit bedrijf zoekt?
-- services: concrete diensten/producten die het bedrijf aanbiedt
+- Mix korte (1-2 woorden) en langere (2-4 woorden) zoekwoorden
+- services: concrete diensten/producten die het bedrijf aanbiedt (haal uit nav en H2/H3)
 - usps: unieke verkoopargumenten
 - Alles in het Nederlands
 
@@ -309,26 +360,41 @@ export async function POST(request) {
     let websiteAnalysis = null
     let enhancedKeywords = identifiedQueriesSummary || []
     
-    // ✨ NEW: Analyze website if URL provided
+    // ✨ Analyze website if URL provided (ScraperAPI + Claude)
     if (websiteUrl && websiteUrl.trim()) {
       console.log('🌐 Website URL provided, starting smart analysis...')
       try {
         websiteAnalysis = await analyzeWebsiteForKeywords(websiteUrl, companyName, companyCategory)
         if (websiteAnalysis.success) {
           console.log(`✅ Website analysis complete: ${websiteAnalysis.keywords.length} keywords extracted`)
-          // Merge website keywords with user-provided keywords (user keywords take priority)
-          const userKeywords = identifiedQueriesSummary || []
+          
+          const userKeywords = (identifiedQueriesSummary || []).filter(k => k && k.trim())
           const websiteKeywords = websiteAnalysis.keywords || []
-          // User keywords first, then add unique website keywords
-          enhancedKeywords = [...userKeywords]
-          websiteKeywords.forEach(kw => {
-            if (!enhancedKeywords.some(uk => uk.toLowerCase() === kw.toLowerCase())) {
-              enhancedKeywords.push(kw)
-            }
-          })
-          // Limit to max 10 keywords
-          enhancedKeywords = enhancedKeywords.slice(0, 10)
-          console.log(`📊 Enhanced keywords: ${enhancedKeywords.join(', ')}`)
+          
+          // Smart priority: users who enter 3+ keywords know what they're doing
+          if (userKeywords.length >= 3) {
+            // User keywords FIRST (they know their business), website fills gaps
+            enhancedKeywords = [...userKeywords]
+            websiteKeywords.forEach(kw => {
+              if (!enhancedKeywords.some(uk => uk.toLowerCase().trim() === kw.toLowerCase().trim())) {
+                enhancedKeywords.push(kw)
+              }
+            })
+            console.log(`📊 User-first merge (${userKeywords.length} user + website fill): ${enhancedKeywords.length} total`)
+          } else {
+            // Few/no user keywords → website keywords are more reliable
+            enhancedKeywords = [...websiteKeywords]
+            userKeywords.forEach(kw => {
+              if (kw.trim() && !enhancedKeywords.some(wk => wk.toLowerCase().trim() === kw.toLowerCase().trim())) {
+                enhancedKeywords.push(kw.trim())
+              }
+            })
+            console.log(`📊 Website-first merge (${websiteKeywords.length} website + ${userKeywords.length} user): ${enhancedKeywords.length} total`)
+          }
+          
+          // Cap at 12 keywords max
+          enhancedKeywords = enhancedKeywords.slice(0, 12)
+          console.log(`📊 Final enhanced keywords: ${enhancedKeywords.join(', ')}`)
         } else {
           console.log('⚠️ Website analysis failed, using fallback keywords')
         }
