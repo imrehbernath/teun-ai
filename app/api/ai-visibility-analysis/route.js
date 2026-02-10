@@ -658,15 +658,14 @@ ${customTerms.location.map(term => `- "${term}"`).join('\n')}
 🚨 KRITIEK: Minimaal 6 van de 10 vragen MOETEN één van deze EXACTE locatietermen bevatten.
 
 **BELANGRIJKE LOCATIEREGELS:**
-- Als gebruiker "Amsterdam" specificeert: ALLEEN Amsterdam gebruiken, GEEN "Nederland" of "Belgie"
+- Als gebruiker "Amsterdam" specificeert: ALLEEN Amsterdam gebruiken, GEEN "Nederland"
 - Als gebruiker "landelijk actief" specificeert: Dat MAG gebruikt worden
-- Als gebruiker GEEN landelijke term specificeert: GEEN brede termen zoals "Nederland", "Belgie", "landelijk"
+- Als gebruiker GEEN landelijke term specificeert: GEEN brede termen zoals "Nederland", "landelijk"
 - Wees SPECIFIEK naar de opgegeven locaties
 
 **VERBODEN LOCATIE-ALTERNATIEVEN:**
 ${customTerms.location.some(t => t.toLowerCase().includes('amsterdam') || t.toLowerCase().includes('rotterdam') || t.toLowerCase().includes('utrecht') || t.toLowerCase().includes('den haag') || t.toLowerCase().includes('eindhoven')) ? `
 ❌ "Nederland" - Te breed, gebruiker wil specifieke stad
-❌ "Belgie" - Helemaal verkeerde land!
 ❌ "landelijk" - Te breed, tenzij expliciet opgegeven
 ❌ "heel Nederland" - Te breed
 ❌ "nationale" - Te breed
@@ -691,7 +690,7 @@ ${customTerms.include?.length > 0 ? `
 ` : ''}
 ${customTerms.location?.length > 0 ? `
 3. 📍 Minimaal 6/10 vragen bevatten EXACT: ${customTerms.location.join(', ')}
-   (GEEN alternatieven zoals "Nederland" of "Belgie" als stad opgegeven is!)
+   (GEEN alternatieven zoals "Nederland" als stad opgegeven is!)
 ` : ''}
 
 Als je niet aan AL deze eisen voldoet, begin dan OPNIEUW.
@@ -762,10 +761,11 @@ ${queries.length === 1 ? `
 5. **NEDERLANDS**: ALTIJD en UITSLUITEND Nederlands, GEEN Engels
 
 **VERBODEN:**
-- Vragen die starten met "Waar kan ik vinden...", "Welke specialist..."
+- Onnatuurlijk Nederlands (lees elke zin hardop — klinkt het als een echt persoon?)
+- "Lijst ... op", "Geef voorbeelden van ..." (robotachtig)
 - Geforceerde keyword-combinaties ("SEO specialist diensten")
-- Robot-taal ("services", overmatig "werk", "diensten")
-- Letterlijke zoekwoord-plakking
+- Letterlijke zoekwoord-plakking die tot onleesbare zinnen leidt
+- Zinnen die grammaticaal niet kloppen
 - Vragen die leiden tot algemeen zoekadvies in plaats van bedrijfsnamen
 
 **VERPLICHT:**
@@ -792,19 +792,25 @@ De vragen moeten **algemeen en bedrijfsneutraal** zijn:
 
 ${searchConsoleContext}
 
-**🎯 IDEALE START-PATRONEN (gebruik deze veel):**
+**🎯 IDEALE START-PATRONEN (gebruik deze als inspiratie):**
 
-Start elke vraag IDEALITER met een direct verzoek om concrete bedrijfsnamen:
+Elke vraag moet klinken alsof een ECHT PERSOON het typt in ChatGPT:
 
-✅ **COMMERCIAL PATTERNS (zo moet het):**
-- "Kun je een aantal **bedrijven** noemen die..."
-- "Welke zijn de top **specialisten** die gespecialiseerd zijn in..."
-- "Geef voorbeelden van gerenommeerde **bedrijven** voor..."
-- "Lijst aanbevolen **leveranciers** op van..."
-- "Welke **bedrijven** hebben bewezen expertise in..."
-- "Ken je **specialisten** met uitstekende reviews voor..."
+✅ **GOEDE VOORBEELDEN (natuurlijk Nederlands):**
+- "Kun je goede **bedrijven** aanbevelen voor..."
+- "Welke **specialisten** hebben ervaring met..."
+- "Noem een paar gerenommeerde **bedrijven** die..."
+- "Welke **leveranciers** raad je aan voor..."
+- "Welke **bedrijven** hebben veel ervaring met..."
+- "Ken je **specialisten** met goede reviews voor..."
 - "Wat zijn de beste **aanbieders** voor..."
-- "Heb je tips voor **bedrijven** die..."
+- "Heb je aanbevelingen voor **bedrijven** die..."
+
+🚨 **TAALKWALITEIT IS CRUCIAAL:**
+- Elke zin moet grammaticaal PERFECT Nederlands zijn
+- Lees elke vraag hardop — klinkt het natuurlijk? Zo niet, herschrijf!
+- NOOIT woorden aan elkaar plakken of zinnen onlogisch combineren
+- NOOIT "Lijst ... op" of "Geef voorbeelden van" als opening (te robotachtig)
 
 **🚨 KRITIEK - JUISTE TERMINOLOGIE:**
 
@@ -829,12 +835,13 @@ Kies de JUISTE term op basis van het type bedrijf:
 
 **LET OP:** Gebruik VARIATIE! Wissel af tussen PASSENDE termen:
 - bedrijven / specialisten / leveranciers / aanbieders / vakmensen
-- Kun je... / Welke... / Geef... / Lijst... / Ken je... / Wat zijn...
+- Kun je... / Welke... / Noem... / Ken je... / Wat zijn...
 
-❌ **VERMIJD (niet commercieel genoeg):**
+❌ **VERMIJD (niet commercieel genoeg of slecht Nederlands):**
 - "Waar kan ik vinden..." → Leidt tot zoekadvies, niet bedrijfsnamen
-- "Welke specialist..." → Te algemeen
 - "Hoe vind ik..." → Zoekadvies in plaats van bedrijven
+- "Lijst ... op" → Robotachtig, geen natuurlijk Nederlands
+- Vragen die grammaticaal niet kloppen als je ze hardop leest
 - Vragen zonder focus op concrete bedrijfsnamen
 
 ${customTerms && (customTerms.exclude?.length > 0 || customTerms.include?.length > 0 || customTerms.location?.length > 0) ? `

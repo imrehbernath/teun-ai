@@ -1218,7 +1218,8 @@ export default function WebsiteDetailPage() {
           </div>
         </div>
 
-        {/* Action Button - Open GEO Analyse */}
+        {/* Action Button - Open GEO Analyse (hidden while scanning) */}
+        {!scanning && !scanningOverview && (
         <div className="mt-8 flex justify-center">
           <button
             onClick={() => {
@@ -1242,6 +1243,7 @@ export default function WebsiteDetailPage() {
             GEO Analyse
           </button>
         </div>
+        )}
 
       </div>
       

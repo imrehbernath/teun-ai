@@ -129,10 +129,36 @@ function extractReferences(aiOverview, companyName) {
 
       sources.push({ title, link, snippet, domain, isCompany })
 
-      if (!isCompany && title && title.length > 2) {
-        const cleanName = title.split(' - ')[0].split(' | ')[0].trim()
-        if (cleanName.length > 2 && cleanName.length < 60) {
-          competitors.push(cleanName)
+      // Extract COMPANY NAME (not page title) for competitors
+      if (!isCompany && (title || domain)) {
+        // Strategy 1: Company name is usually AFTER " - " or " | " in title
+        // e.g. "Ooglidcorrectie kosten - ABC Clinic" → "ABC Clinic"
+        let companyFromTitle = ''
+        if (title.includes(' - ')) {
+          companyFromTitle = title.split(' - ').pop().trim()
+        } else if (title.includes(' | ')) {
+          companyFromTitle = title.split(' | ').pop().trim()
+        }
+        
+        // Strategy 2: Clean domain name as fallback
+        // e.g. "www.dutchclinic.com" → "dutchclinic.com"
+        let companyFromDomain = domain
+          .replace(/^www\./, '')
+          .replace(/^https?:\/\//, '')
+          .replace(/\/.*$/, '')
+          .trim()
+        
+        // Pick: title suffix if it looks like a name (short, no colons/questions)
+        const nameCandidate = companyFromTitle && 
+          companyFromTitle.length > 2 && 
+          companyFromTitle.length < 40 &&
+          !/[?:€•]/.test(companyFromTitle) &&
+          !/^\d/.test(companyFromTitle)
+            ? companyFromTitle 
+            : companyFromDomain
+        
+        if (nameCandidate && nameCandidate.length > 2) {
+          competitors.push(nameCandidate)
         }
       }
     })

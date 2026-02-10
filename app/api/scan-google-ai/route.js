@@ -141,15 +141,35 @@ function analyzeAIModeResponse(data, companyName) {
       isCompany
     })
 
-    // Track competitors - use title (business name) instead of domain
-    if (!isCompany && title && title.length > 2) {
-      // Clean up title - remove common suffixes
-      let cleanTitle = title
-        .replace(/\s*[-|–]\s*.*/g, '') // Remove everything after dash/pipe
-        .replace(/\s*\(.*\)/g, '')      // Remove parentheses
+    // Track competitors - extract COMPANY NAME from title suffix or domain
+    if (!isCompany && (title || domain)) {
+      // Company name is usually AFTER " - " or " | " in title
+      // e.g. "Ooglidcorrectie kosten - ABC Clinic" → "ABC Clinic"
+      let companyFromTitle = ''
+      if (title.includes(' - ')) {
+        companyFromTitle = title.split(' - ').pop().trim()
+      } else if (title.includes(' | ')) {
+        companyFromTitle = title.split(' | ').pop().trim()
+      }
+      
+      // Clean domain as fallback
+      let companyFromDomain = (domain || '')
+        .replace(/^www\./, '')
+        .replace(/^https?:\/\//, '')
+        .replace(/\/.*$/, '')
         .trim()
-      if (cleanTitle.length > 2 && cleanTitle.length < 50) {
-        competitorsMentioned.push(cleanTitle)
+      
+      // Pick: title suffix if it looks like a company name
+      const nameCandidate = companyFromTitle && 
+        companyFromTitle.length > 2 && 
+        companyFromTitle.length < 40 &&
+        !/[?:€•]/.test(companyFromTitle) &&
+        !/^\d/.test(companyFromTitle)
+          ? companyFromTitle 
+          : companyFromDomain
+      
+      if (nameCandidate && nameCandidate.length > 2 && nameCandidate.length < 50) {
+        competitorsMentioned.push(nameCandidate)
       }
     }
   })
