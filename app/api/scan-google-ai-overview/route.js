@@ -1,93 +1,86 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import Anthropic from '@anthropic-ai/sdk'
 
 const SERPAPI_KEY = process.env.SERPAPI_KEY
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY
+})
 
-// Transform commercial/local prompts into informational queries that trigger AI Overviews
+// Use Claude to transform commercial prompts into clean informational Google search queries
 // AI Overviews appear mainly for informational queries (88-91%), rarely for commercial/local ones
-function transformToInformationalQuery(prompt) {
-  let q = prompt.trim().replace(/[?!.]+$/, '')  // Strip trailing punctuation
-  
-  // Common Dutch commercial patterns to strip - order matters (most specific first)
-  const commercialPatterns = [
-    /^kun je (?:een aantal |betrouwbare |goede )?(?:specialisten|klinieken|artsen|chirurgen|aanbieders|experts|bedrijven|bureaus|kantoren|advocaten|adviseurs|consultants|therapeuten|coaches|trainers) (?:in \w+ )?(?:noemen|aanbevelen|aanraden|opnoemen|geven|suggereren) (?:die|voor|met|waar) /i,
-    /^welke (?:zijn )?(?:de )?(?:beste|top|meest betrouwbare|meest ervaren|goede|bekende|gerenommeerde) (?:specialisten|klinieken|artsen|chirurgen|aanbieders|experts|bedrijven|bureaus|kantoren|advocaten|adviseurs) (?:in \w+ )?(?:voor|die|met|waar) /i,
-    /^welke (?:klinieken|specialisten|artsen|chirurgen|aanbieders) (?:hebben|bieden) (?:de )?(?:beste|meeste|hoogste) (?:reputatie|ervaring|resultaten|reviews) (?:voor|met|in|op het gebied van) /i,
-    /^geef (?:me )?(?:voorbeelden|tips|suggesties|aanbevelingen) (?:van |voor )?(?:gerenommeerde |goede |betrouwbare |ervaren )?(?:specialisten|klinieken|artsen|chirurgen|plastisch chirurgen|aanbieders) (?:die|voor|in|met) /i,
-    /^ken je (?:betrouwbare |goede )?(?:specialisten|klinieken|artsen|chirurgen|aanbieders) (?:met|die|voor|in) /i,
-    /^wat zijn de (?:top|beste|meest betrouwbare) (?:aanbieders|specialisten|klinieken|artsen) (?:in \w+ )?(?:voor|die|met) /i,
-    /^heb je (?:tips|suggesties|aanbevelingen) (?:voor|over) (?:plastische chirurgen|specialisten|klinieken|artsen|aanbieders) (?:die|voor|in|met) /i,
-    /^lijst (?:aanbevolen |de beste )?(?:plastisch chirurgen|specialisten|klinieken|artsen|aanbieders) (?:op )?(?:voor|die|met|in) /i,
-  ]
-  
-  let coreTopic = q
-  for (const pattern of commercialPatterns) {
-    if (pattern.test(q)) {
-      coreTopic = q.replace(pattern, '').trim()
-      break
+async function transformPromptsToSearchQueries(prompts) {
+  try {
+    const promptList = prompts.map((p, i) => `${i + 1}. ${p}`).join('\n')
+    
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1024,
+      system: `Je bent een expert in Google zoekopdrachten. Je taak: zet commerciële AI-prompts om naar korte, natuurlijke Nederlandse Google-zoekopdrachten die AI Overviews triggeren.
+
+REGELS:
+- Elke zoekopdracht is 2-6 woorden, maximaal 8 woorden
+- Gebruik natuurlijk Nederlands zoals een mens zou googlen
+- GEEN bedrijfsnamen, plaatsnamen of "beste/top/goede" woorden
+- Focus op het ONDERWERP, niet op het vinden van een aanbieder
+- Informatieve queries: "wat kost ...", "hoe werkt ...", "... ervaringen", "... voor- en nadelen"
+- Als de prompt al informatief is, houd hem kort en clean
+
+VOORBEELDEN:
+- "Welke plastisch chirurgen in Amsterdam doen facelift" → "facelift kosten en ervaringen"
+- "Kun je specialisten noemen die ooglidcorrectie doen tegen redelijke kosten" → "ooglidcorrectie kosten"
+- "Beste SEO bureau Amsterdam" → "SEO uitbesteden kosten"
+- "Welke advocaten zijn goed in arbeidsrecht" → "arbeidsrecht advocaat wanneer nodig"
+- "Geef tips voor betrouwbare dakdekkers met goede reviews" → "dakdekker kiezen waar op letten"
+
+Antwoord ALLEEN met een JSON array van strings, één per prompt, in dezelfde volgorde. Geen uitleg.`,
+      messages: [{
+        role: 'user',
+        content: `Zet deze ${prompts.length} commerciële prompts om naar korte Google-zoekopdrachten:\n\n${promptList}`
+      }]
+    })
+
+    const text = response.content[0].text.trim()
+    // Parse JSON array - handle potential markdown code blocks
+    const cleaned = text.replace(/```json\s*|\s*```/g, '').trim()
+    const queries = JSON.parse(cleaned)
+    
+    if (Array.isArray(queries) && queries.length === prompts.length) {
+      console.log('Claude transformed prompts:', prompts.map((p, i) => `"${p}" → "${queries[i]}"`).join(', '))
+      return prompts.map((prompt, i) => ({
+        searchQuery: queries[i],
+        originalPrompt: prompt
+      }))
     }
+    
+    // Fallback if array length mismatch
+    console.warn('Claude returned wrong number of queries, using fallback')
+    return prompts.map(p => fallbackTransform(p))
+  } catch (error) {
+    console.error('Claude transform error, using fallback:', error.message)
+    return prompts.map(p => fallbackTransform(p))
   }
+}
+
+// Simple fallback if Claude fails - just extract key nouns
+function fallbackTransform(prompt) {
+  let q = prompt.trim().replace(/[?!.]+$/, '')
   
-  // Remove quality/review phrases that got left in the middle
-  coreTopic = coreTopic
-    .replace(/^(?:uitstekende |goede |beste |hoge |bewezen |jarenlange )?(?:reviews|beoordelingen|ervaring|expertise|reputatie|resultaten) (?:voor|met|van|op het gebied van) /i, '')
-  
-  // Remove trailing location references
-  coreTopic = coreTopic
-    .replace(/\s+in\s+(?:amsterdam|rotterdam|den haag|the hague|utrecht|eindhoven|groningen|tilburg|almere|breda|nijmegen|arnhem|haarlem|leiden|delft|apeldoorn|enschede|maastricht|zwolle|nederland|de randstad)(?:\s+(?:en omgeving|e\.o\.))?/gi, '')
-  
-  // Remove trailing quality/commercial modifiers
-  coreTopic = coreTopic
-    .replace(/\s+(?:met|voor)\s+(?:goede resultaten|bewezen expertise|jarenlange ervaring|uitstekende reviews|hoge patiëntentevredenheid|de beste reputatie|de beste kwaliteit)$/i, '')
-    .replace(/\s+(?:kosten en kwaliteit|prijs en kwaliteit|kosten en resultaten)$/i, '')
-    .replace(/\s+(?:uitvoeren|doen|behandelen|verrichten|aanbieden)$/i, '')
-    .replace(/\s+(?:ingrepen|behandelingen)\s+(?:doen|uitvoeren)$/i, '')
-    .replace(/\s+ingrepen$/i, '')
+  // Strip common Dutch commercial prefixes
+  q = q
+    .replace(/^(?:kun je|welke|geef|noem|heb je|ken je|wat zijn de|lijst)\s+(?:mij |me |een aantal |de |het )?(?:beste|top|goede|betrouwbare|ervaren|gerenommeerde)?\s*/i, '')
+    .replace(/(?:specialisten|klinieken|artsen|chirurgen|aanbieders|experts|bedrijven|bureaus|kantoren|advocaten|adviseurs)\s+(?:in \w+ )?(?:noemen|aanbevelen|aanraden|die|voor|met|waar|hebben|bieden)\s*/i, '')
+    .replace(/\s+(?:in|te)\s+(?:amsterdam|rotterdam|den haag|utrecht|eindhoven|nederland)\b/gi, '')
+    .replace(/\s+(?:met|voor|tegen)\s+(?:goede|beste|redelijke|uitstekende|bewezen).*$/i, '')
+    .replace(/\s+/g, ' ')
     .trim()
   
-  // If we couldn't extract a topic, use original
-  if (!coreTopic || coreTopic.length < 5) {
-    coreTopic = q
-  }
+  // If too short or too long, use truncated original
+  if (q.length < 5) q = prompt.split(' ').slice(0, 5).join(' ')
+  if (q.length > 60) q = q.substring(0, 60).replace(/\s\w*$/, '')
   
-  // If already informational (starts with wat/hoe/waarom), keep as-is
-  if (/^(wat|hoe|waarom|wanneer|is het|kan ik|moet ik)/i.test(q) && !/(beste|specialist|kliniek|aanbied)/i.test(q)) {
-    return { searchQuery: q, originalPrompt: prompt }
-  }
-  
-  // Build informational variant based on topic type
-  const topicLower = coreTopic.toLowerCase()
-  
-  const treatmentWords = ['correctie', 'operatie', 'behandeling', 'ingreep', 'chirurgie', 'transplantatie', 'therapie', 'implant', 'lifting', 'facelift', 'liposuctie', 'botox', 'filler', 'peeling', 'laser', 'lipoedeem', 'buikvet', 'verwijderen', 'verwijdering']
-  const hasTreatment = treatmentWords.some(w => topicLower.includes(w))
-  
-  let searchQuery
-  const hash = prompt.split('').reduce((a, c) => a + c.charCodeAt(0), 0)
-  
-  if (hasTreatment) {
-    const variants = [
-      `wat kost ${coreTopic}`,
-      `hoe werkt ${coreTopic}`,
-      `${coreTopic} ervaringen en risico's`,
-      `wat is ${coreTopic} en hoe werkt het`,
-    ]
-    searchQuery = variants[hash % variants.length]
-  } else {
-    const variants = [
-      `wat kost ${coreTopic}`,
-      `${coreTopic} uitleg en tips`,
-      `wat is ${coreTopic}`,
-      `${coreTopic} advies`,
-    ]
-    searchQuery = variants[hash % variants.length]
-  }
-  
-  // Clean up
-  searchQuery = searchQuery.replace(/\s+/g, ' ').trim()
-  
-  console.log(`AI Overview prompt transform: "${prompt}" → "${searchQuery}"`)
-  
-  return { searchQuery, originalPrompt: prompt }
+  console.log(`Fallback transform: "${prompt}" → "${q}"`)
+  return { searchQuery: q, originalPrompt: prompt }
 }
 
 // Recursively extract text from text_blocks (handles nested expandable, lists, etc.)
@@ -212,15 +205,19 @@ export async function POST(request) {
     const promptsToScan = prompts.slice(0, 10)
     const results = []
 
-    for (const prompt of promptsToScan) {
+    // Batch transform all prompts to search queries using Claude (1 API call)
+    const transformedQueries = await transformPromptsToSearchQueries(promptsToScan)
+
+    for (let i = 0; i < promptsToScan.length; i++) {
+      const prompt = promptsToScan[i]
       try {
         // Add delay between requests
         if (results.length > 0) {
           await new Promise(resolve => setTimeout(resolve, 800))
         }
 
-        // Transform commercial prompt to informational query for better AI Overview triggers
-        const { searchQuery, originalPrompt } = transformToInformationalQuery(prompt)
+        // Use pre-computed search query from Claude batch transform
+        const { searchQuery, originalPrompt } = transformedQueries[i]
 
         // Step 1: Regular Google search to check for AI Overview
         const params = new URLSearchParams({
