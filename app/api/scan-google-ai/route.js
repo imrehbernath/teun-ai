@@ -4,24 +4,42 @@ import { NextResponse } from 'next/server'
 const SERPAPI_KEY = process.env.SERPAPI_KEY
 
 // Helper to check if company is mentioned in text
-function checkCompanyMention(text, companyName) {
+function checkCompanyMention(text, companyName, websiteDomain = '') {
   if (!text || !companyName) return false
   const normalizedText = text.toLowerCase()
-  const normalizedCompany = companyName.toLowerCase()
+  const normalizedCompany = companyName.toLowerCase().trim()
   
   // Check for exact match or common variations
   const variations = [
     normalizedCompany,
     normalizedCompany.replace(/\s+/g, ''),  // No spaces
     normalizedCompany.replace(/[.-]/g, ' '), // Replace dots/dashes with spaces
-    normalizedCompany.split(' ')[0], // First word only (e.g., "SAM" from "SAM Kliniek")
   ]
+  
+  // Only use first word if it's long enough (5+ chars) to avoid false positives
+  // e.g. "SAM" (3 chars) would match everywhere, "Bergman" (7 chars) is safe
+  const firstWord = normalizedCompany.split(' ')[0]
+  if (firstWord.length >= 5) {
+    variations.push(firstWord)
+  }
+  
+  // Add website domain as variation (e.g. "samkliniek" from "samkliniek.nl")
+  if (websiteDomain) {
+    const cleanDomain = websiteDomain.toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .replace(/^www\./, '')
+      .replace(/\.\w+$/, '')  // Remove .nl, .com etc
+      .replace(/[.-]/g, '')
+    if (cleanDomain.length >= 4) {
+      variations.push(cleanDomain)
+    }
+  }
   
   return variations.some(v => v.length > 2 && normalizedText.includes(v))
 }
 
 // Analyze Google AI Mode response
-function analyzeAIModeResponse(data, companyName) {
+function analyzeAIModeResponse(data, companyName, websiteDomain = '') {
   if (!data) {
     return {
       hasAiResponse: false,
@@ -112,12 +130,22 @@ function analyzeAIModeResponse(data, companyName) {
     const matches = aiResponse.match(regex)
     if (matches) mentionCount = matches.length
     
-    // Also check for partial matches (first word)
+    // Also check for partial matches (first word, only if distinctive enough)
     const firstName = companyName.split(' ')[0]
-    if (firstName.length > 2 && !matches) {
-      const firstNameRegex = new RegExp(firstName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+    if (firstName.length >= 5 && !matches) {
+      const firstNameRegex = new RegExp(`\\b${firstName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi')
       const firstNameMatches = aiResponse.match(firstNameRegex)
       if (firstNameMatches) mentionCount = firstNameMatches.length
+    }
+    
+    // Also check website domain in response text
+    if (!matches && websiteDomain) {
+      const cleanDomain = websiteDomain.toLowerCase()
+        .replace(/^https?:\/\//, '')
+        .replace(/^www\./, '')
+      if (cleanDomain && aiResponse.toLowerCase().includes(cleanDomain)) {
+        mentionCount = Math.max(mentionCount, 1)
+      }
     }
   }
 
@@ -129,9 +157,9 @@ function analyzeAIModeResponse(data, companyName) {
     const snippet = source.snippet || source.description || ''
     const domain = source.source || source.displayed_link || source.domain || ''
     
-    const isCompany = checkCompanyMention(title, companyName) || 
-                      checkCompanyMention(link, companyName) ||
-                      checkCompanyMention(domain, companyName)
+    const isCompany = checkCompanyMention(title, companyName, websiteDomain) || 
+                      checkCompanyMention(link, companyName, websiteDomain) ||
+                      checkCompanyMention(domain, companyName, websiteDomain)
     
     sources.push({
       title,
@@ -188,7 +216,7 @@ function analyzeAIModeResponse(data, companyName) {
       matches.forEach(match => {
         const cleanMatch = match.trim()
         // Don't add if it's the target company
-        if (!checkCompanyMention(cleanMatch, companyName) && 
+        if (!checkCompanyMention(cleanMatch, companyName, websiteDomain) && 
             cleanMatch.length > 3 && 
             cleanMatch.length < 50) {
           competitorsMentioned.push(cleanMatch)
@@ -200,8 +228,8 @@ function analyzeAIModeResponse(data, companyName) {
   // Also check inline sources if present
   if (data.inline_sources) {
     data.inline_sources.forEach(source => {
-      const isCompany = checkCompanyMention(source.title || '', companyName) ||
-                        checkCompanyMention(source.link || '', companyName)
+      const isCompany = checkCompanyMention(source.title || '', companyName, websiteDomain) ||
+                        checkCompanyMention(source.link || '', companyName, websiteDomain)
       if (isCompany) {
         mentionCount++
       }
@@ -272,7 +300,7 @@ async function fetchGoogleAIMode(query, companyName) {
       console.log(`search status: ${data.search_metadata.status}`)
     }
     
-    const analysis = analyzeAIModeResponse(data, companyName)
+    const analysis = analyzeAIModeResponse(data, companyName, website || '')
 
     return {
       query,
