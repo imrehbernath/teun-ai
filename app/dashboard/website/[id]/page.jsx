@@ -1071,6 +1071,9 @@ export default function WebsiteDetailPage() {
                     <p className="text-xs text-slate-400 mt-4">
                       🔍 Scant {prompts.length} prompts in Google AI Overviews
                     </p>
+                    <p className="text-xs text-purple-400 mt-1">
+                      ✨ Prompts worden slim omgezet naar informatieve zoekopdrachten
+                    </p>
                   </div>
                 ) : (
                   <div>
@@ -1086,6 +1089,16 @@ export default function WebsiteDetailPage() {
                       </button>
                     </div>
 
+                    {/* Smart query explanation */}
+                    {latestGoogleOverview.results.some(r => r.searchQuery && r.searchQuery !== r.query) && (
+                      <div className="mb-3 px-3 py-2 bg-purple-50 border border-purple-100 rounded-lg flex items-start gap-2">
+                        <span className="text-sm mt-px">✨</span>
+                        <p className="text-xs text-purple-600">
+                          <span className="font-medium">Slimme zoekopdrachten</span> — Teun.ai past je prompts automatisch aan naar informatieve vragen die vaker AI Overviews triggeren in Google.
+                        </p>
+                      </div>
+                    )}
+
                     {/* Results list */}
                     <div className="space-y-2">
                       {latestGoogleOverview.results.map((result, idx) => {
@@ -1097,6 +1110,8 @@ export default function WebsiteDetailPage() {
                         const references = result.references || result.sources || []
                         const competitors = result.competitorsInSources || result.competitorsMentioned || []
                         
+                        const hasTransform = result.searchQuery && result.searchQuery !== result.query
+                        
                         return (
                           <div key={idx} className={`rounded-lg border ${
                             !hasOverview ? 'bg-slate-50 border-slate-200' :
@@ -1104,21 +1119,30 @@ export default function WebsiteDetailPage() {
                           }`}>
                             <button
                               onClick={() => hasOverview && toggleExpand(key)}
-                              className="w-full px-4 py-3 flex items-center gap-3 text-left"
+                              className="w-full px-4 py-3 flex items-start gap-3 text-left"
                               disabled={!hasOverview}
                             >
                               {!hasOverview ? (
-                                <span className="w-5 h-5 flex items-center justify-center text-slate-400 text-lg">—</span>
+                                <span className="w-5 h-5 flex items-center justify-center text-slate-400 text-lg mt-0.5">—</span>
                               ) : mentioned ? (
-                                <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+                                <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
                               ) : (
-                                <XCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                                <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                               )}
-                              <span className={`flex-1 text-sm ${!hasOverview ? 'text-slate-400' : 'text-slate-700'}`}>
-                                {result.query}
-                              </span>
-                              {!hasOverview && <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded">Geen AI Overview</span>}
-                              {hasOverview && (expanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />)}
+                              <div className="flex-1 min-w-0">
+                                <span className={`text-sm block ${!hasOverview ? 'text-slate-400' : 'text-slate-700'}`}>
+                                  {result.query}
+                                </span>
+                                {hasTransform && (
+                                  <span className="flex items-center gap-1.5 mt-1">
+                                    <span className="text-[11px]">✨</span>
+                                    <span className="text-xs text-purple-500 font-medium">Slim gezocht:</span>
+                                    <span className="text-xs text-purple-400 italic truncate">&ldquo;{result.searchQuery}&rdquo;</span>
+                                  </span>
+                                )}
+                              </div>
+                              {!hasOverview && <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded flex-shrink-0">Geen AI Overview</span>}
+                              {hasOverview && (expanded ? <ChevronUp className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />)}
                             </button>
                             
                             {expanded && hasOverview && (
