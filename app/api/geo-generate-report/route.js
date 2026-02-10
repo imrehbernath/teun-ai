@@ -71,17 +71,22 @@ export async function POST(request) {
     console.log('aiScore:', aiScore)
     
     // Group aiResults by platform
-    const byPlatform = { perplexity: [], chatgpt: [], google: [] }
+    const byPlatform = { perplexity: [], chatgpt: [], google: [], googleAi: [], googleAiOverview: [] }
     for (const r of aiResults) {
       const platform = r.platform || 'unknown'
       if (byPlatform[platform]) {
         byPlatform[platform].push(r)
       }
+      // Also map 'google' to googleAi for backward compatibility
+      if (platform === 'google' && byPlatform.googleAi.length === 0) {
+        byPlatform.googleAi.push(r)
+      }
     }
     
     console.log('By platform - Perplexity:', byPlatform.perplexity.length, 
                 'ChatGPT:', byPlatform.chatgpt.length, 
-                'Google:', byPlatform.google.length)
+                'Google AI Modus:', byPlatform.googleAi.length,
+                'AI Overviews:', byPlatform.googleAiOverview.length)
     
     // Find the platform with the most prompts (non-empty)
     let bestPlatform = 'chatgpt'
@@ -195,10 +200,18 @@ export async function POST(request) {
     // Try to load Teun mascotte
     let teunImage = null
     try {
-      const teunPath = path.join(process.cwd(), 'public', 'images', 'teun-ai-mascotte.png')
-      if (fs.existsSync(teunPath)) {
-        const teunBytes = fs.readFileSync(teunPath)
-        teunImage = await pdfDoc.embedPng(teunBytes)
+      const teunPaths = [
+        path.join(process.cwd(), 'public', 'images', 'teun-met-vergrootglas.png'),
+        path.join(process.cwd(), 'public', 'images', 'teun-ai-mascotte.png'),
+        path.join(process.cwd(), 'public', 'mascotte-teun-ai.png'),
+      ]
+      for (const teunPath of teunPaths) {
+        if (fs.existsSync(teunPath)) {
+          const teunBytes = fs.readFileSync(teunPath)
+          teunImage = await pdfDoc.embedPng(teunBytes)
+          console.log('Loaded Teun from:', teunPath)
+          break
+        }
       }
     } catch (e) {
       console.log('Could not load Teun mascotte:', e.message)
@@ -210,11 +223,13 @@ export async function POST(request) {
     
     // Teun mascotte top right
     if (teunImage) {
+      const teunW = 55
+      const teunH = 71  // Maintain 512:665 aspect ratio
       page.drawImage(teunImage, {
-        x: pageWidth - margin - 60,
-        y: pageHeight - margin - 60,
-        width: 60,
-        height: 60,
+        x: pageWidth - margin - teunW,
+        y: pageHeight - margin - teunH + 10,
+        width: teunW,
+        height: teunH,
       })
     }
     
@@ -360,7 +375,7 @@ export async function POST(request) {
     })
     
     y -= 25
-    const summaryText = `${companyName} wordt momenteel in ${aiScore}% van de geteste commerciele zoekopdrachten genoemd door AI-assistenten (ChatGPT, Perplexity en Google AI Overviews).`
+    const summaryText = `${companyName} wordt momenteel in ${aiScore}% van de geteste commerciele zoekopdrachten genoemd door AI-assistenten (ChatGPT, Perplexity, Google AI Modus en AI Overviews).`
     
     // Word wrap summary
     const maxWidth = pageWidth - margin * 2
@@ -422,7 +437,7 @@ export async function POST(request) {
     })
     
     y -= 25
-    const introText = `We hebben ${uniquePrompts.length} commerciele zoekwoorden getest op 3 AI-platforms: ChatGPT, Perplexity en Google AI Overviews.`
+    const introText = `We hebben ${uniquePrompts.length} commerciele zoekwoorden getest op 4 AI-platforms: ChatGPT, Perplexity, Google AI Modus en AI Overviews.`
     page.drawText(introText, { x: margin, y, size: 10, font: helvetica, color: BLACK })
     
     y -= 20
@@ -553,7 +568,7 @@ export async function POST(request) {
     
     const recommendations = [
       { title: 'Versterk E-E-A-T signalen', desc: 'Zorg dat content geschreven is door experts. Toon auteursinformatie en credentials duidelijk.' },
-      { title: 'Implementeer Rich Snippets', desc: 'Voeg FAQ Schema en Organization Schema toe. Cruciaal voor Google AI Overviews.' },
+      { title: 'Implementeer Rich Snippets', desc: 'Voeg FAQ Schema en Organization Schema toe. Cruciaal voor Google AI Modus en AI Overviews.' },
       { title: 'Optimaliseer landingspaginas', desc: 'Verbeter GEO-score met betere content structuur en uitgebreide FAQ secties.' },
       { title: 'Geef volledige antwoorden', desc: 'AI-systemen prefereren bronnen die direct en volledig antwoord geven.' },
     ]

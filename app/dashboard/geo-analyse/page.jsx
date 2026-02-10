@@ -121,7 +121,7 @@ const ALL_CHECKLIST_ITEMS = Object.values(GEO_CHECKLIST)
 // ============================================
 // MAIN COMPONENT
 // ============================================
-function GEOAnalysePROContent() {
+function GEOAnalyseContent() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [step, setStep] = useState(1)
@@ -1367,7 +1367,7 @@ function GEOAnalysePROContent() {
               </button>
               <div>
                 <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                  GEO Analyse PRO
+                  GEO Analyse
                   <span className="px-2 py-0.5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-xs rounded-full font-medium">BETA</span>
                 </h1>
                 <p className="text-sm text-slate-500">Complete AI zichtbaarheid & GEO optimalisatie analyse</p>
@@ -1603,26 +1603,6 @@ function GEOAnalysePROContent() {
                           </button>
                         )}
                       </div>
-                      {/* Rescan button if AI Modus data exists */}
-                      {selectedExistingWebsite.combinedResults?.googleAi?.total > 0 && (
-                        <button
-                          onClick={runGoogleAiModeScan}
-                          disabled={googleAiScanning}
-                          className="mt-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
-                        >
-                          {googleAiScanning ? (
-                            <>
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                              Opnieuw scannen...
-                            </>
-                          ) : (
-                            <>
-                              <RefreshCw className="w-3 h-3" />
-                              AI Modus opnieuw scannen
-                            </>
-                          )}
-                        </button>
-                      )}
                       
                       {/* Expandable AI Modus Results */}
                       {selectedExistingWebsite.combinedResults?.googleAi?.total > 0 && (
@@ -1708,27 +1688,6 @@ function GEOAnalysePROContent() {
                             )}
                           </div>
                         </div>
-                      )}
-
-                      {/* Rescan button if Google AI Overview data exists */}
-                      {selectedExistingWebsite.combinedResults?.googleAiOverview?.total > 0 && (
-                        <button
-                          onClick={runGoogleAiOverviewScan}
-                          disabled={googleAiOverviewScanning}
-                          className="mt-2 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-medium disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
-                        >
-                          {googleAiOverviewScanning ? (
-                            <>
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                              Opnieuw scannen...
-                            </>
-                          ) : (
-                            <>
-                              <RefreshCw className="w-3 h-3" />
-                              AI Overviews opnieuw scannen
-                            </>
-                          )}
-                        </button>
                       )}
 
                       {/* Expandable Google AI Overview Results */}
@@ -2369,19 +2328,13 @@ function GEOAnalysePROContent() {
                         
                         {/* Teun mascotte met vergrootglas */}
                         <div className="absolute bottom-16 right-2 z-10 animate-bounce" style={{ animationDuration: '2s' }}>
-                          <div className="relative">
-                            <Image 
-                              src="/images/teun-ai-mascotte.png" 
-                              alt="Teun scant" 
-                              width={70} 
-                              height={70} 
-                              className="drop-shadow-lg"
-                            />
-                            {/* Vergrootglas */}
-                            <div className="absolute -top-1 -left-3 bg-white rounded-full p-1 shadow-lg border-2 border-cyan-400">
-                              <Search className="w-4 h-4 text-cyan-500" />
-                            </div>
-                          </div>
+                          <Image 
+                            src="/images/teun-met-vergrootglas.png" 
+                            alt="Teun scant" 
+                            width={90} 
+                            height={117} 
+                            className="drop-shadow-lg"
+                          />
                         </div>
                         
                         {/* Scanning line animation */}
@@ -2724,7 +2677,7 @@ function GEOAnalysePROContent() {
 // ============================================
 // EXPORT WITH SUSPENSE WRAPPER
 // ============================================
-export default function GEOAnalysePROPage() {
+export default function GEOAnalysePage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
@@ -2734,7 +2687,7 @@ export default function GEOAnalysePROPage() {
         </div>
       </div>
     }>
-      <GEOAnalysePROContent />
+      <GEOAnalyseContent />
     </Suspense>
   )
 }
