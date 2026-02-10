@@ -1,10 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Search, TrendingUp, ExternalLink, Globe, Zap, BarChart3 } from 'lucide-react'
+import { Search, TrendingUp, ExternalLink, Globe, Zap, BarChart3, AlertCircle, X, CheckCircle2, XCircle } from 'lucide-react'
 
 export default function EmptyState({ userName }) {
+  const [showGeoPopup, setShowGeoPopup] = useState(false)
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       <div className="max-w-6xl mx-auto px-4 py-12">
@@ -42,16 +45,13 @@ export default function EmptyState({ userName }) {
                   <Search className="w-5 h-5" />
                   Start Gratis Scan
                 </Link>
-                <a
-                  href="https://www.onlinelabs.nl/skills/geo-optimalisatie"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => setShowGeoPopup(true)}
                   className="inline-flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl font-semibold text-lg hover:shadow-xl transition-all cursor-pointer"
                 >
                   <TrendingUp className="w-5 h-5" />
-                  GEO Optimalisatie
-                  <ExternalLink className="w-4 h-4 opacity-70" />
-                </a>
+                  GEO Analyse
+                </button>
               </div>
 
               {/* Feature Pills */}
@@ -166,7 +166,7 @@ export default function EmptyState({ userName }) {
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <span className="text-green-600">✓</span>
+                  <span className="text-green-600">✔</span>
                 </div>
                 <div className="text-left">
                   <p className="font-medium text-slate-900">Ingelogd</p>
@@ -177,6 +177,64 @@ export default function EmptyState({ userName }) {
           </div>
         </div>
       </div>
+
+      {/* GEO Analyse Popup - Must scan all 4 platforms first */}
+      {showGeoPopup && (
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowGeoPopup(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-8 h-8 text-amber-500" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Scan eerst alle platforms</h3>
+              <p className="text-slate-600 mb-6">
+                Voor een complete GEO Analyse heb je scans nodig van alle 4 AI-platforms. Start eerst een AI-zichtbaarheidsscan.
+              </p>
+              
+              {/* Platform status - all unchecked in empty state */}
+              <div className="space-y-2 mb-6 text-left">
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50">
+                  <XCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                  <span className="text-red-700">Perplexity — nog niet gescand</span>
+                </div>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50">
+                  <XCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                  <span className="text-red-700">ChatGPT — nog niet gescand</span>
+                </div>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50">
+                  <XCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                  <span className="text-red-700">Google AI Modus — nog niet gescand</span>
+                </div>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50">
+                  <XCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                  <span className="text-red-700">Google AI Overviews — nog niet gescand</span>
+                </div>
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowGeoPopup(false)}
+                  className="flex-1 px-4 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition cursor-pointer"
+                >
+                  Sluiten
+                </button>
+                <Link
+                  href="/tools/ai-visibility"
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-medium hover:shadow-lg transition text-center cursor-pointer"
+                >
+                  Start Scan
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
