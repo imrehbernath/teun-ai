@@ -65,13 +65,13 @@ export async function POST(request) {
     const getStatus = (score) => {
       if (score >= 95) return { label: 'Uitstekend', color: GREEN }
       if (score >= 80) return { label: 'Goed', color: GREEN }
-      if (score >= 65) return { label: 'Gemiddeld', color: ORANGE }
+      if (score >= 55) return { label: 'Gemiddeld', color: ORANGE }
       return { label: 'Slecht', color: RED }
     }
 
     const getScoreColor = (score) => {
       if (score >= 80) return GREEN
-      if (score >= 65) return ORANGE
+      if (score >= 55) return ORANGE
       return RED
     }
 
@@ -161,17 +161,49 @@ export async function POST(request) {
     y -= 14
     drawCentered(page, 'Voor gedetailleerde resultaten per AI-platform, bekijk het dashboard op teun.ai.', y, helveticaOblique, 9, LIGHTGRAY)
 
-    // Overall score
-    // Extract numeric score (overallScore can be object { overall, geo, aiVisibility } or number)
+    // Overall score with breakdown
+    // Extract scores (overallScore can be object { overall, geo, aiVisibility } or number)
     const scoreValue = typeof overallScore === 'object' && overallScore !== null 
       ? (overallScore.overall || 0) 
       : (overallScore || 0)
+    const aiVisScore = typeof overallScore === 'object' && overallScore !== null
+      ? (overallScore.aiVisibility || 0) : 0
+    const geoScore = typeof overallScore === 'object' && overallScore !== null
+      ? (overallScore.geo || 0) : 0
 
     if (scoreValue) {
       y -= 50
+
+      // Score breakdown boxes
+      const boxWidth = 145
+      const boxHeight = 70
+      const boxGap = 20
+      const totalBoxWidth = boxWidth * 3 + boxGap * 2
+      const startX = (pageWidth - totalBoxWidth) / 2
+
+      const boxes = [
+        { label: 'AI Visibility', value: `${aiVisScore}%`, color: rgb(0.58, 0.25, 0.85) },  // purple
+        { label: 'GEO Optimalisatie', value: `${geoScore}%`, color: rgb(0.25, 0.35, 0.85) }, // blue
+        { label: 'Totaal Score', value: `${scoreValue}`, color: getStatus(scoreValue).color }
+      ]
+
+      boxes.forEach((box, i) => {
+        const bx = startX + i * (boxWidth + boxGap)
+        // Box background
+        page.drawRectangle({ x: bx, y: y - boxHeight, width: boxWidth, height: boxHeight, color: box.color, borderColor: box.color, borderWidth: 0 })
+        // Rounded corners effect - just draw slightly inset
+        // Label
+        const labelW = helvetica.widthOfTextAtSize(box.label, 9)
+        page.drawText(box.label, { x: bx + 12, y: y - 16, size: 9, font: helvetica, color: WHITE })
+        // Value
+        page.drawText(box.value, { x: bx + 12, y: y - 48, size: 28, font: helveticaBold, color: WHITE })
+      })
+
+      y -= boxHeight + 15
+
+      // Status text below
       const status = getStatus(scoreValue)
-      const scoreText = `Totale GEO Score: ${scoreValue}/100 (${status.label})`
-      drawCentered(page, scoreText, y, helveticaBold, 16, status.color)
+      drawCentered(page, `${status.label} — ${scoreValue} van 100 punten`, y, helveticaBold, 12, status.color)
     }
 
     // ===========================

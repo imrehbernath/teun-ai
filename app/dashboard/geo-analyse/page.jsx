@@ -78,7 +78,7 @@ const GEO_CHECKLIST = {
     icon: 'FileText',
     items: [
       { id: 'title_meta', label: 'Titels en meta descriptions geoptimaliseerd', autoCheck: true },
-      { id: 'og_tags', label: 'Social media OG-tags en Twitter Cards', autoCheck: true },
+      { id: 'og_tags', label: 'Social media OG-tags', autoCheck: true },
       { id: 'canonical_tags', label: 'Canonical-tags correct gebruikt', autoCheck: true },
       { id: 'image_optimized', label: 'Afbeeldingen geoptimaliseerd (WebP, lazy load)', autoCheck: true },
     ]
