@@ -27,10 +27,16 @@ export async function GET(request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Enrich with scan counts
+  // Enrich with scan counts (tool_integrations instead of perplexity_scans)
   const enrichedShares = await Promise.all(shares.map(async (share) => {
     const { count: perplexityCount } = await supabase
-      .from('perplexity_scans')
+      .from('tool_integrations')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', share.owner_id)
+      .ilike('company_name', share.company_name)
+
+    const { count: chatgptCount } = await supabase
+      .from('chatgpt_scans')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', share.owner_id)
       .ilike('company_name', share.company_name)
@@ -51,6 +57,7 @@ export async function GET(request) {
       ...share,
       scan_counts: {
         perplexity: perplexityCount || 0,
+        chatgpt: chatgptCount || 0,
         google_ai: googleCount || 0,
         ai_overviews: overviewCount || 0
       }
@@ -115,7 +122,7 @@ export async function POST(request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Send invite email via Resend
+  // Send invite email via Resend — always link to signup (works for existing users too)
   let emailSent = false
   try {
     await resend.emails.send({
@@ -143,14 +150,13 @@ export async function POST(request) {
           </p>
 
           <p style="color: #475569; font-size: 15px; line-height: 1.6;">
-            De resultaten staan voor je klaar op het Teun.ai dashboard. 
             ${clientUser 
               ? 'Log in met je bestaande account om de resultaten te bekijken.' 
-              : 'Maak een gratis account aan met dit e-mailadres om de resultaten te bekijken.'}
+              : 'Maak een gratis account aan met dit e-mailadres om je resultaten te bekijken.'}
           </p>
 
           <div style="text-align: center; margin: 30px 0;">
-            <a href="https://teun.ai/${clientUser ? 'login' : 'signup'}" 
+            <a href="https://teun.ai/signup" 
                style="background-color: #6366f1; color: white; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 15px; display: inline-block;">
               ${clientUser ? 'Inloggen en bekijken' : 'Gratis account aanmaken'}
             </a>
@@ -203,7 +209,6 @@ export async function DELETE(request) {
     return NextResponse.json({ error: 'Share ID is verplicht' }, { status: 400 })
   }
 
-  // Hard delete instead of soft delete
   const { error } = await supabase
     .from('shared_access')
     .delete()
