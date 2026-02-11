@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+import fs from 'fs'
+import path from 'path'
 
 export async function POST(request) {
   try {
@@ -10,6 +12,37 @@ export async function POST(request) {
     const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica)
     const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
     const helveticaOblique = await pdfDoc.embedFont(StandardFonts.HelveticaOblique)
+
+    // Load mascot image
+    let mascotImage = null
+    try {
+      // Try local public folder first
+      const localPaths = [
+        path.join(process.cwd(), 'public', 'images', 'teun-met-vergrootglas.png'),
+        path.join(process.cwd(), 'public', 'teun-met-vergrootglas.png'),
+        path.join(process.cwd(), 'public', 'images', 'teun-ai-mascotte.png'),
+        path.join(process.cwd(), 'public', 'mascotte-teun-ai.png'),
+      ]
+      let imageBytes = null
+      for (const p of localPaths) {
+        if (fs.existsSync(p)) {
+          imageBytes = fs.readFileSync(p)
+          break
+        }
+      }
+      // Fallback: fetch from URL
+      if (!imageBytes) {
+        const imgRes = await fetch('https://teun.ai/images/teun-met-vergrootglas.png')
+        if (imgRes.ok) {
+          imageBytes = new Uint8Array(await imgRes.arrayBuffer())
+        }
+      }
+      if (imageBytes) {
+        mascotImage = await pdfDoc.embedPng(imageBytes)
+      }
+    } catch (e) {
+      console.warn('Could not load mascot image:', e.message)
+    }
 
     // A4 dimensions
     const pageWidth = 595.28
@@ -74,9 +107,21 @@ export async function POST(request) {
     // New page helper
     let currentPage = null
     let y = 0
+    const mascotWidth = 50
+    const mascotHeight = mascotImage ? (50 * mascotImage.height / mascotImage.width) : 65
     const newPage = () => {
       currentPage = pdfDoc.addPage([pageWidth, pageHeight])
       y = pageHeight - margin
+      // Draw mascot top-right on every page
+      if (mascotImage) {
+        currentPage.drawImage(mascotImage, {
+          x: pageWidth - margin - mascotWidth,
+          y: pageHeight - margin - mascotHeight + 15,
+          width: mascotWidth,
+          height: mascotHeight,
+          opacity: 0.9
+        })
+      }
       return currentPage
     }
 
@@ -382,6 +427,24 @@ export async function POST(request) {
         desc: 'AI-systemen prefereren bronnen die direct en volledig antwoord geven. Incomplete antwoorden worden overgeslagen voor concurrenten die wel complete informatie bieden.'
       }
     ]
+
+    // Detect Core Web Vitals issues from scan results and add recommendation if found
+    const cwvKeywords = ['LCP', 'FID', 'CLS', 'INP', 'TTFB', 'Core Web']
+    const allIssues = Object.values(scanResults || {}).flatMap(r => (r.issues || []).map(i => typeof i === 'string' ? i : (i.message || i.label || '')))
+    const hasCwvIssues = allIssues.some(issue => cwvKeywords.some(kw => issue.toUpperCase().includes(kw.toUpperCase())))
+    
+    if (hasCwvIssues) {
+      const cwvPages = Object.entries(scanResults || {}).filter(([, r]) => 
+        (r.issues || []).some(i => {
+          const t = typeof i === 'string' ? i : (i.message || '')
+          return cwvKeywords.some(kw => t.toUpperCase().includes(kw.toUpperCase()))
+        })
+      ).length
+      recommendations.push({
+        title: 'Verbeter Core Web Vitals',
+        desc: `${cwvPages} van de ${pageEntries.length} pagina's hebben Core Web Vitals problemen (LCP, FID, CLS). Snelle laadtijden en stabiele layouts verbeteren niet alleen de gebruikerservaring, maar ook hoe AI-systemen je pagina's beoordelen als betrouwbare bron.`
+      })
+    }
 
     recommendations.forEach((rec, i) => {
       ensureSpace(50)
