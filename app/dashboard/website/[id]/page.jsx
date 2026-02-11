@@ -368,6 +368,61 @@ export default function WebsiteDetailPage() {
     setScanningOverview(false)
   }
 
+  // Highlight company name in text with bold styling
+  const highlightCompanyName = (text, companyName) => {
+    if (!text || !companyName) return text
+    
+    // Build variations to highlight
+    const variations = [companyName]
+    const noSpaces = companyName.replace(/\s+/g, '')
+    if (noSpaces !== companyName) variations.push(noSpaces)
+    
+    // Sort longest first to avoid partial matches
+    variations.sort((a, b) => b.length - a.length)
+    
+    // Escape regex chars and build pattern
+    const pattern = variations
+      .map(v => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('|')
+    const regex = new RegExp(`(${pattern})`, 'gi')
+    
+    const parts = text.split(regex)
+    if (parts.length === 1) return text
+    
+    return parts.map((part, i) => 
+      regex.test(part) 
+        ? <strong key={i} className="text-green-700 font-semibold">{part}</strong>
+        : part
+    )
+  }
+
+  // Filter out non-competitor items from competitor list
+  const filterCompetitors = (competitors) => {
+    const nonCompetitorPatterns = [
+      // Review/vergelijkingssites
+      /kliniekervaringen/i, /zorgkaart/i, /independer/i, /kieskeurig/i,
+      /trustpilot/i, /google\s*reviews?/i, /reviewsite/i,
+      // Verzekeraars
+      /^vgz$/i, /^cz$/i, /^menzis$/i, /zilveren\s*kruis/i, /achmea/i, 
+      /^ohra$/i, /nationale[\s-]?nederlanden/i, /^unive$/i, /^anwb$/i,
+      // Overheid / instellingen
+      /zorginstituut/i, /rijksoverheid/i, /overheid/i, /gemeente/i,
+      /eerste\s*kamer/i, /tweede\s*kamer/i, /staten[\s-]?generaal/i,
+      // Informatieve sites
+      /poliswijzer/i, /consumentenbond/i, /thuisarts/i, /huisarts/i,
+      /wikipedia/i, /gezondheidsplein/i,
+      // Generieke termen
+      /^je\s+ziekenhuis/i, /^andere\s+kliniek/i, /^specialisten\s+en/i,
+      /\.nl$/i, /\.com$/i,  // Pure domain names
+    ]
+    
+    return competitors.filter(c => {
+      const trimmed = c.trim()
+      if (trimmed.length < 3) return false
+      return !nonCompetitorPatterns.some(pattern => pattern.test(trimmed))
+    })
+  }
+
   const formatDate = (d) => {
     if (!d) return '-'
     return new Date(d).toLocaleDateString('nl-NL', { 
@@ -820,15 +875,15 @@ export default function WebsiteDetailPage() {
                                 {result.simulated_ai_response_snippet && (
                                   <div className="bg-white p-3 rounded-lg text-sm text-slate-600">
                                     <p className="text-xs text-slate-400 mb-1 uppercase">AI Response</p>
-                                    {result.simulated_ai_response_snippet}
+                                    <p className="whitespace-pre-wrap">{highlightCompanyName(result.simulated_ai_response_snippet, website.name)}</p>
                                   </div>
                                 )}
                                 
-                                {result.competitors_mentioned?.length > 0 && (
+                                {filterCompetitors(result.competitors_mentioned || []).length > 0 && (
                                   <div>
                                     <p className="text-xs text-slate-500 mb-1">Concurrenten:</p>
                                     <div className="flex flex-wrap gap-1">
-                                      {result.competitors_mentioned.map((c, i) => (
+                                      {filterCompetitors(result.competitors_mentioned || []).map((c, i) => (
                                         <span key={i} className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs">{c}</span>
                                       ))}
                                     </div>
@@ -974,7 +1029,7 @@ export default function WebsiteDetailPage() {
                                 {textContent && (
                                   <div className="bg-white p-3 rounded-lg text-sm text-slate-600">
                                     <p className="text-xs text-slate-400 mb-1 uppercase">AI Modus antwoord</p>
-                                    <p className="whitespace-pre-wrap">{textContent}</p>
+                                    <p className="whitespace-pre-wrap">{highlightCompanyName(textContent, website.name)}</p>
                                   </div>
                                 )}
                                 
@@ -994,11 +1049,11 @@ export default function WebsiteDetailPage() {
                                   </div>
                                 )}
                                 
-                                {competitors.length > 0 && (
+                                {filterCompetitors(competitors).length > 0 && (
                                   <div>
                                     <p className="text-xs text-slate-500 mb-1">Concurrenten in bronnen:</p>
                                     <div className="flex flex-wrap gap-1">
-                                      {competitors.map((c, i) => (
+                                      {filterCompetitors(competitors).map((c, i) => (
                                         <span key={i} className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs">{c}</span>
                                       ))}
                                     </div>
@@ -1150,7 +1205,7 @@ export default function WebsiteDetailPage() {
                                 {textContent && (
                                   <div className="bg-white p-3 rounded-lg text-sm text-slate-600">
                                     <p className="text-xs text-slate-400 mb-1 uppercase">AI Overview</p>
-                                    <p className="whitespace-pre-wrap">{textContent}</p>
+                                    <p className="whitespace-pre-wrap">{highlightCompanyName(textContent, website.name)}</p>
                                   </div>
                                 )}
                                 
@@ -1170,11 +1225,11 @@ export default function WebsiteDetailPage() {
                                   </div>
                                 )}
                                 
-                                {competitors.length > 0 && (
+                                {filterCompetitors(competitors).length > 0 && (
                                   <div>
                                     <p className="text-xs text-slate-500 mb-1">Concurrenten in bronnen:</p>
                                     <div className="flex flex-wrap gap-1">
-                                      {competitors.map((c, i) => (
+                                      {filterCompetitors(competitors).map((c, i) => (
                                         <span key={i} className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs">{c}</span>
                                       ))}
                                     </div>
