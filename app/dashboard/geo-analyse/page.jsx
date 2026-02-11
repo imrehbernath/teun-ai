@@ -1340,7 +1340,7 @@ function GEOAnalyseContent() {
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `GEO-Rapport-${companyName.replace(/\s+/g, '-')}.docx`
+        a.download = `GEO-Rapport-${companyName.replace(/\s+/g, '-')}.pdf`
         a.click()
         window.URL.revokeObjectURL(url)
       }
@@ -2517,30 +2517,6 @@ function GEOAnalyseContent() {
                           </p>
                         </div>
                       )}
-                      
-                      {/* Live scan log - scrolling checks */}
-                      <div className="mt-4 bg-slate-900 rounded-lg overflow-hidden">
-                        <div className="px-3 py-2 border-b border-slate-700 flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                          <span className="text-xs text-slate-400 font-mono">Live scan output</span>
-                        </div>
-                        <div className="p-2 max-h-40 overflow-y-auto font-mono text-xs space-y-0.5" style={{ scrollBehavior: 'smooth' }} ref={el => { if (el) el.scrollTop = el.scrollHeight }}>
-                          {scanLog.length === 0 ? (
-                            <p className="text-slate-500 py-2 text-center">Wachten op scan...</p>
-                          ) : (
-                            scanLog.map((item, idx) => (
-                              <div key={idx} className={`flex items-center gap-2 px-1 py-0.5 rounded ${idx === scanLog.length - 1 ? 'bg-slate-800' : ''}`}>
-                                <span className={item.status === 'pass' ? 'text-green-400' : 'text-yellow-400'}>
-                                  {item.status === 'pass' ? '✓' : '○'}
-                                </span>
-                                <span className="text-slate-500">{item.section}</span>
-                                <span className="text-slate-300">›</span>
-                                <span className={idx === scanLog.length - 1 ? 'text-cyan-300' : 'text-slate-400'}>{item.label}</span>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>

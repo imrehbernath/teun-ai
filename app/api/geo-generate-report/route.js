@@ -1,166 +1,144 @@
 import { NextResponse } from 'next/server'
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 
 export async function POST(request) {
   try {
     const data = await request.json()
     const { companyName, companyWebsite, companyCategory, matches, scanResults, aiResults, overallScore, manualChecks } = data
 
-    const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-      Header, Footer, AlignmentType, LevelFormat, HeadingLevel,
-      BorderStyle, WidthType, ShadingType, PageNumber, PageBreak } = require('docx')
+    const pdfDoc = await PDFDocument.create()
+    const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica)
+    const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+    const helveticaOblique = await pdfDoc.embedFont(StandardFonts.HelveticaOblique)
 
-    const children = []
+    // A4 dimensions
+    const pageWidth = 595.28
+    const pageHeight = 841.89
+    const margin = 50
+    const contentWidth = pageWidth - 2 * margin
 
-    // --- HELPERS ---
-    const thinBorder = { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' }
-    const borders = { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder }
-    const noBorders = { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } }
-    
-    const headerCell = (text, width) => new TableCell({
-      borders,
-      width: { size: width, type: WidthType.DXA },
-      shading: { fill: '1E1E3F', type: ShadingType.CLEAR },
-      margins: { top: 80, bottom: 80, left: 120, right: 120 },
-      children: [new Paragraph({ children: [new TextRun({ text, bold: true, color: 'FFFFFF', size: 20, font: 'Arial' })] })]
-    })
+    // Colors
+    const BLACK = rgb(0.12, 0.12, 0.24)   // #1E1E3F
+    const PURPLE = rgb(0.39, 0.4, 0.95)    // #6366F1
+    const GREEN = rgb(0.09, 0.64, 0.26)    // #16A34A
+    const RED = rgb(0.86, 0.15, 0.15)      // #DC2626
+    const ORANGE = rgb(0.85, 0.47, 0.02)   // #D97706
+    const GRAY = rgb(0.4, 0.4, 0.4)
+    const LIGHTGRAY = rgb(0.58, 0.65, 0.71) // #94A3B8
+    const DARKGRAY = rgb(0.29, 0.33, 0.39)  // #4B5563
+    const WHITE = rgb(1, 1, 1)
 
-    const dataCell = (text, width, opts = {}) => new TableCell({
-      borders,
-      width: { size: width, type: WidthType.DXA },
-      shading: opts.shading ? { fill: opts.shading, type: ShadingType.CLEAR } : undefined,
-      margins: { top: 60, bottom: 60, left: 120, right: 120 },
-      children: [new Paragraph({
-        alignment: opts.center ? AlignmentType.CENTER : AlignmentType.LEFT,
-        children: [new TextRun({ text, size: 20, font: 'Arial', bold: opts.bold, color: opts.color })]
-      })]
-    })
-
-    const spacer = (pts = 100) => new Paragraph({ spacing: { before: pts } })
-
-    // Score thresholds
+    // Score helpers
     const getStatus = (score) => {
-      if (score >= 95) return { label: 'Uitstekend', color: '16A34A' }
-      if (score >= 80) return { label: 'Goed', color: '16A34A' }
-      if (score >= 65) return { label: 'Gemiddeld', color: 'D97706' }
-      return { label: 'Slecht', color: 'DC2626' }
+      if (score >= 95) return { label: 'Uitstekend', color: GREEN }
+      if (score >= 80) return { label: 'Goed', color: GREEN }
+      if (score >= 65) return { label: 'Gemiddeld', color: ORANGE }
+      return { label: 'Slecht', color: RED }
     }
 
     const getScoreColor = (score) => {
-      if (score >= 80) return '16A34A'
-      if (score >= 65) return 'D97706'
-      return 'DC2626'
+      if (score >= 80) return GREEN
+      if (score >= 65) return ORANGE
+      return RED
     }
 
-    // Truncate URL for display
-    const truncateUrl = (url, max = 50) => {
+    // Text helpers
+    const truncateUrl = (url, max = 52) => {
       const clean = (url || '').replace(/^https?:\/\//, '').replace(/\/$/, '')
       return clean.length > max ? clean.slice(0, max) + '...' : clean
     }
 
-    // Current date in Dutch
+    const wrapText = (text, font, fontSize, maxWidth) => {
+      const words = text.split(' ')
+      const lines = []
+      let currentLine = ''
+      for (const word of words) {
+        const testLine = currentLine ? currentLine + ' ' + word : word
+        const testWidth = font.widthOfTextAtSize(testLine, fontSize)
+        if (testWidth > maxWidth && currentLine) {
+          lines.push(currentLine)
+          currentLine = word
+        } else {
+          currentLine = testLine
+        }
+      }
+      if (currentLine) lines.push(currentLine)
+      return lines
+    }
+
+    const drawCentered = (page, text, y, font, size, color) => {
+      const w = font.widthOfTextAtSize(text, size)
+      page.drawText(text, { x: (pageWidth - w) / 2, y, size, font, color })
+    }
+
+    // New page helper
+    let currentPage = null
+    let y = 0
+    const newPage = () => {
+      currentPage = pdfDoc.addPage([pageWidth, pageHeight])
+      y = pageHeight - margin
+      return currentPage
+    }
+
+    const ensureSpace = (needed) => {
+      if (y - needed < margin + 30) {
+        newPage()
+      }
+    }
+
+    // Date
     const today = new Date().toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })
 
-    // === TITLE PAGE ===
-    children.push(
-      spacer(600),
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 100 },
-        children: [new TextRun({ text: 'GEO Rapport', size: 52, bold: true, font: 'Arial', color: '1E1E3F' })]
-      }),
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 200 },
-        children: [new TextRun({ text: companyName || 'Onbekend', size: 36, font: 'Arial', color: '6366F1' })]
-      }),
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 100 },
-        children: [new TextRun({ text: today, size: 22, font: 'Arial', color: '94A3B8' })]
-      })
-    )
+    // ===========================
+    // PAGE 1: TITLE
+    // ===========================
+    let page = newPage()
+
+    y -= 120
+    drawCentered(page, 'GEO Rapport', y, helveticaBold, 28, BLACK)
+    
+    y -= 40
+    drawCentered(page, companyName || 'Onbekend', y, helveticaBold, 20, PURPLE)
+    
+    y -= 30
+    drawCentered(page, today, y, helvetica, 11, LIGHTGRAY)
 
     if (companyWebsite) {
-      children.push(new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 100 },
-        children: [new TextRun({ text: companyWebsite.replace(/^https?:\/\//, ''), size: 22, font: 'Arial', color: '6366F1' })]
-      }))
+      y -= 18
+      drawCentered(page, companyWebsite.replace(/^https?:\/\//, ''), y, helvetica, 11, PURPLE)
     }
 
     // Disclaimer
-    children.push(
-      spacer(400),
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 100 },
-        children: [new TextRun({
-          text: 'Dit rapport is een beknopte samenvatting van de GEO-analyse.',
-          size: 20, font: 'Arial', color: '64748B', italics: true
-        })]
-      }),
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 100 },
-        children: [new TextRun({
-          text: 'GEO-optimalisatie specialisten weten op basis van deze data welke verbeterstappen nodig zijn.',
-          size: 20, font: 'Arial', color: '64748B', italics: true
-        })]
-      }),
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 200 },
-        children: [new TextRun({
-          text: 'Voor gedetailleerde resultaten per AI-platform, bekijk het dashboard op teun.ai.',
-          size: 20, font: 'Arial', color: '64748B', italics: true
-        })]
-      })
-    )
+    y -= 50
+    drawCentered(page, 'Dit rapport is een beknopte samenvatting van de GEO-analyse.', y, helveticaOblique, 9, LIGHTGRAY)
+    y -= 14
+    drawCentered(page, 'GEO-optimalisatie specialisten weten op basis van deze data welke verbeterstappen nodig zijn.', y, helveticaOblique, 9, LIGHTGRAY)
+    y -= 14
+    drawCentered(page, 'Voor gedetailleerde resultaten per AI-platform, bekijk het dashboard op teun.ai.', y, helveticaOblique, 9, LIGHTGRAY)
 
     // Overall score
     if (overallScore) {
-      const scoreStatus = getStatus(overallScore)
-      children.push(
-        spacer(200),
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          children: [
-            new TextRun({ text: 'Totale GEO Score: ', size: 32, bold: true, font: 'Arial', color: '1E1E3F' }),
-            new TextRun({ text: `${overallScore}/100`, size: 32, bold: true, font: 'Arial', color: scoreStatus.color }),
-            new TextRun({ text: ` (${scoreStatus.label})`, size: 28, font: 'Arial', color: scoreStatus.color })
-          ]
-        })
-      )
+      y -= 50
+      const status = getStatus(overallScore)
+      const scoreText = `Totale GEO Score: ${overallScore}/100 (${status.label})`
+      drawCentered(page, scoreText, y, helveticaBold, 16, status.color)
     }
 
-    // Page break after title
-    children.push(new Paragraph({ children: [new PageBreak()] }))
+    // ===========================
+    // PAGE 2: AI ZICHTBAARHEID
+    // ===========================
+    page = newPage()
 
-    // === 1. AI ZICHTBAARHEID ===
-    children.push(
-      new Paragraph({
-        heading: HeadingLevel.HEADING_1,
-        spacing: { after: 200 },
-        children: [new TextRun({ text: '1. AI Zichtbaarheid', size: 32, bold: true, font: 'Arial', color: '1E1E3F' })]
-      })
-    )
+    page.drawText('1. AI Zichtbaarheid', { x: margin, y, size: 18, font: helveticaBold, color: BLACK })
+    y -= 8
+    page.drawRectangle({ x: margin, y, width: 180, height: 2, color: PURPLE })
+    y -= 25
 
-    // Platform breakdown
-    const platforms = {
-      perplexity: { name: 'Perplexity', results: (aiResults || []).filter(r => r.platform === 'perplexity') },
-      chatgpt: { name: 'ChatGPT', results: (aiResults || []).filter(r => r.platform === 'chatgpt') },
-      google: { name: 'Google AI Modus', results: (aiResults || []).filter(r => r.platform === 'google') },
-      overview: { name: 'AI Overviews', results: (aiResults || []).filter(r => r.platform === 'google_overview') }
-    }
-
-    const totalPrompts = (aiResults || []).length
-    const uniquePrompts = [...new Set((aiResults || []).map(r => r.prompt || r.ai_prompt || r.query || ''))]
-    const promptCount = uniquePrompts.length || totalPrompts
-
-    // Count mentions (a prompt is "mentioned" if mentioned on ANY platform)
+    // Build prompt mention map
     const promptMentionMap = {}
     ;(aiResults || []).forEach(r => {
-      const prompt = r.prompt || r.ai_prompt || r.query || ''
+      const prompt = (r.prompt || r.ai_prompt || r.query || '').trim()
+      if (!prompt) return
       if (!promptMentionMap[prompt]) promptMentionMap[prompt] = { mentioned: false, platforms: [] }
       if (r.mentioned) {
         promptMentionMap[prompt].mentioned = true
@@ -170,355 +148,297 @@ export async function POST(request) {
 
     const mentionedPrompts = Object.entries(promptMentionMap).filter(([, v]) => v.mentioned)
     const notMentionedPrompts = Object.entries(promptMentionMap).filter(([, v]) => !v.mentioned)
+    const promptCount = Object.keys(promptMentionMap).length
 
-    // Active platforms text
-    const activePlatforms = Object.values(platforms).filter(p => p.results.length > 0).map(p => p.name)
-    const platformText = activePlatforms.length > 0 
-      ? activePlatforms.join(', ')
-      : 'ChatGPT, Perplexity, Google AI Modus en AI Overviews'
+    // Platform breakdown
+    const platforms = {
+      perplexity: { name: 'Perplexity', results: (aiResults || []).filter(r => r.platform === 'perplexity') },
+      chatgpt: { name: 'ChatGPT', results: (aiResults || []).filter(r => r.platform === 'chatgpt') },
+      google: { name: 'Google AI Modus', results: (aiResults || []).filter(r => r.platform === 'google') },
+      overview: { name: 'AI Overviews', results: (aiResults || []).filter(r => r.platform === 'google_overview') }
+    }
+    const activePlatforms = Object.values(platforms).filter(p => p.results.length > 0)
+    const platformNames = activePlatforms.map(p => p.name).join(', ')
 
-    children.push(
-      new Paragraph({
-        spacing: { after: 100 },
-        children: [new TextRun({
-          text: `We hebben ${promptCount} commerciele zoekwoorden getest op ${activePlatforms.length || 4} AI-platformen: ${platformText}.`,
-          size: 22, font: 'Arial'
-        })]
-      }),
-      new Paragraph({
-        spacing: { after: 100 },
-        children: [new TextRun({
-          text: `Resultaat: ${companyName} wordt bij ${mentionedPrompts.length} van de ${promptCount} zoekwoorden vermeld door minimaal 1 AI-platform.`,
-          size: 22, font: 'Arial', bold: true
-        })]
-      })
+    // Intro text
+    const introLines = wrapText(
+      `We hebben ${promptCount} commerciele zoekwoorden getest op ${activePlatforms.length} AI-platformen: ${platformNames}.`,
+      helvetica, 10, contentWidth
     )
+    introLines.forEach(line => {
+      page.drawText(line, { x: margin, y, size: 10, font: helvetica, color: DARKGRAY })
+      y -= 14
+    })
+    y -= 4
+
+    const resultText = `Resultaat: ${companyName} wordt bij ${mentionedPrompts.length} van de ${promptCount} zoekwoorden vermeld door minimaal 1 AI-platform.`
+    const resultLines = wrapText(resultText, helveticaBold, 10, contentWidth)
+    resultLines.forEach(line => {
+      page.drawText(line, { x: margin, y, size: 10, font: helveticaBold, color: BLACK })
+      y -= 14
+    })
+    y -= 10
 
     // Platform score table
-    const platformRows = Object.values(platforms).filter(p => p.results.length > 0).map(p => {
-      const mentioned = p.results.filter(r => r.mentioned).length
-      const total = p.results.length
-      const score = total > 0 ? Math.round((mentioned / total) * 100) : 0
-      return { name: p.name, mentioned, total, score }
-    })
+    if (activePlatforms.length > 0) {
+      const colWidths = [160, 80, 80, 80]
+      const tableX = margin
+      const rowHeight = 20
 
-    if (platformRows.length > 0) {
-      children.push(
-        spacer(100),
-        new Table({
-          width: { size: 9360, type: WidthType.DXA },
-          columnWidths: [3200, 1800, 1800, 2560],
-          rows: [
-            new TableRow({ children: [
-              headerCell('Platform', 3200),
-              headerCell('Vermeld', 1800),
-              headerCell('Totaal', 1800),
-              headerCell('Score', 2560)
-            ]}),
-            ...platformRows.map(p => new TableRow({ children: [
-              dataCell(p.name, 3200, { bold: true }),
-              dataCell(`${p.mentioned}`, 1800, { center: true }),
-              dataCell(`${p.total}`, 1800, { center: true }),
-              dataCell(`${p.score}%`, 2560, { center: true, color: getScoreColor(p.score), bold: true })
-            ]}))
-          ]
-        })
-      )
+      // Header
+      page.drawRectangle({ x: tableX, y: y - rowHeight, width: contentWidth, height: rowHeight, color: BLACK })
+      const headers = ['Platform', 'Vermeld', 'Totaal', 'Score']
+      let cx = tableX + 8
+      headers.forEach((h, i) => {
+        page.drawText(h, { x: cx, y: y - 14, size: 9, font: helveticaBold, color: WHITE })
+        cx += colWidths[i]
+      })
+      y -= rowHeight
+
+      // Rows
+      activePlatforms.forEach((p, idx) => {
+        const m = p.results.filter(r => r.mentioned).length
+        const t = p.results.length
+        const score = t > 0 ? Math.round((m / t) * 100) : 0
+        const bg = idx % 2 === 0 ? rgb(0.97, 0.97, 0.97) : WHITE
+        
+        page.drawRectangle({ x: tableX, y: y - rowHeight, width: contentWidth, height: rowHeight, color: bg })
+        
+        let cx = tableX + 8
+        page.drawText(p.name, { x: cx, y: y - 14, size: 9, font: helveticaBold, color: DARKGRAY })
+        cx += colWidths[0]
+        page.drawText(`${m}`, { x: cx + 20, y: y - 14, size: 9, font: helvetica, color: DARKGRAY })
+        cx += colWidths[1]
+        page.drawText(`${t}`, { x: cx + 20, y: y - 14, size: 9, font: helvetica, color: DARKGRAY })
+        cx += colWidths[2]
+        page.drawText(`${score}%`, { x: cx + 15, y: y - 14, size: 9, font: helveticaBold, color: getScoreColor(score) })
+        
+        y -= rowHeight
+      })
+      y -= 15
     }
 
-    // Mentioned prompts - FULL text
+    // Mentioned prompts
     if (mentionedPrompts.length > 0) {
-      children.push(
-        spacer(200),
-        new Paragraph({
-          spacing: { after: 150 },
-          children: [new TextRun({ text: `Wel vermeld (${mentionedPrompts.length} zoekwoorden)`, size: 24, bold: true, font: 'Arial', color: '16A34A' })]
+      y -= 10
+      page.drawText(`Wel vermeld (${mentionedPrompts.length} zoekwoorden)`, { x: margin, y, size: 12, font: helveticaBold, color: GREEN })
+      y -= 18
+
+      for (const [prompt] of mentionedPrompts) {
+        ensureSpace(30)
+        const lines = wrapText(prompt, helvetica, 9, contentWidth - 30)
+        page.drawText('[V]', { x: margin, y, size: 9, font: helveticaBold, color: GREEN })
+        lines.forEach((line, i) => {
+          currentPage.drawText(line, { x: margin + 28, y: y - (i * 12), size: 9, font: helvetica, color: DARKGRAY })
         })
-      )
-      mentionedPrompts.forEach(([prompt]) => {
-        children.push(new Paragraph({
-          spacing: { after: 80 },
-          indent: { left: 360 },
-          children: [
-            new TextRun({ text: '[V]  ', size: 20, font: 'Arial', color: '16A34A', bold: true }),
-            new TextRun({ text: prompt, size: 20, font: 'Arial', color: '374151' })
-          ]
-        }))
-      })
+        y -= lines.length * 12 + 4
+      }
     }
 
-    // Not mentioned prompts - FULL text
+    // Not mentioned prompts
     if (notMentionedPrompts.length > 0) {
-      children.push(
-        spacer(200),
-        new Paragraph({
-          spacing: { after: 150 },
-          children: [new TextRun({ text: `Niet vermeld (${notMentionedPrompts.length} zoekwoorden)`, size: 24, bold: true, font: 'Arial', color: 'DC2626' })]
+      y -= 10
+      ensureSpace(30)
+      currentPage.drawText(`Niet vermeld (${notMentionedPrompts.length} zoekwoorden)`, { x: margin, y, size: 12, font: helveticaBold, color: RED })
+      y -= 18
+
+      for (const [prompt] of notMentionedPrompts) {
+        ensureSpace(30)
+        const lines = wrapText(prompt, helvetica, 9, contentWidth - 30)
+        currentPage.drawText('[X]', { x: margin, y, size: 9, font: helveticaBold, color: RED })
+        lines.forEach((line, i) => {
+          currentPage.drawText(line, { x: margin + 28, y: y - (i * 12), size: 9, font: helvetica, color: DARKGRAY })
         })
-      )
-      notMentionedPrompts.forEach(([prompt]) => {
-        children.push(new Paragraph({
-          spacing: { after: 80 },
-          indent: { left: 360 },
-          children: [
-            new TextRun({ text: '[X]  ', size: 20, font: 'Arial', color: 'DC2626', bold: true }),
-            new TextRun({ text: prompt, size: 20, font: 'Arial', color: '374151' })
-          ]
-        }))
-      })
+        y -= lines.length * 12 + 4
+      }
     }
 
-    // Page break before section 2
-    children.push(new Paragraph({ children: [new PageBreak()] }))
+    // ===========================
+    // PAGE 3: PAGINA SCORES
+    // ===========================
+    const pageEntries = Object.entries(scanResults || {}).filter(([, v]) => v.scanned).sort((a, b) => (b[1].score || 0) - (a[1].score || 0))
 
-    // === 2. PAGINA SCORES ===
-    const pageEntries = Object.entries(scanResults || {}).filter(([, v]) => v.scanned)
-    
     if (pageEntries.length > 0) {
-      children.push(
-        new Paragraph({
-          heading: HeadingLevel.HEADING_1,
-          spacing: { after: 200 },
-          children: [new TextRun({ text: '2. Pagina Scores', size: 32, bold: true, font: 'Arial', color: '1E1E3F' })]
-        }),
-        new Paragraph({
-          spacing: { after: 200 },
-          children: [new TextRun({ text: `GEO-optimalisatiescore voor alle ${pageEntries.length} gescande pagina's:`, size: 22, font: 'Arial' })]
-        })
-      )
+      page = newPage()
 
-      // Sort by score descending
-      const sortedPages = pageEntries.sort((a, b) => (b[1].score || 0) - (a[1].score || 0))
+      page.drawText('2. Pagina Scores', { x: margin, y, size: 18, font: helveticaBold, color: BLACK })
+      y -= 8
+      page.drawRectangle({ x: margin, y, width: 140, height: 2, color: PURPLE })
+      y -= 25
 
-      children.push(
-        new Table({
-          width: { size: 9360, type: WidthType.DXA },
-          columnWidths: [5600, 1880, 1880],
-          rows: [
-            new TableRow({ children: [
-              headerCell('Pagina', 5600),
-              headerCell('Score', 1880),
-              headerCell('Status', 1880)
-            ]}),
-            ...sortedPages.map(([url, result]) => {
-              const score = result.score || 0
-              const status = getStatus(score)
-              return new TableRow({ children: [
-                dataCell(truncateUrl(url, 55), 5600),
-                dataCell(`${score}/100`, 1880, { center: true, color: status.color, bold: true }),
-                dataCell(status.label, 1880, { center: true, color: status.color })
-              ]})
-            })
-          ]
-        })
-      )
+      page.drawText(`GEO-optimalisatiescore voor alle ${pageEntries.length} gescande pagina's:`, { x: margin, y, size: 10, font: helvetica, color: DARKGRAY })
+      y -= 25
 
-      // Average score
-      const avgScore = Math.round(sortedPages.reduce((sum, [, r]) => sum + (r.score || 0), 0) / sortedPages.length)
+      // Table header
+      const colW = [300, 80, 80]
+      const rowH = 22
+      page.drawRectangle({ x: margin, y: y - rowH, width: contentWidth, height: rowH, color: BLACK })
+      let cx = margin + 8
+      page.drawText('Pagina', { x: cx, y: y - 15, size: 9, font: helveticaBold, color: WHITE })
+      cx += colW[0]
+      page.drawText('Score', { x: cx + 15, y: y - 15, size: 9, font: helveticaBold, color: WHITE })
+      cx += colW[1]
+      page.drawText('Status', { x: cx + 10, y: y - 15, size: 9, font: helveticaBold, color: WHITE })
+      y -= rowH
+
+      // Rows
+      pageEntries.forEach(([url, result], idx) => {
+        ensureSpace(rowH + 10)
+        const score = result.score || 0
+        const status = getStatus(score)
+        const bg = idx % 2 === 0 ? rgb(0.97, 0.97, 0.97) : WHITE
+
+        currentPage.drawRectangle({ x: margin, y: y - rowH, width: contentWidth, height: rowH, color: bg })
+        let cx = margin + 8
+        currentPage.drawText(truncateUrl(url, 48), { x: cx, y: y - 15, size: 9, font: helvetica, color: DARKGRAY })
+        cx += colW[0]
+        currentPage.drawText(`${score}/100`, { x: cx + 10, y: y - 15, size: 9, font: helveticaBold, color: status.color })
+        cx += colW[1]
+        currentPage.drawText(status.label, { x: cx + 5, y: y - 15, size: 9, font: helvetica, color: status.color })
+        y -= rowH
+      })
+
+      // Average
+      y -= 15
+      const avgScore = Math.round(pageEntries.reduce((sum, [, r]) => sum + (r.score || 0), 0) / pageEntries.length)
       const avgStatus = getStatus(avgScore)
-      children.push(
-        spacer(150),
-        new Paragraph({
-          spacing: { after: 100 },
-          children: [
-            new TextRun({ text: 'Gemiddelde score: ', size: 22, font: 'Arial', bold: true }),
-            new TextRun({ text: `${avgScore}/100`, size: 22, font: 'Arial', bold: true, color: avgStatus.color }),
-            new TextRun({ text: ` (${avgStatus.label})`, size: 22, font: 'Arial', color: avgStatus.color })
-          ]
-        })
-      )
+      currentPage.drawText(`Gemiddelde score: ${avgScore}/100 (${avgStatus.label})`, {
+        x: margin, y, size: 11, font: helveticaBold, color: avgStatus.color
+      })
 
-      // Page break before section 3
-      children.push(new Paragraph({ children: [new PageBreak()] }))
+      // ===========================
+      // PAGE 4: VERBETERPUNTEN
+      // ===========================
+      page = newPage()
 
-      // === 3. TOP ISSUES PER PAGINA ===
-      children.push(
-        new Paragraph({
-          heading: HeadingLevel.HEADING_1,
-          spacing: { after: 200 },
-          children: [new TextRun({ text: '3. Verbeterpunten per pagina', size: 32, bold: true, font: 'Arial', color: '1E1E3F' })]
-        })
-      )
+      page.drawText('3. Verbeterpunten per pagina', { x: margin, y, size: 18, font: helveticaBold, color: BLACK })
+      y -= 8
+      page.drawRectangle({ x: margin, y, width: 230, height: 2, color: PURPLE })
+      y -= 25
 
-      sortedPages.forEach(([url, result]) => {
+      pageEntries.forEach(([url, result]) => {
         const issues = result.issues || []
         if (issues.length === 0) return
 
-        children.push(
-          spacer(100),
-          new Paragraph({
-            spacing: { after: 100 },
-            children: [
-              new TextRun({ text: truncateUrl(url, 55), size: 22, font: 'Arial', bold: true, color: '1E1E3F' }),
-              new TextRun({ text: `  (${result.score || 0}/100)`, size: 20, font: 'Arial', color: getScoreColor(result.score || 0) })
-            ]
-          })
-        )
+        ensureSpace(60)
+        const score = result.score || 0
+        currentPage.drawText(truncateUrl(url, 55), { x: margin, y, size: 10, font: helveticaBold, color: BLACK })
+        const scoreStr = `(${score}/100)`
+        const urlW = helveticaBold.widthOfTextAtSize(truncateUrl(url, 55), 10)
+        currentPage.drawText(scoreStr, { x: margin + urlW + 8, y, size: 10, font: helvetica, color: getScoreColor(score) })
+        y -= 16
 
         issues.slice(0, 5).forEach(issue => {
-          children.push(new Paragraph({
-            spacing: { after: 60 },
-            indent: { left: 360 },
-            children: [
-              new TextRun({ text: '- ', size: 20, font: 'Arial', color: 'D97706' }),
-              new TextRun({ text: typeof issue === 'string' ? issue : (issue.message || issue.label || ''), size: 20, font: 'Arial', color: '4B5563' })
-            ]
-          }))
+          ensureSpace(16)
+          const issueText = typeof issue === 'string' ? issue : (issue.message || issue.label || '')
+          const lines = wrapText('- ' + issueText, helvetica, 9, contentWidth - 20)
+          lines.forEach(line => {
+            currentPage.drawText(line, { x: margin + 15, y, size: 9, font: helvetica, color: DARKGRAY })
+            y -= 12
+          })
         })
+        y -= 8
       })
     }
 
-    // Page break before recommendations
-    children.push(new Paragraph({ children: [new PageBreak()] }))
+    // ===========================
+    // AANBEVELINGEN
+    // ===========================
+    page = newPage()
+    const recSection = pageEntries.length > 0 ? '4' : '2'
 
-    // === 4. AANBEVELINGEN ===
-    children.push(
-      new Paragraph({
-        heading: HeadingLevel.HEADING_1,
-        spacing: { after: 200 },
-        children: [new TextRun({ text: `${pageEntries.length > 0 ? '4' : '3'}. Aanbevelingen`, size: 32, bold: true, font: 'Arial', color: '1E1E3F' })]
-      }),
-      new Paragraph({
-        spacing: { after: 200 },
-        children: [new TextRun({ text: 'Op basis van de analyse adviseren we de volgende stappen:', size: 22, font: 'Arial' })]
-      })
-    )
+    page.drawText(`${recSection}. Aanbevelingen`, { x: margin, y, size: 18, font: helveticaBold, color: BLACK })
+    y -= 8
+    page.drawRectangle({ x: margin, y, width: 140, height: 2, color: PURPLE })
+    y -= 25
+
+    page.drawText('Op basis van de analyse adviseren we de volgende stappen:', { x: margin, y, size: 10, font: helvetica, color: DARKGRAY })
+    y -= 20
 
     const recommendations = [
       {
         title: 'Vergroot je AI-zichtbaarheid per platform',
-        description: `${companyName} wordt bij ${notMentionedPrompts.length} van de ${promptCount} zoekwoorden niet vermeld. Focus op de niet-vermelde zoekwoorden door relevante content te creeren die direct antwoord geeft op deze vragen.`
+        desc: `${companyName} wordt bij ${notMentionedPrompts.length} van de ${promptCount} zoekwoorden niet vermeld. Focus op de niet-vermelde zoekwoorden door relevante content te creeren die direct antwoord geeft op deze vragen.`
       },
       {
-        title: 'Optimaliseer landingspagina\'s voor GEO',
-        description: 'Verbeter de GEO-score van elke landingspagina door betere contentstructuur, uitgebreide FAQ-secties en gedetailleerdere antwoorden op veelgestelde vragen.'
+        title: "Optimaliseer landingspagina's voor GEO",
+        desc: "Verbeter de GEO-score van elke landingspagina door betere contentstructuur, uitgebreide FAQ-secties en gedetailleerdere antwoorden op veelgestelde vragen."
       },
       {
         title: 'Implementeer structured data',
-        description: 'Voeg JSON-LD markup toe (Organization, FAQ, Product) zodat AI-systemen je content beter kunnen begrijpen en citeren.'
+        desc: 'Voeg JSON-LD markup toe (Organization, FAQ, Product) zodat AI-systemen je content beter kunnen begrijpen en citeren.'
       },
       {
         title: 'Versterk E-E-A-T signalen',
-        description: 'Zorg voor duidelijke auteursinformatie, referenties naar betrouwbare bronnen en regelmatig bijgewerkte content om je autoriteit te vergroten.'
+        desc: 'Zorg voor duidelijke auteursinformatie, referenties naar betrouwbare bronnen en regelmatig bijgewerkte content om je autoriteit te vergroten.'
       },
       {
         title: 'Geef volledige antwoorden op zoekvragen',
-        description: 'AI-systemen prefereren bronnen die direct en volledig antwoord geven. Incomplete antwoorden worden overgeslagen voor concurrenten die wel complete informatie bieden.'
+        desc: 'AI-systemen prefereren bronnen die direct en volledig antwoord geven. Incomplete antwoorden worden overgeslagen voor concurrenten die wel complete informatie bieden.'
       }
     ]
 
     recommendations.forEach((rec, i) => {
-      children.push(
-        new Paragraph({
-          spacing: { before: 200 },
-          children: [
-            new TextRun({ text: `${i + 1}. ${rec.title}`, bold: true, size: 24, font: 'Arial' }),
-            new TextRun({ text: '  [Hoog]', size: 18, color: 'EF4444', bold: true, font: 'Arial' })
-          ]
-        }),
-        new Paragraph({
-          indent: { left: 360 },
-          spacing: { after: 100 },
-          children: [new TextRun({ text: rec.description, size: 20, font: 'Arial', color: '4B5563' })]
-        })
-      )
+      ensureSpace(50)
+      currentPage.drawText(`${i + 1}. ${rec.title}`, { x: margin, y, size: 11, font: helveticaBold, color: BLACK })
+      currentPage.drawText('  [Hoog]', { 
+        x: margin + helveticaBold.widthOfTextAtSize(`${i + 1}. ${rec.title}`, 11) + 4, 
+        y, size: 8, font: helveticaBold, color: RED 
+      })
+      y -= 16
+
+      const descLines = wrapText(rec.desc, helvetica, 9, contentWidth - 20)
+      descLines.forEach(line => {
+        ensureSpace(14)
+        currentPage.drawText(line, { x: margin + 15, y, size: 9, font: helvetica, color: DARKGRAY })
+        y -= 12
+      })
+      y -= 10
     })
 
     // FOMO
-    children.push(
-      spacer(300),
-      new Paragraph({
-        spacing: { after: 200 },
-        children: [new TextRun({
-          text: 'Wacht niet te lang \u2014 elke dag zonder GEO-optimalisatie gaan potentiele klanten naar concurrenten die wel zichtbaar zijn in AI-antwoorden.',
-          size: 22, color: 'DC2626', bold: true, font: 'Arial'
-        })]
-      })
+    y -= 15
+    ensureSpace(40)
+    const fomoLines = wrapText(
+      'Wacht niet te lang -- elke dag zonder GEO-optimalisatie gaan potentiele klanten naar concurrenten die wel zichtbaar zijn in AI-antwoorden.',
+      helveticaBold, 10, contentWidth
     )
-
-    // === FOOTER ===
-    children.push(
-      spacer(400),
-      new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '\u2500'.repeat(50), color: 'E5E7EB' })] }),
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { before: 200, after: 100 },
-        children: [new TextRun({ text: 'Hulp nodig bij GEO-optimalisatie?', bold: true, size: 24, font: 'Arial' })]
-      }),
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        children: [
-          new TextRun({ text: 'Neem contact op: ', size: 20, font: 'Arial' }),
-          new TextRun({ text: 'hallo@onlinelabs.nl', bold: true, size: 20, color: '6366F1', font: 'Arial' })
-        ]
-      }),
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 200 },
-        children: [new TextRun({ text: 'onlinelabs.nl', size: 20, color: '6366F1', font: 'Arial' })]
-      }),
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        children: [
-          new TextRun({ text: 'Powered by ', size: 18, color: '999999', font: 'Arial' }),
-          new TextRun({ text: 'teun.ai', bold: true, size: 18, color: '6366F1', font: 'Arial' })
-        ]
-      })
-    )
-
-    // === BUILD DOCUMENT ===
-    const doc = new Document({
-      styles: {
-        default: { document: { run: { font: 'Arial', size: 22 } } },
-        paragraphStyles: [
-          {
-            id: 'Heading1', name: 'Heading 1', basedOn: 'Normal', next: 'Normal', quickFormat: true,
-            run: { size: 32, bold: true, font: 'Arial', color: '1E1E3F' },
-            paragraph: { spacing: { before: 300, after: 200 }, outlineLevel: 0 }
-          }
-        ]
-      },
-      sections: [{
-        properties: {
-          page: {
-            size: { width: 11906, height: 16838 }, // A4
-            margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
-          }
-        },
-        headers: {
-          default: new Header({
-            children: [new Paragraph({
-              alignment: AlignmentType.RIGHT,
-              children: [new TextRun({ text: `GEO Rapport - ${companyName}`, font: 'Arial', size: 18, color: '94A3B8' })]
-            })]
-          })
-        },
-        footers: {
-          default: new Footer({
-            children: [new Paragraph({
-              alignment: AlignmentType.CENTER,
-              children: [
-                new TextRun({ text: 'Pagina ', font: 'Arial', size: 18, color: '94A3B8' }),
-                new TextRun({ children: [PageNumber.CURRENT], font: 'Arial', size: 18, color: '94A3B8' })
-              ]
-            })]
-          })
-        },
-        children
-      }]
+    fomoLines.forEach(line => {
+      currentPage.drawText(line, { x: margin, y, size: 10, font: helveticaBold, color: RED })
+      y -= 14
     })
 
-    const buffer = await Packer.toBuffer(doc)
+    // ===========================
+    // FOOTER
+    // ===========================
+    y -= 40
+    ensureSpace(80)
+    
+    // Divider line
+    currentPage.drawRectangle({ x: margin + 50, y: y + 5, width: contentWidth - 100, height: 0.5, color: rgb(0.85, 0.85, 0.85) })
+    y -= 15
 
-    return new NextResponse(buffer, {
+    drawCentered(currentPage, 'Hulp nodig bij GEO-optimalisatie?', y, helveticaBold, 11, BLACK)
+    y -= 16
+    drawCentered(currentPage, 'hallo@onlinelabs.nl  |  onlinelabs.nl', y, helvetica, 10, PURPLE)
+    y -= 20
+    drawCentered(currentPage, 'Powered by teun.ai', y, helvetica, 9, LIGHTGRAY)
+
+    // ===========================
+    // GENERATE
+    // ===========================
+    const pdfBytes = await pdfDoc.save()
+    const companySlug = (companyName || 'rapport').replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '')
+
+    return new NextResponse(pdfBytes, {
       headers: {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'Content-Disposition': `attachment; filename="GEO-Rapport-${(companyName || 'rapport').replace(/\s+/g, '-')}.docx"`
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="GEO-Rapport-${companySlug}.pdf"`
       }
     })
 
   } catch (error) {
-    console.error('Report generation error:', error)
+    console.error('PDF generation error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
