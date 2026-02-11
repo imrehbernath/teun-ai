@@ -655,7 +655,8 @@ ${customTerms.include.slice(0, 3).map(term =>
 **📍 VERPLICHTE LOCATIE-FOCUS:**
 ${customTerms.location.map(term => `- "${term}"`).join('\n')}
 
-🚨 KRITIEK: Minimaal 6 van de 10 vragen MOETEN één van deze EXACTE locatietermen bevatten.
+🚨 KRITIEK: Precies 5 van de 10 vragen MOETEN één van deze EXACTE locatietermen bevatten.
+De andere 5 vragen zijn ZONDER locatie (test generieke zichtbaarheid, bijv. "Beste kliniek voor ooglidcorrectie?").
 
 **BELANGRIJKE LOCATIEREGELS:**
 - Als gebruiker "Amsterdam" specificeert: ALLEEN Amsterdam gebruiken, GEEN "Nederland"
@@ -689,7 +690,8 @@ ${customTerms.include?.length > 0 ? `
 2. ✅ Minimaal 7/10 vragen bevatten NATUURLIJK: ${customTerms.include.join(', ')}
 ` : ''}
 ${customTerms.location?.length > 0 ? `
-3. 📍 Minimaal 6/10 vragen bevatten EXACT: ${customTerms.location.join(', ')}
+3. 📍 Precies 5/10 vragen bevatten EXACT: ${customTerms.location.join(', ')}
+   De andere 5 ZONDER locatie (generieke zichtbaarheid)
    (GEEN alternatieven zoals "Nederland" als stad opgegeven is!)
 ` : ''}
 
@@ -869,7 +871,8 @@ Voorbeelden:
 ` : ''}
 
 ${customTerms.location?.length > 0 ? `
-📍 **LOCATIE (6+ van 10):** ${customTerms.location.join(', ')}
+📍 **LOCATIE (5 van 10):** ${customTerms.location.join(', ')}
+De andere 5 prompts ZONDER locatie (generieke zichtbaarheid).
 
 GEBRUIK ALLEEN DEZE EXACTE LOCATIES!
 ✅ "Kun je bedrijven in ${customTerms.location[0]} noemen..."
