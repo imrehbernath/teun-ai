@@ -167,6 +167,8 @@ function GEOAnalyseContent() {
   const [currentScanPage, setCurrentScanPage] = useState(null)
   const [currentCheckItem, setCurrentCheckItem] = useState(null)
   const [completedChecks, setCompletedChecks] = useState([]) // { id, label, passed, section }
+  const [currentPageIndex, setCurrentPageIndex] = useState(0) // 1-based page counter
+  const [scanLog, setScanLog] = useState([]) // scrolling log of checked items
   const [scanPhase, setScanPhase] = useState('idle') // 'loading', 'scanning', 'analyzing', 'complete'
   
   // Step 5: Results
@@ -1213,12 +1215,15 @@ function GEOAnalyseContent() {
     setGeoScanning(true)
     setGeoScanProgress(0)
     setCompletedChecks([])
+    setCurrentPageIndex(1)
+    setScanLog([])
     setScanPhase('loading')
     const results = {}
     
     for (let i = 0; i < uniquePages.length; i++) {
       const pageUrl = uniquePages[i]
       setCurrentScanPage(pageUrl)
+      setCurrentPageIndex(i + 1)
       setCompletedChecks([])
       setScanPhase('loading')
       
@@ -1233,17 +1238,18 @@ function GEOAnalyseContent() {
           body: JSON.stringify({ url: pageUrl })
         })
         
-        // Show random checklist items while scanning (simplified - just a few items)
+        // Show random checklist items while scanning
         const shuffledItems = [...ALL_CHECKLIST_ITEMS].sort(() => Math.random() - 0.5)
         let itemIndex = 0
         
         const animationInterval = setInterval(() => {
-          if (itemIndex < Math.min(8, shuffledItems.length)) { // Max 8 items shown
+          if (itemIndex < shuffledItems.length) {
             const item = shuffledItems[itemIndex]
             setCurrentCheckItem(item)
+            setScanLog(prev => [...prev.slice(-12), { ...item, timestamp: Date.now(), status: Math.random() > 0.3 ? 'pass' : 'check' }])
             itemIndex++
           }
-        }, 500)
+        }, 400)
         
         const response = await scanPromise
         clearInterval(animationInterval)
@@ -1334,7 +1340,7 @@ function GEOAnalyseContent() {
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `GEO-Rapport-${companyName.replace(/\s+/g, '-')}.pdf`
+        a.download = `GEO-Rapport-${companyName.replace(/\s+/g, '-')}.docx`
         a.click()
         window.URL.revokeObjectURL(url)
       }
@@ -2400,7 +2406,7 @@ function GEOAnalyseContent() {
                     />
                   </div>
                   <p className="text-center text-sm text-slate-600">
-                    Pagina {Math.ceil((geoScanProgress / 100) * [...new Set(matches.map(m => m.page))].length)} van {[...new Set(matches.map(m => m.page))].length}
+                    Pagina {currentPageIndex} van {[...new Set(matches.map(m => m.page))].length}
                   </p>
 
                   <div className="grid lg:grid-cols-2 gap-6">
@@ -2512,15 +2518,27 @@ function GEOAnalyseContent() {
                         </div>
                       )}
                       
-                      {/* Scan info */}
-                      <div className="mt-4 p-3 bg-white rounded-lg border border-slate-200">
-                        <p className="text-xs text-slate-500 mb-2">Controleert op:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {['HTTPS', 'Meta tags', 'Headings', 'FAQ', 'Schema', 'Mobile'].map(tag => (
-                            <span key={tag} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs">
-                              {tag}
-                            </span>
-                          ))}
+                      {/* Live scan log - scrolling checks */}
+                      <div className="mt-4 bg-slate-900 rounded-lg overflow-hidden">
+                        <div className="px-3 py-2 border-b border-slate-700 flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                          <span className="text-xs text-slate-400 font-mono">Live scan output</span>
+                        </div>
+                        <div className="p-2 max-h-40 overflow-y-auto font-mono text-xs space-y-0.5" style={{ scrollBehavior: 'smooth' }} ref={el => { if (el) el.scrollTop = el.scrollHeight }}>
+                          {scanLog.length === 0 ? (
+                            <p className="text-slate-500 py-2 text-center">Wachten op scan...</p>
+                          ) : (
+                            scanLog.map((item, idx) => (
+                              <div key={idx} className={`flex items-center gap-2 px-1 py-0.5 rounded ${idx === scanLog.length - 1 ? 'bg-slate-800' : ''}`}>
+                                <span className={item.status === 'pass' ? 'text-green-400' : 'text-yellow-400'}>
+                                  {item.status === 'pass' ? '✓' : '○'}
+                                </span>
+                                <span className="text-slate-500">{item.section}</span>
+                                <span className="text-slate-300">›</span>
+                                <span className={idx === scanLog.length - 1 ? 'text-cyan-300' : 'text-slate-400'}>{item.label}</span>
+                              </div>
+                            ))
+                          )}
                         </div>
                       </div>
                     </div>
