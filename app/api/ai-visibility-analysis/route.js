@@ -710,6 +710,12 @@ ${queries.map((q, i) => `${i + 1}. "${q}"`).join('\n')}
 
 **⚠️ KRITIEKE VERDELING - ALLE ZOEKWOORDEN MOETEN TERUGKOMEN:**
 
+🚨 **ABSOLUUT VERBODEN: NOOIT twee verschillende zoekwoorden in één prompt combineren!**
+Elke prompt gaat over PRECIES ÉÉN zoekwoord/onderwerp.
+❌ "klinieken voor lipoedeem en ooglidcorrectie" → FOUT! Twee onderwerpen!
+✅ "klinieken voor lipoedeem" → GOED! Eén onderwerp per prompt
+✅ "klinieken voor ooglidcorrectie" → GOED! Apart in andere prompt
+
 ${queries.length === 1 ? `
 - Alle 10 prompts moeten "${queries[0]}" of een directe variant bevatten
 ` : queries.length === 2 ? `
@@ -742,6 +748,7 @@ ${queries.length === 1 ? `
 - Met/zonder kantoor/bureau (advocaat ↔ advocatenkantoor)
 
 **VERBODEN:**
+- Twee of meer zoekwoorden combineren in één prompt
 - Compleet andere beroepsgroepen
 - Gerelateerde maar ANDERE diensten
 - "Creatieve" synoniemen die de betekenis veranderen`
