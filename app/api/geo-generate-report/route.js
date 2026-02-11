@@ -210,10 +210,11 @@ export async function POST(request) {
     const activePlatforms = Object.values(platforms).filter(p => p.results.length > 0)
     const platformNames = activePlatforms.map(p => p.name).join(', ')
 
-    // Intro text
+    // Intro text (narrower to avoid mascot overlap)
+    const introWidth = contentWidth - mascotWidth - 25
     const introLines = wrapText(
       `We hebben ${promptCount} commerciele zoekwoorden getest op ${activePlatforms.length} AI-platformen: ${platformNames}.`,
-      helvetica, 10, contentWidth
+      helvetica, 10, introWidth
     )
     introLines.forEach(line => {
       page.drawText(line, { x: margin, y, size: 10, font: helvetica, color: DARKGRAY })
@@ -222,7 +223,7 @@ export async function POST(request) {
     y -= 4
 
     const resultText = `Resultaat: ${companyName} wordt bij ${mentionedPrompts.length} van de ${promptCount} zoekwoorden vermeld door minimaal 1 AI-platform.`
-    const resultLines = wrapText(resultText, helveticaBold, 10, contentWidth)
+    const resultLines = wrapText(resultText, helveticaBold, 10, introWidth)
     resultLines.forEach(line => {
       page.drawText(line, { x: margin, y, size: 10, font: helveticaBold, color: BLACK })
       y -= 14
