@@ -156,13 +156,32 @@ export default function WebsiteDetailPage() {
           if (key === websiteId) {
             if (!websiteData.name) websiteData.name = scan.company_name
             
+            // Map ChatGPT results to standard format (like Perplexity)
+            const rawResults = scan.results || []
+            const results = rawResults.map(r => ({
+              query: r.query || '',
+              company_mentioned: r.found || false,
+              simulated_ai_response_snippet: r.full_response || r.response_preview || r.snippet || '',
+              competitors_mentioned: r.competitors || [],
+              sources_cited: r.sources || []
+            }))
+            
+            const mentions = results.length > 0 
+              ? results.filter(r => r.company_mentioned).length 
+              : (scan.found_count || 0)
+            const total = results.length > 0 
+              ? results.length 
+              : (scan.total_queries || 0)
+            
             websiteData.platforms.chatgpt.scans.push({
               id: scan.id,
               date: scan.created_at || scan.scan_date,
-              mentions: scan.found_count || 0,
-              total: scan.total_queries || 0
+              results,
+              mentions,
+              total
             })
-            websiteData.platforms.chatgpt.mentions += scan.found_count || 0
+            websiteData.platforms.chatgpt.mentions += mentions
+            websiteData.platforms.chatgpt.total += total
             websiteData.platforms.chatgpt.total += scan.total_queries || 0
           }
         })
@@ -455,6 +474,7 @@ export default function WebsiteDetailPage() {
   const latestPerplexity = website.platforms.perplexity.scans[0]
   const latestGoogle = website.platforms.google.scans[0]
   const latestGoogleOverview = website.platforms.googleOverview.scans[0]
+  const latestChatgpt = website.platforms.chatgpt.scans[0]
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -781,32 +801,133 @@ export default function WebsiteDetailPage() {
                     <div className="mt-5 p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-left max-w-sm mx-auto">
                       <p className="text-xs font-semibold text-emerald-800 mb-1">✨ Let the magic begin!</p>
                       <p className="text-xs text-emerald-700">
-                        Na installatie: log in via de extensie en open ChatGPT. Je resultaten worden automatisch opgeslagen.
+                        Na installatie: log in via de extensie en open ChatGPT. Zet ChatGPT op <strong>Instant</strong> (niet Thinking). Je resultaten worden automatisch opgeslagen.
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700 flex items-start gap-2">
-                      <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                      <span>De Chrome extensie slaat alleen totaalscores op. Individuele prompt-resultaten komen binnenkort.</span>
-                    </div>
-                    {website.platforms.chatgpt.scans.map(scan => (
-                      <div key={scan.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                        <div>
-                          <p className="font-medium text-slate-900">{scan.mentions}/{scan.total} vermeld</p>
-                          <p className="text-sm text-slate-500">{formatDate(scan.date)}</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className={`text-lg font-bold ${getScoreColor(getScore(scan.mentions, scan.total))}`}>
-                            {getScore(scan.mentions, scan.total)}%
-                          </span>
-                          <button onClick={() => deleteScan(scan.id, 'chatgpt')} className="p-1 text-slate-400 hover:text-red-500">
-                            {deletingId === scan.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  <div>
+                    {/* Check if latest scan has detailed results */}
+                    {latestChatgpt?.results?.length > 0 ? (
+                      <>
+                        {/* Scan header */}
+                        <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                          <div>
+                            <p className="text-sm text-slate-500">{formatDate(latestChatgpt.date)}</p>
+                            <p className="font-medium">{latestChatgpt.mentions}/{latestChatgpt.total} vermeldingen</p>
+                          </div>
+                          <button onClick={() => deleteScan(latestChatgpt.id, 'chatgpt')} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                            {deletingId === latestChatgpt.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                           </button>
                         </div>
+
+                        {/* Results list */}
+                        <div className="space-y-2">
+                          {latestChatgpt.results.map((result, idx) => {
+                            const key = `c-${idx}`
+                            const expanded = expandedItems[key]
+                            const mentioned = result.company_mentioned
+                            
+                            return (
+                              <div key={idx} className={`rounded-lg border ${mentioned ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                                <button
+                                  onClick={() => toggleExpand(key)}
+                                  className="w-full px-4 py-3 flex items-center gap-3 text-left"
+                                >
+                                  {mentioned ? (
+                                    <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+                                  ) : (
+                                    <XCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                                  )}
+                                  <span className="flex-1 text-sm text-slate-700">{result.query}</span>
+                                  {expanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                                </button>
+                                
+                                {expanded && (
+                                  <div className="px-4 pb-4 space-y-3 border-t border-slate-200 bg-white/50 pt-3">
+                                    {result.simulated_ai_response_snippet && (
+                                      <div className="bg-white p-3 rounded-lg text-sm text-slate-600">
+                                        <p className="text-xs text-slate-400 mb-1 uppercase">ChatGPT antwoord</p>
+                                        <p className="whitespace-pre-wrap">{highlightCompanyName(result.simulated_ai_response_snippet, website.name)}</p>
+                                      </div>
+                                    )}
+                                    
+                                    {filterCompetitors(result.competitors_mentioned || []).length > 0 && (
+                                      <div>
+                                        <p className="text-xs text-slate-500 mb-1">Concurrenten:</p>
+                                        <div className="flex flex-wrap gap-1">
+                                          {filterCompetitors(result.competitors_mentioned || []).map((c, i) => (
+                                            <span key={i} className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs">{c}</span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                    
+                                    {result.sources_cited?.length > 0 && (
+                                      <div>
+                                        <p className="text-xs text-slate-500 mb-1">Bronnen:</p>
+                                        {result.sources_cited.slice(0, 3).map((s, i) => (
+                                          <a key={i} href={s} target="_blank" rel="noopener noreferrer" className="block text-xs text-emerald-600 hover:underline truncate">
+                                            <Globe className="w-3 h-3 inline mr-1" />{s}
+                                          </a>
+                                        ))}
+                                      </div>
+                                    )}
+                                    
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); copyPrompt(result.query, key); }}
+                                      className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1"
+                                    >
+                                      {copiedPrompt === key ? <><Check className="w-3 h-3 text-green-500" /> Gekopieerd</> : <><Copy className="w-3 h-3" /> Kopieer</>}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+
+                        {/* Older scans */}
+                        {website.platforms.chatgpt.scans.length > 1 && (
+                          <div className="mt-4 pt-4 border-t border-slate-100">
+                            <p className="text-sm text-slate-500 mb-2">Eerdere scans:</p>
+                            {website.platforms.chatgpt.scans.slice(1).map(scan => (
+                              <div key={scan.id} className="flex items-center justify-between py-2 text-sm">
+                                <span className="text-slate-600">{formatDate(scan.date)}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className={`font-medium ${getScoreColor(getScore(scan.mentions, scan.total))}`}>
+                                    {scan.mentions}/{scan.total}
+                                  </span>
+                                  <button onClick={() => deleteScan(scan.id, 'chatgpt')} className="p-1 text-slate-400 hover:text-red-500">
+                                    {deletingId === scan.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      /* Fallback: old-style summary for scans without detailed results */
+                      <div className="space-y-3">
+                        {website.platforms.chatgpt.scans.map(scan => (
+                          <div key={scan.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                            <div>
+                              <p className="font-medium text-slate-900">{scan.mentions}/{scan.total} vermeld</p>
+                              <p className="text-sm text-slate-500">{formatDate(scan.date)}</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className={`text-lg font-bold ${getScoreColor(getScore(scan.mentions, scan.total))}`}>
+                                {getScore(scan.mentions, scan.total)}%
+                              </span>
+                              <button onClick={() => deleteScan(scan.id, 'chatgpt')} className="p-1 text-slate-400 hover:text-red-500">
+                                {deletingId === scan.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
               </div>

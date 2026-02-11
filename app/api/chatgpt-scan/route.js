@@ -103,6 +103,7 @@ export async function POST(request) {
         user_id,
         integration_id: integration_id || null,
         company_name,
+        results: results,
         total_queries: total_queries || results.length,
         successful_queries: successful_queries || results.filter(r => r.success).length,
         found_count: found_count || results.filter(r => r.found).length,
