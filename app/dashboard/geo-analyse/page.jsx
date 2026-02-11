@@ -405,11 +405,17 @@ function GEOAnalyseContent() {
         
         // Extract prompts from commercial_prompts OR from results
         const prompts = scan.commercial_prompts || 
-          (Array.isArray(scan.results) ? scan.results.map(r => r.query || r.prompt).filter(Boolean) : []) ||
-          (Array.isArray(scan.scan_results) ? scan.scan_results.map(r => r.query || r.prompt).filter(Boolean) : [])
+          (Array.isArray(scan.results) ? scan.results.map(r => r.ai_prompt || r.query || r.prompt).filter(Boolean) : []) ||
+          (Array.isArray(scan.scan_results) ? scan.scan_results.map(r => r.ai_prompt || r.query || r.prompt).filter(Boolean) : [])
         
         // Get results from either 'results' or 'scan_results' column
         const scanResults = scan.results || scan.scan_results || []
+        
+        // Debug: log actual field names in first result
+        if (scanResults.length > 0) {
+          console.log('tool_integrations result fields:', Object.keys(scanResults[0]))
+          console.log('First result sample:', JSON.stringify(scanResults[0]).substring(0, 500))
+        }
         
         if (!websiteMap.has(key)) {
           let combinedResults = {
@@ -422,9 +428,10 @@ function GEOAnalyseContent() {
           // Add Perplexity results
           if (Array.isArray(scanResults) && scanResults.length > 0) {
             combinedResults.perplexity.results = scanResults.map(r => ({
-              prompt: r.query || r.prompt || '',
-              mentioned: r.companyMentioned === true || r.mentioned === true || r.company_mentioned === true,
-              snippet: r.snippet || r.aiResponse || r.response_snippet || ''
+              prompt: r.ai_prompt || r.query || r.prompt || '',
+              mentioned: r.company_mentioned === true || r.companyMentioned === true || r.mentioned === true,
+              snippet: r.simulated_ai_response_snippet || r.snippet || r.aiResponse || r.response_snippet || '',
+              competitors: r.competitors_mentioned || r.competitors || []
             }))
             combinedResults.perplexity.total = scanResults.length
             combinedResults.perplexity.mentioned = scanResults.filter(r => 
@@ -1282,7 +1289,8 @@ function GEOAnalyseContent() {
           scanResults: geoResults,
           aiResults: existingAiResults,
           overallScore,
-          manualChecks
+          manualChecks,
+          combinedResults: selectedExistingWebsite?.combinedResults || null
         })
       })
       
@@ -1499,10 +1507,27 @@ function GEOAnalyseContent() {
                             <span className="flex-1 text-sm text-slate-800">{result.prompt}</span>
                             <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expandedPromptIndex === `p-${idx}` ? 'rotate-180' : ''}`} />
                           </button>
-                          {expandedPromptIndex === `p-${idx}` && result.snippet && (
+                          {expandedPromptIndex === `p-${idx}` && (
                             <div className={`px-4 pb-4 pt-2 border-t ml-9 ${result.mentioned ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
-                              <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Perplexity Response</p>
-                              <p className="text-sm text-slate-700 leading-relaxed">{result.snippet}</p>
+                              {result.snippet && (
+                                <div className="mb-3">
+                                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Perplexity Response</p>
+                                  <p className="text-sm text-slate-700 leading-relaxed">{result.snippet}</p>
+                                </div>
+                              )}
+                              {result.competitors && result.competitors.length > 0 && (
+                                <div>
+                                  <p className="text-xs text-slate-500 mb-2">Concurrenten:</p>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {result.competitors.map((comp, ci) => (
+                                      <span key={ci} className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded border border-amber-200 text-xs font-medium">{comp}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {!result.snippet && (!result.competitors || result.competitors.length === 0) && (
+                                <p className="text-xs text-slate-400 italic">Geen response preview beschikbaar</p>
+                              )}
                             </div>
                           )}
                         </div>
