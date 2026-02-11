@@ -204,6 +204,21 @@ function GEOAnalyseContent() {
     }
   }, [clientAccess.loading, clientAccess.isClient])
 
+  // Calculate overallScore for shared clients when data is ready
+  useEffect(() => {
+    if (clientAccess.isClient && selectedExistingWebsite && !overallScore) {
+      const cr = selectedExistingWebsite.combinedResults || {}
+      const totalMentioned = (cr.perplexity?.mentioned || 0) + (cr.chatgpt?.mentioned || 0) + (cr.googleAi?.mentioned || 0) + (cr.googleAiOverview?.mentioned || 0)
+      const totalScanned = (cr.perplexity?.total || 0) + (cr.chatgpt?.total || 0) + (cr.googleAi?.total || 0) + (cr.googleAiOverview?.total || 0)
+      const aiVisibilityScore = totalScanned > 0 ? Math.round((totalMentioned / totalScanned) * 100) : 0
+      setOverallScore({
+        aiVisibility: aiVisibilityScore,
+        geo: 0,
+        overall: aiVisibilityScore
+      })
+    }
+  }, [clientAccess.isClient, selectedExistingWebsite])
+
   // ============================================
   // SESSION PERSISTENCE
   // ============================================
@@ -324,14 +339,14 @@ function GEOAnalyseContent() {
         console.log('🔗 Client view: loading shared data from owner', queryUserId, 'companies:', companyFilter)
       }
       
-      // Load from perplexity_scans (new system) - has real scan results
-      let perplexityQuery = supabase
-        .from('perplexity_scans')
+      // Load from tool_integrations (PRIMARY source for Perplexity data)
+      let integrationsQuery = supabase
+        .from('tool_integrations')
         .select('*')
         .eq('user_id', queryUserId)
         .order('created_at', { ascending: false })
-      if (companyFilter) perplexityQuery = perplexityQuery.in('company_name', companyFilter)
-      const { data: perplexityScans } = await perplexityQuery
+      if (companyFilter) integrationsQuery = integrationsQuery.in('company_name', companyFilter)
+      const { data: integrations } = await integrationsQuery
 
       // Load from chatgpt_scans
       let chatgptQuery = supabase
@@ -360,34 +375,10 @@ function GEOAnalyseContent() {
       if (companyFilter) overviewQuery = overviewQuery.in('company_name', companyFilter)
       const { data: googleAiOverviewScans } = await overviewQuery
 
-      // Load from tool_integrations as fallback (older data)
-      let integrationsQuery = supabase
-        .from('tool_integrations')
-        .select('*')
-        .eq('user_id', queryUserId)
-        .not('commercial_prompts', 'is', null)
-        .order('created_at', { ascending: false })
-      if (companyFilter) integrationsQuery = integrationsQuery.in('company_name', companyFilter)
-      const { data: integrations } = await integrationsQuery
-
-      console.log('Loaded perplexity scans:', perplexityScans)
+      console.log('Loaded tool_integrations:', integrations)
       console.log('Loaded chatgpt scans:', chatgptScans)
       console.log('Loaded google ai scans:', googleAiScans)
       console.log('Loaded google ai overview scans:', googleAiOverviewScans)
-      console.log('Loaded tool_integrations:', integrations)
-      
-      // Debug: log first perplexity scan structure
-      if (perplexityScans?.[0]) {
-        console.log('First perplexity scan structure:', {
-          id: perplexityScans[0].id,
-          company_name: perplexityScans[0].company_name,
-          website: perplexityScans[0].website,
-          website_url: perplexityScans[0].website_url,
-          hasResults: !!perplexityScans[0].results,
-          resultsLength: perplexityScans[0].results?.length,
-          prompts: perplexityScans[0].prompts?.length
-        })
-      }
       
       // Debug: log first tool_integration structure
       if (integrations?.[0]) {
@@ -397,20 +388,30 @@ function GEOAnalyseContent() {
           website: integrations[0].website,
           hasResults: !!integrations[0].results,
           resultsLength: integrations[0].results?.length,
-          commercial_prompts: integrations[0].commercial_prompts?.length
+          hasScanResults: !!integrations[0].scan_results,
+          scanResultsLength: integrations[0].scan_results?.length,
+          commercial_prompts: integrations[0].commercial_prompts?.length,
+          total_company_mentions: integrations[0].total_company_mentions
         })
       }
 
-      // Deduplicate and combine - prioritize perplexity_scans
+      // Deduplicate and combine - tool_integrations is primary source
       const websiteMap = new Map()
       
-      // First, process perplexity_scans (most accurate data)
-      perplexityScans?.forEach(scan => {
+      // First, process tool_integrations (primary Perplexity data)
+      integrations?.forEach(scan => {
         const key = (scan.company_name || scan.website || '').toLowerCase().trim()
-        if (key && !websiteMap.has(key)) {
-          const prompts = scan.prompts || []
-          
-          // Start with empty combined results
+        if (!key) return
+        
+        // Extract prompts from commercial_prompts OR from results
+        const prompts = scan.commercial_prompts || 
+          (Array.isArray(scan.results) ? scan.results.map(r => r.query || r.prompt).filter(Boolean) : []) ||
+          (Array.isArray(scan.scan_results) ? scan.scan_results.map(r => r.query || r.prompt).filter(Boolean) : [])
+        
+        // Get results from either 'results' or 'scan_results' column
+        const scanResults = scan.results || scan.scan_results || []
+        
+        if (!websiteMap.has(key)) {
           let combinedResults = {
             perplexity: { mentioned: 0, total: 0, results: [] },
             chatgpt: { mentioned: 0, total: 0, results: [] },
@@ -419,30 +420,30 @@ function GEOAnalyseContent() {
           }
           
           // Add Perplexity results
-          if (Array.isArray(scan.results) && scan.results.length > 0) {
-            combinedResults.perplexity.results = scan.results.map(r => ({
+          if (Array.isArray(scanResults) && scanResults.length > 0) {
+            combinedResults.perplexity.results = scanResults.map(r => ({
               prompt: r.query || r.prompt || '',
-              mentioned: r.companyMentioned === true || r.mentioned === true,
-              snippet: r.snippet || r.aiResponse || ''
+              mentioned: r.companyMentioned === true || r.mentioned === true || r.company_mentioned === true,
+              snippet: r.snippet || r.aiResponse || r.response_snippet || ''
             }))
-            combinedResults.perplexity.total = scan.results.length
-            combinedResults.perplexity.mentioned = scan.results.filter(r => 
-              r.companyMentioned === true || r.mentioned === true
+            combinedResults.perplexity.total = scanResults.length
+            combinedResults.perplexity.mentioned = scanResults.filter(r => 
+              r.companyMentioned === true || r.mentioned === true || r.company_mentioned === true
             ).length
           }
           
           websiteMap.set(key, {
-            id: scan.id, // Store the ID for linking to detail page
+            id: scan.id,
             name: scan.company_name || scan.website,
-            website: scan.website || scan.website_url || scan.url || '', // Try multiple field names
+            website: scan.website || '',
             category: scan.company_category || scan.category,
             prompts: prompts,
             combinedResults: combinedResults,
-            source: 'perplexity',
-            hasRealAiData: Array.isArray(scan.results) && scan.results.length > 0
+            source: 'tool_integrations',
+            hasRealAiData: Array.isArray(scanResults) && scanResults.length > 0
           })
           
-          console.log('Added website from perplexity:', scan.company_name, 'URL:', scan.website || scan.website_url || scan.url)
+          console.log('Added website from tool_integrations:', scan.company_name, 'Prompts:', prompts.length, 'Results:', scanResults.length)
         }
       })
 
@@ -558,56 +559,6 @@ function GEOAnalyseContent() {
           if (results.length > 0 && results.some(r => r.hasAiOverview)) {
             existing.hasRealAiData = true
           }
-        }
-      })
-
-      // Fallback: add from tool_integrations if not already in map (legacy data)
-      // Also use tool_integrations to add Perplexity results if perplexity_scans didn't have them
-      integrations?.forEach(scan => {
-        const key = (scan.company_name || scan.website || '').toLowerCase().trim()
-        
-        // If website already exists, try to add Perplexity results from tool_integrations
-        if (key && websiteMap.has(key)) {
-          const existing = websiteMap.get(key)
-          
-          // Add website URL if missing
-          if (!existing.website && scan.website) {
-            existing.website = scan.website
-          }
-          
-          // Add Perplexity results if existing entry doesn't have them
-          if (existing.combinedResults.perplexity.total === 0) {
-            if (Array.isArray(scan.results) && scan.results.length > 0) {
-              existing.combinedResults.perplexity = {
-                mentioned: scan.results.filter(r => r.mentioned || r.company_mentioned || r.companyMentioned).length,
-                total: scan.results.length,
-                results: scan.results.map(r => ({
-                  prompt: r.query || r.prompt || '',
-                  mentioned: r.mentioned || r.company_mentioned || r.companyMentioned || false,
-                  snippet: r.snippet || r.response_snippet || ''
-                }))
-              }
-              console.log('Added Perplexity results from tool_integrations for:', key)
-            }
-          }
-        }
-        // Create new entry if doesn't exist
-        else if (key && !websiteMap.has(key) && Array.isArray(scan.commercial_prompts)) {
-          websiteMap.set(key, {
-            id: scan.id,
-            name: scan.company_name || scan.website,
-            website: scan.website,
-            category: scan.company_category,
-            prompts: scan.commercial_prompts || [],
-            combinedResults: {
-              perplexity: { mentioned: 0, total: 0, results: [] },
-              chatgpt: { mentioned: 0, total: 0, results: [] },
-              googleAi: { mentioned: 0, total: 0, results: [] },
-            googleAiOverview: { mentioned: 0, total: 0, results: [] }
-            },
-            source: 'tool_integrations',
-            hasRealAiData: false
-          })
         }
       })
 
@@ -1418,6 +1369,399 @@ function GEOAnalyseContent() {
         </div>
       </div>
 
+      {/* ============================================ */}
+      {/* CLIENT READ-ONLY VIEW */}
+      {/* ============================================ */}
+      {clientAccess.isClient && !clientAccess.loading && selectedExistingWebsite ? (
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <ClientBanner shares={clientAccess.shares} sharedCompanies={clientAccess.sharedCompanies} />
+          
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 space-y-6">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center shadow-lg">
+                <Award className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">GEO Analyse — {companyName}</h2>
+                <p className="text-slate-500 text-sm">{companyWebsite} {companyCategory ? `• ${companyCategory}` : ''}</p>
+              </div>
+            </div>
+
+            {/* Website selector if multiple shared projects */}
+            {existingWebsites.length > 1 && (
+              <div className="flex gap-2 flex-wrap">
+                {existingWebsites.map((website, i) => (
+                  <button
+                    key={i}
+                    onClick={() => selectExistingWebsite(website)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition cursor-pointer ${
+                      selectedExistingWebsite?.name === website.name
+                        ? 'bg-indigo-100 text-indigo-700 border border-indigo-300'
+                        : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'
+                    }`}
+                  >
+                    {website.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Score Cards */}
+            {(() => {
+              const cr = selectedExistingWebsite.combinedResults || {}
+              const totalMentioned = (cr.perplexity?.mentioned || 0) + (cr.chatgpt?.mentioned || 0) + (cr.googleAi?.mentioned || 0) + (cr.googleAiOverview?.mentioned || 0)
+              const totalScanned = (cr.perplexity?.total || 0) + (cr.chatgpt?.total || 0) + (cr.googleAi?.total || 0) + (cr.googleAiOverview?.total || 0)
+              const aiVisibilityScore = totalScanned > 0 ? Math.round((totalMentioned / totalScanned) * 100) : 0
+              
+              return (
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl p-6 text-white shadow-xl">
+                    <div className="flex items-center gap-2 mb-3 opacity-90">
+                      <Eye className="w-5 h-5" />
+                      <span className="text-sm font-medium">AI Visibility Score</span>
+                    </div>
+                    <div className="text-5xl font-black mb-1">{aiVisibilityScore}%</div>
+                    <p className="text-violet-200 text-sm">{totalMentioned} van {totalScanned} prompts vermeld over alle platforms</p>
+                  </div>
+                  <div className={`bg-gradient-to-br ${
+                    aiVisibilityScore >= 70 ? 'from-emerald-500 to-green-600' :
+                    aiVisibilityScore >= 40 ? 'from-amber-500 to-orange-600' :
+                    'from-red-500 to-rose-600'
+                  } rounded-2xl p-6 text-white shadow-xl`}>
+                    <div className="flex items-center gap-2 mb-3 opacity-90">
+                      <BarChart3 className="w-5 h-5" />
+                      <span className="text-sm font-medium">Platforms Gescand</span>
+                    </div>
+                    <div className="text-5xl font-black mb-1">{[cr.perplexity, cr.chatgpt, cr.googleAi, cr.googleAiOverview].filter(p => p?.total > 0).length}</div>
+                    <p className="text-white/80 text-sm">van 4 AI platforms</p>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* Platform Quick Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { key: 'perplexity', label: 'Perplexity', color: 'purple' },
+                { key: 'chatgpt', label: 'ChatGPT', color: 'green' },
+                { key: 'googleAi', label: 'AI Modus', color: 'blue' },
+                { key: 'googleAiOverview', label: 'AI Overviews', color: 'emerald' },
+              ].map(platform => {
+                const data = selectedExistingWebsite.combinedResults?.[platform.key]
+                return (
+                  <div key={platform.key} className="bg-slate-50 rounded-xl p-4 text-center">
+                    <p className={`text-2xl font-bold ${data?.total > 0 ? `text-${platform.color}-600` : 'text-slate-300'}`}>
+                      {data?.total > 0 ? `${data.mentioned}/${data.total}` : '—'}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">{platform.label}</p>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Per-Platform Expandable Results */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                <Target className="w-5 h-5 text-indigo-500" />
+                Resultaten per platform
+              </h3>
+
+              {/* Perplexity Results */}
+              {selectedExistingWebsite.combinedResults?.perplexity?.total > 0 && (
+                <div className="border border-purple-200 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setExpandedPlatform(expandedPlatform === 'perplexity' ? null : 'perplexity')}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-purple-50 hover:bg-purple-100 transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2 text-sm font-medium text-purple-800">
+                      <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+                      Perplexity
+                      <span className="text-purple-600 font-bold">
+                        ({selectedExistingWebsite.combinedResults.perplexity.mentioned}/{selectedExistingWebsite.combinedResults.perplexity.total})
+                      </span>
+                    </span>
+                    {expandedPlatform === 'perplexity' ? <ChevronUp className="w-4 h-4 text-purple-600" /> : <ChevronDown className="w-4 h-4 text-purple-600" />}
+                  </button>
+                  {expandedPlatform === 'perplexity' && (
+                    <div className="divide-y divide-purple-100">
+                      {selectedExistingWebsite.combinedResults.perplexity.results?.map((result, idx) => (
+                        <div key={idx} className="bg-white">
+                          <button
+                            onClick={() => setExpandedPromptIndex(expandedPromptIndex === `p-${idx}` ? null : `p-${idx}`)}
+                            className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer text-left"
+                          >
+                            <span className={`mt-0.5 flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
+                              result.mentioned ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                            }`}>
+                              {result.mentioned ? <CheckCircle2 className="w-4 h-4" /> : <span className="text-sm font-medium">✗</span>}
+                            </span>
+                            <span className="flex-1 text-sm text-slate-800">{result.prompt}</span>
+                            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expandedPromptIndex === `p-${idx}` ? 'rotate-180' : ''}`} />
+                          </button>
+                          {expandedPromptIndex === `p-${idx}` && result.snippet && (
+                            <div className={`px-4 pb-4 pt-2 border-t ml-9 ${result.mentioned ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
+                              <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">Perplexity Response</p>
+                              <p className="text-sm text-slate-700 leading-relaxed">{result.snippet}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ChatGPT Results */}
+              {selectedExistingWebsite.combinedResults?.chatgpt?.total > 0 && (
+                <div className="border border-green-200 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setExpandedPlatform(expandedPlatform === 'chatgpt' ? null : 'chatgpt')}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-green-50 hover:bg-green-100 transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2 text-sm font-medium text-green-800">
+                      <span className="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                      ChatGPT
+                      <span className="text-green-600 font-bold">
+                        ({selectedExistingWebsite.combinedResults.chatgpt.mentioned}/{selectedExistingWebsite.combinedResults.chatgpt.total})
+                      </span>
+                    </span>
+                    {expandedPlatform === 'chatgpt' ? <ChevronUp className="w-4 h-4 text-green-600" /> : <ChevronDown className="w-4 h-4 text-green-600" />}
+                  </button>
+                  {expandedPlatform === 'chatgpt' && (
+                    <div className="divide-y divide-green-100">
+                      {selectedExistingWebsite.combinedResults.chatgpt.results?.map((result, idx) => (
+                        <div key={idx} className="bg-white">
+                          <button
+                            onClick={() => setExpandedPromptIndex(expandedPromptIndex === `cc-${idx}` ? null : `cc-${idx}`)}
+                            className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer text-left"
+                          >
+                            <span className={`mt-0.5 flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
+                              result.mentioned ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                            }`}>
+                              {result.mentioned ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                            </span>
+                            <span className="flex-1 text-sm text-slate-800">{result.prompt}</span>
+                            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expandedPromptIndex === `cc-${idx}` ? 'rotate-180' : ''}`} />
+                          </button>
+                          {expandedPromptIndex === `cc-${idx}` && result.snippet && (
+                            <div className="px-4 pb-4 pt-2 bg-green-50 border-t border-green-100 ml-9">
+                              <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">ChatGPT antwoord</p>
+                              <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto">{result.snippet}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Google AI Modus Results */}
+              {selectedExistingWebsite.combinedResults?.googleAi?.total > 0 && (
+                <div className="border border-blue-200 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setExpandedPlatform(expandedPlatform === 'googleAi' ? null : 'googleAi')}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-blue-50 hover:bg-blue-100 transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2 text-sm font-medium text-blue-800">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                      Google AI Modus
+                      <span className="text-blue-600 font-bold">
+                        ({selectedExistingWebsite.combinedResults.googleAi.mentioned}/{selectedExistingWebsite.combinedResults.googleAi.total})
+                      </span>
+                    </span>
+                    {expandedPlatform === 'googleAi' ? <ChevronUp className="w-4 h-4 text-blue-600" /> : <ChevronDown className="w-4 h-4 text-blue-600" />}
+                  </button>
+                  {expandedPlatform === 'googleAi' && (
+                    <div className="divide-y divide-blue-100">
+                      {selectedExistingWebsite.combinedResults.googleAi.results?.map((result, idx) => (
+                        <div key={idx} className="bg-white">
+                          <button
+                            onClick={() => setExpandedPromptIndex(expandedPromptIndex === `gm-${idx}` ? null : `gm-${idx}`)}
+                            className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer text-left"
+                          >
+                            <span className={`mt-0.5 flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
+                              result.mentioned ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                            }`}>
+                              {result.mentioned ? <CheckCircle2 className="w-4 h-4" /> : <span className="text-sm font-medium">✗</span>}
+                            </span>
+                            <span className="flex-1 text-sm text-slate-800">{result.prompt}</span>
+                            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expandedPromptIndex === `gm-${idx}` ? 'rotate-180' : ''}`} />
+                          </button>
+                          {expandedPromptIndex === `gm-${idx}` && (
+                            <div className={`px-4 pb-4 pt-2 border-t ml-9 ${result.mentioned ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
+                              {result.snippet && (
+                                <div className="mb-3">
+                                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">AI Modus Response</p>
+                                  <p className="text-sm text-slate-700 leading-relaxed">{result.snippet}</p>
+                                </div>
+                              )}
+                              {result.competitors && result.competitors.length > 0 && (
+                                <div>
+                                  <p className="text-xs text-slate-500 mb-2">Concurrenten:</p>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {result.competitors.map((comp, ci) => (
+                                      <span key={ci} className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded border border-amber-200 text-xs font-medium">{comp}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Google AI Overviews Results */}
+              {selectedExistingWebsite.combinedResults?.googleAiOverview?.total > 0 && (
+                <div className="border border-emerald-200 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setExpandedPlatform(expandedPlatform === 'googleAiOverview' ? null : 'googleAiOverview')}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-emerald-50 hover:bg-emerald-100 transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2 text-sm font-medium text-emerald-800">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                      Google AI Overviews
+                      <span className="text-emerald-600 font-bold">
+                        ({selectedExistingWebsite.combinedResults.googleAiOverview.mentioned}/{selectedExistingWebsite.combinedResults.googleAiOverview.total})
+                      </span>
+                    </span>
+                    {expandedPlatform === 'googleAiOverview' ? <ChevronUp className="w-4 h-4 text-emerald-600" /> : <ChevronDown className="w-4 h-4 text-emerald-600" />}
+                  </button>
+                  {expandedPlatform === 'googleAiOverview' && (
+                    <div className="divide-y divide-emerald-100">
+                      {selectedExistingWebsite.combinedResults.googleAiOverview.results?.map((result, idx) => (
+                        <div key={idx} className="bg-white">
+                          <button
+                            onClick={() => setExpandedPromptIndex(expandedPromptIndex === `ovc-${idx}` ? null : `ovc-${idx}`)}
+                            className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer text-left"
+                          >
+                            <span className={`mt-0.5 flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
+                              result.mentioned ? 'bg-green-100 text-green-600' : result.hasAiOverview ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400'
+                            }`}>
+                              {result.mentioned ? <CheckCircle2 className="w-4 h-4" /> : result.hasAiOverview ? <span className="text-sm font-medium">!</span> : <span className="text-sm font-medium">—</span>}
+                            </span>
+                            <div className="flex-1">
+                              <span className="text-sm text-slate-800">{result.prompt}</span>
+                              {!result.hasAiOverview && <span className="ml-2 text-xs text-slate-400 italic">geen AI Overview</span>}
+                            </div>
+                            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expandedPromptIndex === `ovc-${idx}` ? 'rotate-180' : ''}`} />
+                          </button>
+                          {expandedPromptIndex === `ovc-${idx}` && (
+                            <div className="px-4 pb-4 pt-2 bg-emerald-50 border-t border-emerald-100 ml-9">
+                              {result.snippet && (
+                                <div className="mb-3">
+                                  <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">AI Overview</p>
+                                  <p className="text-sm text-slate-700 leading-relaxed">{result.snippet}</p>
+                                </div>
+                              )}
+                              {result.competitors && result.competitors.length > 0 && (
+                                <div>
+                                  <p className="text-xs text-slate-500 mb-2">Bronnen/Concurrenten:</p>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {result.competitors.map((comp, ci) => (
+                                      <span key={ci} className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded border border-amber-200 text-xs font-medium">{comp}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* No platforms scanned yet */}
+              {(() => {
+                const cr = selectedExistingWebsite.combinedResults || {}
+                const totalScanned = (cr.perplexity?.total || 0) + (cr.chatgpt?.total || 0) + (cr.googleAi?.total || 0) + (cr.googleAiOverview?.total || 0)
+                if (totalScanned === 0) return (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                    <p className="text-amber-800 text-sm">Er zijn nog geen scan resultaten beschikbaar. Neem contact op met je account manager.</p>
+                  </div>
+                )
+                return null
+              })()}
+            </div>
+
+            {/* All Prompts Overview */}
+            {existingPrompts.length > 0 && (
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
+                  <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-indigo-500" />
+                    Alle commerciële prompts ({existingPrompts.length})
+                  </h3>
+                </div>
+                <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto">
+                  {existingPrompts.map((prompt, idx) => {
+                    // Check across all platforms if this prompt is mentioned
+                    const cr = selectedExistingWebsite.combinedResults || {}
+                    const allResults = [
+                      ...(cr.perplexity?.results || []),
+                      ...(cr.chatgpt?.results || []),
+                      ...(cr.googleAi?.results || []),
+                      ...(cr.googleAiOverview?.results || [])
+                    ]
+                    const matchingResults = allResults.filter(r => r.prompt === prompt)
+                    const isMentionedAnywhere = matchingResults.some(r => r.mentioned)
+                    const platformCount = matchingResults.length
+                    
+                    return (
+                      <div key={idx} className="flex items-center gap-3 px-4 py-3">
+                        <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
+                          isMentionedAnywhere ? 'bg-green-100 text-green-600' : platformCount > 0 ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-400'
+                        }`}>
+                          {isMentionedAnywhere ? <CheckCircle2 className="w-4 h-4" /> : platformCount > 0 ? <span className="text-sm font-medium">✗</span> : <span className="text-sm">—</span>}
+                        </span>
+                        <span className="flex-1 text-sm text-slate-700">{prompt}</span>
+                        {platformCount > 0 && (
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${isMentionedAnywhere ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {matchingResults.filter(r => r.mentioned).length}/{platformCount} platforms
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Download Report */}
+            <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 rounded-2xl p-6 text-white shadow-xl">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-xl font-bold mb-1">📄 Download Volledig Rapport</h3>
+                  <p className="text-indigo-200 text-sm">Professioneel PDF rapport met alle resultaten en aanbevelingen</p>
+                </div>
+                <button
+                  onClick={generateReport}
+                  disabled={generating}
+                  className="flex items-center gap-2 px-8 py-4 bg-white text-indigo-600 rounded-xl font-bold hover:bg-indigo-50 disabled:opacity-50 transition shadow-lg cursor-pointer whitespace-nowrap"
+                >
+                  {generating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                  {generating ? 'Genereren...' : 'Download PDF'}
+                </button>
+              </div>
+            </div>
+
+            {/* Back to Dashboard */}
+            <div className="flex justify-end pt-2">
+              <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 cursor-pointer">
+                Terug naar Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+      <>
       {/* Progress Steps */}
       <div className="bg-white border-b border-slate-100">
         <div className="max-w-6xl mx-auto px-4 py-3">
@@ -1524,11 +1868,8 @@ function GEOAnalyseContent() {
                     <button
                       onClick={() => {
                         console.log('Bewerken clicked, website:', selectedExistingWebsite)
-                        // Go to website detail page if we have an ID from perplexity_scans
-                        if (selectedExistingWebsite?.id && selectedExistingWebsite?.source === 'perplexity') {
-                          router.push(`/dashboard/website/${selectedExistingWebsite.id}`)
-                        } else if (selectedExistingWebsite?.id) {
-                          // For other sources, try the ID but it might not work
+                        // Go to website detail page if we have an ID
+                        if (selectedExistingWebsite?.id) {
                           router.push(`/dashboard/website/${selectedExistingWebsite.id}`)
                         } else {
                           // Fallback: go to dashboard with search param
@@ -2774,6 +3115,8 @@ function GEOAnalyseContent() {
 
         </div>
       </div>
+    </>
+    )}
     </div>
   )
 }

@@ -31,7 +31,7 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/tools/ai-visibility`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
       },
     });
 
@@ -132,24 +132,24 @@ export default function SignupPage() {
               priority
             />
             <h2 className="text-2xl font-bold text-slate-900 mb-2">
-              Maak een{' '}
+              Check je{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-                gratis account
+                AI-zichtbaarheid
               </span>
             </h2>
             <p className="text-slate-500 max-w-xs mb-6">
-              Start direct met het scannen van je AI-zichtbaarheid op 4 platforms.
+              Wordt jouw bedrijf genoemd door ChatGPT, Perplexity, Google AI Mode en AI Overviews?
             </p>
 
             {/* Benefits list */}
             <div className="bg-white border border-slate-200 rounded-xl p-5 text-left w-full max-w-xs shadow-sm">
-              <p className="text-sm font-semibold text-slate-900 mb-3">✨ Gratis account bevat:</p>
+              <p className="text-sm font-semibold text-slate-900 mb-3">Gratis account bevat:</p>
               <ul className="text-sm text-slate-600 space-y-2">
                 <li className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-green-50 border border-green-200 flex items-center justify-center flex-shrink-0">
-                    <span className="text-green-600 text-xs">✓</span>
+                  <span className="w-5 h-5 rounded-full bg-purple-50 border border-purple-200 flex items-center justify-center flex-shrink-0">
+                    <span className="text-purple-600 text-xs">✓</span>
                   </span>
-                  1 Perplexity scan per dag
+                  Perplexity scan
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-green-50 border border-green-200 flex items-center justify-center flex-shrink-0">
@@ -158,16 +158,22 @@ export default function SignupPage() {
                   <span><strong className="text-slate-900">Onbeperkt</strong> ChatGPT scannen</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-green-50 border border-green-200 flex items-center justify-center flex-shrink-0">
-                    <span className="text-green-600 text-xs">✓</span>
+                  <span className="w-5 h-5 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center flex-shrink-0">
+                    <span className="text-blue-600 text-xs">✓</span>
                   </span>
-                  Persoonlijk dashboard
+                  Google AI Mode scan
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-green-50 border border-green-200 flex items-center justify-center flex-shrink-0">
-                    <span className="text-green-600 text-xs">✓</span>
+                  <span className="w-5 h-5 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center flex-shrink-0">
+                    <span className="text-emerald-600 text-xs">✓</span>
                   </span>
-                  Scan geschiedenis & trends
+                  Google AI Overviews scan
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center flex-shrink-0">
+                    <span className="text-indigo-600 text-xs">✓</span>
+                  </span>
+                  Persoonlijk dashboard met trends
                 </li>
               </ul>
             </div>
@@ -193,7 +199,7 @@ export default function SignupPage() {
                 Account Aanmaken
               </h1>
               <p className="text-slate-500">
-                1 gratis scan per dag + onbeperkt ChatGPT!
+                Gratis je AI-zichtbaarheid meten op 4 platforms
               </p>
             </div>
 
@@ -253,12 +259,13 @@ export default function SignupPage() {
 
                 {/* Mobile benefits */}
                 <div className="lg:hidden bg-slate-50 border border-slate-200 rounded-xl p-4">
-                  <p className="text-sm font-semibold text-slate-900 mb-2">✨ Gratis account bevat:</p>
+                  <p className="text-sm font-semibold text-slate-900 mb-2">Gratis account bevat:</p>
                   <ul className="text-sm text-slate-600 space-y-1">
-                    <li>✅ 1 Perplexity scan per dag</li>
-                    <li>✅ <strong>Onbeperkt</strong> ChatGPT scannen (Chrome extensie)</li>
-                    <li>✅ Persoonlijk dashboard</li>
-                    <li>✅ Scan geschiedenis & trends</li>
+                    <li>🟣 Perplexity scan</li>
+                    <li>🟢 <strong>Onbeperkt</strong> ChatGPT scannen</li>
+                    <li>🔵 Google AI Mode scan</li>
+                    <li>🟢 Google AI Overviews scan</li>
+                    <li>📊 Persoonlijk dashboard met trends</li>
                   </ul>
                 </div>
 
