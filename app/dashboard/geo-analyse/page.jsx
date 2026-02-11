@@ -9,7 +9,7 @@ import {
   GripVertical, Link2, FileText, Download, AlertCircle,
   ChevronDown, ChevronUp, ExternalLink, Sparkles, Target,
   BarChart3, Shield, Zap, BookOpen, Database, MessageSquare,
-  Eye, TrendingUp, Award, Pencil, Play, RefreshCw
+  Eye, TrendingUp, Award, Pencil, Play, RefreshCw, XCircle
 } from 'lucide-react'
 import Image from 'next/image'
 import useClientAccess from '../hooks/useClientAccess'
@@ -181,7 +181,7 @@ function GEOAnalyseContent() {
   const [googleAiOverviewScanning, setGoogleAiOverviewScanning] = useState(false)
   
   // Expanded platform results
-  const [expandedPlatform, setExpandedPlatform] = useState(null) // 'perplexity' | 'googleAi' | 'googleAiOverview' | null
+  const [expandedPlatform, setExpandedPlatform] = useState(null) // 'perplexity' | 'chatgpt' | 'googleAi' | 'googleAiOverview' | null
   const [expandedPromptIndex, setExpandedPromptIndex] = useState(null)
   
   const router = useRouter()
@@ -447,9 +447,16 @@ function GEOAnalyseContent() {
       // Add ChatGPT results to existing websites
       chatgptScans?.forEach(scan => {
         const key = (scan.company_name || '').toLowerCase().trim()
+        // Support both new results JSONB and old chatgpt_query_results join
+        const rawResults = scan.results || scan.chatgpt_query_results || []
+        const results = rawResults.map(r => ({
+          prompt: r.query || '',
+          mentioned: r.found || r.mentioned || false,
+          snippet: r.full_response || r.response_preview || r.snippet || r.response_snippet || ''
+        }))
+        
         if (key && websiteMap.has(key)) {
           const existing = websiteMap.get(key)
-          const results = scan.chatgpt_query_results || []
           
           // Update category if missing
           if (!existing.category && (scan.company_category || scan.category)) {
@@ -459,16 +466,11 @@ function GEOAnalyseContent() {
           existing.combinedResults.chatgpt = {
             mentioned: results.filter(r => r.mentioned === true).length,
             total: results.length,
-            results: results.map(r => ({
-              prompt: r.query,
-              mentioned: r.mentioned || false,
-              snippet: r.response_snippet || ''
-            }))
+            results
           }
         } else if (key && !websiteMap.has(key)) {
           // Create new entry if not exists
-          const prompts = scan.chatgpt_query_results?.map(r => r.query) || []
-          const results = scan.chatgpt_query_results || []
+          const prompts = rawResults.map(r => r.query).filter(Boolean)
           
           websiteMap.set(key, {
             id: scan.id,
@@ -481,14 +483,10 @@ function GEOAnalyseContent() {
               chatgpt: {
                 mentioned: results.filter(r => r.mentioned === true).length,
                 total: results.length,
-                results: results.map(r => ({
-                  prompt: r.query,
-                  mentioned: r.mentioned || false,
-                  snippet: r.response_snippet || ''
-                }))
+                results
               },
               googleAi: { mentioned: 0, total: 0, results: [] },
-            googleAiOverview: { mentioned: 0, total: 0, results: [] }
+              googleAiOverview: { mentioned: 0, total: 0, results: [] }
             },
             source: 'chatgpt'
           })
@@ -1552,18 +1550,19 @@ function GEOAnalyseContent() {
                   {/* AI scan status - combined from all platforms */}
                   {selectedExistingWebsite?.combinedResults ? (
                     <div className="mt-3 space-y-2">
-                      {/* Calculate totals excluding ChatGPT (extension needs update) */}
+                      {/* Calculate totals including all platforms */}
                       {(() => {
                         const cr = selectedExistingWebsite.combinedResults
                         const perplexityMentioned = cr.perplexity?.mentioned || 0
                         const perplexityTotal = cr.perplexity?.total || 0
+                        const chatgptMentioned = cr.chatgpt?.mentioned || 0
+                        const chatgptTotal = cr.chatgpt?.total || 0
                         const googleMentioned = cr.googleAi?.mentioned || 0
                         const googleTotal = cr.googleAi?.total || 0
                         const overviewMentioned = cr.googleAiOverview?.mentioned || 0
                         const overviewTotal = cr.googleAiOverview?.total || 0
-                        // Don't include ChatGPT in total for now (extension update pending)
-                        const totalMentioned = perplexityMentioned + googleMentioned + overviewMentioned
-                        const totalScanned = perplexityTotal + googleTotal + overviewTotal
+                        const totalMentioned = perplexityMentioned + chatgptMentioned + googleMentioned + overviewMentioned
+                        const totalScanned = perplexityTotal + chatgptTotal + googleTotal + overviewTotal
                         
                         return (
                           <>
@@ -1590,10 +1589,16 @@ function GEOAnalyseContent() {
                             Perplexity: -
                           </span>
                         )}
-                        {/* ChatGPT - always show "binnenkort" for now */}
-                        <span className="px-2 py-1 bg-slate-100 text-slate-500 rounded">
-                          ChatGPT: <span className="italic">binnenkort</span>
-                        </span>
+                        {/* ChatGPT */}
+                        {selectedExistingWebsite.combinedResults?.chatgpt?.total > 0 ? (
+                          <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded">
+                            ChatGPT: {selectedExistingWebsite.combinedResults.chatgpt.mentioned}/{selectedExistingWebsite.combinedResults.chatgpt.total}
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 bg-slate-100 text-slate-500 rounded">
+                            ChatGPT: -
+                          </span>
+                        )}
                         {/* Google AI */}
                         {selectedExistingWebsite.combinedResults?.googleAi?.total > 0 ? (
                           <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded">
@@ -1811,6 +1816,61 @@ function GEOAnalyseContent() {
                                         {!result.hasAiOverview && (
                                           <p className="text-xs text-slate-400 italic">Geen AI Overview voor deze zoekopdracht</p>
                                         )}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Expandable ChatGPT Results */}
+                      {selectedExistingWebsite.combinedResults?.chatgpt?.total > 0 && (
+                        <div className="mt-4">
+                          <div className="border border-green-200 rounded-lg overflow-hidden">
+                            <button
+                              onClick={() => setExpandedPlatform(expandedPlatform === 'chatgpt' ? null : 'chatgpt')}
+                              className="w-full flex items-center justify-between px-3 py-2 bg-green-50 hover:bg-green-100 transition-colors cursor-pointer"
+                            >
+                              <span className="flex items-center gap-2 text-sm font-medium text-green-800">
+                                <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                ChatGPT Resultaten
+                                <span className="text-green-600">
+                                  ({selectedExistingWebsite.combinedResults.chatgpt.mentioned}/{selectedExistingWebsite.combinedResults.chatgpt.total})
+                                </span>
+                              </span>
+                              {expandedPlatform === 'chatgpt' ? (
+                                <ChevronUp className="w-4 h-4 text-green-600" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4 text-green-600" />
+                              )}
+                            </button>
+                            {expandedPlatform === 'chatgpt' && (
+                              <div className="divide-y divide-green-100">
+                                {selectedExistingWebsite.combinedResults.chatgpt.results?.map((result, idx) => (
+                                  <div key={idx} className="bg-white">
+                                    <button
+                                      onClick={() => setExpandedPromptIndex(expandedPromptIndex === `c-${idx}` ? null : `c-${idx}`)}
+                                      className="w-full flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer text-left"
+                                    >
+                                      <span className={`mt-0.5 flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
+                                        result.mentioned ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                                      }`}>
+                                        {result.mentioned ? (
+                                          <CheckCircle2 className="w-4 h-4" />
+                                        ) : (
+                                          <XCircle className="w-4 h-4" />
+                                        )}
+                                      </span>
+                                      <span className="flex-1 text-sm text-slate-800">{result.prompt}</span>
+                                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expandedPromptIndex === `c-${idx}` ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    {expandedPromptIndex === `c-${idx}` && result.snippet && (
+                                      <div className="px-4 pb-4 pt-2 bg-green-50 border-t border-green-100 ml-9">
+                                        <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">ChatGPT antwoord</p>
+                                        <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto">{result.snippet}</p>
                                       </div>
                                     )}
                                   </div>

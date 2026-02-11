@@ -416,6 +416,57 @@ export default function WebsiteDetailPage() {
   }
 
   // Filter out non-competitor items from competitor list
+  // Format AI response text into structured content
+  const formatAiResponse = (text, companyName) => {
+    if (!text) return null
+    const lines = text.split('\n').filter(l => l.trim())
+    
+    return (
+      <div className="space-y-1.5">
+        {lines.map((line, i) => {
+          const trimmed = line.trim()
+          
+          // Skip empty lines
+          if (!trimmed) return null
+          
+          // Detect "Company Name – Description" pattern (with – or - or :)
+          const companyMatch = trimmed.match(/^([A-Z][^–\-:]{2,40})\s*[–\-:]\s*(.+)$/u)
+          if (companyMatch) {
+            const name = companyMatch[1].trim()
+            const desc = companyMatch[2].trim()
+            const isTarget = companyName && name.toLowerCase().includes(companyName.toLowerCase())
+            
+            return (
+              <div key={i} className={`flex gap-2 p-2 rounded-lg ${isTarget ? 'bg-green-50 border border-green-200' : 'bg-slate-50'}`}>
+                <span className="text-slate-400 text-xs mt-0.5">•</span>
+                <div>
+                  <span className={`font-semibold text-sm ${isTarget ? 'text-green-700' : 'text-slate-800'}`}>{name}</span>
+                  <span className="text-sm text-slate-500"> — {desc}</span>
+                </div>
+              </div>
+            )
+          }
+          
+          // Detect headers (short lines, often bold markers like ⭐ or ##)
+          if (trimmed.length < 80 && (trimmed.startsWith('⭐') || trimmed.startsWith('#') || trimmed.startsWith('**') || /^[A-Z][a-z]+ (gespecialiseerd|aanbevolen|in|voor|die|met)/.test(trimmed))) {
+            return (
+              <p key={i} className="font-semibold text-xs text-slate-500 uppercase tracking-wide pt-2">
+                {trimmed.replace(/[#*]/g, '').trim()}
+              </p>
+            )
+          }
+          
+          // Regular paragraph
+          return (
+            <p key={i} className="text-sm text-slate-600">
+              {highlightCompanyName(trimmed, companyName)}
+            </p>
+          )
+        })}
+      </div>
+    )
+  }
+
   const filterCompetitors = (competitors) => {
     const nonCompetitorPatterns = [
       // Review/vergelijkingssites
@@ -847,8 +898,10 @@ export default function WebsiteDetailPage() {
                                   <div className="px-4 pb-4 space-y-3 border-t border-slate-200 bg-white/50 pt-3">
                                     {result.simulated_ai_response_snippet && (
                                       <div className="bg-white p-3 rounded-lg text-sm text-slate-600">
-                                        <p className="text-xs text-slate-400 mb-1 uppercase">ChatGPT antwoord</p>
-                                        <p className="whitespace-pre-wrap">{highlightCompanyName(result.simulated_ai_response_snippet, website.name)}</p>
+                                        <p className="text-xs text-slate-400 mb-2 uppercase">ChatGPT antwoord</p>
+                                        <div className="max-h-80 overflow-y-auto">
+                                          {formatAiResponse(result.simulated_ai_response_snippet, website.name)}
+                                        </div>
                                       </div>
                                     )}
                                     
