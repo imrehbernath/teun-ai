@@ -182,7 +182,6 @@ export default function WebsiteDetailPage() {
             })
             websiteData.platforms.chatgpt.mentions += mentions
             websiteData.platforms.chatgpt.total += total
-            websiteData.platforms.chatgpt.total += scan.total_queries || 0
           }
         })
       }

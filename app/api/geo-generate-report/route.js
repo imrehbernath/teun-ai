@@ -117,10 +117,15 @@ export async function POST(request) {
     drawCentered(page, 'Voor gedetailleerde resultaten per AI-platform, bekijk het dashboard op teun.ai.', y, helveticaOblique, 9, LIGHTGRAY)
 
     // Overall score
-    if (overallScore) {
+    // Extract numeric score (overallScore can be object { overall, geo, aiVisibility } or number)
+    const scoreValue = typeof overallScore === 'object' && overallScore !== null 
+      ? (overallScore.overall || 0) 
+      : (overallScore || 0)
+
+    if (scoreValue) {
       y -= 50
-      const status = getStatus(overallScore)
-      const scoreText = `Totale GEO Score: ${overallScore}/100 (${status.label})`
+      const status = getStatus(scoreValue)
+      const scoreText = `Totale GEO Score: ${scoreValue}/100 (${status.label})`
       drawCentered(page, scoreText, y, helveticaBold, 16, status.color)
     }
 
