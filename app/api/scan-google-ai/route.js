@@ -249,7 +249,7 @@ function analyzeAIModeResponse(data, companyName, websiteDomain = '') {
 }
 
 // Fetch from SerpAPI Google AI Mode
-async function fetchGoogleAIMode(query, companyName) {
+async function fetchGoogleAIMode(query, companyName, website = '') {
   const params = new URLSearchParams({
     engine: 'google_ai_mode',
     q: query,
@@ -395,7 +395,7 @@ export async function POST(request) {
         await new Promise(resolve => setTimeout(resolve, 800))
       }
 
-      const result = await fetchGoogleAIMode(query, companyName)
+      const result = await fetchGoogleAIMode(query, companyName, website)
       
       // Remove rawResponse before storing to save space
       // Map field names to what the frontend detail page expects
