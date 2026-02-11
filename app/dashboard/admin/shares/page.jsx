@@ -22,6 +22,7 @@ export default function AdminSharesPage() {
   const [newEmail, setNewEmail] = useState('')
   const [selectedCompany, setSelectedCompany] = useState('')
   const [selectedWebsite, setSelectedWebsite] = useState('')
+  const [selectedWebsiteId, setSelectedWebsiteId] = useState(null)
   const [note, setNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [copied, setCopied] = useState(null)
@@ -45,30 +46,46 @@ export default function AdminSharesPage() {
       setShares(shareData.shares || [])
       setIsAdmin(true)
 
-      // Load websites from dashboard for company picker
+      // Load websites from dashboard for company/project picker
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        const { data: scans } = await supabase
-          .from('perplexity_scans')
-          .select('company_name, website, website_url')
+        // Load from websites table (has proper IDs for project scoping)
+        const { data: websiteRows } = await supabase
+          .from('websites')
+          .select('id, company_name, website_url')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
 
-        // Deduplicate by company_name
-        const uniqueWebsites = []
-        const seen = new Set()
-        for (const scan of (scans || [])) {
-          const key = (scan.company_name || '').toLowerCase().trim()
-          if (key && !seen.has(key)) {
-            seen.add(key)
-            uniqueWebsites.push({
-              company_name: scan.company_name,
-              website: scan.website || scan.website_url || ''
-            })
+        if (websiteRows && websiteRows.length > 0) {
+          setWebsites(websiteRows.map(w => ({
+            id: w.id,
+            company_name: w.company_name,
+            website: w.website_url || ''
+          })))
+        } else {
+          // Fallback: load from perplexity_scans
+          const { data: scans } = await supabase
+            .from('perplexity_scans')
+            .select('company_name, website, website_url')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+
+          const uniqueWebsites = []
+          const seen = new Set()
+          for (const scan of (scans || [])) {
+            const key = (scan.company_name || '').toLowerCase().trim()
+            if (key && !seen.has(key)) {
+              seen.add(key)
+              uniqueWebsites.push({
+                id: null,
+                company_name: scan.company_name,
+                website: scan.website || scan.website_url || ''
+              })
+            }
           }
+          setWebsites(uniqueWebsites)
         }
-        setWebsites(uniqueWebsites)
       }
     } catch (err) {
       console.error('Error loading data:', err)
@@ -89,6 +106,7 @@ export default function AdminSharesPage() {
           clientEmail: newEmail,
           companyName: selectedCompany,
           website: selectedWebsite,
+          websiteId: selectedWebsiteId,
           note: note
         })
       })
@@ -100,6 +118,7 @@ export default function AdminSharesPage() {
         setNewEmail('')
         setSelectedCompany('')
         setSelectedWebsite('')
+        setSelectedWebsiteId(null)
         setNote('')
         setShowAddModal(false)
         loadData()
@@ -174,7 +193,7 @@ export default function AdminSharesPage() {
                 <Users className="w-6 h-6 text-blue-600" />
                 Klant-toegang beheren
               </h1>
-              <p className="text-slate-500 text-sm">Deel scan-resultaten met klanten voor je offerte-traject</p>
+              <p className="text-slate-500 text-sm">Deel scan-resultaten met klanten — ze ontvangen een uitnodigingsmail</p>
             </div>
           </div>
           <button 
@@ -209,15 +228,15 @@ export default function AdminSharesPage() {
             </div>
             <div className="flex items-start gap-2">
               <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
-              <span>Deel de resultaten met het e-mailadres van je klant</span>
+              <span>Deel het project — klant ontvangt automatisch een uitnodigingsmail</span>
             </div>
             <div className="flex items-start gap-2">
               <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
-              <span>Klant maakt een account aan (of heeft er al een)</span>
+              <span>Klant maakt een gratis account aan via de link in de mail</span>
             </div>
             <div className="flex items-start gap-2">
               <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">4</span>
-              <span>Klant logt in en ziet alles read-only klaarstaan</span>
+              <span>Klant ziet alleen het gedeelde project read-only</span>
             </div>
           </div>
         </div>
@@ -356,14 +375,14 @@ export default function AdminSharesPage() {
                     placeholder="klant@bedrijf.nl"
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none"
                   />
-                  <p className="text-xs text-slate-400 mt-1">De klant kan hiermee inloggen op teun.ai</p>
+                  <p className="text-xs text-slate-400 mt-1">Klant ontvangt een uitnodigingsmail op dit adres</p>
                 </div>
 
                 {/* Company Selection */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1.5">
                     <Building2 className="w-3.5 h-3.5 inline mr-1" />
-                    Bedrijf delen
+                    Project delen
                   </label>
                   {websites.length > 0 ? (
                     <select
@@ -372,6 +391,7 @@ export default function AdminSharesPage() {
                         setSelectedCompany(e.target.value)
                         const site = websites.find(w => w.company_name === e.target.value)
                         setSelectedWebsite(site?.website || '')
+                        setSelectedWebsiteId(site?.id || null)
                       }}
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none bg-white"
                     >
