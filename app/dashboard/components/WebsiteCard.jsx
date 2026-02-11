@@ -45,10 +45,11 @@ export default function WebsiteCard({ website, onClick, onDelete }) {
     }
   }
 
+  const toSlug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
   const handleClick = () => {
-    // Navigate to detail page
-    const websiteId = encodeURIComponent(website.id)
-    router.push(`/dashboard/website/${websiteId}`)
+    const slug = toSlug(website.id)
+    window.location.href = `/dashboard/website/${slug}`
   }
 
   return (
@@ -56,14 +57,16 @@ export default function WebsiteCard({ website, onClick, onDelete }) {
       className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-lg hover:border-slate-300 transition-all cursor-pointer group relative"
       onClick={handleClick}
     >
-      {/* Delete Button - Always visible */}
-      <button
-        onClick={handleDelete}
-        className="absolute top-3 right-3 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all z-10 bg-white/80 shadow-sm border border-slate-100"
-        title="Website verwijderen"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
+      {/* Delete Button - Only show if onDelete provided */}
+      {onDelete && (
+        <button
+          onClick={handleDelete}
+          className="absolute top-3 right-3 p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all z-10 bg-white/80 shadow-sm border border-slate-100"
+          title="Website verwijderen"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
 
       {/* Header */}
       <div className="flex items-start justify-between mb-4 pr-8">
@@ -108,7 +111,7 @@ export default function WebsiteCard({ website, onClick, onDelete }) {
         </div>
       )}
 
-      {/* Platform Badges - 4 platforms: Perplexity, ChatGPT, AI Modus, AI Overviews */}
+      {/* Platform Badges - 4 platforms */}
       <div className="flex flex-wrap gap-2 mb-4">
         <span className={`px-2.5 py-1 text-xs rounded-lg font-medium ${
           website.platforms.perplexity 

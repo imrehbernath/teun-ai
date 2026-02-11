@@ -34,9 +34,9 @@ export default function WebsiteListItem({ website, onClick, onDelete }) {
   }
 
   const handleClick = () => {
-    // Navigate to detail page
+    // Navigate to detail page - use window.location to preserve %20 encoding
     const websiteId = encodeURIComponent(website.id)
-    router.push(`/dashboard/website/${websiteId}`)
+    window.location.href = `/dashboard/website/${websiteId}`
   }
 
   return (
@@ -93,13 +93,15 @@ export default function WebsiteListItem({ website, onClick, onDelete }) {
           Bekijk
           <ChevronRight className="w-4 h-4" />
         </button>
-        <button
-          onClick={handleDelete}
-          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all bg-white shadow-sm border border-slate-100"
-          title="Verwijder website"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        {onDelete && (
+          <button
+            onClick={handleDelete}
+            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all bg-white shadow-sm border border-slate-100"
+            title="Verwijder website"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </div>
   )

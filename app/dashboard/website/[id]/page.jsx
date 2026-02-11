@@ -30,7 +30,8 @@ import {
 export default function WebsiteDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const websiteId = decodeURIComponent(params.id)
+  const toSlug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  const websiteSlug = toSlug(decodeURIComponent(params.id))
   
   const [loading, setLoading] = useState(true)
   const [website, setWebsite] = useState(null)
@@ -42,6 +43,7 @@ export default function WebsiteDetailPage() {
   const [scanning, setScanning] = useState(false)
   const [scanningOverview, setScanningOverview] = useState(false)
   const [showGeoPopup, setShowGeoPopup] = useState(false) // Popup for missing scans
+  const [isSharedView, setIsSharedView] = useState(false)
   
   // Prompt editing
   const [editingPrompts, setEditingPrompts] = useState(false)
@@ -56,7 +58,7 @@ export default function WebsiteDetailPage() {
 
   useEffect(() => {
     loadWebsiteData()
-  }, [websiteId])
+  }, [websiteSlug])
 
   const loadWebsiteData = async () => {
     try {
@@ -69,24 +71,45 @@ export default function WebsiteDetailPage() {
       }
       setUser(currentUser)
 
+      // Check if this is a shared view — user has shared_access from another owner
+      let dataUserId = currentUser.id
+      let sharedAccess = null
+
+      const { data: sharedRows } = await supabase
+        .from('shared_access')
+        .select('*')
+        .eq('client_email', currentUser.email)
+      
+      if (sharedRows && sharedRows.length > 0) {
+        // Find matching share for this websiteId (company name)
+        const match = sharedRows.find(s => 
+          toSlug(s.company_name || '') === websiteSlug
+        )
+        if (match) {
+          sharedAccess = match
+          dataUserId = match.owner_id
+          setIsSharedView(true)
+        }
+      }
+
       const { data: integrations } = await supabase
         .from('tool_integrations')
         .select('*')
-        .eq('user_id', currentUser.id)
+        .eq('user_id', dataUserId)
         .not('commercial_prompts', 'is', null)
         .order('created_at', { ascending: false })
 
       const { data: chatgptScans } = await supabase
         .from('chatgpt_scans')
         .select('*')
-        .eq('user_id', currentUser.id)
+        .eq('user_id', dataUserId)
         .order('created_at', { ascending: false })
 
       let googleScans = []
       const { data: googleData } = await supabase
         .from('google_ai_scans')
         .select('*')
-        .eq('user_id', currentUser.id)
+        .eq('user_id', dataUserId)
         .order('created_at', { ascending: false })
       if (googleData) googleScans = googleData
 
@@ -94,12 +117,12 @@ export default function WebsiteDetailPage() {
       const { data: googleOverviewData } = await supabase
         .from('google_ai_overview_scans')
         .select('*')
-        .eq('user_id', currentUser.id)
+        .eq('user_id', dataUserId)
         .order('created_at', { ascending: false })
       if (googleOverviewData) googleOverviewScans = googleOverviewData
 
       let websiteData = {
-        id: websiteId,
+        id: websiteSlug,
         name: '',
         website: null,
         category: null,
@@ -118,7 +141,7 @@ export default function WebsiteDetailPage() {
           const company = scan.company_name || scan.website || 'Onbekend'
           const key = company.toLowerCase().trim()
           
-          if (key === websiteId) {
+          if (toSlug(key) === websiteSlug) {
             if (!websiteData.name) {
               websiteData.name = company
               websiteData.website = scan.website
@@ -153,7 +176,7 @@ export default function WebsiteDetailPage() {
       if (chatgptScans) {
         chatgptScans.forEach(scan => {
           const key = (scan.company_name || '').toLowerCase().trim()
-          if (key === websiteId) {
+          if (toSlug(key) === websiteSlug) {
             if (!websiteData.name) websiteData.name = scan.company_name
             
             // Map ChatGPT results to standard format (like Perplexity)
@@ -189,7 +212,7 @@ export default function WebsiteDetailPage() {
       // Process Google AI
       googleScans.forEach(scan => {
         const key = (scan.company_name || '').toLowerCase().trim()
-        if (key === websiteId) {
+        if (toSlug(key) === websiteSlug) {
           if (!websiteData.name) websiteData.name = scan.company_name
           
           const results = scan.results || []
@@ -212,7 +235,7 @@ export default function WebsiteDetailPage() {
       // Process Google AI Overviews
       googleOverviewScans.forEach(scan => {
         const key = (scan.company_name || '').toLowerCase().trim()
-        if (key === websiteId) {
+        if (toSlug(key) === websiteSlug) {
           if (!websiteData.name) websiteData.name = scan.company_name
           if (!websiteData.website && scan.website) websiteData.website = scan.website
           
@@ -234,8 +257,21 @@ export default function WebsiteDetailPage() {
       })
 
       if (!websiteData.name) {
+        // For shared users, don't redirect to dashboard - they might not have other data
+        if (isSharedView) {
+          setLoading(false)
+          return
+        }
         router.push('/dashboard')
         return
+      }
+
+      // Update last_viewed_at for shared access
+      if (sharedAccess) {
+        await supabase
+          .from('shared_access')
+          .update({ last_viewed_at: new Date().toISOString() })
+          .eq('id', sharedAccess.id)
       }
 
       setWebsite(websiteData)
@@ -260,6 +296,7 @@ export default function WebsiteDetailPage() {
   }
 
   const deleteScan = async (scanId, type) => {
+    if (isSharedView) return
     if (!confirm('Scan verwijderen?')) return
     setDeletingId(scanId)
     
@@ -535,6 +572,16 @@ export default function WebsiteDetailPage() {
           <ArrowLeft className="w-4 h-4" /> Terug naar dashboard
         </Link>
 
+        {/* Shared view banner */}
+        {isSharedView && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3">
+            <Globe className="w-5 h-5 text-blue-600 flex-shrink-0" />
+            <p className="text-blue-800 text-sm">
+              Dit dashboard is met je gedeeld. Je bekijkt de resultaten in <strong>read-only</strong> modus.
+            </p>
+          </div>
+        )}
+
         {/* Header */}
         <div className="bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] rounded-2xl p-6 mb-6 text-white relative overflow-hidden">
           <div className="absolute right-4 top-1/2 -translate-y-1/2 hidden md:block">
@@ -565,13 +612,15 @@ export default function WebsiteDetailPage() {
               <Search className="w-5 h-5 text-purple-500" />
               AI Prompts ({prompts.length})
             </h2>
-            <button
-              onClick={() => setEditingPrompts(!editingPrompts)}
-              className="text-sm text-purple-600 hover:text-purple-700 flex items-center gap-1 cursor-pointer"
-            >
-              <Edit3 className="w-4 h-4" />
-              {editingPrompts ? 'Klaar' : 'Bewerken'}
-            </button>
+            {!isSharedView && (
+              <button
+                onClick={() => setEditingPrompts(!editingPrompts)}
+                className="text-sm text-purple-600 hover:text-purple-700 flex items-center gap-1 cursor-pointer"
+              >
+                <Edit3 className="w-4 h-4" />
+                {editingPrompts ? 'Klaar' : 'Bewerken'}
+              </button>
+            )}
           </div>
 
           {editingPrompts && (
@@ -676,7 +725,7 @@ export default function WebsiteDetailPage() {
           </div>
 
           {/* Scan buttons - only show when prompts have been modified */}
-          {promptsModified && prompts.length > 0 && (
+          {!isSharedView && promptsModified && prompts.length > 0 && (
             <div className="mt-4 pt-4 border-t border-slate-100">
               <p className="text-sm text-amber-600 mb-3 flex items-center gap-2">
                 <Info className="w-4 h-4" />

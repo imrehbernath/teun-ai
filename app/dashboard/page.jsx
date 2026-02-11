@@ -42,6 +42,8 @@ function DashboardContent() {
   const [filter, setFilter] = useState('all') // all, best, recent
   const [deleteConfirm, setDeleteConfirm] = useState(null) // Website to delete
   const [showGeoPopup, setShowGeoPopup] = useState(false) // Popup for GEO Analyse
+  const [isSharedView, setIsSharedView] = useState(false)
+  const [sharedCompanies, setSharedCompanies] = useState([]) // company_names the client has access to
   
   const alertShownRef = useRef(false)
   const authSentRef = useRef(false)
@@ -150,14 +152,32 @@ function DashboardContent() {
         return
       }
       setUser(currentUser)
-      await loadDashboard(currentUser.id)
+
+      // Check if user has shared access from another owner
+      const { data: sharedRows } = await supabase
+        .from('shared_access')
+        .select('*')
+        .eq('client_email', currentUser.email)
+
+      if (sharedRows && sharedRows.length > 0) {
+        // This is a shared user — load owner's data
+        setIsSharedView(true)
+        setSharedCompanies(sharedRows.map(s => s.company_name.toLowerCase().trim()))
+        
+        // Use the first share's owner_id (all shares should be from same admin)
+        const ownerId = sharedRows[0].owner_id
+        await loadDashboard(ownerId, sharedRows.map(s => s.company_name.toLowerCase().trim()))
+      } else {
+        // Normal user — load their own data
+        await loadDashboard(currentUser.id)
+      }
     } catch (error) {
       console.error('Error loading dashboard:', error)
       setLoading(false)
     }
   }
 
-  const loadDashboard = async (userId) => {
+  const loadDashboard = async (userId, sharedCompanyFilter = null) => {
     try {
       // Load Perplexity scans from tool_integrations
       const { data: integrations } = await supabase
@@ -415,7 +435,7 @@ function DashboardContent() {
       }
 
       // Calculate final scores and sort
-      const websitesArray = Array.from(websiteMap.values()).map(site => {
+      let websitesArray = Array.from(websiteMap.values()).map(site => {
         // Sort score history by date
         site.scoreHistory.sort((a, b) => new Date(a.date) - new Date(b.date))
         
@@ -438,6 +458,13 @@ function DashboardContent() {
         
         return site
       }).sort((a, b) => new Date(b.lastScan) - new Date(a.lastScan))
+
+      // Filter to only shared companies if this is a shared view
+      if (sharedCompanyFilter && sharedCompanyFilter.length > 0) {
+        websitesArray = websitesArray.filter(site => 
+          sharedCompanyFilter.includes(site.id)
+        )
+      }
 
       setWebsites(websitesArray)
 
@@ -479,7 +506,23 @@ function DashboardContent() {
 
   const handleRefresh = () => {
     setLoading(true)
-    if (user) loadDashboard(user.id)
+    if (user) {
+      if (isSharedView && sharedCompanies.length > 0) {
+        // Re-check shared access to get owner_id
+        supabase
+          .from('shared_access')
+          .select('owner_id')
+          .eq('client_email', user.email)
+          .limit(1)
+          .single()
+          .then(({ data }) => {
+            if (data) loadDashboard(data.owner_id, sharedCompanies)
+            else loadDashboard(user.id)
+          })
+      } else {
+        loadDashboard(user.id)
+      }
+    }
   }
 
   const handleFilterChange = (newFilter) => {
@@ -487,6 +530,7 @@ function DashboardContent() {
   }
 
   const handleDeleteScan = async (scanId) => {
+    if (isSharedView) return
     try {
       // Determine scan type and delete from appropriate table
       // First try tool_integrations (Perplexity scans)
@@ -595,6 +639,7 @@ function DashboardContent() {
   }
 
   const handleDeleteWebsite = async (website) => {
+    if (isSharedView) return
     setDeleteConfirm(website)
   }
 
@@ -849,20 +894,33 @@ function DashboardContent() {
           </button>
         </div>
 
+        {/* Shared View Banner */}
+        {isSharedView && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3">
+            <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <p className="text-blue-800 text-sm">
+              Dit dashboard is met je gedeeld. Je bekijkt de resultaten in <strong>read-only</strong> modus.
+            </p>
+          </div>
+        )}
+
         {/* Website List */}
         <WebsiteList 
           websites={getFilteredWebsites()}
           filter={filter}
           onFilterChange={handleFilterChange}
           onSelectWebsite={setSelectedWebsite}
-          onDeleteWebsite={handleDeleteWebsite}
+          onDeleteWebsite={isSharedView ? null : handleDeleteWebsite}
         />
 
         {/* CTA Section */}
-        <CTASection />
+        {!isSharedView && <CTASection />}
 
         {/* Extension Promo */}
-        {!extensionInstalled && (
+        {!isSharedView && !extensionInstalled && (
           <ExtensionPromo 
             onShowInstructions={() => setShowInstructionsModal(true)}
           />
@@ -877,9 +935,9 @@ function DashboardContent() {
             setSelectedWebsite(null)
             setInitialTab('overview') // Reset tab when closing
           }}
-          onDeleteScan={handleDeleteScan}
-          onStartScanWithPrompts={handleStartScanWithPrompts}
-          onSavePrompts={handleSavePrompts}
+          onDeleteScan={isSharedView ? null : handleDeleteScan}
+          onStartScanWithPrompts={isSharedView ? null : handleStartScanWithPrompts}
+          onSavePrompts={isSharedView ? null : handleSavePrompts}
           initialTab={initialTab}
         />
       )}

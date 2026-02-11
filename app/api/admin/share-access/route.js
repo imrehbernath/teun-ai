@@ -150,7 +150,7 @@ export async function POST(request) {
           </p>
 
           <div style="text-align: center; margin: 30px 0;">
-            <a href="https://teun.ai/login" 
+            <a href="https://teun.ai/${clientUser ? 'login' : 'signup'}" 
                style="background-color: #6366f1; color: white; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 15px; display: inline-block;">
               ${clientUser ? 'Inloggen en bekijken' : 'Gratis account aanmaken'}
             </a>
