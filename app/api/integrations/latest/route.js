@@ -48,14 +48,24 @@ export async function GET(request) {
       }
     )
     
+    // Support optional company_name filter from extension
+    const { searchParams } = new URL(request.url)
+    const companyFilter = searchParams.get('company_name')
+    
     // Query database with verified user ID
-    const { data: integration, error } = await supabase
+    let query = supabase
       .from('tool_integrations')
       .select('*')
       .eq('user_id', user.id)
+      .not('commercial_prompts', 'is', null)
       .order('created_at', { ascending: false })
       .limit(1)
-      .maybeSingle()
+
+    if (companyFilter) {
+      query = query.ilike('company_name', companyFilter)
+    }
+
+    const { data: integration, error } = await query.maybeSingle()
 
     if (error && error.code !== 'PGRST116') {
       console.error('Database query error:', error)
