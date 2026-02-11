@@ -136,8 +136,11 @@ export default function AdminSharesPage() {
 
     try {
       const res = await fetch(`/api/admin/share-access?id=${shareId}`, { method: 'DELETE' })
+      const data = await res.json()
       if (res.ok) {
         loadData()
+      } else {
+        alert(data.error || 'Verwijderen mislukt')
       }
     } catch (err) {
       alert('Fout: ' + err.message)

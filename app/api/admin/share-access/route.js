@@ -21,7 +21,6 @@ export async function GET(request) {
     .from('shared_access')
     .select('*')
     .eq('owner_id', user.id)
-    .eq('is_active', true)
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -204,13 +203,15 @@ export async function DELETE(request) {
     return NextResponse.json({ error: 'Share ID is verplicht' }, { status: 400 })
   }
 
+  // Hard delete instead of soft delete
   const { error } = await supabase
     .from('shared_access')
-    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .delete()
     .eq('id', shareId)
     .eq('owner_id', user.id)
 
   if (error) {
+    console.error('Delete share error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
