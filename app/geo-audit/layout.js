@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'Gratis GEO Audit Tool — Test je AI-zichtbaarheid live | Teun.ai',
+  title: 'Gratis GEO Audit Tool — Test je AI-zichtbaarheid live',
   description: 'Analyseer hoe goed jouw pagina vindbaar is in ChatGPT, Perplexity en Google AI. Inclusief live test, technische check, E-E-A-T analyse en concrete aanbevelingen. Gratis, geen account nodig.',
   keywords: ['GEO audit', 'AI-zichtbaarheid', 'generative engine optimization', 'Perplexity SEO', 'ChatGPT optimalisatie', 'Google AI Overviews', 'AI zoekresultaten', 'GEO analyse tool', 'AI vindbaarheid testen'],
   openGraph: {
