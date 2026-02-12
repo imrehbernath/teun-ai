@@ -49,47 +49,32 @@ export async function GET(request) {
       return NextResponse.redirect(new URL('/dashboard/geo-analyse?error=token_exchange_failed', request.url))
     }
 
-    // Store tokens in tool_integrations table
     const supabase = await createClient()
-    
-    // Check if Google SC integration already exists for this user
-    const { data: existing } = await supabase
+
+    // Always delete old integration first (clean reconnect)
+    await supabase
       .from('tool_integrations')
-      .select('id')
+      .delete()
       .eq('user_id', userId)
       .eq('tool_name', 'google_search_console')
-      .single()
 
-    const integrationData = {
-      user_id: userId,
-      tool_name: 'google_search_console',
-      keyword: 'oauth_tokens',
-      results: {
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
-        scope: tokens.scope
-      },
-      status: 'visibility_completed',
-      updated_at: new Date().toISOString()
-    }
-
-    let dbError
-    if (existing) {
-      // Update existing
-      const { error } = await supabase
-        .from('tool_integrations')
-        .update(integrationData)
-        .eq('id', existing.id)
-      dbError = error
-    } else {
-      // Insert new
-      integrationData.created_at = new Date().toISOString()
-      const { error } = await supabase
-        .from('tool_integrations')
-        .insert(integrationData)
-      dbError = error
-    }
+    // Insert fresh integration
+    const { error: dbError } = await supabase
+      .from('tool_integrations')
+      .insert({
+        user_id: userId,
+        tool_name: 'google_search_console',
+        keyword: 'oauth_tokens',
+        results: {
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token || null,
+          expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
+          scope: tokens.scope
+        },
+        status: 'visibility_completed',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
 
     if (dbError) {
       console.error('Database error storing tokens:', dbError)
