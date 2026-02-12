@@ -5,114 +5,9 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 
-// Early Access Popup Component
-function EarlyAccessPopup({ isOpen, onClose }) {
-  const [email, setEmail] = useState('');
-  const [status, setStatus] = useState('idle');
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setStatus('loading');
-
-    try {
-      const response = await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-
-      if (response.ok) {
-        setStatus('success');
-        setEmail('');
-        setTimeout(() => {
-          setStatus('idle');
-          onClose();
-        }, 3000);
-      } else {
-        setStatus('error');
-        setTimeout(() => setStatus('idle'), 3000);
-      }
-    } catch (error) {
-      setStatus('error');
-      setTimeout(() => setStatus('idle'), 3000);
-    }
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full p-8 relative animate-fade-in">
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-
-        {/* Content */}
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            GEO Optimalisatie – Binnenkort!
-          </h3>
-          <p className="text-gray-600">
-            Onze GEO Optimalisatie tool is in ontwikkeling. Meld je aan voor de early access lijst en we laten je weten zodra deze klaar is.
-          </p>
-          <p className="text-gray-500 text-sm mt-2">
-            💡 Wist je dat onze <Link href="/tools/ai-visibility" className="text-blue-600 font-medium hover:underline">AI Zichtbaarheid Scan</Link> al gratis beschikbaar is? Maak een gratis account en start direct.
-          </p>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Vul je emailadres in *"
-            required
-            disabled={status === 'loading'}
-            className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-purple-500 focus:outline-none transition-colors disabled:opacity-50"
-          />
-          
-          <button
-            type="submit"
-            disabled={status === 'loading'}
-            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 cursor-pointer"
-          >
-            {status === 'loading' ? 'Verzenden...' : 'Zet me op de lijst'}
-          </button>
-        </form>
-
-        {/* Status Messages */}
-        {status === 'success' && (
-          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm text-center">
-            ✓ Bedankt! Je ontvangt binnenkort meer informatie.
-          </div>
-        )}
-        
-        {status === 'error' && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm text-center">
-            ✗ Er ging iets mis. Probeer het opnieuw.
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // Header Component
 function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showPopup, setShowPopup] = useState(false);
   const [user, setUser] = useState(null);
 
   useEffect(() => {
@@ -217,12 +112,13 @@ function Header() {
                 </Link>
               )}
 
-              <button
-                onClick={() => setShowPopup(true)}
-                className="bg-gradient-to-r from-[#1A7DFF] to-[#6C3FF2] text-white px-6 py-2.5 rounded-lg font-semibold text-[15px] hover:shadow-lg hover:scale-105 transition-all cursor-pointer"
+              <Link
+                href="/geo-audit"
+                className="bg-gradient-to-r from-[#1A7DFF] to-[#6C3FF2] text-white px-6 py-2.5 rounded-lg font-semibold text-[15px] hover:shadow-lg hover:scale-105 transition-all cursor-pointer inline-flex items-center gap-2"
               >
-                Start GEO Optimalisatie
-              </button>
+                Gratis GEO Audit
+                <span className="bg-white/20 text-white px-1.5 py-0.5 rounded text-[10px] font-bold">NIEUW</span>
+              </Link>
             </div>
 
             {/* Mobile menu button */}
@@ -301,23 +197,18 @@ function Header() {
                   </Link>
                 )}
 
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    setShowPopup(true);
-                  }}
-                  className="w-full mt-4 bg-gradient-to-r from-[#1A7DFF] to-[#6C3FF2] text-white px-6 py-2.5 rounded-lg font-semibold text-[15px] text-center"
+                <Link
+                  href="/geo-audit"
+                  className="block w-full mt-4 bg-gradient-to-r from-[#1A7DFF] to-[#6C3FF2] text-white px-6 py-2.5 rounded-lg font-semibold text-[15px] text-center"
+                  onClick={() => setMobileMenuOpen(false)}
                 >
-                  Start GEO Optimalisatie
-                </button>
+                  Gratis GEO Audit
+                </Link>
               </div>
             </div>
           )}
         </nav>
       </header>
-
-      {/* Popup */}
-      <EarlyAccessPopup isOpen={showPopup} onClose={() => setShowPopup(false)} />
     </>
   );
 }
@@ -325,7 +216,6 @@ function Header() {
 // Footer Component
 function Footer() {
   const currentYear = new Date().getFullYear();
-  const [showPopup, setShowPopup] = useState(false);
 
   return (
     <>
@@ -365,12 +255,13 @@ function Footer() {
               <h3 className="text-white font-semibold text-base mb-4">GEO Tools</h3>
               <ul className="space-y-2">
                 <li>
-                  <button 
-                    onClick={() => setShowPopup(true)}
-                    className="text-white/70 hover:text-white text-sm transition-colors text-left"
+                  <Link 
+                    href="/geo-audit"
+                    className="text-white/70 hover:text-white text-sm transition-colors flex items-center gap-2"
                   >
-                    GEO Optimalisatie <span className="text-xs text-purple-300">(early access)</span>
-                  </button>
+                    GEO Audit
+                    <span className="bg-green-500/20 text-green-300 px-2 py-0.5 rounded text-xs font-bold">NIEUW</span>
+                  </Link>
                 </li>
                 <li>
                   <Link 
@@ -414,12 +305,12 @@ function Footer() {
                   </a>
                 </li>
                 <li>
-                  <button 
-                    onClick={() => setShowPopup(true)}
+                  <Link 
+                    href="/geo-audit"
                     className="text-white/70 hover:text-white text-sm transition-colors text-left"
                   >
-                    Early Access
-                  </button>
+                    Gratis GEO Audit
+                  </Link>
                 </li>
                 <li>
                   <Link 
@@ -468,9 +359,6 @@ function Footer() {
           </div>
         </div>
       </footer>
-
-      {/* Popup */}
-      <EarlyAccessPopup isOpen={showPopup} onClose={() => setShowPopup(false)} />
     </>
   );
 }
