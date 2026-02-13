@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { detectBranchLanguage } from '@/lib/branche-detect';
@@ -21,26 +21,86 @@ export default function Homepage() {
   const [brancheSuggestion, setBrancheSuggestion] = useState(null);
   const [showKeywordWarning, setShowKeywordWarning] = useState(false);
   const [showUrlWarning, setShowUrlWarning] = useState(false);
+  const [extractingKeywords, setExtractingKeywords] = useState(false);
+  const [keywordTags, setKeywordTags] = useState([]);
+  const [newKeywordInput, setNewKeywordInput] = useState('');
+  const lastExtractedUrl = useRef('');
+
+  // Auto-extract keywords when URL looks valid (has a dot, debounced 800ms)
+  useEffect(() => {
+    const url = formData.website?.trim();
+    if (!url || !url.includes('.') || url === lastExtractedUrl.current || extractingKeywords) return;
+
+    const timer = setTimeout(() => {
+      lastExtractedUrl.current = url;
+      handleExtractKeywords(url);
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [formData.website]);
+
+  // Sync keyword tags to formData.zoekwoorden
+  const syncKeywordsToForm = (tags) => {
+    setKeywordTags(tags);
+    setFormData(prev => ({...prev, zoekwoorden: tags.join(', ')}));
+  };
+
+  const removeKeyword = (index) => {
+    const updated = keywordTags.filter((_, i) => i !== index);
+    syncKeywordsToForm(updated);
+  };
+
+  const addKeyword = (keyword) => {
+    const trimmed = keyword.trim();
+    if (!trimmed || keywordTags.includes(trimmed) || keywordTags.length >= 12) return;
+    syncKeywordsToForm([...keywordTags, trimmed]);
+  };
+
+  const handleExtractKeywords = async (url) => {
+    if (!url?.trim() || extractingKeywords) return;
+
+    setExtractingKeywords(true);
+
+    try {
+      const response = await fetch('/api/extract-keywords', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+
+      if (!response.ok) throw new Error('Kon website niet analyseren');
+      const data = await response.json();
+
+      if (data.keywords && data.keywords.length > 0) {
+        syncKeywordsToForm(data.keywords);
+        setFormData(prev => ({
+          ...prev,
+          bedrijfsnaam: prev.bedrijfsnaam || data.companyName || '',
+          branche: prev.branche || data.category || '',
+        }));
+      }
+    } catch (err) {
+      console.error('Extract error:', err);
+    } finally {
+      setExtractingKeywords(false);
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    const keywords = formData.zoekwoorden.split(',').filter(k => k.trim());
     const hasUrl = formData.website && formData.website.trim().length > 0;
     
-    // Als er een URL is ingevuld → altijd doorgaan (backend scraped keywords)
-    if (hasUrl) {
-      proceedToScan();
-      return;
-    }
-    
-    // Geen URL en weinig keywords → vraag om URL
-    if (!hasUrl && keywords.length <= 1) {
+    if (!hasUrl) {
       setShowUrlWarning(true);
       return;
     }
+
+    if (!formData.bedrijfsnaam || !formData.branche) return;
     
-    // Genoeg keywords, geen URL → doorgaan
+    // Wacht tot extractie klaar is
+    if (extractingKeywords) return;
+    
     proceedToScan();
   };
 
@@ -70,7 +130,7 @@ export default function Homepage() {
       {/* ====== HERO + STATS WRAPPER ====== */}
       <div className="relative overflow-hidden">
         {/* Hero Mascotte - Positioned over both sections */}
-        <div className="hidden lg:block absolute right-[5%] xl:right-[10%] top-[190px] z-10 pointer-events-none select-none">
+        <div className="hidden lg:block absolute right-[5%] xl:right-[10%] bottom-[128px] z-10 pointer-events-none select-none">
           <Image
             src="/mascotte-teun-ai.png"
             alt="Teun - AI Visibility Mascotte"
@@ -143,7 +203,7 @@ export default function Homepage() {
 
                 {/* Scan Form */}
                 <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 space-y-4">
-                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid md:grid-cols-3 gap-4">
                     <div>
                       <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
                         Bedrijfsnaam *
@@ -201,74 +261,109 @@ export default function Homepage() {
                     <div>
                       <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
                         Website *
-                        <span className="relative" onClick={() => setActiveTooltip(activeTooltip === 'website' ? null : 'website')}>
-                          <svg className="w-4 h-4 text-slate-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          {activeTooltip === 'website' && (
-                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap z-50">
-                              Wij scannen je website en halen automatisch zoekwoorden op
-                            </span>
-                          )}
-                        </span>
                       </label>
                       <input
                         type="text"
                         value={formData.website}
-                        onChange={(e) => setFormData({...formData, website: e.target.value})}
+                        onChange={(e) => { setFormData({...formData, website: e.target.value}); setShowUrlWarning(false); }}
                         placeholder="jouwwebsite.nl"
-                        className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400"
+                        className={`w-full px-4 py-3 rounded-lg border focus:ring-2 outline-none transition-all text-slate-900 placeholder:text-slate-400 ${
+                          showUrlWarning && !formData.website?.trim()
+                            ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20'
+                            : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500/20'
+                        }`}
+                        required
                       />
-                      {formData.website ? (
+                      {showUrlWarning && !formData.website?.trim() ? (
+                        <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1">
+                          <svg className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.072 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                          Website is nodig voor goede resultaten
+                        </p>
+                      ) : extractingKeywords ? (
+                        <p className="mt-1.5 text-xs text-blue-600 flex items-center gap-1.5">
+                          <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                          Zoekwoorden ophalen...
+                        </p>
+                      ) : keywordTags.length > 0 ? (
                         <p className="mt-1.5 text-xs text-green-600 flex items-center gap-1">
                           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                          We scannen je pagina automatisch op zoekwoorden
+                          {keywordTags.length} zoekwoorden opgehaald
                         </p>
                       ) : (
-                        <p className="mt-1.5 text-xs text-purple-600">
-                          <span className="flex items-center gap-1">
-                            <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
-                            </svg>
-                            Wij halen zoekwoorden automatisch uit je website
-                          </span>
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
-                        <span className="text-slate-400">Zoekwoorden</span>
-                        <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">optioneel</span>
-                        <span className="relative" onClick={() => setActiveTooltip(activeTooltip === 'zoekwoorden' ? null : 'zoekwoorden')}>
-                          <svg className="w-4 h-4 text-slate-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          {activeTooltip === 'zoekwoorden' && (
-                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap z-50">
-                              Extra zoekwoorden voor betere resultaten • Scheid met komma's
-                            </span>
-                          )}
-                        </span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.zoekwoorden}
-                        onChange={(e) => {
-                          const keywords = e.target.value.split(',').filter(k => k.trim());
-                          if (keywords.length <= 10 || e.target.value.length < formData.zoekwoorden.length) {
-                            setFormData({...formData, zoekwoorden: e.target.value});
-                          }
-                        }}
-                        placeholder={formData.website ? "Optioneel – we halen ze uit je website" : "Keyword 1, Keyword 2, Keyword 3"}
-                        className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400"
-                      />
-                      {formData.zoekwoorden && (
-                        <p className="mt-1 text-xs text-slate-400">
-                          {formData.zoekwoorden.split(',').filter(k => k.trim()).length}/10 zoekwoorden
+                        <p className="mt-1.5 text-xs text-slate-400">
+                          Je URL zorgt voor betere zoekwoorden en prompts
                         </p>
                       )}
                     </div>
                   </div>
+
+                  {/* Keyword Tags Panel - slides down after extraction */}
+                  {(keywordTags.length > 0 || extractingKeywords) && (
+                    <div className="transition-all duration-300 ease-in-out">
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                        {extractingKeywords ? (
+                          <div className="flex items-center gap-3 py-1">
+                            <svg className="animate-spin w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            <span className="text-sm text-slate-600">Website analyseren...</span>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="text-xs font-medium text-slate-500">{keywordTags.length} zoekwoorden</span>
+                              <button
+                                type="button"
+                                onClick={() => syncKeywordsToForm([])}
+                                className="text-xs text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                              >
+                                Alles wissen
+                              </button>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 mb-3">
+                              {keywordTags.map((kw, i) => (
+                                <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 group">
+                                  {kw}
+                                  <button
+                                    type="button"
+                                    onClick={() => removeKeyword(i)}
+                                    className="text-slate-300 hover:text-red-500 transition-colors cursor-pointer ml-0.5"
+                                  >
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                            {/* Add keyword input */}
+                            {keywordTags.length < 12 && (
+                              <div className="flex gap-1.5">
+                                <input
+                                  type="text"
+                                  value={newKeywordInput}
+                                  onChange={(e) => setNewKeywordInput(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      addKeyword(newKeywordInput);
+                                      setNewKeywordInput('');
+                                    }
+                                  }}
+                                  placeholder="Zoekwoord toevoegen..."
+                                  className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 outline-none text-xs text-slate-700 placeholder:text-slate-400 bg-white"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => { addKeyword(newKeywordInput); setNewKeywordInput(''); }}
+                                  disabled={!newKeywordInput.trim()}
+                                  className="px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                  + Toevoegen
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Branche taaldetectie suggestie - compact voor homepage */}
                   {brancheSuggestion && (

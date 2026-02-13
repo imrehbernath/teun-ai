@@ -231,6 +231,7 @@ function AIVisibilityToolContent() {
   const searchParams = useSearchParams();
   
   const [step, setStep] = useState(1);
+  const [initializing, setInitializing] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState('');
@@ -257,6 +258,8 @@ function AIVisibilityToolContent() {
   const [activeTooltip, setActiveTooltip] = useState(null);
   const [brancheSuggestion, setBrancheSuggestion] = useState(null);
   const [nameMismatch, setNameMismatch] = useState(null);
+  const [extractingKeywords, setExtractingKeywords] = useState(false);
+  const [extractionResult, setExtractionResult] = useState(null);
 
   // Close tooltip on outside tap
   useEffect(() => {
@@ -268,7 +271,7 @@ function AIVisibilityToolContent() {
 
   // Handle URL Parameters from OnlineLabs
   useEffect(() => {
-    if (!searchParams) return;
+    if (!searchParams) { setInitializing(false); return; }
 
     // ✨ Check for pending scan from dashboard modal
     const pendingScan = sessionStorage.getItem('pendingScan')
@@ -366,10 +369,16 @@ function AIVisibilityToolContent() {
       setStep(3);
       if (autostart === 'true') {
         setFromHomepage(true);
+        setAnalyzing(true);
+        setProgress(0);
+        setCurrentStep('Voorbereiden...');
+        setPendingAutoStart(true);
       }
     } else if (keywords) {
       setStep(2);
     }
+
+    setInitializing(false);
   }, [searchParams]);
 
   useEffect(() => {
@@ -389,14 +398,15 @@ function AIVisibilityToolContent() {
     return () => subscription.unsubscribe();
   }, []);
 
+  const [pendingAutoStart, setPendingAutoStart] = useState(false);
+
   useEffect(() => {
-    if (fromHomepage) {
-      const timer = setTimeout(() => {
-        setFromHomepage(false);
-      }, 4000);
-      return () => clearTimeout(timer);
+    // Auto-start zodra alles klaar is: formData gevuld en auth geladen
+    if (pendingAutoStart && !loading && formData.companyName && formData.companyCategory) {
+      setPendingAutoStart(false);
+      handleAnalyze();
     }
-  }, [fromHomepage]);
+  }, [pendingAutoStart, loading, formData.companyName, formData.companyCategory]);
 
   // Helper Functions for Advanced Settings
   const addExcludeTerms = (newTerms) => {
@@ -428,6 +438,58 @@ function AIVisibilityToolContent() {
     return (exclude.length > 0 || include.length > 0 || location.length > 0)
       ? { exclude, include, location }
       : null;
+  };
+
+  // ====================================
+  // EXTRACT KEYWORDS FROM URL
+  // ====================================
+  const handleExtractKeywords = async () => {
+    const url = formData.website?.trim();
+    if (!url) {
+      setError('Vul een website URL in');
+      return;
+    }
+
+    setExtractingKeywords(true);
+    setError(null);
+    setExtractionResult(null);
+
+    try {
+      const response = await fetch('/api/extract-keywords', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Kon zoekwoorden niet ophalen');
+      }
+
+      const data = await response.json();
+
+      if (data.keywords && data.keywords.length > 0) {
+        // Fill keywords
+        setFormData(prev => ({
+          ...prev,
+          queries: data.keywords.join(', '),
+          companyName: prev.companyName || data.companyName || '',
+          companyCategory: prev.companyCategory || data.category || '',
+        }));
+        setExtractionResult({
+          count: data.keywords.length,
+          source: data.source,
+          companyName: data.companyName,
+          category: data.category,
+        });
+      } else {
+        setError('Geen zoekwoorden gevonden op deze pagina. Vul ze handmatig in.');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setExtractingKeywords(false);
+    }
   };
 
   const handleAnalyze = async () => {
@@ -549,6 +611,19 @@ function AIVisibilityToolContent() {
   // ====================================
   // RENDER
   // ====================================
+  
+  // Prevent step flash while URL params are being processed
+  if (initializing) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-slate-400">
+          <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          <span className="text-sm">Laden...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50" suppressHydrationWarning>
 
@@ -610,7 +685,7 @@ function AIVisibilityToolContent() {
         {/* Step Indicator - Pill style matching homepage CTA */}
         <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-6 sm:mb-8 flex-wrap px-2">
           {[
-            { num: 1, label: 'Zoekopdrachten', mobileLabel: 'Zoek' },
+            { num: 1, label: 'Website & Zoekwoorden', mobileLabel: 'Website' },
             { num: 2, label: 'Bedrijfsinfo', mobileLabel: 'Info' },
             { num: 3, label: 'Analyse', mobileLabel: 'Scan' },
             { num: 4, label: 'Rapport', mobileLabel: 'Rapport' }
@@ -643,7 +718,63 @@ function AIVisibilityToolContent() {
                   <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg flex items-center justify-center border border-blue-200">
                     <Search className="w-5 h-5 text-blue-600" />
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900">1. Geef belangrijkste zoekwoorden op</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900">1. Vul je website in</h2>
+                </div>
+
+                {/* URL Extraction */}
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 mb-6">
+                  <div className="mb-3">
+                    <strong className="text-slate-800 text-sm">Vul je website URL in</strong>
+                    <p className="text-xs text-slate-500 mt-0.5">Je URL zorgt voor betere zoekwoorden en prompts</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={formData.website}
+                      onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                      placeholder="jouwwebsite.nl"
+                      className="flex-1 px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 bg-white"
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleExtractKeywords(); } }}
+                    />
+                    <button
+                      onClick={handleExtractKeywords}
+                      disabled={extractingKeywords || !formData.website?.trim()}
+                      className="px-5 py-3 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white font-semibold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 whitespace-nowrap flex items-center gap-2"
+                    >
+                      {extractingKeywords ? (
+                        <>
+                          <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                          Laden...
+                        </>
+                      ) : (
+                        <>Ophalen</>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Extraction Success */}
+                  {extractionResult && (
+                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center gap-2 text-sm text-green-700">
+                        <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                        <span><strong>{extractionResult.count} zoekwoorden</strong> gevonden en ingevuld!</span>
+                      </div>
+                      {(extractionResult.companyName || extractionResult.category) && (
+                        <p className="text-xs text-green-600 mt-1 ml-6">
+                          {extractionResult.companyName && <>Bedrijf: {extractionResult.companyName}</>}
+                          {extractionResult.companyName && extractionResult.category && <> · </>}
+                          {extractionResult.category && <>Branche: {extractionResult.category}</>}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Divider */}
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="flex-1 h-px bg-slate-200"></div>
+                  <span className="text-xs text-slate-400 font-medium">OF VUL HANDMATIG IN</span>
+                  <div className="flex-1 h-px bg-slate-200"></div>
                 </div>
 
                 {/* Tip box - Desktop only */}
@@ -651,9 +782,9 @@ function AIVisibilityToolContent() {
                   <div className="flex items-start gap-2">
                     <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
                     <div className="text-sm text-slate-700">
-                      <strong className="text-slate-800">Tip: Eerste zoekwoord is het belangrijkst</strong>
+                      <strong className="text-slate-800">Tip: Gebruik meerdere zoekwoorden</strong>
                       <p className="mt-1 text-slate-600">
-                        Dit wordt gebruikt om relevante AI-prompts te genereren die matchen met waar jouw klanten naar zoeken.
+                        Hoe meer relevante zoekwoorden je invult, hoe beter de AI-prompts en hoe accurater je resultaten.
                       </p>
                     </div>
                   </div>
@@ -832,7 +963,7 @@ function AIVisibilityToolContent() {
                       className="drop-shadow-xl"
                     />
                     <p className="text-xs text-slate-500 text-center mt-2 font-medium">
-                      Welke zoekwoorden<br />gebruiken jouw klanten in Google?
+                      Vul je URL in, ik haal<br />de zoekwoorden op!
                     </p>
                   </div>
                 </div>
@@ -861,7 +992,7 @@ function AIVisibilityToolContent() {
                   className="drop-shadow-2xl"
                 />
                 <p className="text-sm text-slate-500 mt-4 text-center font-medium">
-                  Welke zoekwoorden<br />gebruiken jouw klanten in Google?
+                  Vul je URL in, ik haal<br />de zoekwoorden op!
                 </p>
               </div>
             </div>
@@ -1021,9 +1152,8 @@ function AIVisibilityToolContent() {
                           <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
                           </svg>
-                          Tip: Vul je URL in
+                          Tip: Ga terug en vul je URL in bij stap 1 voor betere zoekwoorden en prompts
                         </span>
-                        <span className="block pl-4">voor nóg betere prompts</span>
                       </p>
                     )}
                   </div>
@@ -1089,7 +1219,30 @@ function AIVisibilityToolContent() {
         {/* ====================================== */}
         {/* STEP 3 - Analyse (LIGHT THEME)        */}
         {/* ====================================== */}
-        {step === 3 && (
+        {step === 3 && fromHomepage && (
+          <section className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 sm:p-8 mb-8">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 text-center">
+              <Loader2 className="w-12 h-12 text-blue-500 mx-auto mb-4 animate-spin" />
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Bezig met analyseren...</h3>
+              <p className="text-slate-600 mb-4">{currentStep || 'Voorbereiden...'}</p>
+              
+              <div className="w-full bg-slate-200 rounded-full h-4 overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all duration-300 flex items-center justify-end pr-2"
+                  style={{ width: `${Math.max(Math.floor(progress), 2)}%` }}
+                >
+                  {progress > 5 && (
+                    <span className="text-xs font-bold text-white drop-shadow-lg">
+                      {Math.floor(progress)}%
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {step === 3 && !fromHomepage && (
           <section className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 sm:p-8 mb-8">
             <div className="grid lg:grid-cols-5 gap-6 lg:gap-8">
               {/* Left: Content - 3 columns */}
