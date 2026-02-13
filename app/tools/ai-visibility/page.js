@@ -725,13 +725,18 @@ function AIVisibilityToolContent() {
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 mb-6">
                   <div className="mb-3">
                     <strong className="text-slate-800 text-sm">Vul je website URL in</strong>
-                    <p className="text-xs text-slate-500 mt-0.5">Je URL zorgt voor betere zoekwoorden en prompts</p>
+                    <p className="text-xs text-slate-500 mt-0.5">We halen automatisch zoekwoorden op uit je homepage</p>
                   </div>
                   <div className="flex gap-2">
                     <input
-                      type="text"
+                      type="url"
+                      inputMode="url"
+                      autoComplete="off"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck="false"
                       value={formData.website}
-                      onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, website: e.target.value.toLowerCase() })}
                       placeholder="jouwwebsite.nl"
                       className="flex-1 px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 bg-white"
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleExtractKeywords(); } }}
@@ -1140,9 +1145,14 @@ function AIVisibilityToolContent() {
                       </span>
                     </label>
                     <input
-                      type="text"
+                      type="url"
+                      inputMode="url"
+                      autoComplete="off"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck="false"
                       value={formData.website}
-                      onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, website: e.target.value.toLowerCase() })}
                       placeholder="jouwwebsite.nl"
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 bg-white"
                     />
@@ -1152,7 +1162,7 @@ function AIVisibilityToolContent() {
                           <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
                           </svg>
-                          Tip: Ga terug en vul je URL in bij stap 1 voor betere zoekwoorden en prompts
+                          Tip: Ga terug en vul je URL in bij stap 1 voor automatische zoekwoord-extractie
                         </span>
                       </p>
                     )}

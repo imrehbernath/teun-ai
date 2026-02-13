@@ -263,9 +263,14 @@ export default function Homepage() {
                         Website *
                       </label>
                       <input
-                        type="text"
+                        type="url"
+                        inputMode="url"
+                        autoComplete="off"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck="false"
                         value={formData.website}
-                        onChange={(e) => { setFormData({...formData, website: e.target.value}); setShowUrlWarning(false); }}
+                        onChange={(e) => { setFormData({...formData, website: e.target.value.toLowerCase()}); setShowUrlWarning(false); }}
                         placeholder="jouwwebsite.nl"
                         className={`w-full px-4 py-3 rounded-lg border focus:ring-2 outline-none transition-all text-slate-900 placeholder:text-slate-400 ${
                           showUrlWarning && !formData.website?.trim()
@@ -284,16 +289,7 @@ export default function Homepage() {
                           <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                           Zoekwoorden ophalen...
                         </p>
-                      ) : keywordTags.length > 0 ? (
-                        <p className="mt-1.5 text-xs text-green-600 flex items-center gap-1">
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                          {keywordTags.length} zoekwoorden opgehaald
-                        </p>
-                      ) : (
-                        <p className="mt-1.5 text-xs text-slate-400">
-                          Je URL zorgt voor betere zoekwoorden en prompts
-                        </p>
-                      )}
+                      ) : null}
                     </div>
                   </div>
 
@@ -863,9 +859,14 @@ export default function Homepage() {
             {/* Inline URL input */}
             <div className="mb-6">
               <input
-                type="text"
+                type="url"
+                inputMode="url"
+                autoComplete="off"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
                 value={formData.website}
-                onChange={(e) => setFormData({...formData, website: e.target.value})}
+                onChange={(e) => setFormData({...formData, website: e.target.value.toLowerCase()})}
                 placeholder="jouwwebsite.nl"
                 className="w-full px-4 py-3 rounded-xl border-2 border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400"
                 autoFocus
