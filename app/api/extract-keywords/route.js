@@ -4,6 +4,16 @@ import Anthropic from '@anthropic-ai/sdk'
 
 export const dynamic = 'force-dynamic'
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+}
+
+export async function OPTIONS() {
+  return new Response(null, { status: 204, headers: CORS_HEADERS })
+}
+
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
 })
@@ -99,13 +109,13 @@ export async function POST(request) {
     const { url } = await request.json()
     
     if (!url || !url.trim()) {
-      return NextResponse.json({ error: 'URL is verplicht' }, { status: 400 })
+      return NextResponse.json({ error: 'URL is verplicht' }, { status: 400, headers: CORS_HEADERS })
     }
 
     // Step 1: Scrape
     const scrapeResult = await scrapeWebsite(url)
     if (!scrapeResult.success) {
-      return NextResponse.json({ error: `Kon website niet laden: ${scrapeResult.error}` }, { status: 422 })
+      return NextResponse.json({ error: `Kon website niet laden: ${scrapeResult.error}` }, { status: 422, headers: CORS_HEADERS })
     }
 
     // Step 2: Parse HTML
@@ -170,10 +180,10 @@ ALLEEN JSON, geen extra tekst.`
         metaDescription: parsed.metaDescription,
         h1: parsed.h1s[0] || null
       }
-    })
+    }, { headers: CORS_HEADERS })
 
   } catch (error) {
     console.error('Extract keywords error:', error)
-    return NextResponse.json({ error: 'Kon zoekwoorden niet extraheren' }, { status: 500 })
+    return NextResponse.json({ error: 'Kon zoekwoorden niet extraheren' }, { status: 500, headers: CORS_HEADERS })
   }
 }
