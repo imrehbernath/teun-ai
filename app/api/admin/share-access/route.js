@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { Resend } from 'resend'
 
+// Force dynamic — prevent Next.js from caching this route
+export const dynamic = 'force-dynamic'
+
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 // Admin email(s) die shares mogen aanmaken
@@ -122,13 +125,13 @@ export async function POST(request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Send invite email via Resend — always link to signup (works for existing users too)
+  // Send invite email via Resend
   let emailSent = false
   try {
     await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'noreply@teun.ai',
       to: normalizedEmail,
-      subject: `${companyName} — jouw AI-zichtbaarheidsrapport staat klaar`,
+      subject: `${companyName} – jouw AI-zichtbaarheidsrapport staat klaar`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px;">
           
@@ -171,7 +174,7 @@ export async function POST(request) {
           <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
 
           <p style="color: #94a3b8; font-size: 12px; text-align: center;">
-            Dit rapport is gedeeld via <a href="https://teun.ai" style="color: #6366f1; text-decoration: none;">Teun.ai</a> — 
+            Dit rapport is gedeeld via <a href="https://teun.ai" style="color: #6366f1; text-decoration: none;">Teun.ai</a> – 
             het eerste Nederlandse platform voor AI-zichtbaarheid.
           </p>
         </div>
