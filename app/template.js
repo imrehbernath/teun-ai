@@ -274,17 +274,22 @@ function Footer() {
                 </li>
                 <li>
                   <span className="text-white/50 text-sm cursor-not-allowed">
-                    Zoekwoord Analyse <span className="text-xs">(binnenkort)</span>
+                    Prompt Tracker <span className="text-xs">(binnenkort)</span>
                   </span>
                 </li>
                 <li>
                   <span className="text-white/50 text-sm cursor-not-allowed">
-                    Entity Builder <span className="text-xs">(binnenkort)</span>
+                    AI Content Optimizer <span className="text-xs">(binnenkort)</span>
                   </span>
                 </li>
                 <li>
                   <span className="text-white/50 text-sm cursor-not-allowed">
-                    Schema Markup <span className="text-xs">(binnenkort)</span>
+                    AI-Ready Schema Generator <span className="text-xs">(binnenkort)</span>
+                  </span>
+                </li>
+                <li>
+                  <span className="text-white/50 text-sm cursor-not-allowed">
+                    Concurrentie Radar <span className="text-xs">(binnenkort)</span>
                   </span>
                 </li>
               </ul>
