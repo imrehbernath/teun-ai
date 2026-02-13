@@ -63,6 +63,36 @@ const nextConfig = {
   async headers() {
     return [
       {
+        // API routes: never cache
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate'
+          }
+        ],
+      },
+      {
+        // Admin pages: never cache
+        source: '/admin/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate'
+          }
+        ],
+      },
+      {
+        // Dashboard: never cache
+        source: '/dashboard/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate'
+          }
+        ],
+      },
+      {
         source: '/:path*',
         headers: [
           {

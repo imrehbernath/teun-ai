@@ -30,6 +30,27 @@ export async function GET(request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  // Auto-update client_id for shares where client has since registered
+  const pendingShares = shares.filter(s => !s.client_id)
+  if (pendingShares.length > 0) {
+    const { data: allUsers } = await supabase.auth.admin.listUsers()
+    const usersByEmail = {}
+    for (const u of (allUsers?.users || [])) {
+      if (u.email) usersByEmail[u.email.toLowerCase()] = u.id
+    }
+
+    for (const share of pendingShares) {
+      const clientUserId = usersByEmail[share.client_email?.toLowerCase()]
+      if (clientUserId) {
+        await supabase
+          .from('shared_access')
+          .update({ client_id: clientUserId })
+          .eq('id', share.id)
+        share.client_id = clientUserId
+      }
+    }
+  }
+
   // Enrich with scan counts (tool_integrations instead of perplexity_scans)
   const enrichedShares = await Promise.all(shares.map(async (share) => {
     const { count: perplexityCount } = await supabase
