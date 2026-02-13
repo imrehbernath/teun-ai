@@ -36,7 +36,7 @@ export default function AdminSharesPage() {
     setLoading(true)
     try {
       // Check admin status & load shares
-      const shareRes = await fetch('/api/admin/share-access')
+      const shareRes = await fetch('/api/admin/share-access', { cache: 'no-store' })
       if (shareRes.status === 403) {
         setIsAdmin(false)
         setLoading(false)
