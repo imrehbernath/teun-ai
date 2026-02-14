@@ -168,26 +168,28 @@ export default function Homepage() {
                   <span className="font-medium text-slate-700">Gratis scan in 30 seconden.</span>
                 </p>
 
-                {/* AI Platform badges - simple and clean */}
-                <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-2">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 rounded-full text-xs sm:text-sm text-slate-700 shadow-sm">
-                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500"></span>
+                {/* AI Platform badges - matching ai-visibility page */}
+                <div className="flex flex-wrap gap-2 sm:gap-3 mb-2">
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
                     ChatGPT
                   </span>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 rounded-full text-xs sm:text-sm text-slate-700 shadow-sm">
-                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500"></span>
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
                     Perplexity
                   </span>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 rounded-full text-xs sm:text-sm text-slate-700 shadow-sm">
-                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500"></span>
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
                     AI Modus
+                    <span className="text-[10px] text-slate-400">account</span>
                   </span>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 rounded-full text-xs sm:text-sm text-slate-700 shadow-sm">
-                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500"></span>
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
                     AI Overviews
+                    <span className="text-[10px] text-slate-400">account</span>
                   </span>
                 </div>
-                <p className="text-[11px] sm:text-xs text-slate-400 mb-6">10 prompts per scan • 2x gratis zonder account • AI Modus & AI Overviews met gratis account</p>
+                <p className="text-xs text-slate-400 mb-6">10 prompts per scan • 2x gratis zonder account • AI Modus & AI Overviews met gratis account</p>
 
                 {/* Mobile Mascotte - above form */}
                 <div className="lg:hidden flex justify-center">
@@ -557,28 +559,7 @@ export default function Homepage() {
         </div>
 
         {/* CSS for infinite scroll animations */}
-        <style dangerouslySetInnerHTML={{ __html: `
-          @keyframes scrollLeft {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-          @keyframes scrollRight {
-            0% { transform: translateX(-50%); }
-            100% { transform: translateX(0); }
-          }
-          .animate-scroll-left {
-            animation: scrollLeft 45s linear infinite;
-            width: max-content;
-          }
-          .animate-scroll-right {
-            animation: scrollRight 45s linear infinite;
-            width: max-content;
-          }
-          .animate-scroll-left:hover,
-          .animate-scroll-right:hover {
-            animation-play-state: paused;
-          }
-        `}} />
+        {/* Slider CSS is in globals.css */}
       </section>
 
       {/* ====== HOE HET WERKT ====== */}
