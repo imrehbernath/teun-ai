@@ -560,7 +560,6 @@ export default function Homepage() {
 
         {/* CSS for infinite scroll animations */}
         <style dangerouslySetInnerHTML={{ __html: `
-          html { overflow-x: clip; }
           @keyframes scrollLeft {
             0% { transform: translateX(0); }
             100% { transform: translateX(-50%); }

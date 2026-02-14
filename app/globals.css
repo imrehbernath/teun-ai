@@ -19,6 +19,11 @@
   }
 }
 
+/* Prevent horizontal overflow from wide elements (logo slider etc.) */
+html {
+  overflow-x: clip;
+}
+
 /* Default: witte achtergrond voor blog pages */
 body {
   background: var(--background);
