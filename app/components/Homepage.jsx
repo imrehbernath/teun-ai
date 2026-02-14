@@ -128,7 +128,7 @@ export default function Homepage() {
   };
 
   return (
-    <div className="bg-white overflow-x-hidden max-w-[100vw]">
+    <div className="bg-white">
       {/* ====== HERO + STATS WRAPPER ====== */}
       <div className="relative overflow-hidden">
         {/* Hero Mascotte - Positioned over both sections */}
@@ -155,7 +155,7 @@ export default function Homepage() {
             <div className="grid lg:grid-cols-5 gap-8 items-end">
               {/* Left: Content + Form - 3 columns */}
               <div className="lg:col-span-3 pb-12 lg:pb-24">
-                <h1 className="text-[1.7rem] sm:text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-slate-900 leading-tight mb-6" style={{ overflowWrap: 'break-word' }}>
+                <h1 className="text-[1.7rem] sm:text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-slate-900 leading-tight mb-6">
                   Hoe zichtbaar is jouw merk{' '}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
                     in AI-zoekmachines?
@@ -304,7 +304,7 @@ export default function Homepage() {
                       value={formData.servicegebied}
                       onChange={(e) => setFormData({...formData, servicegebied: e.target.value})}
                       placeholder="bijv. Amsterdam, heel Nederland"
-                      className="flex-1 px-3 py-2 text-sm rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400"
+                      className="flex-1 min-w-0 px-3 py-2 text-sm rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400"
                     />
                   </div>
 
