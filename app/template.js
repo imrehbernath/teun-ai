@@ -447,7 +447,7 @@ function Footer() {
 // Main Template Component
 export default function Template({ children }) {
   return (
-    <div className="overflow-x-hidden">
+    <div className="overflow-x-hidden w-full">
       <Header />
       <main className="min-h-screen">
         {children}
