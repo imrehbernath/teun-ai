@@ -155,21 +155,21 @@ export default function Homepage() {
             <div className="grid lg:grid-cols-5 gap-8 items-end">
               {/* Left: Content + Form - 3 columns */}
               <div className="lg:col-span-3 pb-12 lg:pb-24">
-                <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-slate-900 leading-tight mb-6">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-slate-900 leading-tight mb-6">
                   Hoe zichtbaar is jouw merk{' '}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
                     in AI-zoekmachines?
                   </span>
                 </h1>
                 
-                <p className="text-lg text-slate-600 mb-4">
+                <p className="text-base sm:text-lg text-slate-600 mb-4">
                   Check of jouw bedrijf wordt aanbevolen door ChatGPT, Perplexity en Google.
                   <br />
                   <span className="font-medium text-slate-700">Gratis scan in 30 seconden.</span>
                 </p>
 
                 {/* AI Platform badges - simple and clean */}
-                <div className="flex flex-wrap gap-3 mb-2">
+                <div className="flex flex-wrap gap-2 sm:gap-3 mb-2">
                   <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
                     <span className="w-2 h-2 rounded-full bg-green-500"></span>
                     ChatGPT
