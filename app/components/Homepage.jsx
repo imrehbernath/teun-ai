@@ -129,10 +129,6 @@ export default function Homepage() {
 
   return (
     <div className="bg-white">
-      {/* Prevent horizontal scroll caused by logo slider width: max-content */}
-      <style jsx global>{`
-        html, body { overflow-x: hidden; }
-      `}</style>
       {/* ====== HERO + STATS WRAPPER ====== */}
       <div className="relative overflow-hidden">
         {/* Hero Mascotte - Positioned over both sections */}
@@ -563,7 +559,8 @@ export default function Homepage() {
         </div>
 
         {/* CSS for infinite scroll animations */}
-        <style jsx>{`
+        <style dangerouslySetInnerHTML={{ __html: `
+          html { overflow-x: clip; }
           @keyframes scrollLeft {
             0% { transform: translateX(0); }
             100% { transform: translateX(-50%); }
@@ -584,7 +581,7 @@ export default function Homepage() {
           .animate-scroll-right:hover {
             animation-play-state: paused;
           }
-        `}</style>
+        `}} />
       </section>
 
       {/* ====== HOE HET WERKT ====== */}
