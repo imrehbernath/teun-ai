@@ -129,6 +129,10 @@ export default function Homepage() {
 
   return (
     <div className="bg-white">
+      {/* Prevent horizontal scroll caused by logo slider width: max-content */}
+      <style jsx global>{`
+        html, body { overflow-x: hidden; }
+      `}</style>
       {/* ====== HERO + STATS WRAPPER ====== */}
       <div className="relative overflow-hidden">
         {/* Hero Mascotte - Positioned over both sections */}
