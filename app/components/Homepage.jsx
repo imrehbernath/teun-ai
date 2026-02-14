@@ -128,7 +128,7 @@ export default function Homepage() {
   };
 
   return (
-    <div className="bg-white overflow-hidden">
+    <div className="bg-white overflow-x-hidden max-w-[100vw]">
       {/* ====== HERO + STATS WRAPPER ====== */}
       <div className="relative overflow-hidden">
         {/* Hero Mascotte - Positioned over both sections */}
@@ -151,7 +151,7 @@ export default function Homepage() {
             <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-100 rounded-full blur-3xl"></div>
           </div>
 
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 lg:pt-20">
+          <div className="relative max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 pt-12 lg:pt-20">
             <div className="grid lg:grid-cols-5 gap-8 items-end">
               {/* Left: Content + Form - 3 columns */}
               <div className="lg:col-span-3 pb-12 lg:pb-24">
@@ -449,7 +449,7 @@ export default function Homepage() {
 
         {/* ====== STATS BAR ====== */}
         <section className="bg-gradient-to-r from-[#1E1E3F] via-[#2D2D5F] to-[#1E1E3F] py-8 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center items-center">
             <div>
               <div className="text-3xl md:text-4xl font-bold text-white mb-1">2,847</div>
@@ -475,7 +475,7 @@ export default function Homepage() {
 
       {/* ====== SOCIAL PROOF - Logo Slider ====== */}
       <section className="py-20 border-b border-slate-100 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 mb-12">
           <p className="text-center text-slate-500 text-sm font-medium uppercase tracking-wider">
             Merken die ons vertrouwen
           </p>
@@ -585,7 +585,7 @@ export default function Homepage() {
 
       {/* ====== HOE HET WERKT ====== */}
       <section className="py-20 bg-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
               Hoe het werkt
@@ -648,7 +648,7 @@ export default function Homepage() {
           <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-100 rounded-full blur-3xl"></div>
         </div>
 
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="max-w-4xl mx-auto px-5 sm:px-6 lg:px-8 relative z-10">
           
           {/* The question */}
           <div className="text-center mb-12">
@@ -752,7 +752,7 @@ export default function Homepage() {
 
       {/* ====== FAQ SECTION ====== */}
       <section className="py-20 bg-slate-50 relative overflow-visible">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-12 items-start">
             {/* Left: FAQ */}
             <div>
