@@ -295,8 +295,8 @@ export default function Homepage() {
                   </div>
 
                   {/* Servicegebied - compact inline */}
-                  <div className="flex items-center gap-3">
-                    <label className="text-sm font-medium text-slate-600 whitespace-nowrap flex items-center gap-1.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
+                    <label className="text-sm font-medium text-slate-600 flex items-center gap-1.5">
                       📍 Servicegebied
                     </label>
                     <input
