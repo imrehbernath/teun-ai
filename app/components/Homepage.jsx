@@ -483,10 +483,10 @@ export default function Homepage() {
         <div className="space-y-8">
           {/* Top Row - Scrolls LEFT */}
           <div 
-            className="relative w-full overflow-hidden"
+            className="relative w-full overflow-hidden h-16 md:h-20"
             style={{ maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)' }}
           >
-            <div className="flex items-center justify-center gap-20 animate-scroll-left whitespace-nowrap">
+            <div className="absolute left-0 top-0 flex items-center gap-20 animate-scroll-left whitespace-nowrap">
               {[
                 { name: 'Signhost', ext: 'svg' },
                 { name: 'Evert-Groot', ext: 'svg' },
@@ -522,10 +522,10 @@ export default function Homepage() {
 
           {/* Bottom Row - Scrolls RIGHT */}
           <div 
-            className="relative w-full overflow-hidden"
+            className="relative w-full overflow-hidden h-16 md:h-20"
             style={{ maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)' }}
           >
-            <div className="flex items-center justify-center gap-20 animate-scroll-right whitespace-nowrap">
+            <div className="absolute left-0 top-0 flex items-center gap-20 animate-scroll-right whitespace-nowrap">
               {[
                 { name: 'ASN-autoschade', ext: 'svg' },
                 { name: 'De-Smaak-van-Italie', ext: 'svg' },

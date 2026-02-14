@@ -19,17 +19,8 @@
   }
 }
 
-/* Prevent horizontal overflow on all devices */
-html {
-  overflow-x: hidden; /* fallback for older browsers */
-  overflow-x: clip; /* preferred - truly prevents document width expansion */
-}
 /* Default: witte achtergrond voor blog pages */
 body {
-  overflow-x: hidden;
-  overflow-x: clip;
-  width: 100%;
-  max-width: 100%;
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-nunito), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
