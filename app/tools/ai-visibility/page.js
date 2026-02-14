@@ -735,7 +735,7 @@ function AIVisibilityToolContent() {
                     <strong className="text-slate-800 text-sm">Vul je website URL in</strong>
                     <p className="text-xs text-slate-500 mt-0.5">We halen automatisch zoekwoorden op uit je homepage</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="url"
                       inputMode="url"
