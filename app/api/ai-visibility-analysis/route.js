@@ -15,7 +15,7 @@ async function sendSlackNotification(scanData) {
   }
 
   try {
-    const { companyName, companyCategory, primaryKeyword, totalMentions } = scanData;
+    const { companyName, companyCategory, primaryKeyword, totalMentions, websiteUrl } = scanData;
 
     const message = {
       blocks: [
@@ -37,6 +37,10 @@ async function sendSlackNotification(scanData) {
             {
               type: "mrkdwn",
               text: `*Categorie:*\n${companyCategory}`
+            },
+            {
+              type: "mrkdwn",
+              text: `*Website:*\n${websiteUrl || 'Niet opgegeven'}`
             },
             {
               type: "mrkdwn",
@@ -339,6 +343,27 @@ export async function POST(request) {
       )
     }
 
+    if (companyName.trim().length < 3) {
+      return NextResponse.json(
+        { error: 'Bedrijfsnaam moet minimaal 3 tekens zijn' }, 
+        { status: 400 }
+      )
+    }
+
+    if (!companyCategory?.trim() || companyCategory.trim().length < 3) {
+      return NextResponse.json(
+        { error: 'Categorie/branche moet minimaal 3 tekens zijn' }, 
+        { status: 400 }
+      )
+    }
+
+    if (!websiteUrl?.trim()) {
+      return NextResponse.json(
+        { error: 'Website URL is verplicht' }, 
+        { status: 400 }
+      )
+    }
+
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 
                request.headers.get('x-real-ip') || 
                'unknown'
@@ -571,6 +596,7 @@ export async function POST(request) {
     sendSlackNotification({
       companyName,
       companyCategory,
+      websiteUrl,
       primaryKeyword: identifiedQueriesSummary?.[0] || null,
       totalMentions: totalCompanyMentions
     }).catch(err => console.error('Slack notificatie fout:', err));
