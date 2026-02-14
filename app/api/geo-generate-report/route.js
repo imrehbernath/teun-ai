@@ -195,7 +195,10 @@ export async function POST(request) {
     y -= 50
     drawCentered(page, 'Dit rapport toont hoe zichtbaar uw bedrijf is in AI-gestuurde zoeksystemen.', y, helveticaOblique, 9, LIGHTGRAY)
     y -= 14
-    drawCentered(page, 'Gescand op 4 platforms: Perplexity, ChatGPT, Google AI Modus en Google AI Overviews.', y, helveticaOblique, 9, LIGHTGRAY)
+    const scannedPlatformNames = activePlatforms.map(p => p.name).join(', ').replace(/, ([^,]*)$/, ' en $1')
+    drawCentered(page, activePlatforms.length > 0 
+      ? `Gescand op ${activePlatforms.length} platform${activePlatforms.length === 1 ? '' : 's'}: ${scannedPlatformNames}.`
+      : 'Nog geen platforms gescand.', y, helveticaOblique, 9, LIGHTGRAY)
     y -= 14
     drawCentered(page, 'Voor live resultaten en updates, bekijk het dashboard op teun.ai.', y, helveticaOblique, 9, LIGHTGRAY)
 
