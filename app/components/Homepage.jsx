@@ -169,27 +169,25 @@ export default function Homepage() {
                 </p>
 
                 {/* AI Platform badges - simple and clean */}
-                <div className="flex flex-wrap gap-2 sm:gap-3 mb-2">
-                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
-                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 rounded-full text-xs sm:text-sm text-slate-700 shadow-sm">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500"></span>
                     ChatGPT
                   </span>
-                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
-                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 rounded-full text-xs sm:text-sm text-slate-700 shadow-sm">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500"></span>
                     Perplexity
                   </span>
-                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
-                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 rounded-full text-xs sm:text-sm text-slate-700 shadow-sm">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500"></span>
                     AI Modus
-                    <span className="text-[10px] text-slate-400">account</span>
                   </span>
-                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
-                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 rounded-full text-xs sm:text-sm text-slate-700 shadow-sm">
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500"></span>
                     AI Overviews
-                    <span className="text-[10px] text-slate-400">account</span>
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mb-6">10 prompts per scan • 2x gratis zonder account • AI Modus & AI Overviews met gratis account</p>
+                <p className="text-[11px] sm:text-xs text-slate-400 mb-6">10 prompts per scan • 2x gratis zonder account • AI Modus & AI Overviews met gratis account</p>
 
                 {/* Mobile Mascotte - above form */}
                 <div className="lg:hidden flex justify-center">
@@ -474,7 +472,7 @@ export default function Homepage() {
       {/* End of Hero + Stats Wrapper */}
 
       {/* ====== SOCIAL PROOF - Logo Slider ====== */}
-      <section className="py-20 border-b border-slate-100 overflow-hidden">
+      <section className="py-20 border-b border-slate-100 overflow-hidden" style={{ contain: 'paint' }}>
         <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 mb-12">
           <p className="text-center text-slate-500 text-sm font-medium uppercase tracking-wider">
             Merken die ons vertrouwen
