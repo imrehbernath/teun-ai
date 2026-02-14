@@ -246,7 +246,8 @@ function AIVisibilityToolContent() {
     companyName: '',
     companyCategory: '',
     queries: '',
-    website: ''  // ✨ NEW: Website URL for smart analysis
+    website: '',
+    serviceArea: ''  // ✨ Servicegebied voor lokale AI-resultaten
   });
   const [customPrompts, setCustomPrompts] = useState(null);
 
@@ -258,6 +259,7 @@ function AIVisibilityToolContent() {
   const [activeTooltip, setActiveTooltip] = useState(null);
   const [brancheSuggestion, setBrancheSuggestion] = useState(null);
   const [nameMismatch, setNameMismatch] = useState(null);
+  const [resultPlatform, setResultPlatform] = useState('chatgpt');
   const [extractingKeywords, setExtractingKeywords] = useState(false);
   const [extractionResult, setExtractionResult] = useState(null);
 
@@ -362,6 +364,7 @@ function AIVisibilityToolContent() {
     }
     if (location) {
       setLocationTermsInput(location);
+      setFormData(prev => ({ ...prev, serviceArea: location }));
       setShowAdvancedSettings(true);
     }
 
@@ -507,7 +510,7 @@ function AIVisibilityToolContent() {
       setProgress(5);
       
       const hasCustomPrompts = customPrompts && customPrompts.length > 0;
-      const totalPrompts = hasCustomPrompts ? customPrompts.length : (user ? 10 : 5);
+      const totalPrompts = hasCustomPrompts ? customPrompts.length : 10;
       
       if (hasCustomPrompts) {
         setCurrentStep(`${totalPrompts} aangepaste prompts analyseren...`);
@@ -566,7 +569,8 @@ function AIVisibilityToolContent() {
           customTerms: getCustomTerms(),
           referralSource: referralSource,
           customPrompts: hasCustomPrompts ? customPrompts : null,
-          websiteUrl: formData.website || null  // ✨ NEW: Website URL for smart analysis
+          websiteUrl: formData.website || null,
+          serviceArea: formData.serviceArea || null
         })
       });
 
@@ -588,8 +592,9 @@ function AIVisibilityToolContent() {
       setCustomPrompts(null);
 
       // Check voor bedrijfsnaam mismatch in concurrenten
-      if (data.total_company_mentions === 0 && data.analysis_results) {
-        const mismatch = findNameInCompetitors(formData.companyName, data.analysis_results);
+      const allResults = [...(data.analysis_results || []), ...(data.chatgpt_results || [])];
+      if (data.total_company_mentions === 0 && data.chatgpt_company_mentions === 0 && allResults.length > 0) {
+        const mismatch = findNameInCompetitors(formData.companyName, allResults);
         setNameMismatch(mismatch);
       } else {
         setNameMismatch(null);
@@ -661,12 +666,11 @@ function AIVisibilityToolContent() {
           <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-1">
             <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
               <span className="w-2 h-2 rounded-full bg-green-500"></span>
-              Perplexity
+              ChatGPT
             </span>
             <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
               <span className="w-2 h-2 rounded-full bg-green-500"></span>
-              ChatGPT
-              <span className="text-[10px] text-slate-400">account</span>
+              Perplexity
             </span>
             <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
               <span className="w-2 h-2 rounded-full bg-green-500"></span>
@@ -679,7 +683,7 @@ function AIVisibilityToolContent() {
               <span className="text-[10px] text-slate-400">account</span>
             </span>
           </div>
-          <p className="text-xs text-slate-400">ChatGPT, AI Modus & AI Overviews met gratis account</p>
+          <p className="text-xs text-slate-400">10 prompts per scan • 2x gratis zonder account • AI Modus & AI Overviews met gratis account</p>
         </header>
 
         {/* Step Indicator - Pill style matching homepage CTA */}
@@ -935,7 +939,13 @@ function AIVisibilityToolContent() {
                           <label className="text-sm text-slate-700 font-medium flex items-center gap-2">
                             <span className="text-blue-500">📍</span> Locatie-focus (optioneel)
                           </label>
-                          <input type="text" value={locationTermsInput} onChange={(e) => setLocationTermsInput(e.target.value)}
+                          <input type="text" value={locationTermsInput} onChange={(e) => {
+                            setLocationTermsInput(e.target.value);
+                            // Sync met servicegebied
+                            if (!formData.serviceArea || formData.serviceArea === locationTermsInput) {
+                              setFormData(prev => ({ ...prev, serviceArea: e.target.value }));
+                            }
+                          }}
                             placeholder="Bijv: Amsterdam, landelijk actief, regio Utrecht"
                             className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 text-sm" />
                           <div className="text-xs text-slate-500">Locatie-specifieke termen om in prompts te gebruiken.</div>
@@ -1166,6 +1176,22 @@ function AIVisibilityToolContent() {
                         </span>
                       </p>
                     )}
+                  </div>
+
+                  {/* Servicegebied */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                      📍 Servicegebied
+                      <span className="text-xs font-normal text-slate-400">(optioneel)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.serviceArea}
+                      onChange={(e) => setFormData({ ...formData, serviceArea: e.target.value })}
+                      placeholder="bijv. Amsterdam, Utrecht, heel Nederland"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 bg-white"
+                    />
+                    <p className="text-xs text-slate-400">AI-platforms geven lokaal relevantere resultaten met een servicegebied</p>
                   </div>
                 </div>
 
@@ -1474,24 +1500,59 @@ function AIVisibilityToolContent() {
                     </div>
                   </div>
                 )}
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-gradient-to-br from-[#20B8CD] to-[#1AA3B3] rounded-lg flex items-center justify-center">
-                        <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+
+                  {/* Platform Tabs */}
+                  <div className="flex items-center gap-2 mb-1">
+                    <button
+                      onClick={() => setResultPlatform('chatgpt')}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                        resultPlatform === 'chatgpt'
+                          ? 'bg-white shadow-sm border border-green-200 text-slate-800'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      <div className="w-5 h-5 bg-gradient-to-br from-[#10A37F] to-[#0D8A6A] rounded flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M22.2 9.4c.4-1.2.2-2.5-.5-3.6-.7-1-1.8-1.7-3-1.9-.6-.1-1.2 0-1.8.2-.5-1.3-1.5-2.3-2.8-2.8-1.3-.5-2.8-.4-4 .3C9.4.6 8.2.2 7 .5c-1.2.3-2.3 1.1-2.9 2.2-.6 1.1-.7 2.4-.3 3.6-1.3.5-2.3 1.5-2.8 2.8s-.4 2.8.3 4c-1 .8-1.6 2-1.7 3.3-.1 1.3.4 2.6 1.4 3.5 1 .9 2.3 1.3 3.6 1.2.5 1.3 1.5 2.3 2.8 2.8 1.3.5 2.8.4 4-.3.8 1 2 1.6 3.3 1.7 1.3.1 2.6-.4 3.5-1.4.9-1 1.3-2.3 1.2-3.6 1.3-.5 2.3-1.5 2.8-2.8.5-1.3.4-2.8-.3-4 1-.8 1.6-2 1.7-3.3.1-1.3-.4-2.6-1.4-3.5z"/>
+                        </svg>
+                      </div>
+                      ChatGPT
+                      <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
+                        resultPlatform === 'chatgpt' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {results.chatgpt_company_mentions || 0}/{(results.chatgpt_results || []).length}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setResultPlatform('perplexity')}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                        resultPlatform === 'perplexity'
+                          ? 'bg-white shadow-sm border border-blue-200 text-slate-800'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      <div className="w-5 h-5 bg-gradient-to-br from-[#20B8CD] to-[#1AA3B3] rounded flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                           <circle cx="12" cy="12" r="10" />
                           <path d="M12 6v6l4 2" />
                         </svg>
                       </div>
-                      <span className="font-semibold text-slate-800 text-sm sm:text-base">Perplexity AI</span>
-                    </div>
-                    <span className="text-xs sm:text-sm text-slate-600">Realtime webscan met actuele bronnen</span>
+                      Perplexity
+                      <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
+                        resultPlatform === 'perplexity' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {results.total_company_mentions}/{results.analysis_results.length}
+                      </span>
+                    </button>
                   </div>
+                  <p className="text-xs text-slate-400 ml-1">
+                    {resultPlatform === 'chatgpt' ? 'Realtime webscan via ChatGPT Search' : 'Realtime webscan met actuele bronnen'}
+                  </p>
                 </div>
 
-                {/* ChatGPT + Google AI Unlock Prompt */}
+                {/* Unlock extra platforms for non-logged-in users */}
                 {!user && (
                   <div className="bg-gradient-to-r from-emerald-50 via-green-50 to-teal-50 border-2 border-emerald-200 rounded-xl p-4 sm:p-5 mb-4 sm:mb-6 relative overflow-hidden">
-                    {/* GRATIS Badge */}
                     <div className="absolute top-0 right-0">
                       <div className="bg-gradient-to-r from-emerald-500 to-green-500 text-white text-[10px] sm:text-xs font-bold px-3 py-1 rounded-bl-lg">
                         GRATIS
@@ -1501,13 +1562,6 @@ function AIVisibilityToolContent() {
                     <div className="flex flex-col gap-3">
                       <div className="flex items-center gap-3">
                         <div className="flex -space-x-2">
-                          {/* ChatGPT icon */}
-                          <div className="w-9 h-9 bg-gradient-to-br from-[#10A37F] to-[#0D8A6A] rounded-lg flex items-center justify-center border-2 border-white shadow-sm">
-                            <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M22.2 9.4c.4-1.2.2-2.5-.5-3.6-.7-1-1.8-1.7-3-1.9-.6-.1-1.2 0-1.8.2-.5-1.3-1.5-2.3-2.8-2.8-1.3-.5-2.8-.4-4 .3C9.4.6 8.2.2 7 .5c-1.2.3-2.3 1.1-2.9 2.2-.6 1.1-.7 2.4-.3 3.6-1.3.5-2.3 1.5-2.8 2.8s-.4 2.8.3 4c-1 .8-1.6 2-1.7 3.3-.1 1.3.4 2.6 1.4 3.5 1 .9 2.3 1.3 3.6 1.2.5 1.3 1.5 2.3 2.8 2.8 1.3.5 2.8.4 4-.3.8 1 2 1.6 3.3 1.7 1.3.1 2.6-.4 3.5-1.4.9-1 1.3-2.3 1.2-3.6 1.3-.5 2.3-1.5 2.8-2.8.5-1.3.4-2.8-.3-4 1-.8 1.6-2 1.7-3.3.1-1.3-.4-2.6-1.4-3.5z"/>
-                            </svg>
-                          </div>
-                          {/* Google AI icon */}
                           <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center border-2 border-white shadow-sm">
                             <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
                               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
@@ -1515,16 +1569,16 @@ function AIVisibilityToolContent() {
                           </div>
                         </div>
                         <div className="flex-1">
-                          <span className="font-bold text-slate-800 text-sm sm:text-base block">Unlock ChatGPT + AI Modus</span>
+                          <span className="font-bold text-slate-800 text-sm sm:text-base block">Unlock AI Modus + AI Overviews</span>
                           <span className="text-xs text-slate-500">Maak een gratis account - geen creditcard nodig</span>
                         </div>
                       </div>
                       
                       <div className="flex flex-wrap gap-2 text-xs">
-                        <span className="px-2 py-1 bg-white/80 rounded-full text-slate-600 border border-slate-200">✓ ChatGPT scans</span>
                         <span className="px-2 py-1 bg-white/80 rounded-full text-slate-600 border border-slate-200">✓ AI Modus scans</span>
                         <span className="px-2 py-1 bg-white/80 rounded-full text-slate-600 border border-slate-200">✓ AI Overviews</span>
                         <span className="px-2 py-1 bg-white/80 rounded-full text-slate-600 border border-slate-200">✓ GEO Analyse</span>
+                        <span className="px-2 py-1 bg-white/80 rounded-full text-slate-600 border border-slate-200">✓ Dashboard</span>
                       </div>
                       
                       <Link 
@@ -1556,67 +1610,79 @@ function AIVisibilityToolContent() {
                   </div>
                 )}
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 text-center">
-                    <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-1">{results.total_company_mentions}</div>
-                    <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-medium leading-tight">
-                      <span className="hidden sm:inline">Vermeldingen</span><span className="sm:hidden">Vermeld</span>
-                    </div>
-                  </div>
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 text-center">
-                    <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">{results.analysis_results.length}</div>
-                    <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-medium leading-tight">
-                      <span className="hidden sm:inline">AI Prompts</span><span className="sm:hidden">Prompts</span>
-                    </div>
-                  </div>
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 text-center">
-                    <div className="text-2xl sm:text-3xl font-bold text-purple-600 mb-1">
-                      {[...new Set(results.analysis_results.flatMap(r => r.competitors_mentioned || []))].length}
-                    </div>
-                    <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-medium leading-tight">
-                      <span className="hidden sm:inline">Concurrenten</span><span className="sm:hidden">Concurrent</span>
-                    </div>
-                  </div>
-                </div>
+                {/* Stats Cards - per platform */}
+                {(() => {
+                  const activeResults = resultPlatform === 'chatgpt' 
+                    ? (results.chatgpt_results || []) 
+                    : results.analysis_results;
+                  const activeMentions = resultPlatform === 'chatgpt' 
+                    ? (results.chatgpt_company_mentions || 0) 
+                    : results.total_company_mentions;
+                  const activeCompetitors = [...new Set(activeResults.flatMap(r => r.competitors_mentioned || []))];
+                  
+                  return (
+                    <>
+                      <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 text-center">
+                          <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-1">{activeMentions}</div>
+                          <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-medium leading-tight">
+                            <span className="hidden sm:inline">Vermeldingen</span><span className="sm:hidden">Vermeld</span>
+                          </div>
+                        </div>
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 text-center">
+                          <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">{activeResults.length}</div>
+                          <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-medium leading-tight">
+                            <span className="hidden sm:inline">AI Prompts</span><span className="sm:hidden">Prompts</span>
+                          </div>
+                        </div>
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 text-center">
+                          <div className="text-2xl sm:text-3xl font-bold text-purple-600 mb-1">{activeCompetitors.length}</div>
+                          <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-medium leading-tight">
+                            <span className="hidden sm:inline">Concurrenten</span><span className="sm:hidden">Concurrent</span>
+                          </div>
+                        </div>
+                      </div>
 
-                {/* Results List */}
-                <div className="space-y-3 mb-4 sm:mb-6">
-                  {results.analysis_results.map((result, idx) => (
-                    <div key={idx} className="bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl p-3 sm:p-4 transition-all">
-                      <div className="flex gap-2 sm:gap-3">
-                        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-xs sm:text-sm ${
-                          result.company_mentioned
-                            ? 'bg-green-100 text-green-700 border border-green-200'
-                            : 'bg-slate-200 text-slate-500 border border-slate-300'
-                        }`}>
-                          {idx + 1}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs sm:text-sm text-blue-700 mb-1 sm:mb-2 font-medium">{result.ai_prompt}</p>
-                          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{result.simulated_ai_response_snippet}</p>
-                          {result.competitors_mentioned?.length > 0 && (
-                            <div className="flex flex-wrap gap-1 sm:gap-2 mt-2 sm:mt-3">
-                              <span className="text-[10px] sm:text-xs text-slate-500">Concurrenten:</span>
-                              {result.competitors_mentioned.map((comp, i) => (
-                                <span key={i} className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 bg-purple-50 text-purple-700 rounded-md border border-purple-200">
-                                  {comp}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        {result.company_mentioned && (
-                          <div className="flex-shrink-0">
-                            <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-100 rounded-full flex items-center justify-center">
-                              <Award className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
+                      {/* Results List */}
+                      <div className="space-y-3 mb-4 sm:mb-6">
+                        {activeResults.map((result, idx) => (
+                          <div key={idx} className="bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl p-3 sm:p-4 transition-all">
+                            <div className="flex gap-2 sm:gap-3">
+                              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-xs sm:text-sm ${
+                                result.company_mentioned
+                                  ? 'bg-green-100 text-green-700 border border-green-200'
+                                  : 'bg-slate-200 text-slate-500 border border-slate-300'
+                              }`}>
+                                {idx + 1}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs sm:text-sm text-blue-700 mb-1 sm:mb-2 font-medium">{result.ai_prompt}</p>
+                                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{result.simulated_ai_response_snippet}</p>
+                                {result.competitors_mentioned?.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 sm:gap-2 mt-2 sm:mt-3">
+                                    <span className="text-[10px] sm:text-xs text-slate-500">Concurrenten:</span>
+                                    {result.competitors_mentioned.map((comp, i) => (
+                                      <span key={i} className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 bg-purple-50 text-purple-700 rounded-md border border-purple-200">
+                                        {comp}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              {result.company_mentioned && (
+                                <div className="flex-shrink-0">
+                                  <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                    <Award className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
-                        )}
+                        ))}
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    </>
+                  );
+                })()}
 
                 {/* GEO DIY CTA - Only for non-logged in users */}
                 {!user && (
@@ -1645,7 +1711,7 @@ function AIVisibilityToolContent() {
                       <ul className="space-y-2 mb-5">
                         <li className="flex items-center gap-2 text-sm">
                           <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
-                          <span><strong>ChatGPT</strong> scan resultaten</span>
+                          <span><strong>Dagelijks scannen</strong> op alle platforms</span>
                         </li>
                         <li className="flex items-center gap-2 text-sm">
                           <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
@@ -1657,7 +1723,7 @@ function AIVisibilityToolContent() {
                         </li>
                         <li className="flex items-center gap-2 text-sm">
                           <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
-                          <span>Dashboard met alle scan resultaten</span>
+                          <span><strong>Dashboard</strong> met alle scan resultaten</span>
                         </li>
                         <li className="flex items-center gap-2 text-sm">
                           <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
@@ -1692,7 +1758,7 @@ function AIVisibilityToolContent() {
                   <button
                     onClick={() => {
                       setStep(1);
-                      setFormData({ companyName: '', companyCategory: '', queries: '', website: '' });
+                      setFormData({ companyName: '', companyCategory: '', queries: '', website: '', serviceArea: '' });
                       setExcludeTermsInput(''); setIncludeTermsInput(''); setLocationTermsInput('');
                       setResults(null); setReferralSource(null); setFromHomepage(false); setNameMismatch(null); setBrancheSuggestion(null);
                     }}
@@ -1727,18 +1793,19 @@ function AIVisibilityToolContent() {
               <div className="hidden lg:flex lg:col-span-2 flex-col items-center justify-start pt-8">
                 <Image src="/Teun-ai-blij-met-resultaat.png" alt="Teun is blij met je resultaat!" width={240} height={300} className="drop-shadow-2xl" />
                 <p className="text-sm text-slate-500 mt-4 text-center font-medium">
-                  {results.total_company_mentions > 0 
-                    ? `Goed bezig! Je bent ${results.total_company_mentions}x genoemd! 🎉` 
+                  {(results.total_company_mentions + (results.chatgpt_company_mentions || 0)) > 0 
+                    ? `Goed bezig! Je bent ${results.total_company_mentions + (results.chatgpt_company_mentions || 0)}x genoemd! 🎉` 
                     : 'Tijd om je AI-zichtbaarheid te verbeteren!'}
                 </p>
 
                 {/* Competitor Ranking */}
                 {(() => {
-                  // Calculate mentions per company (including user's company)
+                  // Calculate mentions per company across ALL platforms
                   const mentionCounts = {};
-                  mentionCounts[formData.companyName] = results.total_company_mentions;
+                  mentionCounts[formData.companyName] = results.total_company_mentions + (results.chatgpt_company_mentions || 0);
                   
-                  results.analysis_results.forEach(result => {
+                  const allResults = [...results.analysis_results, ...(results.chatgpt_results || [])];
+                  allResults.forEach(result => {
                     (result.competitors_mentioned || []).forEach(comp => {
                       mentionCounts[comp] = (mentionCounts[comp] || 0) + 1;
                     });
@@ -1815,7 +1882,7 @@ function AIVisibilityToolContent() {
                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
                           </div>
-                          <span className="text-slate-700"><strong>ChatGPT</strong> scan resultaten</span>
+                          <span className="text-slate-700"><strong>Dagelijks scannen</strong> op alle platforms</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm">
                           <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -1902,7 +1969,7 @@ function AIVisibilityToolContent() {
             </p>
             {!user && (
               <>
-                <p className="text-purple-600 text-sm mb-4">✨ Gratis account = 10 unieke prompts per scan</p>
+                <p className="text-purple-600 text-sm mb-4">✨ Gratis account = dagelijks scannen + AI Modus & AI Overviews</p>
                 <Link href="/signup"
                   className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white rounded-lg font-semibold hover:shadow-lg transition cursor-pointer inline-block">
                   Gratis aanmelden →

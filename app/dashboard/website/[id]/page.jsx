@@ -24,7 +24,8 @@ import {
   X,
   Edit3,
   BarChart3,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react'
 
 export default function WebsiteDetailPage() {
@@ -39,9 +40,10 @@ export default function WebsiteDetailPage() {
   const [expandedItems, setExpandedItems] = useState({})
   const [copiedPrompt, setCopiedPrompt] = useState(null)
   const [deletingId, setDeletingId] = useState(null)
-  const [activeTab, setActiveTab] = useState('perplexity')
+  const [activeTab, setActiveTab] = useState('chatgpt')
   const [scanning, setScanning] = useState(false)
   const [scanningOverview, setScanningOverview] = useState(false)
+  const [scanningChatGPT, setScanningChatGPT] = useState(false)
   const [showGeoPopup, setShowGeoPopup] = useState(false) // Popup for missing scans
   const [isSharedView, setIsSharedView] = useState(false)
   
@@ -53,6 +55,7 @@ export default function WebsiteDetailPage() {
   const [promptsModified, setPromptsModified] = useState(false)
   const [editingIndex, setEditingIndex] = useState(null)
   const [editingText, setEditingText] = useState('')
+  const [serviceArea, setServiceArea] = useState('')
   
   const supabase = createClient()
 
@@ -148,26 +151,48 @@ export default function WebsiteDetailPage() {
               websiteData.category = scan.company_category
             }
             
-            const results = scan.results || []
             const scanPrompts = scan.commercial_prompts || []
             
+            // ✨ Detect new format: { perplexity: [...], chatgpt: [...] } vs old flat array
+            const rawResults = scan.results || []
+            const isNewFormat = rawResults && !Array.isArray(rawResults) && rawResults.perplexity
+            
+            const perplexityResults = isNewFormat ? (rawResults.perplexity || []) : rawResults
+            const chatgptResultsFromScan = isNewFormat ? (rawResults.chatgpt || []) : []
+            
             if (websiteData.prompts.length === 0) {
-              websiteData.prompts = results.length > 0 
-                ? results.map(r => r.ai_prompt || r.query || '').filter(Boolean)
+              websiteData.prompts = perplexityResults.length > 0 
+                ? perplexityResults.map(r => r.ai_prompt || r.query || '').filter(Boolean)
                 : scanPrompts.filter(Boolean)
             }
             
-            const mentions = results.filter(r => r.company_mentioned === true).length
+            // Perplexity
+            const perplexityMentions = perplexityResults.filter(r => r.company_mentioned === true).length
             
             websiteData.platforms.perplexity.scans.push({
               id: scan.id,
               date: scan.created_at,
-              results,
-              mentions,
-              total: results.length || scanPrompts.length
+              results: perplexityResults,
+              mentions: perplexityMentions,
+              total: perplexityResults.length || scanPrompts.length
             })
-            websiteData.platforms.perplexity.mentions += mentions
-            websiteData.platforms.perplexity.total += results.length || scanPrompts.length
+            websiteData.platforms.perplexity.mentions += perplexityMentions
+            websiteData.platforms.perplexity.total += perplexityResults.length || scanPrompts.length
+            
+            // ✨ ChatGPT from tool_integrations (new dual-platform scans)
+            if (chatgptResultsFromScan.length > 0) {
+              const chatgptMentions = chatgptResultsFromScan.filter(r => r.company_mentioned === true).length
+              
+              websiteData.platforms.chatgpt.scans.push({
+                id: scan.id + '-chatgpt',
+                date: scan.created_at,
+                results: chatgptResultsFromScan,
+                mentions: chatgptMentions,
+                total: chatgptResultsFromScan.length
+              })
+              websiteData.platforms.chatgpt.mentions += chatgptMentions
+              websiteData.platforms.chatgpt.total += chatgptResultsFromScan.length
+            }
           }
         })
       }
@@ -210,6 +235,9 @@ export default function WebsiteDetailPage() {
       }
 
       // Process Google AI
+      // ✨ Sort ChatGPT scans by date (newest first) - merges tool_integrations + chatgpt_scans
+      websiteData.platforms.chatgpt.scans.sort((a, b) => new Date(b.date) - new Date(a.date))
+
       googleScans.forEach(scan => {
         const key = (scan.company_name || '').toLowerCase().trim()
         if (toSlug(key) === websiteSlug) {
@@ -300,12 +328,18 @@ export default function WebsiteDetailPage() {
     if (!confirm('Scan verwijderen?')) return
     setDeletingId(scanId)
     
-    const table = type === 'perplexity' ? 'tool_integrations' 
+    // ✨ ChatGPT results from tool_integrations have '-chatgpt' suffix
+    // Delete the parent tool_integration record instead
+    const isToolIntegrationChatgpt = type === 'chatgpt' && String(scanId).endsWith('-chatgpt')
+    const actualId = isToolIntegrationChatgpt ? String(scanId).replace('-chatgpt', '') : scanId
+    
+    const table = isToolIntegrationChatgpt ? 'tool_integrations'
+                : type === 'perplexity' ? 'tool_integrations' 
                 : type === 'chatgpt' ? 'chatgpt_scans' 
                 : type === 'googleOverview' ? 'google_ai_overview_scans'
                 : 'google_ai_scans'
     
-    const { error } = await supabase.from(table).delete().eq('id', scanId)
+    const { error } = await supabase.from(table).delete().eq('id', actualId)
     if (!error) await loadWebsiteData()
     else alert('Fout: ' + error.message)
     
@@ -421,6 +455,38 @@ export default function WebsiteDetailPage() {
       alert('Fout bij scannen')
     }
     setScanningOverview(false)
+  }
+
+  const startChatGPTScan = async () => {
+    if (prompts.length === 0) {
+      alert('Voeg eerst prompts toe')
+      return
+    }
+    
+    setScanningChatGPT(true)
+    try {
+      const response = await fetch('/api/scan-chatgpt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName: website.name,
+          website: website.website,
+          prompts,
+          userId: user?.id,
+          serviceArea: serviceArea || null
+        })
+      })
+      const data = await response.json()
+      if (data.success) {
+        await loadWebsiteData()
+        setActiveTab('chatgpt')
+      } else {
+        alert('Fout: ' + (data.error || 'Onbekend'))
+      }
+    } catch (e) {
+      alert('Fout bij ChatGPT scannen')
+    }
+    setScanningChatGPT(false)
   }
 
   // Highlight company name in text with bold styling
@@ -731,7 +797,15 @@ export default function WebsiteDetailPage() {
                 <Info className="w-4 h-4" />
                 Prompts aangepast - scan opnieuw voor actuele resultaten
               </p>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={startChatGPTScan}
+                  disabled={scanningChatGPT}
+                  className="px-4 py-2 bg-[#10A37F] text-white rounded-lg text-sm font-medium hover:bg-[#0D8A6A] flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  {scanningChatGPT ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                  ChatGPT scan
+                </button>
                 <button
                   onClick={startPerplexityScan}
                   className="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm font-medium hover:bg-purple-600 flex items-center gap-2 cursor-pointer"
@@ -759,6 +833,25 @@ export default function WebsiteDetailPage() {
           )}
         </div>
 
+        {/* Servicegebied */}
+        {!isSharedView && (
+          <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-slate-600 whitespace-nowrap flex items-center gap-1.5">
+                📍 Servicegebied
+              </label>
+              <input
+                type="text"
+                value={serviceArea}
+                onChange={(e) => setServiceArea(e.target.value)}
+                placeholder="bijv. Amsterdam, Utrecht, heel Nederland"
+                className="flex-1 px-3 py-2 text-sm rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400"
+              />
+              <span className="text-xs text-slate-400 hidden sm:block">Voor ChatGPT locatie-context</span>
+            </div>
+          </div>
+        )}
+
         {/* Platform Tabs */}
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6">
           <div className="flex border-b border-slate-200">
@@ -781,10 +874,10 @@ export default function WebsiteDetailPage() {
               <span>ChatGPT</span>
               <span className={`ml-2 px-2.5 py-1 rounded-full text-xs font-bold ${
                 activeTab === 'chatgpt'
-                  ? `${getScoreColor(getScore(website.platforms.chatgpt.mentions, website.platforms.chatgpt.total))} bg-white` 
+                  ? `${getScoreColor(getScore(latestChatgpt?.mentions || 0, latestChatgpt?.total || 0))} bg-white` 
                   : 'text-slate-500 bg-slate-100'
               }`}>
-                {website.platforms.chatgpt.mentions}/{website.platforms.chatgpt.total}
+                {latestChatgpt ? latestChatgpt.mentions : 0}/{latestChatgpt ? latestChatgpt.total : 0}
               </span>
             </button>
 
@@ -807,10 +900,10 @@ export default function WebsiteDetailPage() {
               <span>Perplexity</span>
               <span className={`ml-2 px-2.5 py-1 rounded-full text-xs font-bold ${
                 activeTab === 'perplexity'
-                  ? `${getScoreColor(getScore(website.platforms.perplexity.mentions, website.platforms.perplexity.total))} bg-white` 
+                  ? `${getScoreColor(getScore(latestPerplexity?.mentions || 0, latestPerplexity?.total || 0))} bg-white` 
                   : 'text-slate-500 bg-slate-100'
               }`}>
-                {website.platforms.perplexity.mentions}/{website.platforms.perplexity.total}
+                {latestPerplexity ? latestPerplexity.mentions : 0}/{latestPerplexity ? latestPerplexity.total : 0}
               </span>
             </button>
 
@@ -827,10 +920,10 @@ export default function WebsiteDetailPage() {
               <span>AI Modus</span>
               <span className={`ml-2 px-2.5 py-1 rounded-full text-xs font-bold ${
                 activeTab === 'google'
-                  ? `${getScoreColor(getScore(website.platforms.google.mentions, website.platforms.google.total))} bg-white` 
+                  ? `${getScoreColor(getScore(latestGoogle?.mentions || 0, latestGoogle?.total || 0))} bg-white` 
                   : 'text-slate-500 bg-slate-100'
               }`}>
-                {website.platforms.google.mentions}/{website.platforms.google.total}
+                {latestGoogle ? latestGoogle.mentions : 0}/{latestGoogle ? latestGoogle.total : 0}
               </span>
             </button>
 
@@ -847,10 +940,10 @@ export default function WebsiteDetailPage() {
               <span>AI Overviews</span>
               <span className={`ml-2 px-2.5 py-1 rounded-full text-xs font-bold ${
                 activeTab === 'googleOverview'
-                  ? `${getScoreColor(getScore(website.platforms.googleOverview.mentions, website.platforms.googleOverview.total))} bg-white` 
+                  ? `${getScoreColor(getScore(latestGoogleOverview?.mentions || 0, latestGoogleOverview?.total || 0))} bg-white` 
                   : 'text-slate-500 bg-slate-100'
               }`}>
-                {website.platforms.googleOverview.mentions}/{website.platforms.googleOverview.total}
+                {latestGoogleOverview ? latestGoogleOverview.mentions : 0}/{latestGoogleOverview ? latestGoogleOverview.total : 0}
               </span>
             </button>
           </div>
@@ -868,40 +961,46 @@ export default function WebsiteDetailPage() {
                     <p className="text-sm text-slate-500 mb-4">Check je zichtbaarheid in ChatGPT</p>
                     
                     <div className="space-y-3 max-w-sm mx-auto">
-                      {/* Step 1: Chrome extensie */}
+                      {/* Primary: Direct scan via API */}
+                      {prompts.length > 0 ? (
+                        <button
+                          onClick={startChatGPTScan}
+                          disabled={scanningChatGPT}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#10A37F] to-[#0D8A6A] text-white font-semibold rounded-xl hover:from-[#0D8A6A] hover:to-[#0A7358] transition shadow-md disabled:opacity-50 cursor-pointer"
+                        >
+                          {scanningChatGPT ? (
+                            <><Loader2 className="w-5 h-5 animate-spin" /> Scannen...</>
+                          ) : (
+                            <><Search className="w-5 h-5" /> ChatGPT Scan Starten</>
+                          )}
+                        </button>
+                      ) : (
+                        <p className="text-sm text-amber-600 bg-amber-50 rounded-lg p-3 border border-amber-200">
+                          Voeg eerst prompts toe om te scannen
+                        </p>
+                      )}
+                      
+                      {/* Divider */}
+                      <div className="flex items-center gap-3 text-xs text-slate-400">
+                        <div className="flex-1 h-px bg-slate-200" />
+                        <span>of via Chrome extensie</span>
+                        <div className="flex-1 h-px bg-slate-200" />
+                      </div>
+
+                      {/* Alternative: Chrome extensie */}
                       <a 
                         href="https://chromewebstore.google.com/detail/teunai-chatgpt-visibility/jjhjnmkanlmjhmobcgemjakkjdbkkfmk"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-green-600 transition shadow-md"
-                      >
-                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                          <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.2"/>
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                        </svg>
-                        1. Installeer Chrome Extensie
-                      </a>
-                      
-                      {/* Step 2: Open ChatGPT */}
-                      <a 
-                        href="https://chatgpt.com"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-700 font-medium rounded-xl hover:bg-slate-200 transition text-sm"
                       >
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M22.2 9.4c.4-1.2.2-2.5-.5-3.6-.7-1-1.8-1.7-3-1.9-.6-.1-1.2 0-1.8.2-.5-1.3-1.5-2.3-2.8-2.8-1.3-.5-2.8-.4-4 .3C9.4.6 8.2.2 7 .5c-1.2.3-2.3 1.1-2.9 2.2-.6 1.1-.7 2.4-.3 3.6-1.3.5-2.3 1.5-2.8 2.8s-.4 2.8.3 4c-1 .8-1.6 2-1.7 3.3-.1 1.3.4 2.6 1.4 3.5 1 .9 2.3 1.3 3.6 1.2.5 1.3 1.5 2.3 2.8 2.8 1.3.5 2.8.4 4-.3.8 1 2 1.6 3.3 1.7 1.3.1 2.6-.4 3.5-1.4.9-1 1.3-2.3 1.2-3.6 1.3-.5 2.3-1.5 2.8-2.8.5-1.3.4-2.8-.3-4 1-.8 1.6-2 1.7-3.3.1-1.3-.4-2.6-1.4-3.5z"/>
+                          <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.2"/>
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                         </svg>
-                        2. Open ChatGPT
+                        Installeer Chrome Extensie
                         <ExternalLink className="w-3 h-3" />
                       </a>
-                    </div>
-                    
-                    <div className="mt-5 p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-left max-w-sm mx-auto">
-                      <p className="text-xs font-semibold text-emerald-800 mb-1">✨ Let the magic begin!</p>
-                      <p className="text-xs text-emerald-700">
-                        Na installatie: log in via de extensie en open ChatGPT. Zet ChatGPT op <strong>Instant</strong> (niet Thinking). Je resultaten worden automatisch opgeslagen.
-                      </p>
                     </div>
                   </div>
                 ) : (
@@ -915,9 +1014,19 @@ export default function WebsiteDetailPage() {
                             <p className="text-sm text-slate-500">{formatDate(latestChatgpt.date)}</p>
                             <p className="font-medium">{latestChatgpt.mentions}/{latestChatgpt.total} vermeldingen</p>
                           </div>
-                          <button onClick={() => deleteScan(latestChatgpt.id, 'chatgpt')} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
-                            {deletingId === latestChatgpt.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button 
+                              onClick={startChatGPTScan}
+                              disabled={scanningChatGPT || prompts.length === 0}
+                              className="px-3 py-1.5 text-xs font-medium text-[#10A37F] hover:bg-green-50 rounded-lg flex items-center gap-1.5 disabled:opacity-40 cursor-pointer"
+                            >
+                              {scanningChatGPT ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                              Opnieuw scannen
+                            </button>
+                            <button onClick={() => deleteScan(latestChatgpt.id, 'chatgpt')} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                              {deletingId === latestChatgpt.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                            </button>
+                          </div>
                         </div>
 
                         {/* Results list */}
@@ -938,7 +1047,7 @@ export default function WebsiteDetailPage() {
                                   ) : (
                                     <XCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
                                   )}
-                                  <span className="flex-1 text-sm text-slate-700">{result.query}</span>
+                                  <span className="flex-1 text-sm text-slate-700">{result.ai_prompt || result.query}</span>
                                   {expanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
                                 </button>
                                 
@@ -976,7 +1085,7 @@ export default function WebsiteDetailPage() {
                                     )}
                                     
                                     <button
-                                      onClick={(e) => { e.stopPropagation(); copyPrompt(result.query, key); }}
+                                      onClick={(e) => { e.stopPropagation(); copyPrompt(result.ai_prompt || result.query, key); }}
                                       className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1"
                                     >
                                       {copiedPrompt === key ? <><Check className="w-3 h-3 text-green-500" /> Gekopieerd</> : <><Copy className="w-3 h-3" /> Kopieer</>}

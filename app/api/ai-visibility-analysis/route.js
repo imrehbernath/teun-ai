@@ -84,6 +84,7 @@ const anthropic = new Anthropic({
 })
 
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY || '0f2289b685e1cf063f5c6572e2dcef83'
 
 // ============================================
@@ -318,7 +319,8 @@ export async function POST(request) {
       numberOfPrompts = 5,
       customTerms = null,
       customPrompts = null,  // ✨ Pre-made prompts from dashboard edit
-      websiteUrl = null      // ✨ NEW: Website URL for smart analysis
+      websiteUrl = null,     // ✨ Website URL for smart analysis
+      serviceArea = null     // ✨ Servicegebied voor lokale AI-resultaten
     } = body
 
     if (!companyName?.trim()) {
@@ -443,35 +445,68 @@ export async function POST(request) {
     console.log(`🔍 Step 2: Analyzing ${promptsToAnalyze.length} prompts (limit: ${analysisLimit})...`)
     
     const analysisResults = []
+    const chatgptResults = []
     let totalCompanyMentions = 0
+    let chatgptCompanyMentions = 0
 
     for (let i = 0; i < promptsToAnalyze.length; i++) {
       const prompt = promptsToAnalyze[i]
       console.log(`   Analyzing prompt ${i + 1}/${promptsToAnalyze.length}...`)
       
-      const result = await analyzeWithPerplexity(prompt, companyName)
+      // ✨ Run Perplexity + ChatGPT in parallel
+      // ChatGPT: 50% van prompts krijgt locatie-context als serviceArea ingevuld
+      let chatgptPrompt = prompt
+      if (serviceArea && i % 2 === 0 && !prompt.toLowerCase().includes(serviceArea.toLowerCase())) {
+        chatgptPrompt = `${prompt} in ${serviceArea}`
+      }
       
+      const [perplexityResult, chatgptResult] = await Promise.all([
+        analyzeWithPerplexity(prompt, companyName),
+        analyzeWithChatGPT(chatgptPrompt, companyName, serviceArea)
+      ])
+      
+      // Perplexity result (backwards compatible)
       analysisResults.push({
         ai_prompt: prompt,
-        ...(result.success ? result.data : {
+        platform: 'perplexity',
+        ...(perplexityResult.success ? perplexityResult.data : {
           company_mentioned: false,
           mentions_count: 0,
           competitors_mentioned: [],
-          simulated_ai_response_snippet: result.error || 'Analyse mislukt',
-          error: result.error
+          simulated_ai_response_snippet: perplexityResult.error || 'Analyse mislukt',
+          error: perplexityResult.error
         })
       })
       
-      if (result.success && result.data.company_mentioned) {
+      if (perplexityResult.success && perplexityResult.data.company_mentioned) {
         totalCompanyMentions++
       }
 
-      console.log(`   ${result.success ? '✅' : '⚠️'} Prompt ${i + 1} ${result.success ? 'analyzed' : 'failed'}`)
+      // ChatGPT result (separate array)
+      chatgptResults.push({
+        ai_prompt: prompt,
+        platform: 'chatgpt',
+        ...(chatgptResult.success ? chatgptResult.data : {
+          company_mentioned: false,
+          mentions_count: 0,
+          competitors_mentioned: [],
+          simulated_ai_response_snippet: chatgptResult.error || 'ChatGPT analyse mislukt',
+          error: chatgptResult.error
+        })
+      })
+
+      if (chatgptResult.success && chatgptResult.data.company_mentioned) {
+        chatgptCompanyMentions++
+      }
+
+      const pStatus = perplexityResult.success ? '✅' : '⚠️'
+      const cStatus = chatgptResult.success ? '✅' : '⚠️'
+      console.log(`   ${pStatus} Perplexity | ${cStatus} ChatGPT — Prompt ${i + 1}`)
 
       await new Promise(resolve => setTimeout(resolve, 200))
     }
 
-    console.log(`✅ Analysis complete. Company mentioned ${totalCompanyMentions} times.`)
+    console.log(`✅ Analysis complete. Perplexity: ${totalCompanyMentions}x | ChatGPT: ${chatgptCompanyMentions}x mentioned.`)
 
     const scanDuration = Date.now() - startTime
 
@@ -481,7 +516,7 @@ export async function POST(request) {
       'ai-visibility',
       ip,
       { companyName, companyCategory, identifiedQueriesSummary },
-      { generatedPrompts, analysisResults, totalCompanyMentions },
+      { generatedPrompts, analysisResults, chatgptResults, totalCompanyMentions, chatgptCompanyMentions },
       scanDuration
     )
 
@@ -507,7 +542,7 @@ export async function POST(request) {
           keyword: identifiedQueriesSummary?.[0] || companyCategory,
           commercial_prompts: generatedPrompts,
           prompts_count: generatedPrompts.length,
-          results: analysisResults,
+          results: { perplexity: analysisResults, chatgpt: chatgptResults },
           total_company_mentions: totalCompanyMentions
         })
         .select()
@@ -536,7 +571,9 @@ export async function POST(request) {
     return NextResponse.json({
       generated_prompts: generatedPrompts,
       analysis_results: analysisResults,
+      chatgpt_results: chatgptResults,
       total_company_mentions: totalCompanyMentions,
+      chatgpt_company_mentions: chatgptCompanyMentions,
       websiteAnalyzed: websiteAnalysis?.success || false,
       enhancedKeywords: enhancedKeywords,
       meta: {
@@ -544,6 +581,7 @@ export async function POST(request) {
         isAuthenticated: !!userId,
         analysisLimit: analysisLimit,
         scanDurationMs: scanDuration,
+        platforms: ['perplexity', 'chatgpt'],
         websiteAnalysis: websiteAnalysis?.success ? {
           url: websiteUrl,
           extractedKeywords: websiteAnalysis.keywords,
@@ -1101,6 +1139,106 @@ Simuleer een AI Overview die concrete bedrijven noemt!`
         mentions_count: 0,
         competitors_mentioned: [],
         simulated_ai_response_snippet: 'Analyse mislukt door API error'
+      }
+    }
+  }
+}
+
+// ============================================
+// ✨ CHATGPT SEARCH - Real Web Search Results
+// ============================================
+async function analyzeWithChatGPT(prompt, companyName, serviceArea = null) {
+  if (!OPENAI_API_KEY) {
+    console.log('⚠️ OpenAI API key niet geconfigureerd, skip ChatGPT')
+    return { 
+      success: false, 
+      error: 'OpenAI API key niet geconfigureerd',
+      data: {
+        company_mentioned: false,
+        mentions_count: 0,
+        competitors_mentioned: [],
+        simulated_ai_response_snippet: 'ChatGPT analyse niet beschikbaar'
+      }
+    }
+  }
+
+  // Build user_location from serviceArea
+  const userLocation = {
+    type: 'approximate',
+    approximate: {
+      country: 'NL',
+      city: serviceArea || 'Amsterdam'
+    }
+  }
+
+  try {
+    const response = await fetch(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-search-preview',
+          web_search_options: {
+            search_context_size: 'high',
+            user_location: userLocation
+          },
+          messages: [
+            {
+              role: 'system',
+              content: `Je bent een behulpzame AI-assistent die zoekvragen beantwoordt in het Nederlands voor gebruikers in Nederland.
+De gebruiker bevindt zich in Nederland${serviceArea ? `, regio ${serviceArea}` : ''}. Geef antwoorden specifiek gericht op de Nederlandse markt.
+Zoek op het web en geef een beknopt, informatief antwoord met concrete bedrijfsnamen en aanbevelingen die in Nederland actief zijn.
+Antwoord ALTIJD in het Nederlands. Focus op het noemen van specifieke Nederlandse bedrijven, dienstverleners of specialisten.
+Als je webwinkels, dienstverleners of specialisten noemt, geef dan bij voorkeur Nederlandse bedrijven of bedrijven die actief zijn op de Nederlandse markt.
+Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.), tech-platforms (Google, Facebook), en SEO-tools (Semrush, Ahrefs).`
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 1000
+        })
+      }
+    )
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error(`❌ ChatGPT API error (${response.status}):`, errorText)
+      throw new Error(`ChatGPT API failed: ${response.status}`)
+    }
+
+    const data = await response.json()
+
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('❌ Invalid ChatGPT Response:', data)
+      throw new Error('ChatGPT API error: Invalid response format')
+    }
+
+    const rawOutput = data.choices[0].message.content
+
+    if (!rawOutput || rawOutput.trim() === '') {
+      console.error('❌ ChatGPT returned empty content')
+      throw new Error('ChatGPT returned empty response')
+    }
+
+    const parsed = await parseWithClaude(rawOutput, companyName)
+
+    return { success: true, data: parsed }
+  } catch (error) {
+    console.error('❌ ChatGPT Error:', error.message || error)
+    return { 
+      success: false, 
+      error: error.message || 'Fout bij ChatGPT-analyse',
+      data: {
+        company_mentioned: false,
+        mentions_count: 0,
+        competitors_mentioned: [],
+        simulated_ai_response_snippet: 'ChatGPT analyse mislukt door API error'
       }
     }
   }

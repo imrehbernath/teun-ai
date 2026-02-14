@@ -14,7 +14,8 @@ export default function Homepage() {
     bedrijfsnaam: '',
     website: '',
     branche: '',
-    zoekwoorden: ''
+    zoekwoorden: '',
+    servicegebied: ''
   });
   const [openFaq, setOpenFaq] = useState(0);
   const [activeTooltip, setActiveTooltip] = useState(null);
@@ -115,6 +116,7 @@ export default function Homepage() {
     if (formData.branche) params.set('category', formData.branche);
     if (formData.website) params.set('website', formData.website);
     if (formData.zoekwoorden) params.set('keywords', formData.zoekwoorden);
+    if (formData.servicegebied) params.set('location', formData.servicegebied);
     
     // Auto-start de scan als er een bedrijfsnaam is
     if (formData.bedrijfsnaam) {
@@ -170,12 +172,11 @@ export default function Homepage() {
                 <div className="flex flex-wrap gap-3 mb-2">
                   <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
                     <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                    Perplexity
+                    ChatGPT
                   </span>
                   <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
                     <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                    ChatGPT
-                    <span className="text-[10px] text-slate-400">account</span>
+                    Perplexity
                   </span>
                   <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
                     <span className="w-2 h-2 rounded-full bg-green-500"></span>
@@ -188,7 +189,7 @@ export default function Homepage() {
                     <span className="text-[10px] text-slate-400">account</span>
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mb-6">ChatGPT, AI Modus & AI Overviews met gratis account</p>
+                <p className="text-xs text-slate-400 mb-6">10 prompts per scan • 2x gratis zonder account • AI Modus & AI Overviews met gratis account</p>
 
                 {/* Mobile Mascotte - above form */}
                 <div className="lg:hidden flex justify-center">
@@ -291,6 +292,20 @@ export default function Homepage() {
                         </p>
                       ) : null}
                     </div>
+                  </div>
+
+                  {/* Servicegebied - compact inline */}
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm font-medium text-slate-600 whitespace-nowrap flex items-center gap-1.5">
+                      📍 Servicegebied
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.servicegebied}
+                      onChange={(e) => setFormData({...formData, servicegebied: e.target.value})}
+                      placeholder="bijv. Amsterdam, heel Nederland"
+                      className="flex-1 px-3 py-2 text-sm rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400"
+                    />
                   </div>
 
                   {/* Keyword Tags Panel - slides down after extraction */}
@@ -407,7 +422,7 @@ export default function Homepage() {
                   </button>
 
                   <p className="text-xs text-slate-500 text-center">
-                    Geen registratie nodig • Scannen is gratis • Resultaat binnen 30 sec
+                    Geen registratie nodig • 10 prompts per scan • Resultaat binnen 60 sec
                   </p>
                   
                   {/* Geavanceerde instellingen link */}
@@ -450,7 +465,7 @@ export default function Homepage() {
             </div>
             <div>
               <div className="text-3xl md:text-4xl font-bold text-green-400 mb-1">Gratis</div>
-              <div className="text-sm text-white/70">Scannen is gratis</div>
+              <div className="text-sm text-white/70">2x scannen zonder account</div>
             </div>
           </div>
         </div>
@@ -749,7 +764,7 @@ export default function Homepage() {
                   },
                   {
                     question: 'Wat kost Teun.AI?',
-                    answer: 'Je kunt 2x gratis scannen zonder account. Met een gratis account krijg je dagelijks scans, toegang tot je dashboard, en onze Chrome extensie voor onbeperkte ChatGPT scans.'
+                    answer: 'Je kunt 2x gratis scannen zonder account met 10 prompts per scan op ChatGPT en Perplexity. Met een gratis account krijg je dagelijks scans, extra platforms (AI Modus & AI Overviews), je dashboard, en onze Chrome extensie.'
                   },
                   {
                     question: 'Is Teun.AI geschikt voor mijn bedrijf?',

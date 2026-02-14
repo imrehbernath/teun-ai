@@ -263,6 +263,15 @@ function DashboardContent() {
           })
           
           site.platforms.perplexity = true
+          
+          // ✨ Check for ChatGPT results in dual-platform scan format
+          const scanResults = scan.results || scan.scan_results
+          if (scanResults && typeof scanResults === 'object' && !Array.isArray(scanResults) && scanResults.chatgpt?.length > 0) {
+            site.platforms.chatgpt = true
+          } else if (Array.isArray(scanResults) && scanResults.some(r => r.platform === 'chatgpt')) {
+            site.platforms.chatgpt = true
+          }
+          
           site.totalMentions += mentions
           site.totalQueries += prompts.length || results.length
           
