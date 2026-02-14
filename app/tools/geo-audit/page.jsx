@@ -1,4 +1,5 @@
 'use client'
+// app/tools/geo-audit/page.jsx
 
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
@@ -200,20 +201,19 @@ export default function GeoAuditPage() {
   const progress = Math.round((completedSteps.length / SCAN_STEPS.length) * 100)
 
   return (
-    <div className="bg-gradient-to-b from-slate-50 via-white to-blue-50/30 min-h-[80vh] relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 relative overflow-hidden">
 
       {/* ── HERO + FORM ────────────────────────────── */}
-      <section className="max-w-3xl mx-auto px-4 sm:px-6 pt-12 sm:pt-20 pb-8">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
-            <Zap className="w-3.5 h-3.5" />
-            GRATIS GEO AUDIT TOOL
+      <section className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+        <div className="text-center mb-8 sm:mb-12">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-700 text-sm font-medium mb-4">
+            <Zap className="w-4 h-4" />
+            GEO Audit Tool
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 leading-tight">
-            Hoe goed is jouw pagina voorbereid{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-emerald-500 whitespace-nowrap">op AI-zoekmachines?</span>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 text-slate-900 leading-tight px-4">
+            Hoe goed is jouw pagina voorbereid op AI-zoekmachines?
           </h1>
-          <p className="text-slate-500 text-base sm:text-lg max-w-lg mx-auto leading-relaxed">
+          <p className="text-base sm:text-lg md:text-xl text-slate-600 px-4 mb-4">
             We analyseren je pagina én testen <strong className="text-slate-700">live op Perplexity</strong> of je gevonden wordt.
           </p>
         </div>
@@ -226,9 +226,9 @@ export default function GeoAuditPage() {
             </div>
             {user ? (
               <>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">
+                <p className="text-xl font-bold text-slate-900 mb-2">
                   Dagelijkse limiet bereikt
-                </h3>
+                </p>
                 <p className="text-slate-500 text-sm mb-6 max-w-md mx-auto">
                   Je hebt vandaag {MAX_FREE_SCANS} scans gebruikt. Morgen kun je weer {MAX_FREE_SCANS} nieuwe pagina&apos;s scannen.
                 </p>
@@ -242,9 +242,9 @@ export default function GeoAuditPage() {
               </>
             ) : (
               <>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">
+                <p className="text-xl font-bold text-slate-900 mb-2">
                   Je hebt {MAX_FREE_SCANS} gratis scans gebruikt
-                </h3>
+                </p>
                 <p className="text-slate-500 text-sm mb-6 max-w-md mx-auto">
                   Maak een gratis account aan om elke dag {MAX_FREE_SCANS} scans uit te voeren, meerdere pagina&apos;s te testen en je resultaten op te slaan.
                 </p>
@@ -466,7 +466,7 @@ export default function GeoAuditPage() {
             ].map((f, i) => (
               <div key={i} className="bg-white rounded-xl border border-slate-200 p-5 hover:border-slate-300 transition-colors">
                 <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-600 mb-3">{f.icon}</div>
-                <h3 className="font-semibold text-slate-900 text-sm mb-1">{f.title}</h3>
+                <p className="font-semibold text-slate-900 text-sm mb-1">{f.title}</p>
                 <p className="text-slate-500 text-sm leading-relaxed">{f.desc}</p>
               </div>
             ))}
@@ -617,7 +617,7 @@ export default function GeoAuditPage() {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg" style={{ backgroundColor: getScoreColor(cat.score) + '18' }}>{cat.icon}</div>
                     <div className="text-left">
-                      <h3 className="font-semibold text-slate-900 text-sm">{cat.name}</h3>
+                      <p className="font-semibold text-slate-900 text-sm">{cat.name}</p>
                       <p className="text-xs text-slate-500 mt-0.5">{cat.summary}</p>
                     </div>
                   </div>
@@ -689,7 +689,7 @@ export default function GeoAuditPage() {
 
           {/* ━━━ CTA ━━━ */}
           <div className="mt-8 bg-gradient-to-br from-[#292956] to-[#1e1e45] rounded-xl p-8 text-center text-white">
-            <h3 className="text-xl font-bold mb-2">Wil je je volledige AI-zichtbaarheid meten?</h3>
+            <p className="text-xl font-bold mb-2">Wil je je volledige AI-zichtbaarheid meten?</p>
             <p className="text-slate-300 text-sm mb-6 max-w-md mx-auto">
               Test meerdere pagina&apos;s en prompts op ChatGPT, Perplexity en Google AI. Meet op welke vragen jouw bedrijf wordt aanbevolen.
             </p>

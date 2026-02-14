@@ -476,9 +476,9 @@ export default function Homepage() {
       {/* ====== SOCIAL PROOF - Logo Slider ====== */}
       <section className="py-20 border-b border-slate-100 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
-          <h2 className="text-center text-slate-500 text-sm font-medium uppercase tracking-wider">
+          <p className="text-center text-slate-500 text-sm font-medium uppercase tracking-wider">
             Merken die ons vertrouwen
-          </h2>
+          </p>
         </div>
         
         {/* Dual Row Slider - Full Width */}
@@ -598,9 +598,9 @@ export default function Homepage() {
               <div className="flex items-start gap-4">
                 <div className="text-4xl font-bold text-[#1E1E3F]">1.</div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">
+                  <p className="text-xl font-bold text-slate-900 mb-2">
                     Vul je gegevens in
-                  </h3>
+                  </p>
                   <p className="text-slate-600">
                     Bedrijfsnaam, branche en website. Wij halen automatisch zoekwoorden op en maken de prompts.
                   </p>
@@ -613,9 +613,9 @@ export default function Homepage() {
               <div className="flex items-start gap-4">
                 <div className="text-4xl font-bold text-[#1E1E3F]">2.</div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">
+                  <p className="text-xl font-bold text-slate-900 mb-2">
                     We scannen 3 AI's
-                  </h3>
+                  </p>
                   <p className="text-slate-600">
                     ChatGPT, Perplexity, AI Modus en AI Overviews worden realtime bevraagd.
                   </p>
@@ -628,9 +628,9 @@ export default function Homepage() {
               <div className="flex items-start gap-4">
                 <div className="text-4xl font-bold text-[#1E1E3F]">3.</div>
                 <div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">
+                  <p className="text-xl font-bold text-slate-900 mb-2">
                     Ontvang je rapport
-                  </h3>
+                  </p>
                   <p className="text-slate-600">
                     Zie welke prompts potentiële klanten gebruiken. Zie precies waar je wel en niet genoemd wordt, of je concurrentie.
                   </p>
@@ -853,7 +853,7 @@ export default function Homepage() {
             </div>
 
             {/* Title */}
-            <h3 className="text-xl font-bold text-slate-900 mb-2">Vul je website URL in</h3>
+            <p className="text-xl font-bold text-slate-900 mb-2">Vul je website URL in</p>
             
             {/* Explanation */}
             <p className="text-slate-600 mb-4">

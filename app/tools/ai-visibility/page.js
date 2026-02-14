@@ -656,6 +656,10 @@ function AIVisibilityToolContent() {
         
         {/* Header */}
         <header className="text-center mb-8 sm:mb-12">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 border border-blue-200 rounded-full text-blue-700 text-sm font-medium mb-4">
+            <Search className="w-4 h-4" />
+            AI Zichtbaarheid Scan
+          </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 text-slate-900 leading-tight px-4">
             AI Zichtbaarheidsanalyse
           </h1>
@@ -722,7 +726,7 @@ function AIVisibilityToolContent() {
                   <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg flex items-center justify-center border border-blue-200">
                     <Search className="w-5 h-5 text-blue-600" />
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900">1. Vul je website in</h2>
+                  <p className="text-xl sm:text-2xl font-bold text-slate-900">1. Vul je website in</p>
                 </div>
 
                 {/* URL Extraction */}
@@ -1026,7 +1030,7 @@ function AIVisibilityToolContent() {
                   <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center border border-purple-200">
                     <TrendingUp className="w-5 h-5 text-purple-600" />
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900">2. Bedrijfsinfo</h2>
+                  <p className="text-xl sm:text-2xl font-bold text-slate-900">2. Bedrijfsinfo</p>
                 </div>
 
                 <div className="space-y-4 mb-6">
@@ -1259,7 +1263,7 @@ function AIVisibilityToolContent() {
           <section className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 sm:p-8 mb-8">
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 text-center">
               <Loader2 className="w-12 h-12 text-blue-500 mx-auto mb-4 animate-spin" />
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Bezig met analyseren...</h3>
+              <p className="text-xl font-bold text-slate-900 mb-2">Bezig met analyseren...</p>
               <p className="text-slate-600 mb-4">{currentStep || 'Voorbereiden...'}</p>
               
               <div className="w-full bg-slate-200 rounded-full h-4 overflow-hidden">
@@ -1287,7 +1291,7 @@ function AIVisibilityToolContent() {
                   <div className="w-10 h-10 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-lg flex items-center justify-center border border-yellow-200">
                     <Zap className="w-5 h-5 text-yellow-600" />
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900">3. Start de Analyse</h2>
+                  <p className="text-xl sm:text-2xl font-bold text-slate-900">3. Start de Analyse</p>
                 </div>
 
                 {analyzing ? (
@@ -1300,7 +1304,7 @@ function AIVisibilityToolContent() {
                     {/* Scanning Progress Box */}
                     <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 text-center">
                       <Loader2 className="w-12 h-12 text-blue-500 mx-auto mb-4 animate-spin" />
-                      <h3 className="text-xl font-bold text-slate-900 mb-2">Bezig met analyseren...</h3>
+                      <p className="text-xl font-bold text-slate-900 mb-2">Bezig met analyseren...</p>
                       <p className="text-slate-600 mb-4">{currentStep}</p>
                       
                       <div className="w-full bg-slate-200 rounded-full h-4 overflow-hidden">
@@ -1450,7 +1454,7 @@ function AIVisibilityToolContent() {
                   <div className="w-10 h-10 bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg flex items-center justify-center border border-green-200">
                     <CheckCircle2 className="w-5 h-5 text-green-600" />
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900">4. Jouw Rapport</h2>
+                  <p className="text-xl sm:text-2xl font-bold text-slate-900">4. Jouw Rapport</p>
                 </div>
 
                 {/* Success Banner */}
@@ -1701,7 +1705,7 @@ function AIVisibilityToolContent() {
                     <div className="relative">
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-2xl">🚀</span>
-                        <h3 className="text-lg font-bold">Unlock alle AI platforms</h3>
+                        <p className="text-lg font-bold">Unlock alle AI platforms</p>
                       </div>
                       
                       <p className="text-purple-200 text-sm mb-4">
@@ -1820,9 +1824,9 @@ function AIVisibilityToolContent() {
                   
                   return (
                     <div className="mt-6 w-full bg-slate-50 rounded-xl p-4 border border-slate-200">
-                      <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                      <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
                         <span>🏆</span> AI Zichtbaarheid Ranking
-                      </h4>
+                      </p>
                       <div className="space-y-2">
                         {ranking.map(([name, count], idx) => {
                           const isUser = name === formData.companyName;
@@ -1870,7 +1874,7 @@ function AIVisibilityToolContent() {
                           </svg>
                         </div>
                         <div>
-                          <h4 className="font-bold text-slate-800 text-sm">Unlock meer inzichten</h4>
+                          <p className="font-bold text-slate-800 text-sm">Unlock meer inzichten</p>
                           <p className="text-xs text-slate-500">Geen creditcard nodig</p>
                         </div>
                       </div>

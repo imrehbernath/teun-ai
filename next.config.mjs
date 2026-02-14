@@ -46,6 +46,11 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        source: '/geo-audit',
+        destination: '/tools/geo-audit',
+        permanent: true,
+      },
+      {
         source: '/:path*',
         has: [
           {
