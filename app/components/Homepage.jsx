@@ -144,7 +144,7 @@ export default function Homepage() {
         </div>
 
         {/* ====== HERO SECTION ====== */}
-        <section className="relative bg-gradient-to-br from-slate-50 via-white to-blue-50">
+        <section className="relative bg-gradient-to-br from-slate-50 via-white to-blue-50 overflow-hidden">
           {/* Subtle background pattern */}
           <div className="absolute inset-0 opacity-30">
             <div className="absolute top-20 left-10 w-72 h-72 bg-blue-100 rounded-full blur-3xl"></div>
@@ -155,7 +155,7 @@ export default function Homepage() {
             <div className="grid lg:grid-cols-5 gap-8 items-end">
               {/* Left: Content + Form - 3 columns */}
               <div className="lg:col-span-3 pb-12 lg:pb-24">
-                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-slate-900 leading-tight mb-6">
+                <h1 className="text-[1.7rem] sm:text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-slate-900 leading-tight mb-6" style={{ overflowWrap: 'break-word' }}>
                   Hoe zichtbaar is jouw merk{' '}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
                     in AI-zoekmachines?

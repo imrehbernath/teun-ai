@@ -449,7 +449,7 @@ export default function Template({ children }) {
   return (
     <>
       <Header />
-      <main className="min-h-screen">
+      <main className="min-h-screen overflow-x-hidden">
         {children}
       </main>
       <Footer />
