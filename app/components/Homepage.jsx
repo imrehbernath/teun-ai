@@ -474,7 +474,7 @@ export default function Homepage() {
       {/* End of Hero + Stats Wrapper */}
 
       {/* ====== SOCIAL PROOF - Logo Slider ====== */}
-      <section className="py-20 border-b border-slate-100 overflow-hidden" style={{ contain: 'paint' }}>
+      <section className="py-20 border-b border-slate-100 overflow-hidden">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 mb-12">
           <p className="text-center text-slate-500 text-sm font-medium uppercase tracking-wider">
             Merken die ons vertrouwen
