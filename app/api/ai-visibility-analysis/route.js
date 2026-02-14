@@ -262,7 +262,10 @@ Geef je analyse in EXACT dit JSON-formaat:
   "services": ["dienst1", "dienst2", "dienst3"],
   "usps": ["usp1", "usp2"],
   "location": "locatie of regio focus (of null)",
-  "targetAudience": "beschrijving doelgroep"
+  "targetAudience": "beschrijving doelgroep",
+  "businessType": "winkel|dienstverlener|ambacht|fabrikant|horeca|zorg|juridisch|financieel|onderwijs|overig",
+  "audienceType": "B2C|B2B|both",
+  "coreActivity": "verkoopt|installeert|adviseert|behandelt|repareert|ontwerpt|maakt|levert|verzorgt"
 }
 
 BELANGRIJKE REGELS:
@@ -273,6 +276,9 @@ BELANGRIJKE REGELS:
 - Mix korte (1-2 woorden) en langere (2-4 woorden) zoekwoorden
 - services: concrete diensten/producten die het bedrijf aanbiedt (haal uit nav en H2/H3)
 - usps: unieke verkoopargumenten
+- businessType: kies het MEEST passende type (winkel als ze producten verkopen, dienstverlener als ze diensten leveren, etc.)
+- audienceType: B2C als gericht op consumenten, B2B als gericht op bedrijven, both als beide
+- coreActivity: wat DOET het bedrijf primair? Een lampenwinkel VERKOOPT, een installateur INSTALLEERT, een advocaat ADVISEERT
 - Alles in het Nederlands
 
 Geef ALLEEN de JSON terug, geen extra tekst.`
@@ -298,6 +304,9 @@ Geef ALLEEN de JSON terug, geen extra tekst.`
       usps: analysis.usps || [],
       location: analysis.location,
       targetAudience: analysis.targetAudience,
+      businessType: analysis.businessType || 'overig',
+      audienceType: analysis.audienceType || 'B2B',
+      coreActivity: analysis.coreActivity || 'levert',
       rawParsed: parsed
     }
   } catch (error) {
@@ -586,7 +595,10 @@ export async function POST(request) {
           url: websiteUrl,
           extractedKeywords: websiteAnalysis.keywords,
           services: websiteAnalysis.services,
-          usps: websiteAnalysis.usps
+          usps: websiteAnalysis.usps,
+          businessType: websiteAnalysis.businessType,
+          audienceType: websiteAnalysis.audienceType,
+          coreActivity: websiteAnalysis.coreActivity
         } : null,
         betaMessage: userId 
           ? `Je hebt nog ${updatedCheck.scansRemaining} scans deze maand!` 
@@ -633,9 +645,43 @@ ${websiteAnalysis.usps?.length > 0 ? websiteAnalysis.usps.map(u => `- ${u}`).joi
 
 **DOELGROEP:** ${websiteAnalysis.targetAudience || 'Niet gedetecteerd'}
 
+**BEDRIJFSTYPE:** ${websiteAnalysis.businessType || 'Niet gedetecteerd'}
+
+**DOELGROEP TYPE:** ${websiteAnalysis.audienceType || 'Niet gedetecteerd'}
+
+**KERNACTIVITEIT:** ${websiteAnalysis.coreActivity || 'Niet gedetecteerd'}
+
 **LOCATIE-FOCUS:** ${websiteAnalysis.location || 'Niet specifiek'}
 
 🎯 GEBRUIK deze informatie om RELEVANTERE commerciële vragen te genereren die aansluiten bij wat het bedrijf DAADWERKELIJK aanbiedt.
+
+🚨 **KRITIEK - DOELGROEP BEPAALT HET TYPE VRAGEN:**
+${websiteAnalysis.audienceType === 'B2C' ? `
+- Dit is een B2C bedrijf → Stel vragen vanuit CONSUMENTEN perspectief
+- Gebruik: "Waar kan ik...", "Welke winkels...", "Beste ... voor thuis"
+- NIET: "bedrijven die zakelijke oplossingen bieden", "B2B leveranciers"` : 
+websiteAnalysis.audienceType === 'B2B' ? `
+- Dit is een B2B bedrijf → Stel vragen vanuit ZAKELIJK perspectief
+- Gebruik: "bureaus", "dienstverleners", "zakelijke partners"` : `
+- Dit bedrijf richt zich op zowel particulieren als bedrijven
+- Mix consumentenvragen en zakelijke vragen`}
+
+${websiteAnalysis.businessType === 'winkel' ? `
+🛒 **DIT IS EEN WINKEL** → Vragen moeten gaan over KOPEN/KIJKEN, NIET over installeren/adviseren
+- ✅ "Waar kan ik goede lampen kopen?" / "Welke verlichtingswinkels..."
+- ❌ "Specialisten die ervaring hebben met installeren..." (FOUT - dit is een winkel, geen installateur!)` : ''}
+
+${websiteAnalysis.businessType === 'juridisch' ? `
+⚖️ **DIT IS EEN JURIDISCH BEDRIJF** → Gebruik ALTIJD de exacte juridische terminologie uit de zoekwoorden
+- Als zoekwoord "advocaat" is → gebruik "advocaat/advocaten/advocatenkantoor"
+- ❌ NOOIT vervangen door "juridisch adviseur", "rechtskundige", "jurist" tenzij dat het zoekwoord IS` : ''}
+
+${websiteAnalysis.coreActivity ? `
+📌 **KERNACTIVITEIT: ${websiteAnalysis.coreActivity}** → Vragen moeten hierop aansluiten
+- Als het bedrijf VERKOOPT → "Waar kan ik ... kopen/bestellen?"
+- Als het bedrijf INSTALLEERT → "Welke bedrijven installeren...?"
+- Als het bedrijf ADVISEERT → "Welke specialisten adviseren over...?"
+- Als het bedrijf BEHANDELT → "Welke klinieken behandelen...?"` : ''}
 `;
   }
   
@@ -798,13 +844,23 @@ ${queries.length === 1 ? `
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 2000,
-      system: `Jij genereert commerciële, klantgerichte B2B-zoekvragen die gericht zijn op het vinden van **specifieke bedrijven of organisaties** (geen grote consumentenmerken).
+      system: `Jij genereert commerciële, klantgerichte zoekvragen die gericht zijn op het vinden van **specifieke bedrijven of organisaties** (geen grote consumentenmerken).
+
+${websiteAnalysis?.audienceType === 'B2C' ? `**DOELGROEP: CONSUMENTEN (B2C)**
+De vragen worden gesteld vanuit het perspectief van een PARTICULIER/CONSUMENT die een product of dienst zoekt.
+Gebruik termen als: winkels, aanbieders, webshops, waar kan ik kopen, beste ... voor thuis.
+NIET: zakelijke oplossingen, B2B leveranciers, enterprise.` : 
+websiteAnalysis?.audienceType === 'both' ? `**DOELGROEP: CONSUMENTEN + ZAKELIJK**
+Mix vragen vanuit particulier EN zakelijk perspectief.` : 
+`**DOELGROEP: ZAKELIJK (B2B)**
+De vragen worden gesteld vanuit zakelijk perspectief.
+Gebruik termen als: bureaus, dienstverleners, leveranciers, partners.`}
 
 **ABSOLUTE PRIORITEITEN:**
 1. **NATUURLIJKHEID**: Vragen klinken als ECHTE MENSEN
 2. **COMMERCIEEL**: Start idealiter met verzoek om concrete bedrijfsnamen
 3. **BEDRIJFSNEUTRAAL**: Vermeld NIET de naam of exacte categorie van het geanalyseerde bedrijf
-4. **B2B FOCUS**: Gericht op dienstverleners, GEEN consumentenmerken
+4. **DOELGROEP-PASSEND**: Vragen passen bij het type klant (consument vs zakelijk)
 5. **NEDERLANDS**: ALTIJD en UITSLUITEND Nederlands, GEEN Engels
 
 **VERBODEN:**
@@ -814,17 +870,21 @@ ${queries.length === 1 ? `
 - Letterlijke zoekwoord-plakking die tot onleesbare zinnen leidt
 - Zinnen die grammaticaal niet kloppen
 - Vragen die leiden tot algemeen zoekadvies in plaats van bedrijfsnamen
+- Vragen over INSTALLEREN als het bedrijf een WINKEL is
+- Vragen over ZAKELIJKE OPLOSSINGEN als het bedrijf op consumenten is gericht
+- Synoniemen die het beroep VERANDEREN (advocaat → juridisch adviseur)
 
 **VERPLICHT:**
 - Vragen die DIRECT om bedrijfsnamen vragen
 - Natuurlijke menselijke taal
 - Variatie in structuur
 - Focus op concrete aanbevelingen
+- Vragen die passen bij wat het bedrijf DAADWERKELIJK doet
 
 ${customTermsInstruction}`,
       messages: [{
         role: 'user',
-        content: `Genereer 10 zeer specifieke, commercieel relevante zoekvragen die een potentiële B2B-klant zou stellen om **concrete, lokale/nationale bedrijven of leveranciers** te vinden.
+        content: `Genereer 10 zeer specifieke, commercieel relevante zoekvragen die een potentiële ${websiteAnalysis?.audienceType === 'B2C' ? 'consument/klant' : websiteAnalysis?.audienceType === 'both' ? 'klant (particulier of zakelijk)' : 'B2B-klant'} zou stellen om **concrete, lokale/nationale bedrijven of leveranciers** te vinden.
 
 **CONTEXT:**
 - Bedrijfscategorie: "${companyCategory}"
@@ -843,15 +903,48 @@ ${searchConsoleContext}
 
 Elke vraag moet klinken alsof een ECHT PERSOON het typt in ChatGPT:
 
-✅ **GOEDE VOORBEELDEN (natuurlijk Nederlands):**
+${websiteAnalysis?.businessType === 'winkel' ? `
+✅ **GOEDE VOORBEELDEN voor WINKELS (B2C):**
+- "Waar kan ik goede **[product]** kopen?"
+- "Welke **winkels** in [stad] verkopen..."
+- "Kun je goede **speciaalzaken** aanbevelen voor..."
+- "Wat zijn de beste **webshops** voor..."
+- "Welke **winkels** hebben een groot assortiment..."
+- "Ken je **winkels** met goede reviews voor..."
+
+❌ FOUT voor winkels: "specialisten die ervaring hebben met installeren" (ze VERKOPEN!)
+` : websiteAnalysis?.businessType === 'juridisch' ? `
+✅ **GOEDE VOORBEELDEN voor JURIDISCH:**
+- "Kun je goede **advocaten** aanbevelen voor..."
+- "Welke **advocatenkantoren** hebben ervaring met..."
+- "Noem een paar gerenommeerde **advocaten** die..."
+- "Welke **advocaat** raad je aan voor..."
+
+❌ FOUT: "juridisch adviseurs" als zoekwoord "advocaat" is (ANDER BEROEP!)
+` : websiteAnalysis?.businessType === 'zorg' ? `
+✅ **GOEDE VOORBEELDEN voor ZORG:**
+- "Welke **klinieken** zijn gespecialiseerd in..."
+- "Kun je goede **praktijken** aanbevelen voor..."
+- "Welke **behandelaars** hebben ervaring met..."
+- "Wat zijn de beste **klinieken** voor..."
+` : websiteAnalysis?.audienceType === 'B2C' ? `
+✅ **GOEDE VOORBEELDEN (B2C - consumenten):**
+- "Waar kan ik goede **[product/dienst]** vinden?"
+- "Welke **bedrijven** raad je aan voor..."
+- "Kun je goede **aanbieders** aanbevelen voor..."
+- "Wat zijn de beste **winkels/bedrijven** voor..."
+- "Ken je **bedrijven** met goede reviews voor..."
+` : `
+✅ **GOEDE VOORBEELDEN (B2B - zakelijk):**
 - "Kun je goede **bedrijven** aanbevelen voor..."
 - "Welke **specialisten** hebben ervaring met..."
 - "Noem een paar gerenommeerde **bedrijven** die..."
 - "Welke **leveranciers** raad je aan voor..."
-- "Welke **bedrijven** hebben veel ervaring met..."
+- "Welke **bureaus** hebben veel ervaring met..."
 - "Ken je **specialisten** met goede reviews voor..."
 - "Wat zijn de beste **aanbieders** voor..."
 - "Heb je aanbevelingen voor **bedrijven** die..."
+`}
 
 🚨 **TAALKWALITEIT IS CRUCIAAL:**
 - Elke zin moet grammaticaal PERFECT Nederlands zijn
