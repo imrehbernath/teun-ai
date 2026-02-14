@@ -851,7 +851,7 @@ function DashboardContent() {
               GEO Analyse
             </button>
             <Link 
-              href="/geo-audit"
+              href="/tools/geo-audit"
               className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 border-2 border-emerald-200 rounded-lg font-medium text-sm hover:from-emerald-100 hover:to-teal-100 hover:border-emerald-300 transition shadow-sm"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -912,7 +912,7 @@ function DashboardContent() {
             GEO Analyse
           </button>
           <Link 
-            href="/geo-audit"
+            href="/tools/geo-audit"
             className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 border-2 border-emerald-200 rounded-lg font-medium text-sm hover:from-emerald-100 hover:to-teal-100 hover:border-emerald-300 transition shadow-sm"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -119,12 +119,13 @@ function Header() {
                 </button>
                 
                 {toolsOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-80 bg-[#1E1E3F] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-dropIn">
+                  <div className="absolute top-full left-0 mt-2 w-80 bg-[#1E1E3F] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-dropIn z-50">
                     <div className="p-2">
                       {TOOLS.map((tool) => (
                         <Link
                           key={tool.href}
                           href={tool.href}
+                          onClick={() => setToolsOpen(false)}
                           className={`flex flex-col gap-0.5 px-4 py-3 rounded-lg transition-colors ${
                             pathname === tool.href 
                               ? 'bg-white/10 text-white' 
