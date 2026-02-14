@@ -158,7 +158,7 @@ function PlatformScoreCard({ platformKey, result, isLoading }) {
           <p className="text-xs text-slate-400 mb-1 flex items-center gap-1">
             <MessageSquareQuote className="w-3 h-3" /> Fragment
           </p>
-          <p className="text-sm text-slate-600 italic leading-relaxed">"{result.snippet}"</p>
+          <p className="text-sm text-slate-600 italic leading-relaxed">&ldquo;{result.snippet}&rdquo;</p>
         </div>
       )}
       
@@ -419,7 +419,7 @@ function RankTrackerContent() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-slate-800 mb-1">Gegenereerde prompt</p>
                     <p className="text-sm text-slate-600 leading-relaxed italic">
-                      "{generatedPrompt}"
+                      &ldquo;{generatedPrompt}&rdquo;
                     </p>
                     <p className="text-xs text-slate-400 mt-2">
                       Deze prompt is verstuurd naar ChatGPT en Perplexity
