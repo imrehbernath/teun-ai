@@ -453,6 +453,12 @@ function AIVisibilityToolContent() {
       return;
     }
 
+    // Normalize URL — voeg https:// toe als ontbreekt
+    let normalizedUrl = url
+    if (!/^https?:\/\//i.test(normalizedUrl)) {
+      normalizedUrl = `https://${normalizedUrl}`
+    }
+
     setExtractingKeywords(true);
     setError(null);
     setExtractionResult(null);
@@ -461,7 +467,7 @@ function AIVisibilityToolContent() {
       const response = await fetch('/api/extract-keywords', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url })
+        body: JSON.stringify({ url: normalizedUrl })
       });
 
       if (!response.ok) {

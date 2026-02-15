@@ -60,13 +60,19 @@ export default function Homepage() {
   const handleExtractKeywords = async (url) => {
     if (!url?.trim() || extractingKeywords) return;
 
+    // Normalize URL — voeg https:// toe als ontbreekt
+    let normalizedUrl = url.trim()
+    if (!/^https?:\/\//i.test(normalizedUrl)) {
+      normalizedUrl = `https://${normalizedUrl}`
+    }
+
     setExtractingKeywords(true);
 
     try {
       const response = await fetch('/api/extract-keywords', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url })
+        body: JSON.stringify({ url: normalizedUrl })
       });
 
       if (!response.ok) throw new Error('Kon website niet analyseren');
