@@ -537,7 +537,7 @@ export async function POST(request) {
       const cStatus = chatgptResult.success ? '✅' : '⚠️'
       console.log(`   ${pStatus} Perplexity | ${cStatus} ChatGPT — Prompt ${i + 1}`)
 
-      await new Promise(resolve => setTimeout(resolve, 200))
+      await new Promise(resolve => setTimeout(resolve, 1500))
     }
 
     console.log(`✅ Analysis complete. Perplexity: ${totalCompanyMentions}x | ChatGPT: ${chatgptCompanyMentions}x mentioned.`)
@@ -1291,44 +1291,62 @@ async function analyzeWithChatGPT(prompt, companyName, serviceArea = null) {
   }
 
   try {
-    const response = await fetch(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-search-preview',
-          web_search_options: {
-            search_context_size: 'high',
-            user_location: userLocation
+    let response
+    let lastError
+    
+    // Retry up to 3 times for rate limit (429) errors
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      response = await fetch(
+        'https://api.openai.com/v1/chat/completions',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENAI_API_KEY}`
           },
-          messages: [
-            {
-              role: 'system',
-              content: `Je bent een behulpzame AI-assistent die zoekvragen beantwoordt in het Nederlands voor gebruikers in Nederland.
+          body: JSON.stringify({
+            model: 'gpt-4o-search-preview',
+            web_search_options: {
+              search_context_size: 'high',
+              user_location: userLocation
+            },
+            messages: [
+              {
+                role: 'system',
+                content: `Je bent een behulpzame AI-assistent die zoekvragen beantwoordt in het Nederlands voor gebruikers in Nederland.
 De gebruiker bevindt zich in Nederland${serviceArea ? `, regio ${serviceArea}` : ''}. Geef antwoorden specifiek gericht op de Nederlandse markt.
 Zoek op het web en geef een beknopt, informatief antwoord met concrete bedrijfsnamen en aanbevelingen die in Nederland actief zijn.
 Antwoord ALTIJD in het Nederlands. Focus op het noemen van specifieke Nederlandse bedrijven, dienstverleners of specialisten.
 Als je webwinkels, dienstverleners of specialisten noemt, geef dan bij voorkeur Nederlandse bedrijven of bedrijven die actief zijn op de Nederlandse markt.
 Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.), tech-platforms (Google, Facebook), en SEO-tools (Semrush, Ahrefs).`
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          max_tokens: 1000
-        })
-      }
-    )
+              },
+              {
+                role: 'user',
+                content: prompt
+              }
+            ],
+            max_tokens: 1000
+          })
+        }
+      )
 
-    if (!response.ok) {
+      if (response.ok) break
+
+      if (response.status === 429 && attempt < 3) {
+        const retryAfter = parseInt(response.headers.get('retry-after') || '0')
+        const waitMs = retryAfter > 0 ? retryAfter * 1000 : attempt * 3000
+        console.log(`⏳ ChatGPT 429 rate limit — wacht ${waitMs}ms (poging ${attempt}/3)`)
+        await new Promise(r => setTimeout(r, waitMs))
+        continue
+      }
+
       const errorText = await response.text()
       console.error(`❌ ChatGPT API error (${response.status}):`, errorText)
-      throw new Error(`ChatGPT API failed: ${response.status}`)
+      lastError = `ChatGPT API failed: ${response.status}`
+    }
+
+    if (!response.ok) {
+      throw new Error(lastError || `ChatGPT API failed: ${response.status}`)
     }
 
     const data = await response.json()
