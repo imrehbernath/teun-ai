@@ -4,6 +4,9 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 
+// Vercel function timeout — 10 prompts × 15s delay = needs 300s
+export const maxDuration = 300
+
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -45,7 +48,7 @@ async function analyzeWithChatGPT(prompt, companyName, serviceArea = null) {
         body: JSON.stringify({
           model: 'gpt-4o-search-preview',
           web_search_options: { 
-            search_context_size: 'medium',
+            search_context_size: 'low',
             user_location: userLocation
           },
           messages: [
@@ -60,7 +63,7 @@ Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.
             },
             { role: 'user', content: prompt }
           ],
-          max_tokens: 1000
+          max_tokens: 500
         })
       })
 
@@ -199,9 +202,9 @@ export async function POST(request) {
 
       console.log(`   ${result.success ? '✅' : '⚠️'} Prompt ${i + 1}: ${result.data.company_mentioned ? 'GEVONDEN' : 'niet gevonden'}`)
       
-      // gpt-4o-search-preview has strict RPM limits — need ~12s between requests
+      // gpt-4o-search-preview: 6K TPM limiet — 12s tussen requests
       if (i < prompts.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 15000))
+        await new Promise(resolve => setTimeout(resolve, 12000))
       }
     }
 

@@ -3,6 +3,9 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { canUserScan, trackScan, BETA_CONFIG } from '@/lib/beta-config'
+
+// Vercel function timeout — 10 prompts × 15s delay = needs 300s
+export const maxDuration = 300
 import Anthropic from '@anthropic-ai/sdk'
 
 // ✅ Slack notificatie functie
@@ -537,7 +540,10 @@ export async function POST(request) {
       const cStatus = chatgptResult.success ? '✅' : '⚠️'
       console.log(`   ${pStatus} Perplexity | ${cStatus} ChatGPT — Prompt ${i + 1}`)
 
-      await new Promise(resolve => setTimeout(resolve, 15000))
+      // Delay tussen prompts voor ChatGPT TPM limiet (6K TPM) — skip na laatste
+      if (i < promptsToAnalyze.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 12000))
+      }
     }
 
     console.log(`✅ Analysis complete. Perplexity: ${totalCompanyMentions}x | ChatGPT: ${chatgptCompanyMentions}x mentioned.`)
@@ -1307,7 +1313,7 @@ async function analyzeWithChatGPT(prompt, companyName, serviceArea = null) {
           body: JSON.stringify({
             model: 'gpt-4o-search-preview',
             web_search_options: {
-              search_context_size: 'medium',
+              search_context_size: 'low',
               user_location: userLocation
             },
             messages: [
@@ -1325,7 +1331,7 @@ Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.
                 content: prompt
               }
             ],
-            max_tokens: 1000
+            max_tokens: 500
           })
         }
       )
