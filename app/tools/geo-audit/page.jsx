@@ -360,7 +360,7 @@ export default function GeoAuditPage() {
                 {scanPhase === 'fetching' && 'Pagina ophalen & analyseren...'}
                 {scanPhase === 'analyzing' && 'AI-analyse uitvoeren...'}
                 {scanPhase === 'testing' && '🔥 Live test op Perplexity...'}
-                {scanPhase === 'done' && 'Resultaten samenstellen...'}
+                {scanPhase === 'done' && 'Core Web Vitals meting afronden...'}
               </span>
               <span className="text-sm text-slate-400">{progress}%</span>
             </div>
@@ -370,6 +370,9 @@ export default function GeoAuditPage() {
                 style={{ width: `${progress}%` }}
               />
             </div>
+            {scanPhase === 'done' && (
+              <p className="text-xs text-slate-400 mt-1.5 text-center">Google PageSpeed API meet de laadtijd — even geduld</p>
+            )}
           </div>
 
           <div className="grid lg:grid-cols-5 gap-5">
@@ -440,7 +443,7 @@ export default function GeoAuditPage() {
                     {scanPhase === 'fetching' && 'Pagina scannen...'}
                     {scanPhase === 'analyzing' && 'AI-analyse uitvoeren...'}
                     {scanPhase === 'testing' && 'Live Perplexity test...'}
-                    {scanPhase === 'done' && 'Scan voltooid!'}
+                    {scanPhase === 'done' && 'Even geduld — CWV meting...'}
                   </div>
                 </div>
               </div>
@@ -768,12 +771,14 @@ export default function GeoAuditPage() {
                       <p className="text-xs text-slate-500">CLS</p>
                     </div>
                   )}
-                  <div className="bg-white rounded-lg p-3 border border-slate-100">
-                    <p className={`text-lg font-bold ${results.extracted.coreWebVitals.mobileFriendly ? 'text-green-600' : 'text-red-500'}`}>
-                      {results.extracted.coreWebVitals.mobileFriendly ? 'Ja' : 'Nee'}
-                    </p>
-                    <p className="text-xs text-slate-500">Mobiel</p>
-                  </div>
+                  {results.extracted.coreWebVitals.inp != null && (
+                    <div className="bg-white rounded-lg p-3 border border-slate-100">
+                      <p className={`text-lg font-bold ${results.extracted.coreWebVitals.inp <= 200 ? 'text-green-600' : results.extracted.coreWebVitals.inp <= 500 ? 'text-orange-500' : 'text-red-500'}`}>
+                        {results.extracted.coreWebVitals.inp}ms
+                      </p>
+                      <p className="text-xs text-slate-500">INP</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
