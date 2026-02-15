@@ -28,10 +28,12 @@ export default function Homepage() {
   const [newKeywordInput, setNewKeywordInput] = useState('');
   const lastExtractedUrl = useRef('');
 
-  // Auto-extract keywords when URL looks valid (has a dot, debounced 800ms)
+  // Auto-extract keywords when URL looks like a real domain (debounced 800ms)
   useEffect(() => {
     const url = formData.website?.trim();
-    if (!url || !url.includes('.') || url === lastExtractedUrl.current || extractingKeywords) return;
+    // Must have at least "x.xx" pattern (e.g. "site.nl") — not just "www."
+    const looksLikeDomain = url && /[a-z0-9]\.[a-z]{2,}/i.test(url);
+    if (!looksLikeDomain || url === lastExtractedUrl.current || extractingKeywords) return;
 
     const timer = setTimeout(() => {
       lastExtractedUrl.current = url;
