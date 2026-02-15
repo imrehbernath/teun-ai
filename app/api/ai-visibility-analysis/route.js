@@ -488,7 +488,8 @@ export async function POST(request) {
 
     for (let i = 0; i < promptsToAnalyze.length; i++) {
       const prompt = promptsToAnalyze[i]
-      console.log(`   Analyzing prompt ${i + 1}/${promptsToAnalyze.length}...`)
+      const promptStart = Date.now()
+      console.log(`   [${Math.round((promptStart - startTime)/1000)}s] Prompt ${i + 1}/${promptsToAnalyze.length}...`)
       
       // ✨ Run Perplexity + ChatGPT in parallel
       // ChatGPT: 50% van prompts krijgt locatie-context als serviceArea ingevuld
@@ -538,11 +539,11 @@ export async function POST(request) {
 
       const pStatus = perplexityResult.success ? '✅' : '⚠️'
       const cStatus = chatgptResult.success ? '✅' : '⚠️'
-      console.log(`   ${pStatus} Perplexity | ${cStatus} ChatGPT — Prompt ${i + 1}`)
+      console.log(`   ${pStatus} Perplexity | ${cStatus} ChatGPT — Prompt ${i + 1} (${Math.round((Date.now() - promptStart)/1000)}s) [total: ${Math.round((Date.now() - startTime)/1000)}s]`)
 
       // Delay tussen prompts voor ChatGPT TPM limiet (6K TPM) — skip na laatste
       if (i < promptsToAnalyze.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 6000))
+        await new Promise(resolve => setTimeout(resolve, 3000))
       }
     }
 
@@ -1251,7 +1252,7 @@ Simuleer een AI Overview die concrete bedrijven noemt!`
       throw new Error('Perplexity returned empty response')
     }
 
-    const parsed = await parseWithClaude(rawOutput, companyName)
+    const parsed = parseWithJS(rawOutput, companyName)
 
     return { success: true, data: parsed }
   } catch (error) {
@@ -1340,7 +1341,7 @@ Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.
 
       if (response.status === 429 && attempt < 3) {
         const retryAfter = parseInt(response.headers.get('retry-after') || '0')
-        const waitMs = retryAfter > 0 ? retryAfter * 1000 : attempt * 20000 // 20s, 40s
+        const waitMs = retryAfter > 0 ? retryAfter * 1000 : attempt * 10000 // 10s, 20s
         console.log(`⏳ ChatGPT 429 rate limit — wacht ${Math.round(waitMs/1000)}s (poging ${attempt}/3)`)
         await new Promise(r => setTimeout(r, waitMs))
         continue
@@ -1369,7 +1370,7 @@ Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.
       throw new Error('ChatGPT returned empty response')
     }
 
-    const parsed = await parseWithClaude(rawOutput, companyName)
+    const parsed = parseWithJS(rawOutput, companyName)
 
     return { success: true, data: parsed }
   } catch (error) {
@@ -1390,110 +1391,110 @@ Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.
 // ============================================
 // ✅ ULTIMATE PARSER - Super Strict
 // ============================================
-async function parseWithClaude(rawOutput, companyName) {
+// FAST JS PARSER — vervangt 20x Claude API calls
+// company_mentioned + mentions_count waren al regex
+// competitors: extract bold/numbered names
+// snippet: eerste relevante tekst
+// ============================================
+function parseWithJS(rawOutput, companyName) {
   try {
-    const mentionsCount = (rawOutput.match(new RegExp(companyName, 'gi')) || []).length
-    const isCompanyLiterallyMentioned = mentionsCount > 0
+    const mentionsCount = (rawOutput.match(new RegExp(companyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')) || []).length
+    const isCompanyMentioned = mentionsCount > 0
 
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1500,
-      system: `Jij bent een nauwkeurige JSON-parser en beknopte samenvatter die **ALTIJD en uitsluitend in het Nederlands** reageert. Jouw output mag GEEN ENKELE Engelse term bevatten. Verwijder alle mogelijke Engelse termen uit de tekst of vervang ze door hun Nederlandse equivalenten.
+    // Extract competitor names from bold text and numbered lists
+    const competitors = []
+    const seen = new Set()
+    const companyLower = companyName.toLowerCase()
+    
+    // Bekende merken/platforms om uit te sluiten
+    const excludeList = new Set([
+      'google', 'facebook', 'instagram', 'linkedin', 'twitter', 'youtube', 'tiktok',
+      'amazon', 'apple', 'microsoft', 'samsung', 'nike', 'adidas', 'coca-cola',
+      'semrush', 'ahrefs', 'moz', 'hubspot', 'mailchimp', 'wordpress', 'shopify',
+      'whatsapp', 'telegram', 'pinterest', 'reddit', 'bing', 'yahoo',
+      'chatgpt', 'openai', 'anthropic', 'perplexity'
+    ])
 
-Jouw taak is om de gegeven tekst te analyseren en daaruit de gevraagde informatie te extraheren in strikt JSON-formaat. Je mag **absoluut geen externe kennis** gebruiken; je analyse is strikt beperkt tot de aangeleverde tekst.
-
-**BELANGRIJK VOOR CONCURRENTEN:**
-Identificeer ALLEEN SPECIFIEKE andere bedrijven, merken of commerciële dienstverleners.
-
-**Wees UITERST STRIKT - sluit uit:**
-❌ Zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Adidas, Apple, Samsung, Google als bedrijf, Facebook, YouTube, Amazon, Lego, McDonald's, etc.)
-❌ Zoekmachines (Google Search, Bing, DuckDuckGo)  
-❌ Social media platforms (Facebook, LinkedIn, Instagram, Twitter/X, TikTok)
-❌ SEO/Marketing tools (Semrush, Ahrefs, Moz, Google Analytics, Mailchimp)
-
-**Focus op:**
-✅ Nederlandse, kleinere tot middelgrote dienstverleners
-✅ Specialistische bedrijven relevant voor de bedrijfscategorie
-✅ Concrete bedrijfsnamen van lokale/regionale aanbieders
-
-Wees meedogenloos strikt in het filteren van niet-bedrijfsnamen.`,
-      messages: [{
-        role: 'user',
-        content: `Lees de volgende tekst zorgvuldig:
-"""
-${rawOutput}
-"""
-
-Jouw taak is om de onderstaande JSON-structuur te vullen. De analyse moet strikt gebaseerd zijn op de GEGEVEN TEKST ALLEEN. Gebruik GEEN EXTERNE KENNIS.
-
-De output moet **ALTIJD en UITSLUITEND in het Nederlands zijn**, zonder enige uitzondering of Engelse woorden. Verwijder alle mogelijke Engelse termen of vervang ze door Nederlandse equivalenten.
-
-**JSON STRUCTUUR:**
-
-{
-  "company_mentioned": ${isCompanyLiterallyMentioned},
-  "mentions_count": ${mentionsCount},
-  "competitors_mentioned": [],
-  "simulated_ai_response_snippet": ""
-}
-
-**INSTRUCTIES PER VELD:**
-
-1. **company_mentioned**: Deze is al extern vastgesteld als ${isCompanyLiterallyMentioned}. Stel deze waarde in als gegeven.
-
-2. **mentions_count**: Deze is al extern vastgesteld als ${mentionsCount}. Stel deze waarde in als gegeven.
-
-3. **competitors_mentioned**: 
-   Lijst alle andere **CONCRETE, SPECIFIEKE BEDRIJFSNAMEN, MERKEN of COMMERCIËLE DIENSTVERLENERS** op die in de tekst worden genoemd en die GEEN "${companyName}" zijn.
-   
-   **Wees UITERST STRIKT:**
-   - Sluit expliciet UIT: Zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Adidas, Apple, Samsung, Google als bedrijf, Facebook, YouTube, Amazon, Lego, McDonald's, etc.)
-   - Sluit UIT: Zoekmachines, social media platforms, SEO/marketing tools
-   - Focus op: Nederlandse, kleinere tot middelgrote dienstverleners of specialistische bedrijven relevant voor de bedrijfscategorie
-   
-   Geef een lege array [] als er geen namen zijn die aan deze zeer specifieke criteria voldoen.
-   
-   Baseer dit strikt op de gegeven tekst en wees zeer strikt in het onderscheiden van ECHTE bedrijven/merken van algemene termen of tools.
-
-4. **simulated_ai_response_snippet**: 
-   Geef een beknopte, relevante samenvatting van de tekst als antwoord op de oorspronkelijke vraag.
-   
-   **BELANGRIJKSTE INSTRUCTIE:**
-   ${!isCompanyLiterallyMentioned ? 
-     `- Als "${companyName}" NIET in de tekst voorkomt, MOET de samenvatting beginnen met: "Het bedrijf \\"${companyName}\\" wordt niet genoemd in deze tekst."` : 
-     `- Als "${companyName}" WEL in de tekst voorkomt, focus dan op de relevante informatie uit de tekst.`}
-   
-   **De samenvatting MOET:**
-   - ALTIJD en UITSLUITEND in het Nederlands zijn
-   - GEEN ENKELE Engelse woorden bevatten
-   - Zich richten op concrete bedrijven of dienstverleners als die in de tekst aanwezig zijn
-   - Algemeen advies over hoe bedrijven te vinden VERMIJDEN
-
-**OUTPUT:** Geef ALLEEN de JSON terug, geen extra tekst.`
-      }]
-    })
-
-    const responseText = message.content[0].type === 'text' 
-      ? message.content[0].text 
-      : ''
-
-    let cleanedText = responseText.trim();
-    if (cleanedText.startsWith('```json')) {
-      cleanedText = cleanedText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-    } else if (cleanedText.startsWith('```')) {
-      cleanedText = cleanedText.replace(/^```\n?/, '').replace(/\n?```$/, '');
+    // Pattern 1: **Bold names**
+    const boldPattern = /\*\*([^*]{3,60})\*\*/g
+    let match
+    while ((match = boldPattern.exec(rawOutput)) !== null) {
+      const name = match[1].trim()
+        .replace(/\s*[-–—:].*/g, '')
+        .replace(/^\d+[\.\)]\s*/, '')
+        .trim()
+      const nameLower = name.toLowerCase()
+      if (
+        name.length > 2 && name.length < 50 &&
+        !nameLower.includes(companyLower) &&
+        !companyLower.includes(nameLower) &&
+        !excludeList.has(nameLower) &&
+        !nameLower.includes('?') && !nameLower.includes(':') &&
+        !nameLower.startsWith('tip') && !nameLower.startsWith('let op') &&
+        !nameLower.startsWith('belangrijk') && !nameLower.startsWith('conclusie') &&
+        !nameLower.startsWith('samenvatting') && !nameLower.startsWith('opmerking') &&
+        !/^(stap|punt|vraag|antwoord|optie|methode|strategie|voordeel|nadeel)\s/i.test(name) &&
+        !seen.has(nameLower)
+      ) {
+        seen.add(nameLower)
+        competitors.push(name)
+      }
     }
 
-    const parsed = JSON.parse(cleanedText)
-
-    if (parsed.company_mentioned !== isCompanyLiterallyMentioned) {
-      parsed.company_mentioned = isCompanyLiterallyMentioned
-      parsed.mentions_count = mentionsCount
+    // Pattern 2: Numbered list items (1. Name - description)
+    const numberedPattern = /^\s*(\d+)[\.\)\-]\s*\**([^*\n\(\[]{2,60})/gm
+    while ((match = numberedPattern.exec(rawOutput)) !== null) {
+      let name = match[2].trim()
+        .replace(/\*\*/g, '')
+        .replace(/\s*[-–—:].*/g, '')
+        .trim()
+      const nameLower = name.toLowerCase()
+      if (
+        name.length > 2 && name.length < 50 &&
+        !nameLower.includes(companyLower) &&
+        !companyLower.includes(nameLower) &&
+        !excludeList.has(nameLower) &&
+        !seen.has(nameLower)
+      ) {
+        seen.add(nameLower)
+        competitors.push(name)
+      }
     }
 
-    return parsed
+    // Snippet: eerste 300 tekens van de response, of context rond bedrijfsnaam
+    let snippet = ''
+    if (isCompanyMentioned) {
+      const textLower = rawOutput.toLowerCase()
+      const idx = textLower.indexOf(companyLower)
+      if (idx >= 0) {
+        const start = Math.max(0, idx - 100)
+        const end = Math.min(rawOutput.length, idx + companyName.length + 200)
+        snippet = (start > 0 ? '...' : '') + rawOutput.substring(start, end).trim() + (end < rawOutput.length ? '...' : '')
+      }
+    }
+    
+    if (!snippet) {
+      // Neem eerste zinvolle tekst (skip headers/bullets)
+      const lines = rawOutput.split('\n').filter(l => l.trim().length > 30)
+      snippet = lines.slice(0, 3).join(' ').substring(0, 400)
+      if (rawOutput.length > 400) snippet += '...'
+    }
+
+    // Clean markdown uit snippet
+    snippet = snippet.replace(/\*\*/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/#{1,4}\s/g, '')
+
+    if (!isCompanyMentioned) {
+      snippet = `Het bedrijf "${companyName}" wordt niet genoemd in dit AI-antwoord. ${snippet}`
+    }
+
+    return {
+      company_mentioned: isCompanyMentioned,
+      mentions_count: mentionsCount,
+      competitors_mentioned: competitors.slice(0, 10),
+      simulated_ai_response_snippet: snippet.substring(0, 600)
+    }
   } catch (error) {
-    console.error('❌ Parser Error:', error)
+    console.error('❌ JS Parser Error:', error)
     return {
       company_mentioned: false,
       mentions_count: 0,

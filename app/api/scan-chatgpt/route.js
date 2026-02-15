@@ -2,13 +2,11 @@
 // ✅ Standalone ChatGPT Search scan - voor dashboard rescan
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import Anthropic from '@anthropic-ai/sdk'
 
-// Vercel function timeout — 10 prompts × 15s delay = needs 300s
+// Vercel function timeout — 10 prompts × 3s delay + API calls
 export const maxDuration = 300
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -71,7 +69,7 @@ Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.
 
       if (response.status === 429 && attempt < 3) {
         const retryAfter = parseInt(response.headers.get('retry-after') || '0')
-        const waitMs = retryAfter > 0 ? retryAfter * 1000 : attempt * 20000 // 20s, 40s
+        const waitMs = retryAfter > 0 ? retryAfter * 1000 : attempt * 10000 // 10s, 20s
         console.log(`⏳ ChatGPT 429 rate limit — wacht ${Math.round(waitMs/1000)}s (poging ${attempt}/3)`)
         await new Promise(r => setTimeout(r, waitMs))
         continue
@@ -98,7 +96,7 @@ Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.
       throw new Error('ChatGPT returned empty response')
     }
 
-    const parsed = await parseWithClaude(rawOutput, companyName)
+    const parsed = parseWithJS(rawOutput, companyName)
     return { success: true, data: parsed }
   } catch (error) {
     console.error('❌ ChatGPT Error:', error.message)
@@ -112,51 +110,62 @@ Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.
 // ============================================
 // ✅ PARSER - Same as main route.js
 // ============================================
-async function parseWithClaude(rawOutput, companyName) {
+function parseWithJS(rawOutput, companyName) {
   try {
     const mentionsCount = (rawOutput.match(new RegExp(companyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')) || []).length
     const isCompanyMentioned = mentionsCount > 0
 
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1500,
-      system: `Jij bent een nauwkeurige JSON-parser die ALTIJD in het Nederlands reageert. Analyseer de tekst en extraheer de gevraagde informatie in JSON-formaat. Gebruik GEEN externe kennis.
+    const competitors = []
+    const seen = new Set()
+    const companyLower = companyName.toLowerCase()
+    const excludeList = new Set([
+      'google', 'facebook', 'instagram', 'linkedin', 'twitter', 'youtube', 'tiktok',
+      'amazon', 'apple', 'microsoft', 'samsung', 'nike', 'adidas',
+      'semrush', 'ahrefs', 'moz', 'hubspot', 'mailchimp', 'wordpress', 'shopify',
+      'whatsapp', 'pinterest', 'reddit', 'bing', 'chatgpt', 'openai', 'perplexity'
+    ])
 
-VOOR CONCURRENTEN: Alleen specifieke bedrijfsnamen. GEEN grote merken (Apple, Google, Nike), GEEN tools (Semrush, Ahrefs), GEEN platforms (LinkedIn, Facebook). Focus op Nederlandse MKB dienstverleners.`,
-      messages: [{
-        role: 'user',
-        content: `Lees de volgende tekst zorgvuldig:
-"""
-${rawOutput}
-"""
+    let match
+    const boldPattern = /\*\*([^*]{3,60})\*\*/g
+    while ((match = boldPattern.exec(rawOutput)) !== null) {
+      const name = match[1].trim().replace(/\s*[-–—:].*/g, '').replace(/^\d+[\.\)]\s*/, '').trim()
+      const nameLower = name.toLowerCase()
+      if (name.length > 2 && name.length < 50 && !nameLower.includes(companyLower) && !companyLower.includes(nameLower) && !excludeList.has(nameLower) && !seen.has(nameLower) && !nameLower.includes('?') && !nameLower.includes(':')) {
+        seen.add(nameLower)
+        competitors.push(name)
+      }
+    }
 
-Geef ALLEEN deze JSON terug:
-{
-  "company_mentioned": ${isCompanyMentioned},
-  "mentions_count": ${mentionsCount},
-  "competitors_mentioned": [],
-  "simulated_ai_response_snippet": ""
-}
+    const numberedPattern = /^\s*(\d+)[\.\)\-]\s*\**([^*\n\(\[]{2,60})/gm
+    while ((match = numberedPattern.exec(rawOutput)) !== null) {
+      const name = match[2].trim().replace(/\*\*/g, '').replace(/\s*[-–—:].*/g, '').trim()
+      const nameLower = name.toLowerCase()
+      if (name.length > 2 && name.length < 50 && !nameLower.includes(companyLower) && !companyLower.includes(nameLower) && !excludeList.has(nameLower) && !seen.has(nameLower)) {
+        seen.add(nameLower)
+        competitors.push(name)
+      }
+    }
 
-competitors_mentioned: ALLEEN concrete Nederlandse bedrijfsnamen uit de tekst (geen grote merken/tools/platforms).
-simulated_ai_response_snippet: Beknopte Nederlandse samenvatting van de tekst.
-${!isCompanyMentioned ? `Begin snippet met: "Het bedrijf \\"${companyName}\\" wordt niet genoemd."` : ''}
+    let snippet = ''
+    if (isCompanyMentioned) {
+      const idx = rawOutput.toLowerCase().indexOf(companyLower)
+      if (idx >= 0) {
+        const start = Math.max(0, idx - 100)
+        const end = Math.min(rawOutput.length, idx + companyName.length + 200)
+        snippet = (start > 0 ? '...' : '') + rawOutput.substring(start, end).trim() + (end < rawOutput.length ? '...' : '')
+      }
+    }
+    if (!snippet) {
+      const lines = rawOutput.split('\n').filter(l => l.trim().length > 30)
+      snippet = lines.slice(0, 3).join(' ').substring(0, 400)
+      if (rawOutput.length > 400) snippet += '...'
+    }
+    snippet = snippet.replace(/\*\*/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/#{1,4}\s/g, '')
+    if (!isCompanyMentioned) snippet = `Het bedrijf "${companyName}" wordt niet genoemd in dit AI-antwoord. ${snippet}`
 
-ALLEEN JSON, geen extra tekst.`
-      }]
-    })
-
-    const responseText = message.content[0].type === 'text' ? message.content[0].text : ''
-    let cleanedText = responseText.trim()
-    if (cleanedText.startsWith('```json')) cleanedText = cleanedText.replace(/^```json\n?/, '').replace(/\n?```$/, '')
-    else if (cleanedText.startsWith('```')) cleanedText = cleanedText.replace(/^```\n?/, '').replace(/\n?```$/, '')
-
-    const parsed = JSON.parse(cleanedText)
-    parsed.company_mentioned = isCompanyMentioned
-    parsed.mentions_count = mentionsCount
-    return parsed
+    return { company_mentioned: isCompanyMentioned, mentions_count: mentionsCount, competitors_mentioned: competitors.slice(0, 10), simulated_ai_response_snippet: snippet.substring(0, 600) }
   } catch (error) {
-    console.error('❌ Parser Error:', error)
+    console.error('❌ JS Parser Error:', error)
     return { company_mentioned: false, mentions_count: 0, competitors_mentioned: [], simulated_ai_response_snippet: 'Fout bij het analyseren' }
   }
 }
@@ -204,7 +213,7 @@ export async function POST(request) {
       
       // gpt-4o-search-preview: 6K TPM limiet — 12s tussen requests
       if (i < prompts.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 6000))
+        await new Promise(resolve => setTimeout(resolve, 3000))
       }
     }
 
