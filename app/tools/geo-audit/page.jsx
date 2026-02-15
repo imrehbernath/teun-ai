@@ -19,10 +19,13 @@ const SCAN_STEPS = [
   { id: 'wordcount', label: 'Content lengte meten', section: 'Content' },
   { id: 'images', label: 'Afbeeldingen en alt-teksten checken', section: 'Content' },
   { id: 'schema', label: 'JSON-LD structured data detecteren', section: 'Structured Data' },
+  { id: 'richsnippets', label: 'Rich Snippets valideren (Google Rich Results)', section: 'Structured Data' },
   { id: 'faq', label: 'FAQPage schema zoeken', section: 'Structured Data' },
   { id: 'og', label: 'Open Graph tags controleren', section: 'Social' },
   { id: 'robots', label: 'robots.txt ophalen — AI-bots checken', section: 'Toegang' },
   { id: 'llms', label: 'llms.txt aanwezigheid checken', section: 'Toegang' },
+  { id: 'cwv', label: 'Core Web Vitals meten (PageSpeed API)', section: 'Performance' },
+  { id: 'mobile', label: 'Mobiel-vriendelijkheid checken', section: 'Performance' },
   { id: 'ai_content', label: 'Content kwaliteit analyseren met AI', section: 'AI Analyse' },
   { id: 'ai_citation', label: 'Citatie-potentieel beoordelen', section: 'AI Analyse' },
   { id: 'ai_eeat', label: 'E-E-A-T signalen detecteren', section: 'AI Analyse' },
@@ -322,6 +325,12 @@ export default function GeoAuditPage() {
             </button>
           </div>
         </form>
+        {loading && (
+          <p className="text-xs text-slate-400 mt-2 text-center">De scan duurt 45–60 seconden (incl. Core Web Vitals meting)</p>
+        )}
+        {!loading && (
+          <p className="text-xs text-slate-400 mt-2 text-center">Scan duurt ±1 minuut · inclusief Core Web Vitals en Perplexity test</p>
+        )}
         )}
 
         {!limitReached && authChecked && !isAdmin && (
@@ -488,7 +497,7 @@ export default function GeoAuditPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
               { icon: <BarChart3 className="w-5 h-5" />, title: 'Content Analyse', desc: 'Is je content geschikt om door AI geciteerd te worden?' },
-              { icon: <Shield className="w-5 h-5" />, title: 'Technische Check', desc: 'robots.txt, structured data, llms.txt, meta tags' },
+              { icon: <Shield className="w-5 h-5" />, title: 'Technische Check', desc: 'robots.txt, structured data, Core Web Vitals, rich snippets, llms.txt' },
               { icon: <Sparkles className="w-5 h-5" />, title: 'E-E-A-T & Citatie', desc: 'Expertise, autoriteit en citatie-potentieel' },
               { icon: <Eye className="w-5 h-5" />, title: 'Live Perplexity Test', desc: 'We testen direct of je gevonden wordt in AI-antwoorden' },
             ].map((f, i) => (
@@ -728,24 +737,58 @@ export default function GeoAuditPage() {
               {!results.extracted.hasStructuredData && <Badge color="red" label="Geen Structured Data" />}
               {!results.extracted.hasRobotsTxt && <Badge color="amber" label="Geen robots.txt" />}
               {!results.extracted.hasLlmsTxt && <Badge color="amber" label="Geen llms.txt" />}
+              {results.extracted.richSnippets?.eligible?.length > 0 && 
+                <Badge color="green" label={`Rich Snippets: ${results.extracted.richSnippets.eligible.join(', ')}`} />}
+              {results.extracted.richSnippets?.eligible?.length === 0 && results.extracted.richSnippets?.suggestedTypes?.length > 0 &&
+                <Badge color="red" label="Geen Rich Snippets" />}
             </div>
+            {/* Core Web Vitals */}
+            {results.extracted.coreWebVitals && (
+              <div className="mt-3 pt-3 border-t border-slate-200">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Core Web Vitals</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                  <div className="bg-white rounded-lg p-3 border border-slate-100">
+                    <p className={`text-lg font-bold ${results.extracted.coreWebVitals.performanceScore >= 90 ? 'text-green-600' : results.extracted.coreWebVitals.performanceScore >= 50 ? 'text-orange-500' : 'text-red-500'}`}>
+                      {results.extracted.coreWebVitals.performanceScore}
+                    </p>
+                    <p className="text-xs text-slate-500">Performance</p>
+                  </div>
+                  {results.extracted.coreWebVitals.lcp && (
+                    <div className="bg-white rounded-lg p-3 border border-slate-100">
+                      <p className={`text-lg font-bold ${results.extracted.coreWebVitals.lcp <= 2500 ? 'text-green-600' : results.extracted.coreWebVitals.lcp <= 4000 ? 'text-orange-500' : 'text-red-500'}`}>
+                        {(results.extracted.coreWebVitals.lcp / 1000).toFixed(1)}s
+                      </p>
+                      <p className="text-xs text-slate-500">LCP</p>
+                    </div>
+                  )}
+                  {results.extracted.coreWebVitals.cls !== null && results.extracted.coreWebVitals.cls !== undefined && (
+                    <div className="bg-white rounded-lg p-3 border border-slate-100">
+                      <p className={`text-lg font-bold ${results.extracted.coreWebVitals.cls <= 0.1 ? 'text-green-600' : results.extracted.coreWebVitals.cls <= 0.25 ? 'text-orange-500' : 'text-red-500'}`}>
+                        {results.extracted.coreWebVitals.cls}
+                      </p>
+                      <p className="text-xs text-slate-500">CLS</p>
+                    </div>
+                  )}
+                  <div className="bg-white rounded-lg p-3 border border-slate-100">
+                    <p className={`text-lg font-bold ${results.extracted.coreWebVitals.mobileFriendly ? 'text-green-600' : 'text-red-500'}`}>
+                      {results.extracted.coreWebVitals.mobileFriendly ? 'Ja' : 'Nee'}
+                    </p>
+                    <p className="text-xs text-slate-500">Mobiel</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ━━━ CTA ━━━ */}
-          <div className="mt-8 bg-gradient-to-br from-[#292956] to-[#1e1e45] rounded-xl p-8 text-center text-white">
-            <p className="text-xl font-bold mb-2">Wil je je volledige AI-zichtbaarheid meten?</p>
-            <p className="text-slate-300 text-sm mb-6 max-w-md mx-auto">
-              Test meerdere pagina&apos;s en prompts op ChatGPT, Perplexity en Google AI. Meet op welke vragen jouw bedrijf wordt aanbevolen.
+          <div className="mt-8 bg-slate-50 border border-slate-200 rounded-xl p-6 text-center">
+            <p className="text-lg font-bold text-slate-900 mb-2">Wil je meer dan één pagina analyseren?</p>
+            <p className="text-slate-600 text-sm max-w-md mx-auto mb-5">
+              In het dashboard maak je een uitgebreide GEO Analyse: prompts die worden gematcht aan jouw pagina&apos;s, met gerichte aanbevelingen per pagina. Helemaal gratis.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link href="/signup" className="bg-emerald-400 text-slate-900 font-semibold px-6 py-3 rounded-lg hover:bg-emerald-300 transition-colors inline-flex items-center gap-2">
-                Gratis account aanmaken <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link href="/tools/ai-visibility" className="text-slate-300 hover:text-white text-sm font-medium inline-flex items-center gap-1 transition-colors">
-                Of start een AI Zichtbaarheid Scan <ExternalLink className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-            <p className="text-slate-400 text-xs mt-4">Geen creditcard nodig</p>
+            <Link href="/signup" className="inline-flex items-center gap-2 bg-[#292956] text-white font-semibold px-6 py-3 rounded-lg hover:bg-[#1e1e45] transition-colors">
+              Gratis account aanmaken <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
 
           {/* Scan another */}

@@ -408,11 +408,25 @@ async function generatePDF(data) {
       ['Woorden', `${extracted.wordCount || 0}`],
       ['Headings', `${extracted.headingCount || 0}`],
       ['Structured Data', extracted.structuredDataTypes?.join(', ') || 'Geen'],
+      ['Rich Snippets', extracted.richSnippets?.eligible?.length > 0 
+        ? `Geschikt: ${extracted.richSnippets.eligible.join(', ')}` 
+        : extracted.richSnippets?.suggestedTypes?.length > 0
+          ? `Ontbreekt — voeg toe: ${extracted.richSnippets.suggestedTypes.slice(0, 3).join(', ')}`
+          : 'Niet geanalyseerd'],
       ['FAQ gevonden', extracted.hasFAQ ? 'Ja' : 'Nee'],
       ['Afbeeldingen', `${extracted.imageCount || 0} (${extracted.imagesWithAlt || 0} met alt-tekst)`],
       ['robots.txt', extracted.hasRobotsTxt ? 'Aanwezig' : 'Niet gevonden'],
       ['llms.txt', extracted.hasLlmsTxt ? 'Aanwezig' : 'Niet gevonden'],
     ]
+
+    // Add CWV rows if available
+    if (extracted.coreWebVitals) {
+      const cwv = extracted.coreWebVitals
+      dataRows.push(['Performance', `${cwv.performanceScore || '-'}/100`])
+      if (cwv.lcp) dataRows.push(['LCP', `${(cwv.lcp / 1000).toFixed(1)}s`])
+      if (cwv.cls !== null && cwv.cls !== undefined) dataRows.push(['CLS', `${cwv.cls}`])
+      dataRows.push(['Mobiel-vriendelijk', cwv.mobileFriendly ? 'Ja' : 'Nee'])
+    }
 
     dataRows.forEach(([label, value], idx) => {
       ensureSpace(28)

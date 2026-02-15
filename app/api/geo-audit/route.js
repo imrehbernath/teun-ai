@@ -9,6 +9,7 @@ import Anthropic from '@anthropic-ai/sdk'
 
 const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY
+const PAGESPEED_API_KEY = process.env.GOOGLE_PAGESPEED_API_KEY
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
@@ -90,6 +91,152 @@ async function resolveUrl(inputUrl) {
 }
 
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CORE WEB VITALS via PageSpeed API
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+async function fetchCoreWebVitals(url) {
+  console.log(`[GEO Audit] CWV check — API key present: ${!!PAGESPEED_API_KEY}, URL: ${url}`)
+  
+  if (!PAGESPEED_API_KEY) {
+    console.log('[GEO Audit] ❌ No GOOGLE_PAGESPEED_API_KEY in env — skipping CWV')
+    return null
+  }
+
+  try {
+    const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&key=${PAGESPEED_API_KEY}&category=performance&strategy=mobile`
+    console.log(`[GEO Audit] Calling PageSpeed API for: ${url}`)
+    
+    const response = await fetch(apiUrl, { signal: AbortSignal.timeout(45000) })
+    
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => '')
+      console.warn(`[GEO Audit] ❌ PageSpeed API error: ${response.status} — ${errorBody.substring(0, 200)}`)
+      return null
+    }
+
+    const data = await response.json()
+    console.log(`[GEO Audit] ✅ PageSpeed response received, lighthouse score: ${data.lighthouseResult?.categories?.performance?.score}`)
+    
+    // CrUX field data (real user metrics)
+    const crux = data.loadingExperience?.metrics || {}
+    const fieldLCP = crux.LARGEST_CONTENTFUL_PAINT_MS?.percentile
+    const fieldCLS = crux.CUMULATIVE_LAYOUT_SHIFT_SCORE?.percentile
+    const fieldINP = crux.INTERACTION_TO_NEXT_PAINT?.percentile || crux.EXPERIMENTAL_INTERACTION_TO_NEXT_PAINT?.percentile
+    const fieldTTFB = crux.EXPERIMENTAL_TIME_TO_FIRST_BYTE?.percentile
+    
+    // Lab data (Lighthouse)
+    const audit = data.lighthouseResult?.audits || {}
+    const labLCP = audit['largest-contentful-paint']?.numericValue
+    const labCLS = audit['cumulative-layout-shift']?.numericValue
+    const labTBT = audit['total-blocking-time']?.numericValue
+    const labSI = audit['speed-index']?.numericValue
+    
+    // Performance score
+    const performanceScore = Math.round((data.lighthouseResult?.categories?.performance?.score || 0) * 100)
+    
+    // Mobile friendly
+    const mobileFriendly = data.lighthouseResult?.audits?.['viewport']?.score === 1
+
+    const result = {
+      performanceScore,
+      mobileFriendly,
+      field: {
+        lcp: fieldLCP ? Math.round(fieldLCP) : null,
+        cls: fieldCLS ? (fieldCLS / 100) : null,
+        inp: fieldINP ? Math.round(fieldINP) : null,
+        ttfb: fieldTTFB ? Math.round(fieldTTFB) : null,
+      },
+      lab: {
+        lcp: labLCP ? Math.round(labLCP) : null,
+        cls: labCLS ? Math.round(labCLS * 1000) / 1000 : null,
+        tbt: labTBT ? Math.round(labTBT) : null,
+        si: labSI ? Math.round(labSI) : null,
+      }
+    }
+    
+    console.log(`[GEO Audit] ✅ CWV result: perf=${performanceScore}, LCP=${result.field.lcp || result.lab.lcp}ms, CLS=${result.field.cls ?? result.lab.cls}, mobile=${mobileFriendly}`)
+    return result
+  } catch (e) {
+    console.warn(`[GEO Audit] ❌ CWV fetch failed: ${e.message}`)
+    return null
+  }
+}
+
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// RICH SNIPPET / SCHEMA.ORG VALIDATION
+// Only types that actually generate rich results in Google
+// See: https://developers.google.com/search/docs/appearance/structured-data/search-gallery
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function analyzeRichSnippets(structuredData, structuredDataTypes) {
+  const results = { eligible: [], validSchema: [], missing: [], details: [] }
+
+  // Types that ACTUALLY generate rich results in Google Search
+  const richResultTypes = {
+    'FAQPage': ['mainEntity'],
+    'HowTo': ['name', 'step'],
+    'Product': ['name'],
+    'Recipe': ['name', 'recipeIngredient'],
+    'Event': ['name', 'startDate', 'location'],
+    'VideoObject': ['name', 'uploadDate', 'thumbnailUrl'],
+    'BreadcrumbList': ['itemListElement'],
+    'Review': ['itemReviewed', 'reviewRating'],
+    'AggregateRating': ['ratingValue', 'reviewCount'],
+    'LocalBusiness': ['name', 'address'],
+    'JobPosting': ['title', 'datePosted'],
+    'Course': ['name', 'provider'],
+  }
+
+  // Valid schema types (not rich results but still valuable for AI)
+  const validSchemaTypes = ['Organization', 'WebSite', 'WebPage', 'Article', 'BlogPosting', 'Service', 'Person']
+
+  // Flatten @graph items
+  const allItems = []
+  structuredData.forEach(item => {
+    if (item['@graph']) {
+      item['@graph'].forEach(g => allItems.push(g))
+    } else {
+      allItems.push(item)
+    }
+  })
+
+  // Check each item
+  allItems.forEach(item => {
+    const type = Array.isArray(item['@type']) ? item['@type'][0] : item['@type']
+    if (!type) return
+
+    // Check if it's a rich result type
+    const requirements = richResultTypes[type]
+    if (requirements) {
+      const present = requirements.filter(prop => {
+        const val = item[prop]
+        return val !== undefined && val !== null && val !== ''
+      })
+      const missingProps = requirements.filter(prop => !present.includes(prop))
+
+      if (missingProps.length === 0) {
+        results.eligible.push(type)
+        results.details.push({ type, status: 'complete', message: `${type} — geschikt voor rich results` })
+      } else {
+        results.missing.push(type)
+        results.details.push({ type, status: 'incomplete', message: `${type} mist: ${missingProps.join(', ')}`, missingProps })
+      }
+    } else if (validSchemaTypes.includes(type)) {
+      results.validSchema.push(type)
+    }
+  })
+
+  // Suggest high-value rich result types that are absent
+  const presentTypes = new Set([...results.eligible, ...results.missing, ...structuredDataTypes])
+  const suggestedTypes = ['FAQPage', 'Product', 'LocalBusiness', 'HowTo', 'VideoObject']
+    .filter(t => !presentTypes.has(t))
+  
+  return { ...results, suggestedTypes }
+}
+
+
 export async function POST(request) {
   try {
     const { url } = await request.json()
@@ -153,17 +300,21 @@ export async function POST(request) {
     const extracted = extractContent(html)
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // STEP 3: CHECK ROBOTS.TXT + LLMS.TXT (parallel)
+    // STEP 3: CHECK ROBOTS.TXT + LLMS.TXT + CWV (parallel)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    const [robotsTxt, llmsTxt] = await Promise.all([
+    const [robotsTxt, llmsTxt, coreWebVitals] = await Promise.all([
       fetchTextFile(`${resolvedDomain}/robots.txt`),
-      fetchTextFile(`${resolvedDomain}/llms.txt`)
+      fetchTextFile(`${resolvedDomain}/llms.txt`),
+      fetchCoreWebVitals(normalizedUrl)
     ])
+
+    // Rich snippet analysis
+    const richSnippets = analyzeRichSnippets(extracted.structuredData, extracted.structuredDataTypes)
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // STEP 4: TECHNICAL CHECKS (rule-based, instant)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    const technicalChecks = analyzeTechnical(extracted, robotsTxt, llmsTxt)
+    const technicalChecks = analyzeTechnical(extracted, robotsTxt, llmsTxt, coreWebVitals, richSnippets)
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // STEP 5: AI CONTENT ANALYSIS (Claude)
@@ -227,6 +378,19 @@ export async function POST(request) {
         hasLlmsTxt: !!llmsTxt,
         imageCount: extracted.imageCount,
         imagesWithAlt: extracted.imagesWithAlt,
+        richSnippets: richSnippets ? {
+          eligible: richSnippets.eligible,
+          validSchema: richSnippets.validSchema,
+          missing: richSnippets.missing,
+          suggestedTypes: richSnippets.suggestedTypes,
+        } : null,
+        coreWebVitals: coreWebVitals ? {
+          performanceScore: coreWebVitals.performanceScore,
+          mobileFriendly: coreWebVitals.mobileFriendly,
+          lcp: coreWebVitals.field?.lcp || coreWebVitals.lab?.lcp,
+          cls: coreWebVitals.field?.cls ?? coreWebVitals.lab?.cls,
+          inp: coreWebVitals.field?.inp,
+        } : null,
       },
       analysis: {
         overallScore,
@@ -379,7 +543,7 @@ function extractContent(html) {
 // TECHNICAL ANALYSIS (rule-based, instant)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function analyzeTechnical(extracted, robotsTxt, llmsTxt) {
+function analyzeTechnical(extracted, robotsTxt, llmsTxt, cwv, richSnippets) {
   const checks = []
   let score = 0
   let maxScore = 0
@@ -415,14 +579,19 @@ function analyzeTechnical(extracted, robotsTxt, llmsTxt) {
   // Structured Data
   maxScore += 15
   if (extracted.structuredDataTypes.length > 0) {
-    const important = ['Organization', 'LocalBusiness', 'Product', 'Article', 'FAQPage', 'Service', 'WebSite']
-    const found = extracted.structuredDataTypes.filter(t => important.includes(t))
-    if (found.length >= 2) {
-      checks.push({ name: 'Structured Data', status: 'good', detail: `${extracted.structuredDataTypes.join(', ')}`, priority: 'hoog' })
+    const basicTypes = ['WebPage', 'WebSite', 'CollectionPage', 'SearchAction', 'SiteNavigationElement', 'WPHeader', 'WPFooter', 'ImageObject']
+    const valuableTypes = extracted.structuredDataTypes.filter(t => !basicTypes.includes(t))
+    const allTypes = extracted.structuredDataTypes
+    
+    if (valuableTypes.length >= 2) {
+      checks.push({ name: 'Structured Data', status: 'good', detail: `${valuableTypes.join(', ')} gevonden`, priority: 'hoog' })
       score += 15
-    } else {
-      checks.push({ name: 'Structured Data', status: 'warning', detail: `Alleen ${extracted.structuredDataTypes.join(', ')} — voeg Organization of FAQPage toe`, priority: 'hoog' })
+    } else if (valuableTypes.length === 1) {
+      checks.push({ name: 'Structured Data', status: 'warning', detail: `Alleen ${valuableTypes[0]} — voeg FAQPage of LocalBusiness toe`, priority: 'hoog' })
       score += 8
+    } else {
+      checks.push({ name: 'Structured Data', status: 'warning', detail: `Alleen basis-types (${allTypes.join(', ')}) — voeg Organization, FAQPage toe`, priority: 'hoog' })
+      score += 4
     }
   } else {
     checks.push({ name: 'Structured Data', status: 'error', detail: 'Geen JSON-LD structured data gevonden', priority: 'hoog' })
@@ -515,6 +684,84 @@ function analyzeTechnical(extracted, robotsTxt, llmsTxt) {
       score += 5
     } else {
       checks.push({ name: 'Alt-teksten', status: 'error', detail: `Slechts ${pct}% heeft alt-tekst`, priority: 'middel' })
+    }
+  }
+
+  // Core Web Vitals (PageSpeed)
+  if (cwv) {
+    maxScore += 15
+    const perfScore = cwv.performanceScore
+    if (perfScore >= 90) {
+      checks.push({ name: 'Core Web Vitals', status: 'good', detail: `Performance score: ${perfScore}/100 — uitstekend`, priority: 'hoog' })
+      score += 15
+    } else if (perfScore >= 50) {
+      checks.push({ name: 'Core Web Vitals', status: 'warning', detail: `Performance score: ${perfScore}/100 — verbeterbaar`, priority: 'hoog' })
+      score += 8
+    } else {
+      checks.push({ name: 'Core Web Vitals', status: 'error', detail: `Performance score: ${perfScore}/100 — trage site benadeelt AI-ranking`, priority: 'hoog' })
+      score += 3
+    }
+
+    // LCP check
+    const lcp = cwv.field?.lcp || cwv.lab?.lcp
+    if (lcp) {
+      maxScore += 5
+      const lcpSec = (lcp / 1000).toFixed(1)
+      if (lcp <= 2500) {
+        checks.push({ name: 'LCP (Largest Contentful Paint)', status: 'good', detail: `${lcpSec}s — snel geladen`, priority: 'middel' })
+        score += 5
+      } else if (lcp <= 4000) {
+        checks.push({ name: 'LCP (Largest Contentful Paint)', status: 'warning', detail: `${lcpSec}s — boven 2.5s vertraagt indexering`, priority: 'middel' })
+        score += 2
+      } else {
+        checks.push({ name: 'LCP (Largest Contentful Paint)', status: 'error', detail: `${lcpSec}s — te traag voor AI-crawlers`, priority: 'hoog' })
+      }
+    }
+
+    // CLS check
+    const cls = cwv.field?.cls ?? cwv.lab?.cls
+    if (cls !== null && cls !== undefined) {
+      maxScore += 5
+      if (cls <= 0.1) {
+        checks.push({ name: 'CLS (Layout Shift)', status: 'good', detail: `${cls} — stabiele layout`, priority: 'middel' })
+        score += 5
+      } else if (cls <= 0.25) {
+        checks.push({ name: 'CLS (Layout Shift)', status: 'warning', detail: `${cls} — layout verschuift`, priority: 'middel' })
+        score += 2
+      } else {
+        checks.push({ name: 'CLS (Layout Shift)', status: 'error', detail: `${cls} — instabiele layout`, priority: 'middel' })
+      }
+    }
+
+    // Mobile friendly
+    if (cwv.mobileFriendly === false) {
+      maxScore += 5
+      checks.push({ name: 'Mobiel-vriendelijk', status: 'error', detail: 'Geen viewport meta tag — AI-platformen geven voorkeur aan mobiel-vriendelijke sites', priority: 'hoog' })
+    } else if (cwv.mobileFriendly === true) {
+      maxScore += 5
+      checks.push({ name: 'Mobiel-vriendelijk', status: 'good', detail: 'Viewport correct geconfigureerd', priority: 'middel' })
+      score += 5
+    }
+  }
+
+  // Rich Snippet validatie
+  if (richSnippets) {
+    maxScore += 10
+    if (richSnippets.eligible.length >= 2) {
+      checks.push({ name: 'Rich Snippets', status: 'good', detail: `${richSnippets.eligible.join(', ')} — geschikt voor rich results in Google`, priority: 'hoog' })
+      score += 10
+    } else if (richSnippets.eligible.length === 1) {
+      const suggestion = richSnippets.suggestedTypes.slice(0, 2).join(', ')
+      checks.push({ name: 'Rich Snippets', status: 'warning', detail: `Alleen ${richSnippets.eligible[0]} genereert rich results — voeg ${suggestion} toe`, priority: 'hoog' })
+      score += 5
+    } else if (richSnippets.missing.length > 0) {
+      const incomplete = richSnippets.details.filter(d => d.status === 'incomplete').map(d => `${d.type} (mist: ${d.missingProps.join(', ')})`).join('; ')
+      checks.push({ name: 'Rich Snippets', status: 'warning', detail: `Schema onvolledig: ${incomplete}`, priority: 'hoog' })
+      score += 2
+    } else {
+      const suggestion = richSnippets.suggestedTypes.slice(0, 3).join(', ')
+      const validNote = richSnippets.validSchema?.length > 0 ? ` (${richSnippets.validSchema.join(', ')} aanwezig maar genereert geen rich results)` : ''
+      checks.push({ name: 'Rich Snippets', status: 'error', detail: `Geen rich result-geschikt schema${validNote} — voeg ${suggestion || 'FAQPage, Product'} toe`, priority: 'hoog' })
     }
   }
 
