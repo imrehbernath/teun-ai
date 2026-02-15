@@ -542,7 +542,7 @@ export async function POST(request) {
 
       // Delay tussen prompts voor ChatGPT TPM limiet (6K TPM) — skip na laatste
       if (i < promptsToAnalyze.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 12000))
+        await new Promise(resolve => setTimeout(resolve, 6000))
       }
     }
 

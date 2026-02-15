@@ -204,7 +204,7 @@ export async function POST(request) {
       
       // gpt-4o-search-preview: 6K TPM limiet — 12s tussen requests
       if (i < prompts.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 12000))
+        await new Promise(resolve => setTimeout(resolve, 6000))
       }
     }
 
