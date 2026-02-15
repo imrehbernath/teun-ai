@@ -1332,7 +1332,7 @@ Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.
                 content: prompt
               }
             ],
-            max_tokens: 500
+            max_tokens: 250
           })
         }
       )
