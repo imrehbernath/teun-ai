@@ -107,7 +107,7 @@ async function scrapeWebsite(url) {
     
     console.log(`🔗 Scraping: ${normalizedUrl}`)
     
-    const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(normalizedUrl)}&render=true`
+    const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(normalizedUrl)}&render=false`
     
     const response = await fetch(scraperUrl, {
       method: 'GET',
@@ -543,7 +543,7 @@ export async function POST(request) {
 
       // Delay tussen prompts voor ChatGPT TPM limiet (6K TPM) — skip na laatste
       if (i < promptsToAnalyze.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 3000))
+        await new Promise(resolve => setTimeout(resolve, 6000))
       }
     }
 

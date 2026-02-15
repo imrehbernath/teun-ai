@@ -520,7 +520,7 @@ function AIVisibilityToolContent() {
       setProgress(5);
       
       const hasCustomPrompts = customPrompts && customPrompts.length > 0;
-      const totalPrompts = hasCustomPrompts ? customPrompts.length : 10;
+      const totalPrompts = hasCustomPrompts ? customPrompts.length : 5;
       
       if (hasCustomPrompts) {
         setCurrentStep(`${totalPrompts} aangepaste prompts analyseren...`);
@@ -697,7 +697,7 @@ function AIVisibilityToolContent() {
               <span className="text-[10px] text-slate-400">account</span>
             </span>
           </div>
-          <p className="text-xs text-slate-400">10 prompts per scan • 2x gratis zonder account • AI Modus & AI Overviews met gratis account</p>
+          <p className="text-xs text-slate-400">5 prompts per scan • 2x gratis zonder account • AI Modus & AI Overviews met gratis account</p>
         </header>
 
         {/* Step Indicator - Pill style matching homepage CTA */}
