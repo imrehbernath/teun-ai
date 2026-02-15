@@ -737,7 +737,7 @@ function AIVisibilityToolContent() {
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <input
-                      type="url"
+                      type="text"
                       inputMode="url"
                       autoComplete="off"
                       autoCapitalize="none"
@@ -1159,7 +1159,7 @@ function AIVisibilityToolContent() {
                       </span>
                     </label>
                     <input
-                      type="url"
+                      type="text"
                       inputMode="url"
                       autoComplete="off"
                       autoCapitalize="none"

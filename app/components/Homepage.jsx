@@ -264,7 +264,7 @@ export default function Homepage() {
                         Website *
                       </label>
                       <input
-                        type="url"
+                        type="text"
                         inputMode="url"
                         autoComplete="off"
                         autoCapitalize="none"
