@@ -403,18 +403,34 @@ function GEOAnalyseContent() {
         const key = (scan.company_name || scan.website || '').toLowerCase().trim()
         if (!key) return
         
+        // Parse results - handle both formats:
+        // New format: { perplexity: [...], chatgpt: [...] }  (object with platform keys)
+        // Old format: [...] (flat array, assumed Perplexity)
+        const rawResults = scan.results || scan.scan_results || []
+        let perplexityData = []
+        let chatgptData = []
+        
+        if (rawResults && !Array.isArray(rawResults) && typeof rawResults === 'object') {
+          // New format: nested object with platform keys
+          perplexityData = Array.isArray(rawResults.perplexity) ? rawResults.perplexity : []
+          chatgptData = Array.isArray(rawResults.chatgpt) ? rawResults.chatgpt : []
+          console.log(`tool_integrations [${scan.company_name}] nested format: P:${perplexityData.length} C:${chatgptData.length}`)
+        } else if (Array.isArray(rawResults)) {
+          // Old format: flat array (all Perplexity)
+          perplexityData = rawResults
+          console.log(`tool_integrations [${scan.company_name}] flat format: ${perplexityData.length} results`)
+        }
+        
         // Extract prompts from commercial_prompts OR from results
         const prompts = scan.commercial_prompts || 
-          (Array.isArray(scan.results) ? scan.results.map(r => r.ai_prompt || r.query || r.prompt).filter(Boolean) : []) ||
-          (Array.isArray(scan.scan_results) ? scan.scan_results.map(r => r.ai_prompt || r.query || r.prompt).filter(Boolean) : [])
+          [...perplexityData, ...chatgptData].map(r => r.ai_prompt || r.query || r.prompt).filter(Boolean)
         
-        // Get results from either 'results' or 'scan_results' column
-        const scanResults = scan.results || scan.scan_results || []
-        
-        // Debug: log actual field names in first result
-        if (scanResults.length > 0) {
-          console.log('tool_integrations result fields:', Object.keys(scanResults[0]))
-          console.log('First result sample:', JSON.stringify(scanResults[0]).substring(0, 500))
+        // Debug
+        if (perplexityData.length > 0) {
+          console.log('Perplexity result fields:', Object.keys(perplexityData[0]))
+        }
+        if (chatgptData.length > 0) {
+          console.log('ChatGPT result fields:', Object.keys(chatgptData[0]))
         }
         
         if (!websiteMap.has(key)) {
@@ -426,18 +442,34 @@ function GEOAnalyseContent() {
           }
           
           // Add Perplexity results
-          if (Array.isArray(scanResults) && scanResults.length > 0) {
-            combinedResults.perplexity.results = scanResults.map(r => ({
+          if (perplexityData.length > 0) {
+            combinedResults.perplexity.results = perplexityData.map(r => ({
               prompt: r.ai_prompt || r.query || r.prompt || '',
               mentioned: r.company_mentioned === true || r.companyMentioned === true || r.mentioned === true,
               snippet: r.simulated_ai_response_snippet || r.snippet || r.aiResponse || r.response_snippet || '',
               competitors: r.competitors_mentioned || r.competitors || []
             }))
-            combinedResults.perplexity.total = scanResults.length
-            combinedResults.perplexity.mentioned = scanResults.filter(r => 
+            combinedResults.perplexity.total = perplexityData.length
+            combinedResults.perplexity.mentioned = perplexityData.filter(r => 
               r.companyMentioned === true || r.mentioned === true || r.company_mentioned === true
             ).length
           }
+          
+          // Add ChatGPT results (from nested format in tool_integrations)
+          if (chatgptData.length > 0) {
+            combinedResults.chatgpt.results = chatgptData.map(r => ({
+              prompt: r.ai_prompt || r.query || r.prompt || '',
+              mentioned: r.company_mentioned === true || r.companyMentioned === true || r.mentioned === true,
+              snippet: r.simulated_ai_response_snippet || r.snippet || r.aiResponse || r.response_snippet || '',
+              competitors: r.competitors_mentioned || r.competitors || []
+            }))
+            combinedResults.chatgpt.total = chatgptData.length
+            combinedResults.chatgpt.mentioned = chatgptData.filter(r => 
+              r.companyMentioned === true || r.mentioned === true || r.company_mentioned === true
+            ).length
+          }
+          
+          const hasData = perplexityData.length > 0 || chatgptData.length > 0
           
           websiteMap.set(key, {
             id: scan.id,
@@ -447,10 +479,10 @@ function GEOAnalyseContent() {
             prompts: prompts,
             combinedResults: combinedResults,
             source: 'tool_integrations',
-            hasRealAiData: Array.isArray(scanResults) && scanResults.length > 0
+            hasRealAiData: hasData
           })
           
-          console.log('Added website from tool_integrations:', scan.company_name, 'Prompts:', prompts.length, 'Results:', scanResults.length)
+          console.log('Added website from tool_integrations:', scan.company_name, 'Prompts:', prompts.length, 'Perplexity:', perplexityData.length, 'ChatGPT:', chatgptData.length)
         }
       })
 
@@ -473,10 +505,13 @@ function GEOAnalyseContent() {
             existing.category = scan.company_category || scan.category
           }
           
-          existing.combinedResults.chatgpt = {
-            mentioned: results.filter(r => r.mentioned === true).length,
-            total: results.length,
-            results
+          // Only override if chatgpt_scans has data AND existing is empty or has less
+          if (results.length > 0 && results.length >= (existing.combinedResults.chatgpt?.total || 0)) {
+            existing.combinedResults.chatgpt = {
+              mentioned: results.filter(r => r.mentioned === true).length,
+              total: results.length,
+              results
+            }
           }
         } else if (key && !websiteMap.has(key)) {
           // Create new entry if not exists

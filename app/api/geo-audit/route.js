@@ -51,6 +51,45 @@ async function sendSlackLeadNotification({ url, companyName, score, mentioned })
 }
 
 
+// ✅ URL Resolution — volg redirects (www/non-www, http→https)
+async function resolveUrl(inputUrl) {
+  try {
+    // Lowercase hostname eerst
+    const urlObj = new URL(inputUrl)
+    urlObj.hostname = urlObj.hostname.toLowerCase()
+    let resolved = urlObj.toString()
+
+    // HEAD request om redirects te volgen
+    const response = await fetch(resolved, {
+      method: 'HEAD',
+      redirect: 'follow',
+      signal: AbortSignal.timeout(5000),
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; TeunAI/1.0; +https://teun.ai)'
+      }
+    })
+
+    // Gebruik de uiteindelijke URL na redirects
+    if (response.url && response.url !== resolved) {
+      console.log(`[GEO Audit] URL resolved: ${inputUrl} → ${response.url}`)
+      resolved = response.url
+    }
+
+    return resolved
+  } catch (e) {
+    // Fallback: alleen lowercase
+    console.warn(`[GEO Audit] URL resolve failed, using lowercase:`, e.message)
+    try {
+      const urlObj = new URL(inputUrl)
+      urlObj.hostname = urlObj.hostname.toLowerCase()
+      return urlObj.toString()
+    } catch {
+      return inputUrl
+    }
+  }
+}
+
+
 export async function POST(request) {
   try {
     const { url } = await request.json()
@@ -63,6 +102,11 @@ export async function POST(request) {
     if (!normalizedUrl.startsWith('http')) {
       normalizedUrl = 'https://' + normalizedUrl
     }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // STEP 0: RESOLVE URL (follow redirects, normalize)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    normalizedUrl = await resolveUrl(normalizedUrl)
 
     const urlObj = new URL(normalizedUrl)
     const domain = urlObj.origin
@@ -85,6 +129,24 @@ export async function POST(request) {
 
     const html = await scrapeResponse.text()
 
+    // Check canonical URL als extra vangnet
+    const canonicalMatch = html.match(/<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["']/i)
+      || html.match(/<link[^>]*href=["']([^"']+)["'][^>]*rel=["']canonical["']/i)
+    let resolvedDomain = domain
+    let resolvedHostname = hostname
+    if (canonicalMatch && canonicalMatch[1].startsWith('http')) {
+      try {
+        const canonical = new URL(canonicalMatch[1])
+        const canonicalHost = canonical.hostname.toLowerCase()
+        if (canonicalHost !== urlObj.hostname.toLowerCase()) {
+          console.log(`[GEO Audit] Canonical differs: ${normalizedUrl} → ${canonical.href}`)
+          normalizedUrl = canonical.href
+          resolvedDomain = canonical.origin
+          resolvedHostname = canonical.hostname.replace(/^www\./, '')
+        }
+      } catch (e) { /* ongeldige canonical, negeren */ }
+    }
+
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // STEP 2: EXTRACT CONTENT
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -94,8 +156,8 @@ export async function POST(request) {
     // STEP 3: CHECK ROBOTS.TXT + LLMS.TXT (parallel)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const [robotsTxt, llmsTxt] = await Promise.all([
-      fetchTextFile(`${domain}/robots.txt`),
-      fetchTextFile(`${domain}/llms.txt`)
+      fetchTextFile(`${resolvedDomain}/robots.txt`),
+      fetchTextFile(`${resolvedDomain}/llms.txt`)
     ])
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -106,7 +168,7 @@ export async function POST(request) {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // STEP 5: AI CONTENT ANALYSIS (Claude)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    const aiAnalysis = await analyzeContentWithClaude(extracted, hostname, normalizedUrl)
+    const aiAnalysis = await analyzeContentWithClaude(extracted, resolvedHostname, normalizedUrl)
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // STEP 6: LIVE PERPLEXITY TEST 🔥
@@ -115,8 +177,8 @@ export async function POST(request) {
     if (aiAnalysis?.generatedPrompt) {
       liveTest = await testPromptOnPerplexity(
         aiAnalysis.generatedPrompt,
-        aiAnalysis.companyName || hostname,
-        hostname
+        aiAnalysis.companyName || resolvedHostname,
+        resolvedHostname
       )
     }
 
@@ -141,7 +203,7 @@ export async function POST(request) {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     sendSlackLeadNotification({
       url: normalizedUrl,
-      companyName: aiAnalysis.companyName || hostname,
+      companyName: aiAnalysis.companyName || resolvedHostname,
       score: overallScore,
       mentioned: liveTest?.mentioned || false
     }).catch(() => {})
@@ -152,7 +214,7 @@ export async function POST(request) {
     return NextResponse.json({
       success: true,
       url: normalizedUrl,
-      domain: hostname,
+      domain: resolvedHostname,
       extracted: {
         title: extracted.title,
         description: extracted.description,
@@ -204,7 +266,7 @@ export async function POST(request) {
         ],
         topRecommendations: aiAnalysis.topRecommendations || [],
         generatedPrompt: aiAnalysis.generatedPrompt || null,
-        companyName: aiAnalysis.companyName || hostname,
+        companyName: aiAnalysis.companyName || resolvedHostname,
       },
       // ✨ THE KILLER FEATURE — Live AI test resultaat
       liveTest: liveTest ? {

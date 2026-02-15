@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
-import { ArrowRight, CheckCircle2, XCircle, AlertTriangle, Globe, ChevronDown, ChevronUp, Sparkles, Zap, Shield, BarChart3, ExternalLink, Copy, Check, Loader2, Eye, Users } from 'lucide-react'
+import { ArrowRight, CheckCircle2, XCircle, AlertTriangle, Globe, ChevronDown, ChevronUp, Sparkles, Zap, Shield, BarChart3, ExternalLink, Copy, Check, Loader2, Eye, Users, Download } from 'lucide-react'
 
 // ============================================
 // SCAN STEPS — shown during animation
@@ -45,6 +45,7 @@ export default function GeoAuditPage() {
   const [expandedCategory, setExpandedCategory] = useState(null)
   const [copiedPrompt, setCopiedPrompt] = useState(false)
   const [showFullSnippet, setShowFullSnippet] = useState(false)
+  const [downloadingPdf, setDownloadingPdf] = useState(false)
   const resultsRef = useRef(null)
 
   // Scan limit
@@ -196,6 +197,33 @@ export default function GeoAuditPage() {
     navigator.clipboard.writeText(text)
     setCopiedPrompt(true)
     setTimeout(() => setCopiedPrompt(false), 2000)
+  }
+
+  async function handleDownloadPdf() {
+    if (!results || downloadingPdf) return
+    setDownloadingPdf(true)
+    try {
+      const response = await fetch('/api/geo-audit/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(results)
+      })
+      if (!response.ok) throw new Error('PDF generatie mislukt')
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `GEO-Audit-${(results.analysis?.companyName || results.domain || 'rapport').replace(/[^a-zA-Z0-9-]/g, '-')}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('PDF download error:', err)
+      alert('PDF downloaden mislukt. Probeer het opnieuw.')
+    } finally {
+      setDownloadingPdf(false)
+    }
   }
 
   const progress = Math.round((completedSteps.length / SCAN_STEPS.length) * 100)
@@ -592,6 +620,22 @@ export default function GeoAuditPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* ━━━ ACTIONS BAR ━━━ */}
+          <div className="flex items-center justify-end gap-3 mb-6">
+            <button
+              onClick={handleDownloadPdf}
+              disabled={downloadingPdf}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            >
+              {downloadingPdf ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              {downloadingPdf ? 'PDF genereren...' : 'Download rapport (PDF)'}
+            </button>
           </div>
 
           {/* ━━━ TOP RECOMMENDATIONS ━━━ */}
