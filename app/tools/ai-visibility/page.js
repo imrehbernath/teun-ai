@@ -1278,6 +1278,7 @@ function AIVisibilityToolContent() {
                   )}
                 </div>
               </div>
+              <p className="text-xs text-slate-400 mt-3">Elke prompt wordt realtime door AI-zoekmachines verwerkt — dat kost even tijd</p>
             </div>
           </section>
         )}
@@ -1317,6 +1318,7 @@ function AIVisibilityToolContent() {
                           </span>
                         </div>
                       </div>
+                      <p className="text-xs text-slate-400 mt-3">Elke prompt wordt realtime door AI-zoekmachines verwerkt — dat kost even tijd</p>
                     </div>
 
                     {/* Progress Steps */}

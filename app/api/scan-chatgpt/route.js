@@ -34,6 +34,7 @@ async function analyzeWithChatGPT(prompt, companyName, serviceArea = null) {
   try {
     let response
     
+    // Retry up to 3 times — gpt-4o-search-preview has low RPM limits
     for (let attempt = 1; attempt <= 3; attempt++) {
       response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -44,7 +45,7 @@ async function analyzeWithChatGPT(prompt, companyName, serviceArea = null) {
         body: JSON.stringify({
           model: 'gpt-4o-search-preview',
           web_search_options: { 
-            search_context_size: 'high',
+            search_context_size: 'medium',
             user_location: userLocation
           },
           messages: [
@@ -67,8 +68,8 @@ Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.
 
       if (response.status === 429 && attempt < 3) {
         const retryAfter = parseInt(response.headers.get('retry-after') || '0')
-        const waitMs = retryAfter > 0 ? retryAfter * 1000 : attempt * 3000
-        console.log(`⏳ ChatGPT 429 rate limit — wacht ${waitMs}ms (poging ${attempt}/3)`)
+        const waitMs = retryAfter > 0 ? retryAfter * 1000 : attempt * 20000 // 20s, 40s
+        console.log(`⏳ ChatGPT 429 rate limit — wacht ${Math.round(waitMs/1000)}s (poging ${attempt}/3)`)
         await new Promise(r => setTimeout(r, waitMs))
         continue
       }
@@ -79,7 +80,7 @@ Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.
     }
 
     if (!response.ok) {
-      throw new Error(`ChatGPT API failed: ${response.status}`)
+      throw new Error(`ChatGPT API failed after 3 attempts`)
     }
 
     const data = await response.json()
@@ -198,8 +199,9 @@ export async function POST(request) {
 
       console.log(`   ${result.success ? '✅' : '⚠️'} Prompt ${i + 1}: ${result.data.company_mentioned ? 'GEVONDEN' : 'niet gevonden'}`)
       
+      // gpt-4o-search-preview has strict RPM limits — need ~12s between requests
       if (i < prompts.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1500))
+        await new Promise(resolve => setTimeout(resolve, 15000))
       }
     }
 

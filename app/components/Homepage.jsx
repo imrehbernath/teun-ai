@@ -165,7 +165,7 @@ export default function Homepage() {
                 <p className="text-base sm:text-lg text-slate-600 mb-4">
                   Check of jouw bedrijf wordt aanbevolen door ChatGPT, Perplexity en Google.
                   <br />
-                  <span className="font-medium text-slate-700">Gratis scan in 30 seconden.</span>
+                  <span className="font-medium text-slate-700">Gratis scan in 2 minuten.</span>
                 </p>
 
                 {/* AI Platform badges - matching ai-visibility page */}
@@ -422,7 +422,7 @@ export default function Homepage() {
                   </button>
 
                   <p className="text-xs text-slate-500 text-center">
-                    Geen registratie nodig • 10 prompts per scan • Resultaat binnen 60 sec
+                    Geen registratie nodig • 10 prompts per scan • Resultaat in ±2 min
                   </p>
                   
                   {/* Geavanceerde instellingen link */}
