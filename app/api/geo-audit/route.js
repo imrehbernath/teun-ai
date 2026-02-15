@@ -276,6 +276,28 @@ export async function POST(request) {
 
     const html = await scrapeResponse.text()
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // LANGUAGE CHECK — alleen Nederlandse websites
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const isDutchTLD = hostname.endsWith('.nl') || hostname.endsWith('.be')
+    const htmlLangMatch = html.match(/<html[^>]*\slang=["']([^"']+)["']/i)
+    const htmlLang = htmlLangMatch ? htmlLangMatch[1].toLowerCase().substring(0, 2) : null
+    const isDutchLang = htmlLang === 'nl'
+    
+    // Quick Dutch content check (common words)
+    const lowerHtml = html.substring(0, 5000).toLowerCase()
+    const dutchSignals = ['welkom', 'onze', 'diensten', 'contact', 'meer informatie', 'over ons', 'lees meer', 'uw ', 'wij ', 'voor uw', 'nederland']
+    const dutchWordCount = dutchSignals.filter(w => lowerHtml.includes(w)).length
+    const isDutchContent = dutchWordCount >= 2
+
+    if (!isDutchTLD && !isDutchLang && !isDutchContent) {
+      console.log(`[GEO Audit] ❌ Non-Dutch site rejected: ${normalizedUrl} (lang=${htmlLang}, dutchWords=${dutchWordCount})`)
+      return NextResponse.json({
+        error: 'De GEO Audit is alleen beschikbaar voor Nederlandstalige websites. Deze pagina lijkt niet in het Nederlands te zijn.',
+        errorType: 'language'
+      }, { status: 400 })
+    }
+
     // Check canonical URL als extra vangnet
     const canonicalMatch = html.match(/<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["']/i)
       || html.match(/<link[^>]*href=["']([^"']+)["'][^>]*rel=["']canonical["']/i)
