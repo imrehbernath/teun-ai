@@ -84,7 +84,8 @@ export default function Homepage() {
       const data = await response.json();
 
       if (!response.ok || data.blocked) {
-        setExtractionMessage(data.error || 'Website kon niet worden geanalyseerd. Vul je zoekwoorden handmatig in.');
+        // Zachte melding — laat gebruiker handmatig invullen
+        setExtractionMessage('Zoekwoorden konden niet automatisch worden opgehaald. Vul ze hieronder handmatig in.');
         return;
       }
 

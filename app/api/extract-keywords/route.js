@@ -90,7 +90,34 @@ async function scrapeWebsite(url) {
     console.log(`⚠️ Render scrape failed: ${error.message}, trying premium...`)
   }
 
-  // Attempt 2: render=true + premium=true (residential proxy) — 25 credits
+  // Attempt 2: Try with www. prefix if bare domain
+  const urlObj = new URL(normalizedUrl)
+  const hasWww = urlObj.hostname.startsWith('www.')
+  if (!hasWww) {
+    const wwwUrl = normalizedUrl.replace('://', '://www.')
+    try {
+      const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(wwwUrl)}&render=true&country_code=nl`
+      
+      const response = await fetch(scraperUrl, {
+        method: 'GET',
+        headers: { 'Accept': 'text/html' },
+        signal: AbortSignal.timeout(25000)
+      })
+      
+      if (response.ok) {
+        const html = await response.text()
+        if (!isGarbagePage(html)) {
+          console.log(`✅ Scrape OK (www. variant): ${wwwUrl}`)
+          return { success: true, html }
+        }
+      }
+      console.log(`⚠️ www. variant also failed, trying premium...`)
+    } catch (error) {
+      console.log(`⚠️ www. variant failed: ${error.message}`)
+    }
+  }
+
+  // Attempt 3: render=true + premium=true (residential proxy) — 25 credits
   try {
     const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(normalizedUrl)}&render=true&premium=true&country_code=nl`
     
