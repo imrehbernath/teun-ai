@@ -299,6 +299,7 @@ export default function GeoAuditPage() {
             <p className="text-xs text-slate-400 mt-4">{user ? `${MAX_FREE_SCANS} scans per dag` : 'Geen creditcard nodig · Direct starten'}</p>
           </div>
         ) : (
+          <>
           <form onSubmit={handleAudit} className="relative">
             <div className="bg-white rounded-xl shadow-lg shadow-slate-200/50 border border-slate-200 p-2 flex items-center gap-2">
             <div className="flex items-center gap-2 flex-1 pl-3">
@@ -325,12 +326,10 @@ export default function GeoAuditPage() {
             </button>
           </div>
         </form>
-        {loading && (
-          <p className="text-xs text-slate-400 mt-2 text-center">De scan duurt 45–60 seconden (incl. Core Web Vitals meting)</p>
-        )}
-        {!loading && (
-          <p className="text-xs text-slate-400 mt-2 text-center">Scan duurt ±1 minuut · inclusief Core Web Vitals en Perplexity test</p>
-        )}
+        <p className="text-xs text-slate-400 mt-2 text-center">
+          {loading ? 'De scan duurt 45–60 seconden (incl. Core Web Vitals meting)' : 'Scan duurt ±1 minuut · inclusief Core Web Vitals en Perplexity test'}
+        </p>
+        </>
         )}
 
         {!limitReached && authChecked && !isAdmin && (
