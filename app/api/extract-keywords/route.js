@@ -20,34 +20,104 @@ const anthropic = new Anthropic({
 
 const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY || '0f2289b685e1cf063f5c6572e2dcef83'
 
-// Scrape homepage with ScraperAPI
+// ============================================================
+// GARBAGE PAGE DETECTION
+// Cloudflare challenges, parking pages, thin content
+// ============================================================
+function isGarbagePage(html) {
+  const htmlLower = html.toLowerCase()
+  
+  const garbageSignals = [
+    // Cloudflare challenges
+    'checking your browser', 'just a moment', 'verify you are human',
+    'cf-browser-verification', 'challenge-platform', '_cf_chl',
+    'attention required', 'ddos protection', 'security check',
+    'checking if the site connection is secure', 'please turn javascript on',
+    'enable javascript and cookies', 'ray id',
+    // Bot protection
+    'access denied', 'bot protection', 'are you a robot',
+    // Parking / placeholder
+    'domain is parked', 'this domain is for sale', 'buy this domain',
+    'under construction', 'coming soon', 'website binnenkort beschikbaar',
+  ]
+  
+  if (garbageSignals.some(s => htmlLower.includes(s))) return true
+  
+  // Very thin content = probably a challenge page
+  const hasH1 = /<h1[^>]*>/i.test(html)
+  const bodyText = html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .trim()
+  
+  if (bodyText.length < 300 && !hasH1) return true
+  
+  return false
+}
+
+// ============================================================
+// SCRAPE WITH SCRAPERAPI
+// Tiered: render=true (5 credits) → render+premium (25 credits)
+// ============================================================
 async function scrapeWebsite(url) {
+  let normalizedUrl = url.trim()
+  if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+    normalizedUrl = 'https://' + normalizedUrl
+  }
+
+  // Attempt 1: render=true (JS rendering, bypasses most Cloudflare) — 5 credits
   try {
-    let normalizedUrl = url.trim()
-    if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
-      normalizedUrl = 'https://' + normalizedUrl
-    }
-    
-    const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(normalizedUrl)}&render=false`
+    const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(normalizedUrl)}&render=true&country_code=nl`
     
     const response = await fetch(scraperUrl, {
       method: 'GET',
       headers: { 'Accept': 'text/html' },
-      signal: AbortSignal.timeout(15000)
+      signal: AbortSignal.timeout(25000)
     })
     
-    if (!response.ok) {
-      throw new Error(`Scraper API error: ${response.status}`)
+    if (response.ok) {
+      const html = await response.text()
+      if (!isGarbagePage(html)) {
+        console.log(`✅ Scrape OK (render=true): ${normalizedUrl}`)
+        return { success: true, html }
+      }
+      console.log(`⚠️ Garbage page with render=true, trying premium...`)
+    } else {
+      console.log(`⚠️ Render scrape HTTP ${response.status}, trying premium...`)
     }
-    
-    const html = await response.text()
-    return { success: true, html }
   } catch (error) {
-    return { success: false, error: error.message }
+    console.log(`⚠️ Render scrape failed: ${error.message}, trying premium...`)
   }
+
+  // Attempt 2: render=true + premium=true (residential proxy) — 25 credits
+  try {
+    const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(normalizedUrl)}&render=true&premium=true&country_code=nl`
+    
+    const response = await fetch(scraperUrl, {
+      method: 'GET',
+      headers: { 'Accept': 'text/html' },
+      signal: AbortSignal.timeout(30000)
+    })
+    
+    if (response.ok) {
+      const html = await response.text()
+      if (!isGarbagePage(html)) {
+        console.log(`✅ Scrape OK (premium): ${normalizedUrl}`)
+        return { success: true, html }
+      }
+      console.log(`⚠️ Garbage page even with premium for ${normalizedUrl}`)
+    }
+  } catch (error) {
+    console.log(`⚠️ Premium scrape failed: ${error.message}`)
+  }
+
+  return { success: false, error: 'Website kon niet gescraped worden (mogelijk sterke bot-protectie)' }
 }
 
-// Parse HTML for key content
+// ============================================================
+// PARSE HTML CONTENT
+// ============================================================
 function parseHtmlContent(html) {
   const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
   const title = titleMatch ? titleMatch[1].trim() : ''
@@ -104,17 +174,85 @@ function parseHtmlContent(html) {
   return { title, metaDescription, h1s, h2s, h3s, navItems: [...new Set(navItems)].slice(0, 15), serviceLinks: [...new Set(serviceLinks)].slice(0, 10), bodyContent }
 }
 
+// ============================================================
+// FALLBACK: Generate keywords from category when scraping fails
+// ============================================================
+async function generateFallbackKeywords(companyName, category) {
+  try {
+    const message = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 500,
+      system: `Je bent een expert in zoekwoord-extractie voor Nederlandse bedrijven. Antwoord ALTIJD in het Nederlands. Geef ALLEEN JSON terug.`,
+      messages: [{
+        role: 'user',
+        content: `Genereer 10 commerciële zoekwoorden die potentiële klanten zouden gebruiken om een "${category}" te vinden.
+${companyName ? `Het bedrijf heet "${companyName}".` : ''}
+
+Geef EXACT dit JSON-formaat:
+{
+  "keywords": ["zoekwoord1", "zoekwoord2", ..., "zoekwoord10"],
+  "companyName": "${companyName || ''}",
+  "category": "${category}",
+  "location": null
+}
+
+REGELS:
+- 10 zoekwoorden die KLANTEN zouden typen
+- Mix van korte (1-2 woorden) en langere (2-4 woorden)
+- Focus op diensten, producten en commerciële intentie
+- Alles in het Nederlands
+
+ALLEEN JSON, geen extra tekst.`
+      }]
+    })
+
+    const responseText = message.content[0].type === 'text' ? message.content[0].text : ''
+    let cleanedText = responseText.trim()
+    if (cleanedText.startsWith('```json')) cleanedText = cleanedText.replace(/^```json\n?/, '').replace(/\n?```$/, '')
+    else if (cleanedText.startsWith('```')) cleanedText = cleanedText.replace(/^```\n?/, '').replace(/\n?```$/, '')
+
+    const analysis = JSON.parse(cleanedText)
+    return {
+      keywords: analysis.keywords || [],
+      companyName: companyName || '',
+      category: category,
+      location: null,
+      source: { title: null, metaDescription: null, h1: null },
+      fallback: true
+    }
+  } catch (error) {
+    console.error('Fallback keyword generation failed:', error)
+    return null
+  }
+}
+
+// ============================================================
+// POST HANDLER
+// ============================================================
 export async function POST(request) {
   try {
-    const { url } = await request.json()
+    const body = await request.json()
+    const { url, companyName: inputName, category: inputCategory } = body
     
     if (!url || !url.trim()) {
       return NextResponse.json({ error: 'URL is verplicht' }, { status: 400, headers: CORS_HEADERS })
     }
 
-    // Step 1: Scrape
+    // Step 1: Scrape (render=true → premium fallback)
     const scrapeResult = await scrapeWebsite(url)
+    
     if (!scrapeResult.success) {
+      console.log(`⚠️ All scrape attempts failed for ${url}`)
+      
+      // Fallback: generate keywords from category
+      if (inputCategory) {
+        const fallback = await generateFallbackKeywords(inputName, inputCategory)
+        if (fallback) {
+          console.log(`✅ Fallback keywords generated for ${inputCategory}`)
+          return NextResponse.json({ success: true, ...fallback }, { headers: CORS_HEADERS })
+        }
+      }
+      
       return NextResponse.json({ error: `Kon website niet laden: ${scrapeResult.error}` }, { status: 422, headers: CORS_HEADERS })
     }
 

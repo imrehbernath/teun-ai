@@ -23,6 +23,7 @@ export default function Homepage() {
   const [showKeywordWarning, setShowKeywordWarning] = useState(false);
   const [showUrlWarning, setShowUrlWarning] = useState(false);
   const [extractingKeywords, setExtractingKeywords] = useState(false);
+  const [extractionMessage, setExtractionMessage] = useState(null);
   const [keywordTags, setKeywordTags] = useState([]);
   const [newKeywordInput, setNewKeywordInput] = useState('');
   const lastExtractedUrl = useRef('');
@@ -67,16 +68,25 @@ export default function Homepage() {
     }
 
     setExtractingKeywords(true);
+    setExtractionMessage(null);
 
     try {
       const response = await fetch('/api/extract-keywords', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: normalizedUrl })
+        body: JSON.stringify({ 
+          url: normalizedUrl,
+          companyName: formData.bedrijfsnaam || '',
+          category: formData.branche || ''
+        })
       });
 
-      if (!response.ok) throw new Error('Kon website niet analyseren');
       const data = await response.json();
+
+      if (!response.ok || data.blocked) {
+        setExtractionMessage(data.error || 'Website kon niet worden geanalyseerd. Vul je zoekwoorden handmatig in.');
+        return;
+      }
 
       if (data.keywords && data.keywords.length > 0) {
         syncKeywordsToForm(data.keywords);
@@ -315,13 +325,44 @@ export default function Homepage() {
                   </div>
 
                   {/* Keyword Tags Panel - slides down after extraction */}
-                  {(keywordTags.length > 0 || extractingKeywords) && (
+                  {(keywordTags.length > 0 || extractingKeywords || extractionMessage) && (
                     <div className="transition-all duration-300 ease-in-out">
                       <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
                         {extractingKeywords ? (
                           <div className="flex items-center gap-3 py-1">
                             <svg className="animate-spin w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                             <span className="text-sm text-slate-600">Website analyseren...</span>
+                          </div>
+                        ) : extractionMessage && keywordTags.length === 0 ? (
+                          <div>
+                            <div className="flex items-center gap-2 py-1 mb-3">
+                              <span className="text-amber-500 text-lg">⚠️</span>
+                              <span className="text-sm text-slate-600">{extractionMessage}</span>
+                            </div>
+                            <div className="flex gap-1.5">
+                              <input
+                                type="text"
+                                value={newKeywordInput}
+                                onChange={(e) => setNewKeywordInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    addKeyword(newKeywordInput);
+                                    setNewKeywordInput('');
+                                  }
+                                }}
+                                placeholder="Zoekwoord toevoegen..."
+                                className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 outline-none text-xs text-slate-700 placeholder:text-slate-400 bg-white"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => { addKeyword(newKeywordInput); setNewKeywordInput(''); }}
+                                disabled={!newKeywordInput.trim()}
+                                className="px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                              >
+                                + Toevoegen
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <>

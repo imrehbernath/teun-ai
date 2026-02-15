@@ -467,7 +467,11 @@ function AIVisibilityToolContent() {
       const response = await fetch('/api/extract-keywords', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: normalizedUrl })
+        body: JSON.stringify({ 
+          url: normalizedUrl,
+          companyName: formData.companyName || '',
+          category: formData.companyCategory || ''
+        })
       });
 
       if (!response.ok) {

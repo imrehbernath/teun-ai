@@ -4,6 +4,9 @@
 // Scrapes page → Claude analysis → Perplexity LIVE test
 // ============================================
 
+// Vercel function timeout — CWV + scraping + AI = 60-90s
+export const maxDuration = 120
+
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
@@ -264,8 +267,8 @@ export async function POST(request) {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     const scrapeResponse = await fetch(
-      `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(normalizedUrl)}&render=false`,
-      { signal: AbortSignal.timeout(20000) }
+      `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(normalizedUrl)}&render=true`,
+      { signal: AbortSignal.timeout(30000) }
     )
 
     if (!scrapeResponse.ok) {

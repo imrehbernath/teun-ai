@@ -107,7 +107,7 @@ async function scrapeWebsite(url) {
     
     console.log(`🔗 Scraping: ${normalizedUrl}`)
     
-    const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(normalizedUrl)}&render=false`
+    const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(normalizedUrl)}&render=true`
     
     const response = await fetch(scraperUrl, {
       method: 'GET',
