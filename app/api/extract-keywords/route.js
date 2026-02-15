@@ -118,8 +118,10 @@ async function scrapeWebsite(url) {
   }
 
   // Attempt 3: render=true + premium=true (residential proxy) — 25 credits
+  // Use www URL if bare domain, since redirects often cause issues
+  const premiumUrl = (!hasWww) ? normalizedUrl.replace('://', '://www.') : normalizedUrl
   try {
-    const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(normalizedUrl)}&render=true&premium=true&country_code=nl`
+    const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(premiumUrl)}&render=true&premium=true&country_code=nl`
     
     const response = await fetch(scraperUrl, {
       method: 'GET',
