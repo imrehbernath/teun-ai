@@ -57,8 +57,8 @@ function isGarbagePage(html) {
 }
 
 // ============================================================
-// SCRAPE WITH SCRAPERAPI
-// Tiered: render=true (5 credits) → render+premium (25 credits)
+// SCRAPE WEBSITE
+// Tiered: 1) Direct fetch (free) → 2) ScraperAPI premium (highest success)
 // ============================================================
 async function scrapeWebsite(url) {
   let normalizedUrl = url.trim()
@@ -66,79 +66,66 @@ async function scrapeWebsite(url) {
     normalizedUrl = 'https://' + normalizedUrl
   }
 
-  // Attempt 1: render=true (JS rendering, bypasses most Cloudflare) — 5 credits
-  try {
-    const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(normalizedUrl)}&render=true&country_code=nl`
-    
-    const response = await fetch(scraperUrl, {
-      method: 'GET',
-      headers: { 'Accept': 'text/html' },
-      signal: AbortSignal.timeout(25000)
-    })
-    
-    if (response.ok) {
-      const html = await response.text()
-      if (!isGarbagePage(html)) {
-        console.log(`✅ Scrape OK (render=true): ${normalizedUrl}`)
-        return { success: true, html }
-      }
-      console.log(`⚠️ Garbage page with render=true, trying premium...`)
-    } else {
-      console.log(`⚠️ Render scrape HTTP ${response.status}, trying premium...`)
-    }
-  } catch (error) {
-    console.log(`⚠️ Render scrape failed: ${error.message}, trying premium...`)
-  }
-
-  // Attempt 2: Try with www. prefix if bare domain
+  // Also prepare www variant
   const urlObj = new URL(normalizedUrl)
   const hasWww = urlObj.hostname.startsWith('www.')
-  if (!hasWww) {
-    const wwwUrl = normalizedUrl.replace('://', '://www.')
+  const wwwUrl = hasWww ? normalizedUrl : normalizedUrl.replace('://', '://www.')
+
+  // ── Attempt 1: Direct fetch (FREE, no ScraperAPI credits) ──
+  // Works for ~70% of sites (WordPress, static sites, most CMS)
+  for (const tryUrl of [normalizedUrl, wwwUrl]) {
     try {
-      const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(wwwUrl)}&render=true&country_code=nl`
+      console.log(`🌐 Direct fetch: ${tryUrl}`)
+      const response = await fetch(tryUrl, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'nl-NL,nl;q=0.9,en;q=0.8',
+        },
+        redirect: 'follow',
+        signal: AbortSignal.timeout(10000)
+      })
+
+      if (response.ok) {
+        const html = await response.text()
+        if (!isGarbagePage(html) && html.length > 500) {
+          console.log(`✅ Direct fetch OK: ${tryUrl} (${html.length} chars)`)
+          return { success: true, html, method: 'direct' }
+        }
+        console.log(`⚠️ Direct fetch got garbage/thin page for ${tryUrl}`)
+      } else {
+        console.log(`⚠️ Direct fetch HTTP ${response.status} for ${tryUrl}`)
+      }
+    } catch (error) {
+      console.log(`⚠️ Direct fetch failed for ${tryUrl}: ${error.message}`)
+    }
+  }
+
+  // ── Attempt 2: ScraperAPI premium directly (25 credits, highest success rate) ──
+  for (const tryUrl of [normalizedUrl, wwwUrl]) {
+    try {
+      console.log(`🔗 ScraperAPI premium: ${tryUrl}`)
+      const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(tryUrl)}&render=true&premium=true&country_code=nl`
       
       const response = await fetch(scraperUrl, {
         method: 'GET',
         headers: { 'Accept': 'text/html' },
-        signal: AbortSignal.timeout(25000)
+        signal: AbortSignal.timeout(30000)
       })
       
       if (response.ok) {
         const html = await response.text()
         if (!isGarbagePage(html)) {
-          console.log(`✅ Scrape OK (www. variant): ${wwwUrl}`)
-          return { success: true, html }
+          console.log(`✅ ScraperAPI premium OK: ${tryUrl} (${html.length} chars)`)
+          return { success: true, html, method: 'scraperapi-premium' }
         }
+      } else {
+        console.log(`⚠️ ScraperAPI premium HTTP ${response.status} for ${tryUrl}`)
       }
-      console.log(`⚠️ www. variant also failed, trying premium...`)
     } catch (error) {
-      console.log(`⚠️ www. variant failed: ${error.message}`)
+      console.log(`⚠️ ScraperAPI premium failed for ${tryUrl}: ${error.message}`)
     }
-  }
-
-  // Attempt 3: render=true + premium=true (residential proxy) — 25 credits
-  // Use www URL if bare domain, since redirects often cause issues
-  const premiumUrl = (!hasWww) ? normalizedUrl.replace('://', '://www.') : normalizedUrl
-  try {
-    const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(premiumUrl)}&render=true&premium=true&country_code=nl`
-    
-    const response = await fetch(scraperUrl, {
-      method: 'GET',
-      headers: { 'Accept': 'text/html' },
-      signal: AbortSignal.timeout(30000)
-    })
-    
-    if (response.ok) {
-      const html = await response.text()
-      if (!isGarbagePage(html)) {
-        console.log(`✅ Scrape OK (premium): ${normalizedUrl}`)
-        return { success: true, html }
-      }
-      console.log(`⚠️ Garbage page even with premium for ${normalizedUrl}`)
-    }
-  } catch (error) {
-    console.log(`⚠️ Premium scrape failed: ${error.message}`)
   }
 
   return { success: false, error: 'Website kon niet gescraped worden (mogelijk sterke bot-protectie)' }
@@ -267,7 +254,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'URL is verplicht' }, { status: 400, headers: CORS_HEADERS })
     }
 
-    // Step 1: Scrape (render=true → premium fallback)
+    // Step 1: Scrape (direct fetch → ScraperAPI premium)
     const scrapeResult = await scrapeWebsite(url)
     
     if (!scrapeResult.success) {

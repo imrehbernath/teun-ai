@@ -95,38 +95,90 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY || '0f2289b685e1cf063f5c6572e2dcef83'
 
 // ============================================
-// ✨ WEBSITE SCRAPING WITH SCRAPER API
+// ✨ WEBSITE SCRAPING - Direct fetch first, ScraperAPI fallback
 // ============================================
+function isGarbagePage(html) {
+  const htmlLower = html.toLowerCase()
+  const garbageSignals = [
+    'checking your browser', 'just a moment', 'verify you are human',
+    'cf-browser-verification', 'challenge-platform', '_cf_chl',
+    'attention required', 'ddos protection', 'security check',
+    'checking if the site connection is secure', 'please turn javascript on',
+    'access denied', 'bot protection', 'are you a robot',
+    'domain is parked', 'this domain is for sale', 'buy this domain',
+    'under construction', 'coming soon', 'website binnenkort beschikbaar',
+  ]
+  if (garbageSignals.some(s => htmlLower.includes(s))) return true
+  const bodyText = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, '').trim()
+  if (bodyText.length < 300) return true
+  return false
+}
+
 async function scrapeWebsite(url) {
-  try {
-    // Normalize URL
-    let normalizedUrl = url.trim()
-    if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
-      normalizedUrl = 'https://' + normalizedUrl
-    }
-    
-    console.log(`🔗 Scraping: ${normalizedUrl}`)
-    
-    const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(normalizedUrl)}&render=false`
-    
-    const response = await fetch(scraperUrl, {
-      method: 'GET',
-      headers: { 'Accept': 'text/html' },
-      signal: AbortSignal.timeout(15000) // 15 second timeout
-    })
-    
-    if (!response.ok) {
-      throw new Error(`Scraper API error: ${response.status}`)
-    }
-    
-    const html = await response.text()
-    console.log(`✅ Scraped ${html.length} characters`)
-    
-    return { success: true, html }
-  } catch (error) {
-    console.error('❌ Scrape error:', error.message)
-    return { success: false, error: error.message }
+  let normalizedUrl = url.trim()
+  if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+    normalizedUrl = 'https://' + normalizedUrl
   }
+  
+  const urlObj = new URL(normalizedUrl)
+  const hasWww = urlObj.hostname.startsWith('www.')
+  const wwwUrl = hasWww ? normalizedUrl : normalizedUrl.replace('://', '://www.')
+
+  // ── Attempt 1: Direct fetch (FREE, no ScraperAPI credits) ──
+  for (const tryUrl of [normalizedUrl, wwwUrl]) {
+    try {
+      console.log(`🌐 Direct fetch: ${tryUrl}`)
+      const response = await fetch(tryUrl, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'nl-NL,nl;q=0.9,en;q=0.8',
+        },
+        redirect: 'follow',
+        signal: AbortSignal.timeout(10000)
+      })
+
+      if (response.ok) {
+        const html = await response.text()
+        if (!isGarbagePage(html) && html.length > 500) {
+          console.log(`✅ Direct fetch OK: ${tryUrl} (${html.length} chars)`)
+          return { success: true, html }
+        }
+      }
+    } catch (error) {
+      console.log(`⚠️ Direct fetch failed for ${tryUrl}: ${error.message}`)
+    }
+  }
+
+  // ── Attempt 2: ScraperAPI premium directly (25 credits, highest success rate) ──
+  for (const tryUrl of [normalizedUrl, wwwUrl]) {
+    try {
+      console.log(`🔗 ScraperAPI premium: ${tryUrl}`)
+      const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(tryUrl)}&render=true&premium=true&country_code=nl`
+      
+      const response = await fetch(scraperUrl, {
+        method: 'GET',
+        headers: { 'Accept': 'text/html' },
+        signal: AbortSignal.timeout(30000)
+      })
+      
+      if (response.ok) {
+        const html = await response.text()
+        if (!isGarbagePage(html)) {
+          console.log(`✅ ScraperAPI premium OK: ${tryUrl} (${html.length} chars)`)
+          return { success: true, html }
+        }
+      } else {
+        console.log(`⚠️ ScraperAPI premium HTTP ${response.status} for ${tryUrl}`)
+      }
+    } catch (error) {
+      console.log(`⚠️ ScraperAPI premium failed for ${tryUrl}: ${error.message}`)
+    }
+  }
+
+  console.log(`❌ All scrape attempts failed for ${normalizedUrl}`)
+  return { success: false, error: 'Website kon niet gescraped worden' }
 }
 
 // ============================================
