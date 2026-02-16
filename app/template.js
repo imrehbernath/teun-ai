@@ -92,7 +92,7 @@ function Header() {
 
   return (
     <>
-      <header className="bg-gradient-to-r from-[#1E1E3F] via-[#2D2D5F] to-[#1E1E3F] shadow-lg sticky top-0 z-40">
+      <header className="bg-gradient-to-r from-[#1E1E3F] via-[#2D2D5F] to-[#1E1E3F] shadow-lg sticky top-0 z-50">
         <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex w-full items-center justify-between py-4">
             
@@ -119,7 +119,7 @@ function Header() {
                 </button>
                 
                 {toolsOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-80 bg-[#1E1E3F] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-dropIn z-50">
+                  <div className="absolute top-full left-0 mt-2 w-80 bg-[#1E1E3F] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-dropIn z-[60]">
                     <div className="p-2">
                       {TOOLS.map((tool) => (
                         <Link
