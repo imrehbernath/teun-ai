@@ -629,6 +629,22 @@ export default function WebsiteDetailPage() {
   const latestGoogleOverview = website.platforms.googleOverview.scans[0]
   const latestChatgpt = website.platforms.chatgpt.scans[0]
 
+  // ── Daily scan limit: max 1x per dag per platform ──
+  const ADMIN_EMAILS = ['imre@onlinelabs.nl', 'hallo@onlinelabs.nl']
+  const isAdmin = user && ADMIN_EMAILS.includes(user.email)
+  
+  const wasScannedToday = (latestScan) => {
+    if (!latestScan?.date) return false
+    const scanDate = new Date(latestScan.date).toDateString()
+    const today = new Date().toDateString()
+    return scanDate === today
+  }
+
+  const chatgptScannedToday = !isAdmin && wasScannedToday(latestChatgpt)
+  const perplexityScannedToday = !isAdmin && wasScannedToday(latestPerplexity)
+  const googleScannedToday = !isAdmin && wasScannedToday(latestGoogle)
+  const googleOverviewScannedToday = !isAdmin && wasScannedToday(latestGoogleOverview)
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-6xl mx-auto px-4 py-8">
@@ -800,33 +816,38 @@ export default function WebsiteDetailPage() {
               <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={startChatGPTScan}
-                  disabled={scanningChatGPT}
+                  disabled={scanningChatGPT || chatgptScannedToday}
+                  title={chatgptScannedToday ? 'Vandaag al gescand' : ''}
                   className="px-4 py-2 bg-[#10A37F] text-white rounded-lg text-sm font-medium hover:bg-[#0D8A6A] flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {scanningChatGPT ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                  ChatGPT scan
+                  ChatGPT scan{chatgptScannedToday ? ' (vandaag al gescand)' : ''}
                 </button>
                 <button
                   onClick={startPerplexityScan}
-                  className="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm font-medium hover:bg-purple-600 flex items-center gap-2 cursor-pointer"
+                  disabled={perplexityScannedToday}
+                  title={perplexityScannedToday ? 'Vandaag al gescand' : ''}
+                  className="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm font-medium hover:bg-purple-600 flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
-                  <Search className="w-4 h-4" /> Perplexity scan
+                  <Search className="w-4 h-4" /> Perplexity scan{perplexityScannedToday ? ' (vandaag al gescand)' : ''}
                 </button>
                 <button
                   onClick={startGoogleScan}
-                  disabled={scanning}
+                  disabled={scanning || googleScannedToday}
+                  title={googleScannedToday ? 'Vandaag al gescand' : ''}
                   className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  AI Modus scan
+                  AI Modus scan{googleScannedToday ? ' (vandaag al gescand)' : ''}
                 </button>
                 <button
                   onClick={startGoogleOverviewScan}
-                  disabled={scanningOverview}
+                  disabled={scanningOverview || googleOverviewScannedToday}
+                  title={googleOverviewScannedToday ? 'Vandaag al gescand' : ''}
                   className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {scanningOverview ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-                  AI Overviews scan
+                  AI Overviews scan{googleOverviewScannedToday ? ' (vandaag al gescand)' : ''}
                 </button>
               </div>
             </div>
@@ -965,11 +986,13 @@ export default function WebsiteDetailPage() {
                       {prompts.length > 0 ? (
                         <button
                           onClick={startChatGPTScan}
-                          disabled={scanningChatGPT}
+                          disabled={scanningChatGPT || chatgptScannedToday}
                           className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#10A37F] to-[#0D8A6A] text-white font-semibold rounded-xl hover:from-[#0D8A6A] hover:to-[#0A7358] transition shadow-md disabled:opacity-50 cursor-pointer"
                         >
                           {scanningChatGPT ? (
                             <><Loader2 className="w-5 h-5 animate-spin" /> Scannen...</>
+                          ) : chatgptScannedToday ? (
+                            <><Search className="w-5 h-5" /> Vandaag al gescand</>
                           ) : (
                             <><Search className="w-5 h-5" /> ChatGPT Scan Starten</>
                           )}
@@ -1017,11 +1040,12 @@ export default function WebsiteDetailPage() {
                           <div className="flex items-center gap-1">
                             <button 
                               onClick={startChatGPTScan}
-                              disabled={scanningChatGPT || prompts.length === 0}
+                              disabled={scanningChatGPT || prompts.length === 0 || chatgptScannedToday}
+                              title={chatgptScannedToday ? 'Vandaag al gescand' : ''}
                               className="px-3 py-1.5 text-xs font-medium text-[#10A37F] hover:bg-green-50 rounded-lg flex items-center gap-1.5 disabled:opacity-40 cursor-pointer"
                             >
                               {scanningChatGPT ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                              Opnieuw scannen
+                              {chatgptScannedToday ? 'Vandaag al gescand' : 'Opnieuw scannen'}
                             </button>
                             <button onClick={() => deleteScan(latestChatgpt.id, 'chatgpt')} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
                               {deletingId === latestChatgpt.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
@@ -1280,13 +1304,18 @@ export default function WebsiteDetailPage() {
                     
                     <button
                       onClick={startGoogleScan}
-                      disabled={scanning || prompts.length === 0}
+                      disabled={scanning || prompts.length === 0 || googleScannedToday}
                       className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-600 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {scanning ? (
                         <>
                           <Loader2 className="w-5 h-5 animate-spin" />
                           Scannen...
+                        </>
+                      ) : googleScannedToday ? (
+                        <>
+                          <Sparkles className="w-5 h-5" />
+                          Vandaag al gescand
                         </>
                       ) : (
                         <>
@@ -1432,13 +1461,18 @@ export default function WebsiteDetailPage() {
                     
                     <button
                       onClick={startGoogleOverviewScan}
-                      disabled={scanningOverview || prompts.length === 0}
+                      disabled={scanningOverview || prompts.length === 0 || googleOverviewScannedToday}
                       className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-green-600 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {scanningOverview ? (
                         <>
                           <Loader2 className="w-5 h-5 animate-spin" />
                           Scannen...
+                        </>
+                      ) : googleOverviewScannedToday ? (
+                        <>
+                          <Globe className="w-5 h-5" />
+                          Vandaag al gescand
                         </>
                       ) : (
                         <>
