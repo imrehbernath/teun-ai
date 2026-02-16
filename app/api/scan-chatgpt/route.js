@@ -3,7 +3,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Vercel function timeout — 10 prompts × 3s delay + API calls
+// Vercel function timeout — 10 prompts × 2s delay + API calls
 export const maxDuration = 300
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
@@ -33,55 +33,53 @@ async function analyzeWithChatGPT(prompt, companyName, serviceArea = null) {
   }
 
   try {
-    let response
-    
-    // Retry up to 3 times — gpt-4o-search-preview has low RPM limits
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENAI_API_KEY}`
+    // Single attempt - bij 429 skippen we ChatGPT, Perplexity vangt op
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-search-preview',
+        web_search_options: { 
+          search_context_size: 'low',
+          user_location: userLocation
         },
-        body: JSON.stringify({
-          model: 'gpt-4o-search-preview',
-          web_search_options: { 
-            search_context_size: 'low',
-            user_location: userLocation
-          },
-          messages: [
-            {
-              role: 'system',
-              content: `Je bent een behulpzame AI-assistent die zoekvragen beantwoordt in het Nederlands voor gebruikers in Nederland.
+        messages: [
+          {
+            role: 'system',
+            content: `Je bent een behulpzame AI-assistent die zoekvragen beantwoordt in het Nederlands voor gebruikers in Nederland.
 De gebruiker bevindt zich in Nederland${serviceArea ? `, regio ${serviceArea}` : ''}. Geef antwoorden specifiek gericht op de Nederlandse markt.
 Zoek op het web en geef een beknopt, informatief antwoord met concrete bedrijfsnamen en aanbevelingen die in Nederland actief zijn.
 Antwoord ALTIJD in het Nederlands. Focus op het noemen van specifieke Nederlandse bedrijven, dienstverleners of specialisten.
 Als je webwinkels, dienstverleners of specialisten noemt, geef dan bij voorkeur Nederlandse bedrijven of bedrijven die actief zijn op de Nederlandse markt.
 Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.), tech-platforms (Google, Facebook), en SEO-tools (Semrush, Ahrefs).`
-            },
-            { role: 'user', content: prompt }
-          ],
-          max_tokens: 250
-        })
+          },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 250
       })
+    })
 
-      if (response.ok) break
-
-      if (response.status === 429 && attempt < 3) {
-        const retryAfter = parseInt(response.headers.get('retry-after') || '0')
-        const waitMs = retryAfter > 0 ? retryAfter * 1000 : attempt * 10000 // 10s, 20s
-        console.log(`⏳ ChatGPT 429 rate limit — wacht ${Math.round(waitMs/1000)}s (poging ${attempt}/3)`)
-        await new Promise(r => setTimeout(r, waitMs))
-        continue
+    if (response.status === 429) {
+      console.log(`⏳ ChatGPT 429 — skip, Perplexity vangt op`)
+      return {
+        success: false,
+        error: 'ChatGPT rate limited',
+        data: {
+          company_mentioned: false,
+          mentions_count: 0,
+          competitors_mentioned: [],
+          simulated_ai_response_snippet: 'ChatGPT was tijdelijk niet beschikbaar voor deze prompt (rate limit)'
+        }
       }
-
-      const errorText = await response.text()
-      console.error(`❌ ChatGPT API error (${response.status}):`, errorText)
-      throw new Error(`ChatGPT API failed: ${response.status}`)
     }
 
     if (!response.ok) {
-      throw new Error(`ChatGPT API failed after 3 attempts`)
+      const errorText = await response.text()
+      console.error(`❌ ChatGPT API error (${response.status}):`, errorText)
+      throw new Error(`ChatGPT API failed: ${response.status}`)
     }
 
     const data = await response.json()
@@ -211,9 +209,9 @@ export async function POST(request) {
 
       console.log(`   ${result.success ? '✅' : '⚠️'} Prompt ${i + 1}: ${result.data.company_mentioned ? 'GEVONDEN' : 'niet gevonden'}`)
       
-      // gpt-4o-search-preview: 6K TPM limiet — 12s tussen requests
+      // gpt-4o-search-preview: Tier 2 met 30K TPM — 2s tussen requests
       if (i < prompts.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 6000))
+        await new Promise(resolve => setTimeout(resolve, 2000))
       }
     }
 

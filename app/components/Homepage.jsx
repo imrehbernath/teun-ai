@@ -208,7 +208,7 @@ export default function Homepage() {
                     <span className="text-[10px] text-slate-400">account</span>
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mb-6">5 prompts per scan • 2x gratis zonder account • AI Modus & AI Overviews met gratis account</p>
+                <p className="text-xs text-slate-400 mb-6">10 prompts per scan • 2x gratis zonder account • AI Modus & AI Overviews met gratis account</p>
 
                 {/* Mobile Mascotte - above form */}
                 <div className="lg:hidden flex justify-center">
@@ -472,7 +472,7 @@ export default function Homepage() {
                   </button>
 
                   <p className="text-xs text-slate-500 text-center">
-                    Geen registratie nodig • 5 prompts per scan • Resultaat in ±1 min
+                    Geen registratie nodig • 10 prompts per scan • Resultaat in ±2 min
                   </p>
                   
                   {/* Geavanceerde instellingen link */}
@@ -793,7 +793,7 @@ export default function Homepage() {
                   },
                   {
                     question: 'Wat kost Teun.AI?',
-                    answer: 'Je kunt 2x gratis scannen zonder account met 5 prompts per scan op ChatGPT en Perplexity. Met een gratis account krijg je dagelijks scans, extra platforms (AI Modus & AI Overviews), je dashboard, en onze Chrome extensie.'
+                    answer: 'Je kunt 2x gratis scannen zonder account met 10 prompts per scan op ChatGPT en Perplexity. Met een gratis account krijg je dagelijks scans, extra platforms (AI Modus & AI Overviews), je dashboard, en onze Chrome extensie.'
                   },
                   {
                     question: 'Is Teun.AI geschikt voor mijn bedrijf?',

@@ -520,7 +520,7 @@ function AIVisibilityToolContent() {
       setProgress(5);
       
       const hasCustomPrompts = customPrompts && customPrompts.length > 0;
-      const totalPrompts = hasCustomPrompts ? customPrompts.length : 5;
+      const totalPrompts = hasCustomPrompts ? customPrompts.length : 10;
       
       if (hasCustomPrompts) {
         setCurrentStep(`${totalPrompts} aangepaste prompts analyseren...`);
@@ -697,7 +697,7 @@ function AIVisibilityToolContent() {
               <span className="text-[10px] text-slate-400">account</span>
             </span>
           </div>
-          <p className="text-xs text-slate-400">5 prompts per scan • 2x gratis zonder account • AI Modus & AI Overviews met gratis account</p>
+          <p className="text-xs text-slate-400">10 prompts per scan • 2x gratis zonder account • AI Modus & AI Overviews met gratis account</p>
         </header>
 
         {/* Step Indicator - Pill style matching homepage CTA */}
@@ -1702,69 +1702,18 @@ function AIVisibilityToolContent() {
 
                 {/* GEO DIY CTA - Only for non-logged in users */}
                 {!user && (
-                  <div id="geo-cta" className="bg-gradient-to-br from-[#1E1E3F] via-[#2D2D5F] to-[#1E1E3F] rounded-2xl p-6 mb-6 text-white relative overflow-hidden">
-                    {/* GRATIS badge */}
-                    <div className="absolute top-3 right-3">
-                      <span className="px-3 py-1 bg-gradient-to-r from-emerald-400 to-green-400 text-slate-900 text-xs font-bold rounded-full shadow-lg">
-                        100% GRATIS
-                      </span>
-                    </div>
-                    
-                    {/* Background decoration */}
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/10 rounded-full translate-y-1/2 -translate-x-1/2" />
-                    
-                    <div className="relative">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-2xl">🚀</span>
-                        <p className="text-lg font-bold">Unlock alle AI platforms</p>
-                      </div>
-                      
-                      <p className="text-purple-200 text-sm mb-4">
-                        Maak een gratis account en krijg direct toegang tot alle AI-zichtbaarheid tools:
-                      </p>
-                      
-                      <ul className="space-y-2 mb-5">
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
-                          <span><strong>Dagelijks scannen</strong> op alle platforms</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
-                          <span><strong>AI Modus + AI Overviews</strong> analyse</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
-                          <span><strong>GEO Analyse PRO</strong> met aanbevelingen</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
-                          <span><strong>Dashboard</strong> met alle scan resultaten</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
-                          <span>Chrome extensie voor snelle scans</span>
-                        </li>
-                      </ul>
-                      
-                      <div className="flex flex-col sm:flex-row gap-3">
-                        <Link 
-                          href="/signup"
-                          className="flex-1 px-5 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold rounded-xl hover:from-green-600 hover:to-emerald-600 transition shadow-lg text-center text-sm sm:text-base"
-                        >
-                          ✨ Gratis Account Aanmaken
-                        </Link>
-                        <Link 
-                          href="/login"
-                          className="px-5 py-3 bg-white/10 text-white font-semibold rounded-xl hover:bg-white/20 transition text-center text-sm sm:text-base border border-white/20"
-                        >
-                          Inloggen
-                        </Link>
-                      </div>
-                      
-                      <p className="text-emerald-300 text-xs mt-3 text-center font-medium">
-                        ✨ Geen creditcard • Geen verborgen kosten • Voor altijd gratis
-                      </p>
+                  <div id="geo-cta" className="mt-8 bg-slate-50 border border-slate-200 rounded-xl p-6 text-center">
+                    <p className="text-lg font-bold text-slate-900 mb-2">Wil je een uitgebreide GEO Analyse?</p>
+                    <p className="text-slate-600 text-sm max-w-md mx-auto mb-5">
+                      Maak een gratis account en krijg toegang tot een unieke uitgebreide GEO analyse met dagelijkse scans, AI Modus, AI Overviews en persoonlijke aanbevelingen.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <Link href="/signup" className="inline-flex items-center justify-center gap-2 bg-[#292956] text-white font-semibold px-6 py-3 rounded-lg hover:bg-[#1e1e45] transition-colors">
+                        Gratis account aanmaken <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                      </Link>
+                      <Link href="/login" className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-100 transition-colors">
+                        Inloggen
+                      </Link>
                     </div>
                   </div>
                 )}
@@ -1867,91 +1816,6 @@ function AIVisibilityToolContent() {
                   );
                 })()}
 
-                {/* Scroll to GEO CTA button - only for non-logged in users */}
-                {!user && (
-                  <>
-                    {/* GRATIS Account Promo Box */}
-                    <div className="mt-6 w-full bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 rounded-2xl p-5 border-2 border-emerald-200 shadow-lg relative overflow-hidden">
-                      {/* GRATIS Badge */}
-                      <div className="absolute -top-1 -right-1">
-                        <div className="bg-gradient-to-r from-emerald-500 to-green-500 text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl rounded-tr-xl shadow-md">
-                          100% GRATIS
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-md">
-                          <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-800 text-sm">Unlock meer inzichten</p>
-                          <p className="text-xs text-slate-500">Geen creditcard nodig</p>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2 mb-4">
-                        <div className="flex items-center gap-2 text-sm">
-                          <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                          <span className="text-slate-700"><strong>Dagelijks scannen</strong> op alle platforms</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                          <span className="text-slate-700"><strong>AI Modus + AI Overviews</strong> analyse</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                          <span className="text-slate-700"><strong>GEO Analyse</strong> + aanbevelingen</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                          <span className="text-slate-700">Persoonlijk <strong>dashboard</strong></span>
-                        </div>
-                      </div>
-                      
-                      <Link 
-                        href="/signup" 
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-green-600 transition shadow-md hover:shadow-lg"
-                      >
-                        <span>Maak gratis account</span>
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                        </svg>
-                      </Link>
-                      
-                      <p className="text-center text-xs text-slate-500 mt-2">
-                        ✨ Geen verborgen kosten, voor altijd gratis
-                      </p>
-                    </div>
-                    
-                    <button
-                      onClick={() => document.getElementById('geo-cta')?.scrollIntoView({ behavior: 'smooth' })}
-                      className="mt-4 flex flex-col items-center gap-1 text-purple-600 hover:text-purple-800 transition group cursor-pointer"
-                    >
-                      <span className="text-sm font-medium">Of bekijk onze GEO diensten</span>
-                      <svg className="w-6 h-6 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                      </svg>
-                    </button>
-                  </>
-                )}
               </div>
             </div>
           </section>
@@ -1985,9 +1849,9 @@ function AIVisibilityToolContent() {
             </p>
             {!user && (
               <>
-                <p className="text-purple-600 text-sm mb-4">✨ Gratis account = dagelijks scannen + AI Modus & AI Overviews</p>
+                <p className="text-slate-500 text-sm mb-4">Gratis account = dagelijks scannen + uitgebreide GEO analyse</p>
                 <Link href="/signup"
-                  className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white rounded-lg font-semibold hover:shadow-lg transition cursor-pointer inline-block">
+                  className="px-6 py-3 bg-[#292956] hover:bg-[#1e1e45] text-white rounded-lg font-semibold transition cursor-pointer inline-block">
                   Gratis aanmelden →
                 </Link>
               </>

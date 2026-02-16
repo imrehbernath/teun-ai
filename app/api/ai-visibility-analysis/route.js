@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { canUserScan, trackScan, BETA_CONFIG } from '@/lib/beta-config'
 
-// Vercel function timeout — 10 prompts × 15s delay = needs 300s
+// Vercel function timeout — 10 prompts × 2s delay = needs 300s
 export const maxDuration = 300
 import Anthropic from '@anthropic-ai/sdk'
 
@@ -332,7 +332,7 @@ export async function POST(request) {
       companyCategory, 
       identifiedQueriesSummary,
       userId,
-      numberOfPrompts = 5,
+      numberOfPrompts = 10,
       customTerms = null,
       customPrompts = null,  // ✨ Pre-made prompts from dashboard edit
       websiteUrl = null,     // ✨ Website URL for smart analysis
@@ -543,7 +543,7 @@ export async function POST(request) {
 
       // Delay tussen prompts voor ChatGPT TPM limiet (6K TPM) — skip na laatste
       if (i < promptsToAnalyze.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 6000))
+        await new Promise(resolve => setTimeout(resolve, 2000))
       }
     }
 
@@ -1298,62 +1298,60 @@ async function analyzeWithChatGPT(prompt, companyName, serviceArea = null) {
   }
 
   try {
-    let response
-    let lastError
-    
-    // Retry up to 3 times for rate limit (429) errors
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      response = await fetch(
-        'https://api.openai.com/v1/chat/completions',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${OPENAI_API_KEY}`
+    // Single attempt - no retries. Bij 429 skippen we ChatGPT voor deze prompt.
+    // Perplexity vangt het op. Dit voorkomt 30s+ retry waits per prompt.
+    const response = await fetch(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-search-preview',
+          web_search_options: {
+            search_context_size: 'low',
+            user_location: userLocation
           },
-          body: JSON.stringify({
-            model: 'gpt-4o-search-preview',
-            web_search_options: {
-              search_context_size: 'low',
-              user_location: userLocation
-            },
-            messages: [
-              {
-                role: 'system',
-                content: `Je bent een behulpzame AI-assistent die zoekvragen beantwoordt in het Nederlands voor gebruikers in Nederland.
+          messages: [
+            {
+              role: 'system',
+              content: `Je bent een behulpzame AI-assistent die zoekvragen beantwoordt in het Nederlands voor gebruikers in Nederland.
 De gebruiker bevindt zich in Nederland${serviceArea ? `, regio ${serviceArea}` : ''}. Geef antwoorden specifiek gericht op de Nederlandse markt.
 Zoek op het web en geef een beknopt, informatief antwoord met concrete bedrijfsnamen en aanbevelingen die in Nederland actief zijn.
 Antwoord ALTIJD in het Nederlands. Focus op het noemen van specifieke Nederlandse bedrijven, dienstverleners of specialisten.
 Als je webwinkels, dienstverleners of specialisten noemt, geef dan bij voorkeur Nederlandse bedrijven of bedrijven die actief zijn op de Nederlandse markt.
 Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.), tech-platforms (Google, Facebook), en SEO-tools (Semrush, Ahrefs).`
-              },
-              {
-                role: 'user',
-                content: prompt
-              }
-            ],
-            max_tokens: 250
-          })
-        }
-      )
-
-      if (response.ok) break
-
-      if (response.status === 429 && attempt < 3) {
-        const retryAfter = parseInt(response.headers.get('retry-after') || '0')
-        const waitMs = retryAfter > 0 ? retryAfter * 1000 : attempt * 10000 // 10s, 20s
-        console.log(`⏳ ChatGPT 429 rate limit — wacht ${Math.round(waitMs/1000)}s (poging ${attempt}/3)`)
-        await new Promise(r => setTimeout(r, waitMs))
-        continue
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 250
+        })
       }
+    )
 
-      const errorText = await response.text()
-      console.error(`❌ ChatGPT API error (${response.status}):`, errorText)
-      lastError = `ChatGPT API failed: ${response.status}`
+    if (response.status === 429) {
+      console.log(`⏳ ChatGPT 429 — skip deze prompt, Perplexity vangt op`)
+      return {
+        success: false,
+        error: 'ChatGPT rate limited — overgeslagen',
+        data: {
+          company_mentioned: false,
+          mentions_count: 0,
+          competitors_mentioned: [],
+          simulated_ai_response_snippet: 'ChatGPT was tijdelijk niet beschikbaar voor deze prompt (rate limit)'
+        }
+      }
     }
 
     if (!response.ok) {
-      throw new Error(lastError || `ChatGPT API failed: ${response.status}`)
+      const errorText = await response.text()
+      console.error(`❌ ChatGPT API error (${response.status}):`, errorText)
+      throw new Error(`ChatGPT API failed: ${response.status}`)
     }
 
     const data = await response.json()
