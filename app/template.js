@@ -323,6 +323,11 @@ function Footer() {
                   Blog & Insights
                 </Link>
               </li>
+              <li>
+                <Link href="/wat-is-generative-engine-optimisation-geo" className="text-white/70 hover:text-white text-sm transition-colors">
+                  Wat is Generative Engine Optimisation (GEO)?
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -330,6 +335,14 @@ function Footer() {
           <div>
             <span className="text-white font-semibold text-base mb-4 block">GEO Tools</span>
             <ul className="space-y-2">
+              <li>
+                <Link 
+                  href="/dashboard"
+                  className="text-white/70 hover:text-white text-sm transition-colors"
+                >
+                  Complete GEO Analyse
+                </Link>
+              </li>
               <li>
                 <Link 
                   href="/tools/geo-audit"
@@ -385,14 +398,6 @@ function Footer() {
                 >
                   Contact
                 </a>
-              </li>
-              <li>
-                <Link 
-                  href="/tools/geo-audit"
-                  className="text-white/70 hover:text-white text-sm transition-colors text-left"
-                >
-                  Gratis GEO Audit
-                </Link>
               </li>
               <li>
                 <Link 
