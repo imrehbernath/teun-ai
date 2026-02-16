@@ -1394,10 +1394,70 @@ Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.
 // competitors: extract bold/numbered names
 // snippet: eerste relevante tekst
 // ============================================
+function cleanCompetitorName(raw) {
+  let name = raw
+    // Strip markdown links: [Name](url) → Name
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    // Strip bare URLs
+    .replace(/https?:\/\/\S+/g, '')
+    // Strip remaining markdown
+    .replace(/\*\*/g, '')
+    .replace(/[`_~]/g, '')
+    // Strip Google Business metadata
+    .replace(/\b(Nu geopend|Gesloten|UitGesloten|Uit Gesloten|Tijdelijk gesloten|Permanent gesloten)\b/gi, '')
+    // Strip Google Business types (common patterns)
+    .replace(/\b(Event planner|Event venue|Boat rental service|Restaurant|Hotel|Café|Bar|Shop|Store|Winkel|Salon|Kapper|Tandarts|Huisarts|Apotheek|Garage|Makelaar|Notaris|Advocaat|Accountant|Fysiotherapeut)\b/gi, '')
+    // Strip address-like patterns (e.g. "Jasmijnstraat 35, 1398 AB")
+    .replace(/[A-Z][a-z]+(?:straat|weg|laan|plein|gracht|kade|singel|dijk|pad)\s*\d+.*/gi, '')
+    // Strip postal code patterns (1234 AB)
+    .replace(/\d{4}\s*[A-Z]{2}\b/g, '')
+    // Strip ratings (4.5, ★)
+    .replace(/\d+[.,]\d+\s*★?/g, '')
+    .replace(/★+/g, '')
+    // Strip leading/trailing separators
+    .replace(/^[\s·•\-–—:,;|]+/, '')
+    .replace(/[\s·•\-–—:,;|]+$/, '')
+    // Collapse whitespace
+    .replace(/\s+/g, ' ')
+    .trim()
+  
+  return name
+}
+
+function isValidCompetitorName(name, companyLower, excludeList, seen) {
+  const nameLower = name.toLowerCase()
+  return (
+    name.length > 2 && name.length < 50 &&
+    // Not the company itself
+    !nameLower.includes(companyLower) &&
+    !companyLower.includes(nameLower) &&
+    // Not a known platform/brand
+    !excludeList.has(nameLower) &&
+    // Not a duplicate
+    !seen.has(nameLower) &&
+    // Not a question or generic label
+    !nameLower.includes('?') &&
+    !nameLower.startsWith('tip') && !nameLower.startsWith('let op') &&
+    !nameLower.startsWith('belangrijk') && !nameLower.startsWith('conclusie') &&
+    !nameLower.startsWith('samenvatting') && !nameLower.startsWith('opmerking') &&
+    !/^(stap|punt|vraag|antwoord|optie|methode|strategie|voordeel|nadeel)\s/i.test(name) &&
+    // Not just a business type or status word
+    !/^(gesloten|nu geopend|event planner|event venue|boat rental|restaurant|hotel)$/i.test(name) &&
+    // Must contain at least one letter (not just numbers/symbols)
+    /[a-zA-Z]/.test(name) &&
+    // Not a bare URL fragment
+    !nameLower.startsWith('http') &&
+    !nameLower.startsWith('www.')
+  )
+}
+
 function parseWithJS(rawOutput, companyName) {
   try {
     const mentionsCount = (rawOutput.match(new RegExp(companyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')) || []).length
     const isCompanyMentioned = mentionsCount > 0
+
+    // Pre-clean: resolve markdown links in the raw output for pattern matching
+    const cleanedOutput = rawOutput.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
 
     // Extract competitor names from bold text and numbered lists
     const competitors = []
@@ -1410,51 +1470,35 @@ function parseWithJS(rawOutput, companyName) {
       'amazon', 'apple', 'microsoft', 'samsung', 'nike', 'adidas', 'coca-cola',
       'semrush', 'ahrefs', 'moz', 'hubspot', 'mailchimp', 'wordpress', 'shopify',
       'whatsapp', 'telegram', 'pinterest', 'reddit', 'bing', 'yahoo',
-      'chatgpt', 'openai', 'anthropic', 'perplexity'
+      'chatgpt', 'openai', 'anthropic', 'perplexity',
+      'nederland', 'netherlands', 'amsterdam', 'rotterdam', 'den haag', 'utrecht',
+      'eindhoven', 'groningen', 'maastricht', 'breda', 'tilburg', 'almere'
     ])
 
-    // Pattern 1: **Bold names**
+    // Pattern 1: **Bold names** (on cleaned output without markdown links)
     const boldPattern = /\*\*([^*]{3,60})\*\*/g
     let match
-    while ((match = boldPattern.exec(rawOutput)) !== null) {
-      const name = match[1].trim()
-        .replace(/\s*[-–—:].*/g, '')
-        .replace(/^\d+[\.\)]\s*/, '')
+    while ((match = boldPattern.exec(cleanedOutput)) !== null) {
+      const name = cleanCompetitorName(match[1])
+        .replace(/\s*[-–—:].*/g, '')  // Remove description after dash
+        .replace(/^\d+[\.\)]\s*/, '')  // Remove leading number
         .trim()
-      const nameLower = name.toLowerCase()
-      if (
-        name.length > 2 && name.length < 50 &&
-        !nameLower.includes(companyLower) &&
-        !companyLower.includes(nameLower) &&
-        !excludeList.has(nameLower) &&
-        !nameLower.includes('?') && !nameLower.includes(':') &&
-        !nameLower.startsWith('tip') && !nameLower.startsWith('let op') &&
-        !nameLower.startsWith('belangrijk') && !nameLower.startsWith('conclusie') &&
-        !nameLower.startsWith('samenvatting') && !nameLower.startsWith('opmerking') &&
-        !/^(stap|punt|vraag|antwoord|optie|methode|strategie|voordeel|nadeel)\s/i.test(name) &&
-        !seen.has(nameLower)
-      ) {
-        seen.add(nameLower)
+      
+      if (isValidCompetitorName(name, companyLower, excludeList, seen)) {
+        seen.add(name.toLowerCase())
         competitors.push(name)
       }
     }
 
     // Pattern 2: Numbered list items (1. Name - description)
-    const numberedPattern = /^\s*(\d+)[\.\)\-]\s*\**([^*\n\(\[]{2,60})/gm
-    while ((match = numberedPattern.exec(rawOutput)) !== null) {
-      let name = match[2].trim()
-        .replace(/\*\*/g, '')
-        .replace(/\s*[-–—:].*/g, '')
+    const numberedPattern = /^\s*(\d+)[\.\)\-]\s*\**([^*\n]{2,80})/gm
+    while ((match = numberedPattern.exec(cleanedOutput)) !== null) {
+      let name = cleanCompetitorName(match[2])
+        .replace(/\s*[-–—:].*/g, '')  // Remove description after dash
         .trim()
-      const nameLower = name.toLowerCase()
-      if (
-        name.length > 2 && name.length < 50 &&
-        !nameLower.includes(companyLower) &&
-        !companyLower.includes(nameLower) &&
-        !excludeList.has(nameLower) &&
-        !seen.has(nameLower)
-      ) {
-        seen.add(nameLower)
+      
+      if (isValidCompetitorName(name, companyLower, excludeList, seen)) {
+        seen.add(name.toLowerCase())
         competitors.push(name)
       }
     }
@@ -1479,7 +1523,13 @@ function parseWithJS(rawOutput, companyName) {
     }
 
     // Clean markdown uit snippet
-    snippet = snippet.replace(/\*\*/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/#{1,4}\s/g, '')
+    snippet = snippet
+      .replace(/\*\*/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/#{1,4}\s/g, '')
+      .replace(/https?:\/\/\S+/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
 
     if (!isCompanyMentioned) {
       snippet = `Het bedrijf "${companyName}" wordt niet genoemd in dit AI-antwoord. ${snippet}`

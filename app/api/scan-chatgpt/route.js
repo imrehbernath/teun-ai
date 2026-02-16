@@ -108,10 +108,32 @@ Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.
 // ============================================
 // ✅ PARSER - Same as main route.js
 // ============================================
+function cleanCompetitorName(raw) {
+  let name = raw
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/\*\*/g, '')
+    .replace(/[`_~]/g, '')
+    .replace(/\b(Nu geopend|Gesloten|UitGesloten|Uit Gesloten|Tijdelijk gesloten|Permanent gesloten)\b/gi, '')
+    .replace(/\b(Event planner|Event venue|Boat rental service|Restaurant|Hotel|Café|Bar|Shop|Store|Winkel|Salon|Kapper|Tandarts|Huisarts|Apotheek|Garage|Makelaar|Notaris|Advocaat|Accountant|Fysiotherapeut)\b/gi, '')
+    .replace(/[A-Z][a-z]+(?:straat|weg|laan|plein|gracht|kade|singel|dijk|pad)\s*\d+.*/gi, '')
+    .replace(/\d{4}\s*[A-Z]{2}\b/g, '')
+    .replace(/\d+[.,]\d+\s*★?/g, '')
+    .replace(/★+/g, '')
+    .replace(/^[\s·•\-–—:,;|]+/, '')
+    .replace(/[\s·•\-–—:,;|]+$/, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return name
+}
+
 function parseWithJS(rawOutput, companyName) {
   try {
     const mentionsCount = (rawOutput.match(new RegExp(companyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')) || []).length
     const isCompanyMentioned = mentionsCount > 0
+    
+    // Pre-clean: resolve markdown links
+    const cleanedOutput = rawOutput.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
 
     const competitors = []
     const seen = new Set()
@@ -120,25 +142,40 @@ function parseWithJS(rawOutput, companyName) {
       'google', 'facebook', 'instagram', 'linkedin', 'twitter', 'youtube', 'tiktok',
       'amazon', 'apple', 'microsoft', 'samsung', 'nike', 'adidas',
       'semrush', 'ahrefs', 'moz', 'hubspot', 'mailchimp', 'wordpress', 'shopify',
-      'whatsapp', 'pinterest', 'reddit', 'bing', 'chatgpt', 'openai', 'perplexity'
+      'whatsapp', 'pinterest', 'reddit', 'bing', 'chatgpt', 'openai', 'perplexity',
+      'nederland', 'netherlands', 'amsterdam', 'rotterdam', 'den haag', 'utrecht',
+      'eindhoven', 'groningen', 'maastricht', 'breda', 'tilburg', 'almere'
     ])
 
     let match
     const boldPattern = /\*\*([^*]{3,60})\*\*/g
-    while ((match = boldPattern.exec(rawOutput)) !== null) {
-      const name = match[1].trim().replace(/\s*[-–—:].*/g, '').replace(/^\d+[\.\)]\s*/, '').trim()
+    while ((match = boldPattern.exec(cleanedOutput)) !== null) {
+      const name = cleanCompetitorName(match[1]).replace(/\s*[-–—:].*/g, '').replace(/^\d+[\.\)]\s*/, '').trim()
       const nameLower = name.toLowerCase()
-      if (name.length > 2 && name.length < 50 && !nameLower.includes(companyLower) && !companyLower.includes(nameLower) && !excludeList.has(nameLower) && !seen.has(nameLower) && !nameLower.includes('?') && !nameLower.includes(':')) {
+      if (
+        name.length > 2 && name.length < 50 &&
+        !nameLower.includes(companyLower) && !companyLower.includes(nameLower) &&
+        !excludeList.has(nameLower) && !seen.has(nameLower) &&
+        !nameLower.includes('?') && /[a-zA-Z]/.test(name) &&
+        !nameLower.startsWith('http') && !nameLower.startsWith('www.') &&
+        !/^(stap|punt|vraag|antwoord|optie|methode|strategie|voordeel|nadeel|tip|let op|belangrijk|conclusie|samenvatting)\b/i.test(name) &&
+        !/^(gesloten|nu geopend|event planner|event venue|boat rental)$/i.test(name)
+      ) {
         seen.add(nameLower)
         competitors.push(name)
       }
     }
 
-    const numberedPattern = /^\s*(\d+)[\.\)\-]\s*\**([^*\n\(\[]{2,60})/gm
-    while ((match = numberedPattern.exec(rawOutput)) !== null) {
-      const name = match[2].trim().replace(/\*\*/g, '').replace(/\s*[-–—:].*/g, '').trim()
+    const numberedPattern = /^\s*(\d+)[\.\)\-]\s*\**([^*\n]{2,80})/gm
+    while ((match = numberedPattern.exec(cleanedOutput)) !== null) {
+      const name = cleanCompetitorName(match[2]).replace(/\s*[-–—:].*/g, '').trim()
       const nameLower = name.toLowerCase()
-      if (name.length > 2 && name.length < 50 && !nameLower.includes(companyLower) && !companyLower.includes(nameLower) && !excludeList.has(nameLower) && !seen.has(nameLower)) {
+      if (
+        name.length > 2 && name.length < 50 &&
+        !nameLower.includes(companyLower) && !companyLower.includes(nameLower) &&
+        !excludeList.has(nameLower) && !seen.has(nameLower) &&
+        /[a-zA-Z]/.test(name) && !nameLower.startsWith('http')
+      ) {
         seen.add(nameLower)
         competitors.push(name)
       }
@@ -158,7 +195,7 @@ function parseWithJS(rawOutput, companyName) {
       snippet = lines.slice(0, 3).join(' ').substring(0, 400)
       if (rawOutput.length > 400) snippet += '...'
     }
-    snippet = snippet.replace(/\*\*/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/#{1,4}\s/g, '')
+    snippet = snippet.replace(/\*\*/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/#{1,4}\s/g, '').replace(/https?:\/\/\S+/g, '').replace(/\s+/g, ' ').trim()
     if (!isCompanyMentioned) snippet = `Het bedrijf "${companyName}" wordt niet genoemd in dit AI-antwoord. ${snippet}`
 
     return { company_mentioned: isCompanyMentioned, mentions_count: mentionsCount, competitors_mentioned: competitors.slice(0, 10), simulated_ai_response_snippet: snippet.substring(0, 600) }

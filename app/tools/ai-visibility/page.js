@@ -157,6 +157,28 @@ function detectBranchLanguage(input) {
 }
 
 // ====================================
+// CLEAN COMPETITOR NAME FOR DISPLAY
+// Strips markdown, URLs, Google Business metadata from stored names
+// ====================================
+function cleanDisplayName(name) {
+  if (!name) return ''
+  return name
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')  // [text](url) → text
+    .replace(/https?:\/\/\S+/g, '')             // bare URLs
+    .replace(/\*\*/g, '')                        // bold markdown
+    .replace(/\b(Nu geopend|Gesloten|UitGesloten|Uit Gesloten|Tijdelijk gesloten)\b/gi, '')
+    .replace(/\b(Event planner|Event venue|Boat rental service)\b/gi, '')
+    .replace(/[A-Z][a-z]+(?:straat|weg|laan|plein|gracht|kade|singel|dijk|pad)\s*\d+.*/gi, '')
+    .replace(/\d{4}\s*[A-Z]{2}\b/g, '')
+    .replace(/\d+[.,]\d+\s*★?/g, '')
+    .replace(/★+/g, '')
+    .replace(/^[\s·•\-–—:,;|]+/, '')
+    .replace(/[\s·•\-–—:,;|]+$/, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+// ====================================
 // BEDRIJFSNAAM FUZZY MATCHING
 // ====================================
 function findNameInCompetitors(companyName, analysisResults) {
@@ -169,7 +191,10 @@ function findNameInCompetitors(companyName, analysisResults) {
   const allCompetitors = {};
   analysisResults.forEach(result => {
     (result.competitors_mentioned || []).forEach(comp => {
-      allCompetitors[comp] = (allCompetitors[comp] || 0) + 1;
+      const clean = cleanDisplayName(comp);
+      if (clean && clean.length >= 3) {
+        allCompetitors[clean] = (allCompetitors[clean] || 0) + 1;
+      }
     });
   });
   
@@ -1634,7 +1659,7 @@ function AIVisibilityToolContent() {
                   const activeMentions = resultPlatform === 'chatgpt' 
                     ? (results.chatgpt_company_mentions || 0) 
                     : results.total_company_mentions;
-                  const activeCompetitors = [...new Set(activeResults.flatMap(r => r.competitors_mentioned || []))];
+                  const activeCompetitors = [...new Set(activeResults.flatMap(r => r.competitors_mentioned || []).map(c => cleanDisplayName(c)).filter(c => c && c.length >= 3))];
                   
                   return (
                     <>
@@ -1673,15 +1698,26 @@ function AIVisibilityToolContent() {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs sm:text-sm text-blue-700 mb-1 sm:mb-2 font-medium">{result.ai_prompt}</p>
-                                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{result.simulated_ai_response_snippet}</p>
+                                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{
+                                  (result.simulated_ai_response_snippet || '')
+                                    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+                                    .replace(/https?:\/\/\S+/g, '')
+                                    .replace(/\*\*/g, '')
+                                    .replace(/\s+/g, ' ')
+                                    .trim()
+                                }</p>
                                 {result.competitors_mentioned?.length > 0 && (
                                   <div className="flex flex-wrap gap-1 sm:gap-2 mt-2 sm:mt-3">
                                     <span className="text-[10px] sm:text-xs text-slate-500">Concurrenten:</span>
-                                    {result.competitors_mentioned.map((comp, i) => (
-                                      <span key={i} className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 bg-purple-50 text-purple-700 rounded-md border border-purple-200">
-                                        {comp}
-                                      </span>
-                                    ))}
+                                    {result.competitors_mentioned.map((comp, i) => {
+                                      const clean = cleanDisplayName(comp)
+                                      if (!clean || clean.length < 3) return null
+                                      return (
+                                        <span key={i} className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 bg-purple-50 text-purple-700 rounded-md border border-purple-200">
+                                          {clean}
+                                        </span>
+                                      )
+                                    })}
                                   </div>
                                 )}
                               </div>
@@ -1772,7 +1808,10 @@ function AIVisibilityToolContent() {
                   const allResults = [...results.analysis_results, ...(results.chatgpt_results || [])];
                   allResults.forEach(result => {
                     (result.competitors_mentioned || []).forEach(comp => {
-                      mentionCounts[comp] = (mentionCounts[comp] || 0) + 1;
+                      const clean = cleanDisplayName(comp);
+                      if (clean && clean.length >= 3) {
+                        mentionCounts[clean] = (mentionCounts[clean] || 0) + 1;
+                      }
                     });
                   });
                   

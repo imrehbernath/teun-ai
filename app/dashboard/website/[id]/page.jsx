@@ -569,6 +569,25 @@ export default function WebsiteDetailPage() {
     )
   }
 
+  // Clean competitor names from markdown/URL artifacts
+  const cleanDisplayName = (name) => {
+    if (!name) return ''
+    return name
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+      .replace(/https?:\/\/\S+/g, '')
+      .replace(/\*\*/g, '')
+      .replace(/\b(Nu geopend|Gesloten|UitGesloten|Uit Gesloten|Tijdelijk gesloten)\b/gi, '')
+      .replace(/\b(Event planner|Event venue|Boat rental service)\b/gi, '')
+      .replace(/[A-Z][a-z]+(?:straat|weg|laan|plein|gracht|kade|singel|dijk|pad)\s*\d+.*/gi, '')
+      .replace(/\d{4}\s*[A-Z]{2}\b/g, '')
+      .replace(/\d+[.,]\d+\s*★?/g, '')
+      .replace(/★+/g, '')
+      .replace(/^[\s·•\-–—:,;|]+/, '')
+      .replace(/[\s·•\-–—:,;|]+$/, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+  }
+
   const filterCompetitors = (competitors) => {
     const nonCompetitorPatterns = [
       // Review/vergelijkingssites
@@ -588,7 +607,7 @@ export default function WebsiteDetailPage() {
       /\.nl$/i, /\.com$/i,  // Pure domain names
     ]
     
-    return competitors.filter(c => {
+    return competitors.map(c => cleanDisplayName(c)).filter(c => {
       const trimmed = c.trim()
       if (trimmed.length < 3) return false
       return !nonCompetitorPatterns.some(pattern => pattern.test(trimmed))
