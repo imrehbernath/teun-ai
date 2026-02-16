@@ -1403,20 +1403,31 @@ function cleanCompetitorName(raw) {
     // Strip remaining markdown
     .replace(/\*\*/g, '')
     .replace(/[`_~]/g, '')
+    // Strip citation references [1][2]
+    .replace(/\[\d+\]/g, '')
+    // Strip everything after · (Google Business metadata separator)
+    .replace(/\s*·\s*.*/g, '')
+    // Strip "(xxx beoordelingen)" and "(xxx reviews)" patterns
+    .replace(/\(\d+\s*(?:beoordelingen|reviews?|sterren)\)/gi, '')
+    .replace(/\(\s*\d+\s*\)/g, '')  // bare "(141)"
     // Strip Google Business metadata
     .replace(/\b(Nu geopend|Gesloten|UitGesloten|Uit Gesloten|Tijdelijk gesloten|Permanent gesloten)\b/gi, '')
-    // Strip Google Business types (common patterns)
-    .replace(/\b(Event planner|Event venue|Boat rental service|Restaurant|Hotel|Café|Bar|Shop|Store|Winkel|Salon|Kapper|Tandarts|Huisarts|Apotheek|Garage|Makelaar|Notaris|Advocaat|Accountant|Fysiotherapeut)\b/gi, '')
-    // Strip address-like patterns (e.g. "Jasmijnstraat 35, 1398 AB")
+    // Strip Google Business types/categories (comprehensive)
+    .replace(/\b(Event planner|Event venue|Event location|Boat rental service|Car rental agency|Travel agency|Insurance agency|Real estate agency|Employment agency|Advertising agency|Wedding venue|Conference center|Party venue|Meeting room|Coworking space|Restaurant|Hotel|Café|Bar|Shop|Store|Winkel|Salon|Kapper|Tandarts|Huisarts|Apotheek|Garage|Makelaar|Notaris|Advocaat|Accountant|Fysiotherapeut|Sportschool|Fitness center|Beauty salon|Hair salon|Day spa|Bakery|Florist|Jeweler|Boutique|Gallery|Museum|Theater|Cinema|Library|School|University|Hospital|Clinic|Pharmacy|Bank|Post office|Supermarket|Gas station|Parking lot|Campground|RV park|Boat dealer|Yacht club|Marina|Diving center|Surf shop|Ski resort|Golf course|Swimming pool|Tennis court|Bowling alley|Amusement park|Zoo|Aquarium|Garden center|Pet store|Veterinarian)\b/gi, '')
+    // Strip rating patterns (4.5 ★, 4,5)
+    .replace(/\d+[.,]\d+\s*★?/g, '')
+    .replace(/★+/g, '')
+    // Strip address patterns
     .replace(/[A-Z][a-z]+(?:straat|weg|laan|plein|gracht|kade|singel|dijk|pad)\s*\d+.*/gi, '')
     // Strip postal code patterns (1234 AB)
     .replace(/\d{4}\s*[A-Z]{2}\b/g, '')
-    // Strip ratings (4.5, ★)
-    .replace(/\d+[.,]\d+\s*★?/g, '')
-    .replace(/★+/g, '')
-    // Strip leading/trailing separators
-    .replace(/^[\s·•\-–—:,;|]+/, '')
-    .replace(/[\s·•\-–—:,;|]+$/, '')
+    // Strip phone number patterns
+    .replace(/\+?\d[\d\s\-]{8,}/g, '')
+    // Strip "(uit xxx)" patterns like "(uit 189..."
+    .replace(/\(uit\s+\d+.*/gi, '')
+    // Strip leading/trailing separators and whitespace
+    .replace(/^[\s·•\-–—:,;|()\[\]]+/, '')
+    .replace(/[\s·•\-–—:,;|()\[\]]+$/, '')
     // Collapse whitespace
     .replace(/\s+/g, ' ')
     .trim()
@@ -1426,8 +1437,12 @@ function cleanCompetitorName(raw) {
 
 function isValidCompetitorName(name, companyLower, excludeList, seen) {
   const nameLower = name.toLowerCase()
+  const wordCount = name.split(/\s+/).length
   return (
-    name.length > 2 && name.length < 50 &&
+    // Min 4 chars (filters "Uit", "De", "Het", etc.)
+    name.length >= 4 && name.length < 50 &&
+    // Max 6 words (filters sentences like "Aanbevolen Nederlandse specialisten uit Muiden")
+    wordCount <= 6 &&
     // Not the company itself
     !nameLower.includes(companyLower) &&
     !companyLower.includes(nameLower) &&
@@ -1437,17 +1452,26 @@ function isValidCompetitorName(name, companyLower, excludeList, seen) {
     !seen.has(nameLower) &&
     // Not a question or generic label
     !nameLower.includes('?') &&
-    !nameLower.startsWith('tip') && !nameLower.startsWith('let op') &&
-    !nameLower.startsWith('belangrijk') && !nameLower.startsWith('conclusie') &&
-    !nameLower.startsWith('samenvatting') && !nameLower.startsWith('opmerking') &&
+    // Not a generic heading/phrase
+    !/^(tip|let op|belangrijk|conclusie|samenvatting|opmerking|aanbevolen|overzicht|vergelijk|alternatief|optie|keuze)/i.test(name) &&
     !/^(stap|punt|vraag|antwoord|optie|methode|strategie|voordeel|nadeel)\s/i.test(name) &&
-    // Not just a business type or status word
-    !/^(gesloten|nu geopend|event planner|event venue|boat rental|restaurant|hotel)$/i.test(name) &&
-    // Must contain at least one letter (not just numbers/symbols)
+    // Not a sentence (starts with common sentence starters)
+    !/^(dit|deze|dat|die|er|het|de|een|als|voor|naar|van|met|bij|wat|wie|waar|wanneer|hoe|welke|enkele|diverse|hier|ook|meer|nog|veel|alle|andere|sommige)\s/i.test(name) &&
+    // Not just a business type, status word, or generic term
+    !/^(gesloten|nu geopend|event planner|event venue|boat rental|car rental|restaurant|hotel|bruine vloot|zeilvloot|beoordelingen?|reviews?)$/i.test(name) &&
+    // Not a bare review/rating fragment
+    !/^\(\d+/.test(name) &&
+    !/beoordelingen\)?$/i.test(name) &&
+    !/reviews?\)?$/i.test(name) &&
+    // Must contain at least one letter
     /[a-zA-Z]/.test(name) &&
+    // Must start with a capital letter or number (company names do)
+    /^[A-Z0-9]/.test(name) &&
     // Not a bare URL fragment
     !nameLower.startsWith('http') &&
-    !nameLower.startsWith('www.')
+    !nameLower.startsWith('www.') &&
+    // Not ending with .nl or .com (domain, not company name)
+    !/\.(nl|com|org|net|be|de|eu)$/i.test(name)
   )
 }
 

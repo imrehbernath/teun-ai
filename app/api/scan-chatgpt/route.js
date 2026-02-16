@@ -114,17 +114,46 @@ function cleanCompetitorName(raw) {
     .replace(/https?:\/\/\S+/g, '')
     .replace(/\*\*/g, '')
     .replace(/[`_~]/g, '')
+    .replace(/\[\d+\]/g, '')
+    .replace(/\s*·\s*.*/g, '')
+    .replace(/\(\d+\s*(?:beoordelingen|reviews?|sterren)\)/gi, '')
+    .replace(/\(\s*\d+\s*\)/g, '')
     .replace(/\b(Nu geopend|Gesloten|UitGesloten|Uit Gesloten|Tijdelijk gesloten|Permanent gesloten)\b/gi, '')
-    .replace(/\b(Event planner|Event venue|Boat rental service|Restaurant|Hotel|Café|Bar|Shop|Store|Winkel|Salon|Kapper|Tandarts|Huisarts|Apotheek|Garage|Makelaar|Notaris|Advocaat|Accountant|Fysiotherapeut)\b/gi, '')
-    .replace(/[A-Z][a-z]+(?:straat|weg|laan|plein|gracht|kade|singel|dijk|pad)\s*\d+.*/gi, '')
-    .replace(/\d{4}\s*[A-Z]{2}\b/g, '')
+    .replace(/\b(Event planner|Event venue|Event location|Boat rental service|Car rental agency|Travel agency|Insurance agency|Real estate agency|Employment agency|Advertising agency|Wedding venue|Conference center|Party venue|Meeting room|Coworking space|Restaurant|Hotel|Café|Bar|Shop|Store|Winkel|Salon|Kapper|Tandarts|Huisarts|Apotheek|Garage|Makelaar|Notaris|Advocaat|Accountant|Fysiotherapeut|Sportschool|Fitness center|Beauty salon|Hair salon|Day spa|Bakery|Florist|Jeweler|Boutique|Gallery|Museum|Theater|Cinema|Library|School|University|Hospital|Clinic|Pharmacy|Bank|Post office|Supermarket|Gas station|Parking lot|Campground|Marina|Yacht club)\b/gi, '')
     .replace(/\d+[.,]\d+\s*★?/g, '')
     .replace(/★+/g, '')
-    .replace(/^[\s·•\-–—:,;|]+/, '')
-    .replace(/[\s·•\-–—:,;|]+$/, '')
+    .replace(/[A-Z][a-z]+(?:straat|weg|laan|plein|gracht|kade|singel|dijk|pad)\s*\d+.*/gi, '')
+    .replace(/\d{4}\s*[A-Z]{2}\b/g, '')
+    .replace(/\+?\d[\d\s\-]{8,}/g, '')
+    .replace(/\(uit\s+\d+.*/gi, '')
+    .replace(/^[\s·•\-–—:,;|()\[\]]+/, '')
+    .replace(/[\s·•\-–—:,;|()\[\]]+$/, '')
     .replace(/\s+/g, ' ')
     .trim()
   return name
+}
+
+function isValidCompetitorName(name, companyLower, excludeList, seen) {
+  const nameLower = name.toLowerCase()
+  const wordCount = name.split(/\s+/).length
+  return (
+    name.length >= 4 && name.length < 50 &&
+    wordCount <= 6 &&
+    !nameLower.includes(companyLower) && !companyLower.includes(nameLower) &&
+    !excludeList.has(nameLower) && !seen.has(nameLower) &&
+    !nameLower.includes('?') &&
+    !/^(tip|let op|belangrijk|conclusie|samenvatting|opmerking|aanbevolen|overzicht|vergelijk|alternatief|optie|keuze)/i.test(name) &&
+    !/^(stap|punt|vraag|antwoord|optie|methode|strategie|voordeel|nadeel)\s/i.test(name) &&
+    !/^(dit|deze|dat|die|er|het|de|een|als|voor|naar|van|met|bij|wat|wie|waar|wanneer|hoe|welke|enkele|diverse|hier|ook|meer|nog|veel|alle|andere|sommige)\s/i.test(name) &&
+    !/^(gesloten|nu geopend|event planner|event venue|boat rental|car rental|restaurant|hotel|bruine vloot|zeilvloot|beoordelingen?|reviews?)$/i.test(name) &&
+    !/^\(\d+/.test(name) &&
+    !/beoordelingen\)?$/i.test(name) &&
+    !/reviews?\)?$/i.test(name) &&
+    /[a-zA-Z]/.test(name) &&
+    /^[A-Z0-9]/.test(name) &&
+    !nameLower.startsWith('http') && !nameLower.startsWith('www.') &&
+    !/\.(nl|com|org|net|be|de|eu)$/i.test(name)
+  )
 }
 
 function parseWithJS(rawOutput, companyName) {
@@ -151,17 +180,8 @@ function parseWithJS(rawOutput, companyName) {
     const boldPattern = /\*\*([^*]{3,60})\*\*/g
     while ((match = boldPattern.exec(cleanedOutput)) !== null) {
       const name = cleanCompetitorName(match[1]).replace(/\s*[-–—:].*/g, '').replace(/^\d+[\.\)]\s*/, '').trim()
-      const nameLower = name.toLowerCase()
-      if (
-        name.length > 2 && name.length < 50 &&
-        !nameLower.includes(companyLower) && !companyLower.includes(nameLower) &&
-        !excludeList.has(nameLower) && !seen.has(nameLower) &&
-        !nameLower.includes('?') && /[a-zA-Z]/.test(name) &&
-        !nameLower.startsWith('http') && !nameLower.startsWith('www.') &&
-        !/^(stap|punt|vraag|antwoord|optie|methode|strategie|voordeel|nadeel|tip|let op|belangrijk|conclusie|samenvatting)\b/i.test(name) &&
-        !/^(gesloten|nu geopend|event planner|event venue|boat rental)$/i.test(name)
-      ) {
-        seen.add(nameLower)
+      if (isValidCompetitorName(name, companyLower, excludeList, seen)) {
+        seen.add(name.toLowerCase())
         competitors.push(name)
       }
     }
@@ -169,14 +189,8 @@ function parseWithJS(rawOutput, companyName) {
     const numberedPattern = /^\s*(\d+)[\.\)\-]\s*\**([^*\n]{2,80})/gm
     while ((match = numberedPattern.exec(cleanedOutput)) !== null) {
       const name = cleanCompetitorName(match[2]).replace(/\s*[-–—:].*/g, '').trim()
-      const nameLower = name.toLowerCase()
-      if (
-        name.length > 2 && name.length < 50 &&
-        !nameLower.includes(companyLower) && !companyLower.includes(nameLower) &&
-        !excludeList.has(nameLower) && !seen.has(nameLower) &&
-        /[a-zA-Z]/.test(name) && !nameLower.startsWith('http')
-      ) {
-        seen.add(nameLower)
+      if (isValidCompetitorName(name, companyLower, excludeList, seen)) {
+        seen.add(name.toLowerCase())
         competitors.push(name)
       }
     }

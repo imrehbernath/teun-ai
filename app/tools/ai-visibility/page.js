@@ -162,20 +162,36 @@ function detectBranchLanguage(input) {
 // ====================================
 function cleanDisplayName(name) {
   if (!name) return ''
-  return name
+  let clean = name
     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')  // [text](url) → text
     .replace(/https?:\/\/\S+/g, '')             // bare URLs
     .replace(/\*\*/g, '')                        // bold markdown
+    .replace(/\[\d+\]/g, '')                     // citation refs [1][2]
+    .replace(/\s*·\s*.*/g, '')                   // everything after · (Google metadata)
+    .replace(/\(\d+\s*(?:beoordelingen|reviews?|sterren)\)/gi, '')  // (141 beoordelingen)
+    .replace(/\(\s*\d+\s*\)/g, '')               // bare (141)
     .replace(/\b(Nu geopend|Gesloten|UitGesloten|Uit Gesloten|Tijdelijk gesloten)\b/gi, '')
-    .replace(/\b(Event planner|Event venue|Boat rental service)\b/gi, '')
+    .replace(/\b(Event planner|Event venue|Event location|Boat rental service|Car rental agency|Travel agency|Insurance agency|Real estate agency|Wedding venue|Conference center|Restaurant|Hotel|Café|Bar|Shop|Store|Winkel|Salon|Kapper|Tandarts|Huisarts|Apotheek|Garage|Makelaar|Notaris|Advocaat|Accountant|Fysiotherapeut|Sportschool|Beauty salon|Hair salon|Marina|Yacht club)\b/gi, '')
     .replace(/[A-Z][a-z]+(?:straat|weg|laan|plein|gracht|kade|singel|dijk|pad)\s*\d+.*/gi, '')
     .replace(/\d{4}\s*[A-Z]{2}\b/g, '')
     .replace(/\d+[.,]\d+\s*★?/g, '')
     .replace(/★+/g, '')
-    .replace(/^[\s·•\-–—:,;|]+/, '')
-    .replace(/[\s·•\-–—:,;|]+$/, '')
+    .replace(/\(uit\s+\d+.*/gi, '')
+    .replace(/^[\s·•\-–—:,;|()\[\]]+/, '')
+    .replace(/[\s·•\-–—:,;|()\[\]]+$/, '')
     .replace(/\s+/g, ' ')
     .trim()
+  
+  // Extra validation: filter out garbage
+  if (clean.length < 4) return ''
+  if (clean.split(/\s+/).length > 6) return ''  // sentences, not names
+  if (/^(dit|deze|dat|die|er|het|de|een|als|voor|naar|van|met|bij|wat|wie|waar|aanbevolen|enkele|diverse|bruine vloot|zeilvloot)\b/i.test(clean)) return ''
+  if (/beoordelingen\)?$/i.test(clean)) return ''
+  if (/reviews?\)?$/i.test(clean)) return ''
+  if (/^\(\d+/.test(clean)) return ''
+  if (/\.(nl|com|org|net|be|de|eu)$/i.test(clean)) return ''
+  
+  return clean
 }
 
 // ====================================
@@ -1703,6 +1719,11 @@ function AIVisibilityToolContent() {
                                     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
                                     .replace(/https?:\/\/\S+/g, '')
                                     .replace(/\*\*/g, '')
+                                    .replace(/\[\d+\]/g, '')
+                                    .replace(/\b(Nu geopend|Gesloten|Tijdelijk gesloten)\b/gi, '')
+                                    .replace(/\(\d+\s*(?:beoordelingen|reviews?)\)/gi, '')
+                                    .replace(/\s*·\s*(Car rental agency|Event planner|Event venue|Boat rental service|Travel agency|Restaurant|Hotel|Café)\s*/gi, ' ')
+                                    .replace(/\d+[.,]\d+\s*★?/g, '')
                                     .replace(/\s+/g, ' ')
                                     .trim()
                                 }</p>
