@@ -419,6 +419,20 @@ export async function POST(request) {
       )
     }
 
+    // ✅ Valideer domein-extensie (TLD moet minimaal 2 tekens zijn, bijv. .nl of .com)
+    const urlForTldCheck = websiteUrl.trim()
+      .replace(/^https?:\/\//i, '')  // Alleen voor validatie, websiteUrl blijft ongewijzigd
+      .replace(/^www\./i, '')
+      .split('/')[0]
+      .split('?')[0]
+    const tld = urlForTldCheck.split('.').pop()
+    if (!tld || tld.length < 2) {
+      return NextResponse.json(
+        { error: 'Vul een geldige website URL in met een correcte domeinextensie (bijv. .nl of .com)' },
+        { status: 400 }
+      )
+    }
+
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 
                request.headers.get('x-real-ip') || 
                'unknown'
