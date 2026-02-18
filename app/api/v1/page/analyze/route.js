@@ -8,12 +8,64 @@ import { NextResponse } from 'next/server'
 import { validateApiKey, supabase } from '@/lib/wp-plugin/auth'
 import Anthropic from '@anthropic-ai/sdk'
 
-// Claude Sonnet needs 10-15s for prompt generation
-export const maxDuration = 30
+// Claude Sonnet needs 10-15s, ScraperAPI ~5-10s (sequential if no location in WP content)
+export const maxDuration = 45
+
+const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
 })
+
+// Quick scrape for location detection only
+async function detectLocationFromPage(pageUrl) {
+  // Try direct fetch first (free)
+  try {
+    console.log(`📍 Direct fetch for location: ${pageUrl}`)
+    const r = await fetch(pageUrl, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'nl-NL,nl;q=0.9',
+      },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(8000),
+    })
+    if (r.ok) {
+      const html = await r.text()
+      if (html.length > 500 && !isGarbagePageLight(html)) {
+        const bodyText = html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
+        const loc = detectLocation(bodyText.toLowerCase())
+        if (loc) { console.log(`📍 Direct fetch found location: ${loc}`); return loc }
+      }
+    }
+  } catch (e) { console.log(`⚠️ Direct fetch location: ${e.message}`) }
+
+  // Fallback to ScraperAPI premium
+  if (!SCRAPER_API_KEY) return null
+  try {
+    console.log(`📍 ScraperAPI premium for location: ${pageUrl}`)
+    const r = await fetch(
+      `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(pageUrl)}&render=true&premium=true&country_code=nl`,
+      { signal: AbortSignal.timeout(20000) }
+    )
+    if (!r.ok) return null
+    const html = await r.text()
+    const bodyText = html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
+    const loc = detectLocation(bodyText.toLowerCase())
+    if (loc) console.log(`📍 ScraperAPI found location: ${loc}`)
+    return loc
+  } catch (e) {
+    console.log(`⚠️ ScraperAPI location: ${e.message}`)
+    return null
+  }
+}
+
+function isGarbagePageLight(html) {
+  const lower = html.toLowerCase()
+  return ['checking your browser', 'just a moment', 'verify you are human', 'cf-browser-verification', 'challenge-platform', 'access denied'].some(s => lower.includes(s))
+}
 
 export async function POST(request) {
   try {
@@ -68,6 +120,17 @@ export async function POST(request) {
 
     // ─── Generate prompts with Claude ───
     const promptLimit = auth.data.limits.prompts_per_page || 3
+
+    // Detect location from WP content first, fallback to ScraperAPI (full page with footer)
+    const allText = `${title} ${h1} ${focus_keyword} ${content_excerpt}`.toLowerCase()
+    let scrapedLocation = detectLocation(allText)
+
+    if (!scrapedLocation && page_url) {
+      console.log(`📍 No location in WP content, trying ScraperAPI for: ${page_url}`)
+      scrapedLocation = await detectLocationFromPage(page_url)
+      if (scrapedLocation) console.log(`📍 ScraperAPI found location: ${scrapedLocation}`)
+    }
+
     const generatedPrompts = await generatePromptsWithClaude({
       title,
       h1,
@@ -78,6 +141,7 @@ export async function POST(request) {
       site_url: connection.site_url,
       language: language || 'nl',
       limit: promptLimit + 3,
+      overrideLocation: scrapedLocation,
     })
 
     if (!generatedPrompts || generatedPrompts.length === 0) {
@@ -144,7 +208,7 @@ export async function POST(request) {
 
 async function generatePromptsWithClaude({
   title, h1, focus_keyword, content_excerpt, schema_types,
-  site_name, site_url, language, limit,
+  site_name, site_url, language, limit, overrideLocation,
 }) {
   // Detect business context from page content
   const contentLower = (content_excerpt || '').toLowerCase()
@@ -155,7 +219,7 @@ async function generatePromptsWithClaude({
   const businessType = detectBusinessType(allText)
   const audienceType = detectAudienceType(allText)
   const coreActivity = detectCoreActivity(allText, businessType)
-  const detectedLocation = detectLocation(allText)
+  const detectedLocation = overrideLocation || detectLocation(allText)
 
   const systemPrompt = `Jij genereert commerciële, klantgerichte zoekvragen die een potentiële klant zou stellen aan een AI-assistent (ChatGPT, Perplexity, Google AI) om **concrete bedrijven of aanbieders** te vinden.
 
