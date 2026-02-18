@@ -83,8 +83,8 @@ export async function POST(request) {
     // STEP 2: ANALYZE HTML (rule-based, instant)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const extracted = html ? extractContent(html) : null
-    // Override location with settings value if available
-    if (extracted && wpLocation && !extracted.detectedLocation) {
+    // Override location: settings ALWAYS wins over scraped
+    if (extracted && wpLocation) {
       extracted.detectedLocation = wpLocation
     }
     const technicalChecks = extracted ? analyzeTechnical(extracted, robotsTxt, llmsTxt) : null
