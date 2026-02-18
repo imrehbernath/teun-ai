@@ -407,7 +407,7 @@ export async function POST(request) {
 
     // 🚫 Geblokkeerde bedrijfsnamen (misbruik / spam)
     const BLOCKED_COMPANIES = [
-      'lebara',
+      'testbedrijf',
     ]
     if (BLOCKED_COMPANIES.includes(companyName.trim().toLowerCase())) {
       return NextResponse.json(
