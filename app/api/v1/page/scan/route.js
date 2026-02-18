@@ -1,13 +1,14 @@
 // app/api/v1/page/scan/route.js
-// Page GEO Scan Endpoint — ASYNC
-//
-// Returns immediately with status "processing".
-// Scan runs in the background. Plugin polls /page/results for results.
+// Page GEO Scan — SYNCHRONOUS
+// Runs scan, waits for completion, returns results directly.
 
 import { NextResponse } from 'next/server'
 import { validateApiKey, checkScanLimit, incrementScanCount, supabase } from '@/lib/wp-plugin/auth'
 
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY
+
+export const maxDuration = 60
+export const dynamic = 'force-dynamic'
 
 export async function POST(request) {
   try {
@@ -46,77 +47,68 @@ export async function POST(request) {
     const requestedPlatforms = (platforms || ['perplexity']).filter(p => allowedPlatforms.includes(p))
 
     const scanId = `scan_${Date.now()}`
+    console.log(`🔍 Scan started: ${scanId} for ${pageUrl}`)
 
-    // ─── Fire and forget: run scan in background ───
-    runScanInBackground({
-      scanId, websiteId, pageUrl, connection,
-      requestedPlatforms, language: language || 'nl',
-      apiKeyId: auth.data.keyId,
-    }).catch(err => console.error('Background scan error:', err))
+    // Get prompts from Supabase
+    const { data: pagePrompts } = await supabase
+      .from('page_prompts')
+      .select('id, prompt_text')
+      .eq('website_id', websiteId)
+      .eq('page_url', pageUrl)
 
-    // ─── Return immediately (< 1 second) ───
+    if (!pagePrompts || pagePrompts.length === 0) {
+      return NextResponse.json({ error: 'No prompts found. Run analyze first.' }, { status: 400 })
+    }
+
+    // Run scan SYNCHRONOUSLY
+    const siteDomain = extractDomain(connection.site_url)
+    const scanResults = []
+
+    for (const prompt of pagePrompts) {
+      for (const platform of requestedPlatforms) {
+        try {
+          const result = await scanWithPerplexity(
+            prompt.prompt_text, siteDomain, connection.site_name || siteDomain
+          )
+
+          await supabase.from('page_scan_results').delete()
+            .eq('page_prompt_id', prompt.id).eq('platform', platform)
+
+          await supabase.from('page_scan_results').insert({
+            page_prompt_id: prompt.id, platform,
+            mentioned: result.mentioned, position: result.position,
+            snippet: result.snippet, competitors: result.competitors,
+          })
+
+          scanResults.push({ prompt_id: prompt.id, platform, ...result })
+          await sleep(1000)
+        } catch (err) {
+          console.error(`Scan error [${platform}] "${prompt.prompt_text}":`, err.message)
+          scanResults.push({
+            prompt_id: prompt.id, platform,
+            mentioned: false, position: null, snippet: null, competitors: [],
+          })
+        }
+      }
+    }
+
+    await incrementScanCount(auth.data.keyId)
+    const geoScore = calculateGeoScore(scanResults, requestedPlatforms)
+    console.log(`✅ Scan complete: ${scanId} → GEO Score: ${geoScore}`)
+
     return NextResponse.json({
       scan_id: scanId,
-      status: 'processing',
-      message: 'Scan started. Poll /page/results for results.',
+      status: 'complete',
+      geo_score: geoScore,
+      results: scanResults,
       scans_remaining: scanLimit.limit === -1 ? 'unlimited' : (scanLimit.limit - scanLimit.used - 1),
-    }, { status: 202 })
+    })
 
   } catch (error) {
     console.error('Page scan error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-
-// ─── Background scan runner ───
-
-async function runScanInBackground({ scanId, websiteId, pageUrl, connection, requestedPlatforms, language, apiKeyId }) {
-  console.log(`🔍 Background scan started: ${scanId} for ${pageUrl}`)
-
-  const { data: pagePrompts } = await supabase
-    .from('page_prompts')
-    .select('id, prompt_text')
-    .eq('website_id', websiteId)
-    .eq('page_url', pageUrl)
-
-  if (!pagePrompts || pagePrompts.length === 0) {
-    console.error(`No prompts found for ${pageUrl}`)
-    return
-  }
-
-  const siteDomain = extractDomain(connection.site_url)
-  const scanResults = []
-
-  for (const prompt of pagePrompts) {
-    for (const platform of requestedPlatforms) {
-      try {
-        const result = await scanWithPerplexity(prompt.prompt_text, siteDomain, connection.site_name || siteDomain)
-
-        await supabase.from('page_scan_results').delete()
-          .eq('page_prompt_id', prompt.id).eq('platform', platform)
-
-        await supabase.from('page_scan_results').insert({
-          page_prompt_id: prompt.id, platform,
-          mentioned: result.mentioned, position: result.position,
-          snippet: result.snippet, competitors: result.competitors,
-        })
-
-        scanResults.push({ prompt_id: prompt.id, platform, ...result })
-        await sleep(1500)
-
-      } catch (err) {
-        console.error(`Scan error [${platform}] "${prompt.prompt_text}":`, err.message)
-        scanResults.push({ prompt_id: prompt.id, platform, mentioned: false, position: null, snippet: null, competitors: [] })
-      }
-    }
-  }
-
-  await incrementScanCount(apiKeyId)
-  const geoScore = calculateGeoScore(scanResults, requestedPlatforms)
-  console.log(`✅ Scan complete: ${scanId} → GEO Score: ${geoScore}`)
-}
-
-// ─── Perplexity Scanner ───
 
 async function scanWithPerplexity(promptText, siteDomain, siteName) {
   if (!PERPLEXITY_API_KEY) throw new Error('Perplexity API key not configured')
@@ -150,7 +142,9 @@ async function scanWithPerplexity(promptText, siteDomain, siteName) {
 
   let snippet = null
   if (mentioned) {
-    const idx = contentLower.indexOf(domainLower) !== -1 ? contentLower.indexOf(domainLower) : contentLower.indexOf(nameLower)
+    const idx = contentLower.indexOf(domainLower) !== -1
+      ? contentLower.indexOf(domainLower)
+      : contentLower.indexOf(nameLower)
     snippet = content.substring(Math.max(0, idx - 100), Math.min(content.length, idx + 200)).trim()
   }
 

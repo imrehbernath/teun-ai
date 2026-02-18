@@ -7,6 +7,9 @@
 import { NextResponse } from 'next/server'
 import { validateApiKey, supabase } from '@/lib/wp-plugin/auth'
 
+// Disable Vercel edge cache for polling
+export const dynamic = 'force-dynamic'
+
 export async function GET(request, { params }) {
   try {
     // ─── Auth ───

@@ -8,6 +8,9 @@ import { NextResponse } from 'next/server'
 import { validateApiKey, supabase } from '@/lib/wp-plugin/auth'
 import Anthropic from '@anthropic-ai/sdk'
 
+// Claude Sonnet needs 10-15s for prompt generation
+export const maxDuration = 30
+
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
 })
@@ -195,6 +198,13 @@ ${coreActivity ? `
 - Vragen die leiden tot zoekadvies i.p.v. bedrijfsnamen
 - Twee zoekwoorden combineren in één prompt
 - Synoniemen die het beroep VERANDEREN
+- **ENGELSE WOORDEN als er een Nederlands equivalent bestaat!**
+  - ❌ "marketing agencies" → ✅ "marketingbureaus"
+  - ❌ "content marketing" → ✅ "contentmarketing"
+  - ❌ "online marketing specialists" → ✅ "online marketing specialisten"
+  - ❌ "agencies" → ✅ "bureaus"
+  - ❌ "companies" → ✅ "bedrijven"
+  - Alleen Engels als het een vaktechnische term is die in het Nederlands niet bestaat (bijv. "SEO", "AI", "GEO")
 
 **VERPLICHT:**
 - Vragen die DIRECT om bedrijfsnamen vragen
