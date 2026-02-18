@@ -405,6 +405,17 @@ export async function POST(request) {
       )
     }
 
+    // 🚫 Geblokkeerde bedrijfsnamen (misbruik / spam)
+    const BLOCKED_COMPANIES = [
+      'lebara',
+    ]
+    if (BLOCKED_COMPANIES.includes(companyName.trim().toLowerCase())) {
+      return NextResponse.json(
+        { error: 'Er is een probleem opgetreden. Neem contact op via hallo@onlinelabs.nl' },
+        { status: 403 }
+      )
+    }
+
     if (!companyCategory?.trim() || companyCategory.trim().length < 3) {
       return NextResponse.json(
         { error: 'Categorie/branche moet minimaal 3 tekens zijn' }, 
