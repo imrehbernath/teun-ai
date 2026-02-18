@@ -152,6 +152,7 @@ async function generatePromptsWithClaude({
   const businessType = detectBusinessType(allText)
   const audienceType = detectAudienceType(allText)
   const coreActivity = detectCoreActivity(allText, businessType)
+  const detectedLocation = detectLocation(allText)
 
   const systemPrompt = `Jij genereert commerciële, klantgerichte zoekvragen die een potentiële klant zou stellen aan een AI-assistent (ChatGPT, Perplexity, Google AI) om **concrete bedrijven of aanbieders** te vinden.
 
@@ -200,6 +201,13 @@ ${coreActivity ? `
 - Natuurlijke menselijke taal (lees hardop — klinkt het echt?)
 - Variatie in structuur: "Kun je...", "Welke...", "Noem...", "Ken je...", "Wat zijn..."
 - Focus op concrete aanbevelingen
+${detectedLocation ? `
+**📍 LOCATIE GEDETECTEERD: "${detectedLocation}"**
+- Minimaal 1-2 van de ${limit} prompts MOETEN de locatie "${detectedLocation}" bevatten
+- Gebruik de locatie NATUURLIJK: "...in ${detectedLocation}" of "...${detectedLocation}..."
+- De overige prompts ZONDER locatie (generieke zichtbaarheid)
+- Gebruik NIET "Nederland" als vervanging als er een specifieke stad gedetecteerd is
+` : ''}
 
 **GOEDE STARTPATRONEN:**
 ${audienceType === 'B2C' ? `
@@ -225,6 +233,7 @@ ALLEEN de array, geen extra tekst.
     focus_keyword && `**FOCUS ZOEKWOORD:** ${focus_keyword}`,
     content_excerpt && `**CONTENT FRAGMENT:** ${content_excerpt.substring(0, 1500)}`,
     schema_types?.length > 0 && `**SCHEMA TYPES:** ${schema_types.join(', ')}`,
+    detectedLocation && `**GEDETECTEERDE LOCATIE:** ${detectedLocation}`,
   ].filter(Boolean).join('\n\n')
 
   try {
@@ -314,6 +323,32 @@ function detectCoreActivity(text, businessType) {
   if (/adviseert|advies|consult/i.test(text)) return 'adviseert'
   if (/maakt|ontwerpt|bouwt/i.test(text)) return 'maakt'
   return 'levert'
+}
+
+function detectLocation(text) {
+  // Dutch cities and regions — ordered by size to prefer larger matches
+  const locations = [
+    'Amsterdam', 'Rotterdam', 'Den Haag', '\'s-Gravenhage', 'Utrecht',
+    'Eindhoven', 'Groningen', 'Tilburg', 'Almere', 'Breda',
+    'Nijmegen', 'Arnhem', 'Haarlem', 'Enschede', 'Apeldoorn',
+    'Amersfoort', 'Zaanstad', 'Haarlemmermeer', 'Den Bosch',
+    '\'s-Hertogenbosch', 'Zwolle', 'Zoetermeer', 'Leiden', 'Leeuwarden',
+    'Maastricht', 'Dordrecht', 'Ede', 'Alphen aan den Rijn',
+    'Alkmaar', 'Delft', 'Deventer', 'Hilversum', 'Roosendaal',
+    'Oss', 'Sittard', 'Helmond', 'Purmerend', 'Schiedam',
+    'Vlaardingen', 'Gouda', 'Zeist', 'Veenendaal', 'Nieuwegein',
+    'Noord-Holland', 'Zuid-Holland', 'Noord-Brabant', 'Gelderland',
+    'Overijssel', 'Limburg', 'Friesland', 'Drenthe', 'Flevoland',
+    'Zeeland',
+  ]
+
+  const textLower = text.toLowerCase()
+  for (const loc of locations) {
+    if (textLower.includes(loc.toLowerCase())) {
+      return loc
+    }
+  }
+  return null
 }
 
 // ─── Fallback prompts ───
