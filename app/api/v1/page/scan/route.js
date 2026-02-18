@@ -1,6 +1,6 @@
 // app/api/v1/page/scan/route.js
 // Page GEO Scan — SYNCHRONOUS
-// Runs scan, waits for completion, returns results directly.
+// Smart brand name matching: checks domain, site_name, AND extracted brand names.
 
 import { NextResponse } from 'next/server'
 import { validateApiKey, checkScanLimit, incrementScanCount, supabase } from '@/lib/wp-plugin/auth'
@@ -29,7 +29,7 @@ export async function POST(request) {
     }
 
     const body = await request.json()
-    const { page_id, prompts, platforms, language } = body
+    const { page_id, prompts, platforms, language, site_name: wpSiteName, brand_name: brandName } = body
 
     if (!page_id || !prompts || prompts.length === 0) {
       return NextResponse.json({ error: 'page_id and prompts are required' }, { status: 400 })
@@ -47,7 +47,12 @@ export async function POST(request) {
     const requestedPlatforms = (platforms || ['perplexity']).filter(p => allowedPlatforms.includes(p))
 
     const scanId = `scan_${Date.now()}`
-    console.log(`🔍 Scan started: ${scanId} for ${pageUrl}`)
+
+    // Build comprehensive brand matching terms
+    const siteUrl = connection.site_url || ''
+    const siteDomain = extractDomain(siteUrl)
+    const brandNames = buildBrandNames(siteDomain, connection.site_name, wpSiteName, brandName)
+    console.log(`🔍 Scan ${scanId} for ${pageUrl} | Brand matching: ${JSON.stringify(brandNames)}`)
 
     // Get prompts from Supabase
     const { data: pagePrompts } = await supabase
@@ -61,15 +66,12 @@ export async function POST(request) {
     }
 
     // Run scan SYNCHRONOUSLY
-    const siteDomain = extractDomain(connection.site_url)
     const scanResults = []
 
     for (const prompt of pagePrompts) {
       for (const platform of requestedPlatforms) {
         try {
-          const result = await scanWithPerplexity(
-            prompt.prompt_text, siteDomain, connection.site_name || siteDomain
-          )
+          const result = await scanWithPerplexity(prompt.prompt_text, brandNames)
 
           await supabase.from('page_scan_results').delete()
             .eq('page_prompt_id', prompt.id).eq('platform', platform)
@@ -110,7 +112,50 @@ export async function POST(request) {
   }
 }
 
-async function scanWithPerplexity(promptText, siteDomain, siteName) {
+// ─── Build all possible brand name variations to match ───
+
+function buildBrandNames(siteDomain, connectionSiteName, wpSiteName, brandName) {
+  const names = new Set()
+
+  // PRIORITY 1: Brand name from plugin settings (most reliable)
+  if (brandName && brandName.length > 1) {
+    names.add(brandName.toLowerCase())
+  }
+
+  // PRIORITY 2: WordPress site name (blogname)
+  if (wpSiteName && wpSiteName.length > 2) {
+    names.add(wpSiteName.toLowerCase())
+  }
+
+  // PRIORITY 3: Connection site_name from Supabase
+  if (connectionSiteName && connectionSiteName.length > 2) {
+    names.add(connectionSiteName.toLowerCase())
+  }
+
+  // PRIORITY 4: Domain-based (fallback)
+  if (siteDomain) {
+    // Full domain: cdn.onlinelabs.nl
+    names.add(siteDomain.toLowerCase())
+    // Without prefix: onlinelabs.nl
+    const withoutPrefix = siteDomain.replace(/^(cdn|www|staging|dev)\./, '')
+    names.add(withoutPrefix.toLowerCase())
+    // Brand from domain: onlinelabs
+    const brand = withoutPrefix.split('.')[0]
+    if (brand && brand.length > 2) {
+      names.add(brand.toLowerCase())
+    }
+  }
+
+  // Remove generic terms
+  const generic = ['www', 'cdn', 'staging', 'dev', 'test', 'nl', 'com', 'org']
+  for (const g of generic) names.delete(g)
+
+  return [...names]
+}
+
+// ─── Perplexity Scanner with smart brand matching ───
+
+async function scanWithPerplexity(promptText, brandNames) {
   if (!PERPLEXITY_API_KEY) throw new Error('Perplexity API key not configured')
 
   const response = await fetch('https://api.perplexity.ai/chat/completions', {
@@ -124,16 +169,24 @@ async function scanWithPerplexity(promptText, siteDomain, siteName) {
   const data = await response.json()
   const content = data.choices?.[0]?.message?.content || ''
   const contentLower = content.toLowerCase()
-  const domainLower = siteDomain.toLowerCase()
-  const nameLower = siteName.toLowerCase()
 
-  const mentioned = contentLower.includes(domainLower) || contentLower.includes(nameLower)
+  // Check if ANY brand name variant appears in the response
+  let mentioned = false
+  let matchedTerm = null
+  for (const name of brandNames) {
+    if (contentLower.includes(name)) {
+      mentioned = true
+      matchedTerm = name
+      break
+    }
+  }
 
   let position = null
   if (mentioned) {
     const sentences = content.split(/[.!?]\s+/)
     for (let i = 0; i < sentences.length; i++) {
-      if (sentences[i].toLowerCase().includes(domainLower) || sentences[i].toLowerCase().includes(nameLower)) {
+      const sentLower = sentences[i].toLowerCase()
+      if (brandNames.some(n => sentLower.includes(n))) {
         position = i + 1
         break
       }
@@ -141,21 +194,27 @@ async function scanWithPerplexity(promptText, siteDomain, siteName) {
   }
 
   let snippet = null
-  if (mentioned) {
-    const idx = contentLower.indexOf(domainLower) !== -1
-      ? contentLower.indexOf(domainLower)
-      : contentLower.indexOf(nameLower)
+  if (mentioned && matchedTerm) {
+    const idx = contentLower.indexOf(matchedTerm)
     snippet = content.substring(Math.max(0, idx - 100), Math.min(content.length, idx + 200)).trim()
   }
 
+  // Extract competitor domains (excluding our own brand names)
   const competitors = []
   const urlPattern = /(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9-]+\.[a-zA-Z]{2,})/g
   let match
   while ((match = urlPattern.exec(content)) !== null) {
     const domain = match[1].toLowerCase()
-    if (domain !== domainLower && !domain.includes('perplexity') && !domain.includes('wikipedia') && !competitors.includes(domain)) {
+    const isOwn = brandNames.some(n => domain.includes(n) || n.includes(domain.split('.')[0]))
+    if (!isOwn && !domain.includes('perplexity') && !domain.includes('wikipedia') && !competitors.includes(domain)) {
       competitors.push(domain)
     }
+  }
+
+  if (mentioned) {
+    console.log(`  ✅ "${promptText.substring(0, 50)}..." → mentioned (pos ${position}, matched: "${matchedTerm}")`)
+  } else {
+    console.log(`  ❌ "${promptText.substring(0, 50)}..." → NOT mentioned`)
   }
 
   return { mentioned, position, snippet, competitors: competitors.slice(0, 5) }
