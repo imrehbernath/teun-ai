@@ -1,6 +1,6 @@
 // app/api/v1/page/scan/route.js
 // Page GEO Scan — SYNCHRONOUS
-// Smart brand name matching: checks domain, site_name, AND extracted brand names.
+// Uses same Perplexity system prompt as GEO Audit for better Dutch results.
 
 import { NextResponse } from 'next/server'
 import { validateApiKey, checkScanLimit, incrementScanCount, supabase } from '@/lib/wp-plugin/auth'
@@ -46,13 +46,12 @@ export async function POST(request) {
     const allowedPlatforms = auth.data.limits.platforms || ['chatgpt', 'perplexity']
     const requestedPlatforms = (platforms || ['perplexity']).filter(p => allowedPlatforms.includes(p))
 
-    const scanId = `scan_${Date.now()}`
-
-    // Build comprehensive brand matching terms
+    // Build brand matching — same logic as GEO Audit
     const siteUrl = connection.site_url || ''
     const siteDomain = extractDomain(siteUrl)
-    const brandNames = buildBrandNames(siteDomain, connection.site_name, wpSiteName, brandName)
-    console.log(`🔍 Scan ${scanId} for ${pageUrl} | Brand matching: ${JSON.stringify(brandNames)}`)
+    const brandVariants = buildBrandVariants(siteDomain, connection.site_name, wpSiteName, brandName)
+    const scanId = `scan_${Date.now()}`
+    console.log(`🔍 Scan ${scanId} for ${pageUrl} | Brand variants: ${JSON.stringify(brandVariants)}`)
 
     // Get prompts from Supabase
     const { data: pagePrompts } = await supabase
@@ -71,7 +70,7 @@ export async function POST(request) {
     for (const prompt of pagePrompts) {
       for (const platform of requestedPlatforms) {
         try {
-          const result = await scanWithPerplexity(prompt.prompt_text, brandNames)
+          const result = await scanWithPerplexity(prompt.prompt_text, brandVariants)
 
           await supabase.from('page_scan_results').delete()
             .eq('page_prompt_id', prompt.id).eq('platform', platform)
@@ -96,6 +95,7 @@ export async function POST(request) {
 
     await incrementScanCount(auth.data.keyId)
     const geoScore = calculateGeoScore(scanResults, requestedPlatforms)
+    const recommendations = generateRecommendations(scanResults, geoScore, language || 'nl')
     console.log(`✅ Scan complete: ${scanId} → GEO Score: ${geoScore}`)
 
     return NextResponse.json({
@@ -103,6 +103,7 @@ export async function POST(request) {
       status: 'complete',
       geo_score: geoScore,
       results: scanResults,
+      recommendations,
       scans_remaining: scanLimit.limit === -1 ? 'unlimited' : (scanLimit.limit - scanLimit.used - 1),
     })
 
@@ -112,17 +113,17 @@ export async function POST(request) {
   }
 }
 
-// ─── Build all possible brand name variations to match ───
+// ─── Brand variant builder (same approach as GEO Audit) ───
 
-function buildBrandNames(siteDomain, connectionSiteName, wpSiteName, brandName) {
+function buildBrandVariants(siteDomain, connectionSiteName, wpSiteName, brandName) {
   const names = new Set()
 
-  // PRIORITY 1: Brand name from plugin settings (most reliable)
+  // PRIORITY 1: Brand name from plugin settings
   if (brandName && brandName.length > 1) {
     names.add(brandName.toLowerCase())
   }
 
-  // PRIORITY 2: WordPress site name (blogname)
+  // PRIORITY 2: WordPress site name
   if (wpSiteName && wpSiteName.length > 2) {
     names.add(wpSiteName.toLowerCase())
   }
@@ -132,17 +133,18 @@ function buildBrandNames(siteDomain, connectionSiteName, wpSiteName, brandName) 
     names.add(connectionSiteName.toLowerCase())
   }
 
-  // PRIORITY 4: Domain-based (fallback)
+  // PRIORITY 4: Domain variants (same as GEO Audit)
   if (siteDomain) {
-    // Full domain: cdn.onlinelabs.nl
     names.add(siteDomain.toLowerCase())
-    // Without prefix: onlinelabs.nl
     const withoutPrefix = siteDomain.replace(/^(cdn|www|staging|dev)\./, '')
     names.add(withoutPrefix.toLowerCase())
-    // Brand from domain: onlinelabs
-    const brand = withoutPrefix.split('.')[0]
+    // onlinelabs.nl → onlinelabs
+    const brand = withoutPrefix.replace(/\.(nl|com|eu|org|net)$/i, '')
     if (brand && brand.length > 2) {
       names.add(brand.toLowerCase())
+      // Also without hyphens/dots: online-labs → online labs
+      const spaced = brand.replace(/[-_.]/g, ' ').toLowerCase()
+      if (spaced !== brand.toLowerCase()) names.add(spaced)
     }
   }
 
@@ -150,18 +152,32 @@ function buildBrandNames(siteDomain, connectionSiteName, wpSiteName, brandName) 
   const generic = ['www', 'cdn', 'staging', 'dev', 'test', 'nl', 'com', 'org']
   for (const g of generic) names.delete(g)
 
-  return [...names]
+  return [...names].filter(n => n.length > 1)
 }
 
-// ─── Perplexity Scanner with smart brand matching ───
+// ─── Perplexity Scanner with Dutch system prompt (from GEO Audit) ───
 
-async function scanWithPerplexity(promptText, brandNames) {
+async function scanWithPerplexity(promptText, brandVariants) {
   if (!PERPLEXITY_API_KEY) throw new Error('Perplexity API key not configured')
 
   const response = await fetch('https://api.perplexity.ai/chat/completions', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${PERPLEXITY_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'sonar', messages: [{ role: 'user', content: promptText }], max_tokens: 1000 }),
+    body: JSON.stringify({
+      model: 'sonar',
+      messages: [
+        {
+          role: 'system',
+          content: `Je bent een behulpzame assistent die ALTIJD in het Nederlands antwoordt. 
+Geef concrete bedrijfsnamen en aanbevelingen. 
+Focus op Nederlandse, specifieke bedrijven en dienstverleners.
+Vermeld concrete, Nederlandse, kleinere tot middelgrote bedrijfsnamen of specialistische dienstverleners.`
+        },
+        { role: 'user', content: promptText }
+      ],
+      max_tokens: 1000,
+    }),
+    signal: AbortSignal.timeout(25000),
   })
 
   if (!response.ok) throw new Error(`Perplexity API error ${response.status}`)
@@ -170,54 +186,125 @@ async function scanWithPerplexity(promptText, brandNames) {
   const content = data.choices?.[0]?.message?.content || ''
   const contentLower = content.toLowerCase()
 
-  // Check if ANY brand name variant appears in the response
+  // Check if ANY brand variant appears
   let mentioned = false
   let matchedTerm = null
-  for (const name of brandNames) {
-    if (contentLower.includes(name)) {
+  let mentionCount = 0
+
+  for (const variant of brandVariants) {
+    if (contentLower.includes(variant)) {
       mentioned = true
-      matchedTerm = name
-      break
+      if (!matchedTerm) matchedTerm = variant
+      // Count occurrences
+      const escaped = variant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const matches = content.match(new RegExp(escaped, 'gi'))
+      if (matches) mentionCount += matches.length
     }
   }
 
+  // Find position (which sentence)
   let position = null
   if (mentioned) {
     const sentences = content.split(/[.!?]\s+/)
     for (let i = 0; i < sentences.length; i++) {
       const sentLower = sentences[i].toLowerCase()
-      if (brandNames.some(n => sentLower.includes(n))) {
+      if (brandVariants.some(v => sentLower.includes(v))) {
         position = i + 1
         break
       }
     }
   }
 
+  // Extract snippet
   let snippet = null
   if (mentioned && matchedTerm) {
     const idx = contentLower.indexOf(matchedTerm)
     snippet = content.substring(Math.max(0, idx - 100), Math.min(content.length, idx + 200)).trim()
   }
 
-  // Extract competitor domains (excluding our own brand names)
+  // Extract competitor domains
   const competitors = []
   const urlPattern = /(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9-]+\.[a-zA-Z]{2,})/g
   let match
   while ((match = urlPattern.exec(content)) !== null) {
     const domain = match[1].toLowerCase()
-    const isOwn = brandNames.some(n => domain.includes(n) || n.includes(domain.split('.')[0]))
+    const isOwn = brandVariants.some(v => domain.includes(v) || v.includes(domain.split('.')[0]))
     if (!isOwn && !domain.includes('perplexity') && !domain.includes('wikipedia') && !competitors.includes(domain)) {
       competitors.push(domain)
     }
   }
 
   if (mentioned) {
-    console.log(`  ✅ "${promptText.substring(0, 50)}..." → mentioned (pos ${position}, matched: "${matchedTerm}")`)
+    console.log(`  ✅ "${promptText.substring(0, 60)}..." → ${mentionCount}x mentioned (pos ${position}, match: "${matchedTerm}")`)
   } else {
-    console.log(`  ❌ "${promptText.substring(0, 50)}..." → NOT mentioned`)
+    console.log(`  ❌ "${promptText.substring(0, 60)}..." → NOT mentioned`)
   }
 
-  return { mentioned, position, snippet, competitors: competitors.slice(0, 5) }
+  return { mentioned, position, snippet, competitors: competitors.slice(0, 5), mentionCount }
+}
+
+// ─── Recommendations ───
+
+function generateRecommendations(results, geoScore, language) {
+  const isNl = language === 'nl'
+  const recs = []
+  const mentionRate = results.filter(r => r.mentioned).length / Math.max(1, results.length)
+
+  if (mentionRate < 0.3) {
+    recs.push({
+      category: 'content', priority: 'high',
+      title: isNl ? 'Beantwoord zoekvragen direct in je eerste alinea' : 'Answer search questions directly in your first paragraph',
+      description: isNl ? 'AI-modellen citeren bij voorkeur content die de vraag direct beantwoordt.' : 'AI models prefer to cite content that directly answers the question.',
+    })
+  }
+
+  if (mentionRate < 0.5) {
+    recs.push({
+      category: 'content', priority: 'high',
+      title: isNl ? 'Voeg concrete feiten, cijfers en entiteiten toe' : 'Add concrete facts, numbers and entities',
+      description: isNl ? 'AI-zoekmachines geven voorkeur aan specifieke, verifieerbare informatie.' : 'AI search engines prefer specific, verifiable information.',
+    })
+  }
+
+  if (mentionRate < 0.7) {
+    recs.push({
+      category: 'schema', priority: 'high',
+      title: isNl ? 'Voeg FAQPage Schema markup toe' : 'Add FAQPage Schema markup',
+      description: isNl ? 'FAQ Schema helpt AI-modellen je content te begrijpen als antwoord op vragen.' : 'FAQ Schema helps AI models understand your content as question answers.',
+    })
+  }
+
+  recs.push({
+    category: 'technical', priority: 'medium',
+    title: isNl ? 'Controleer AI-crawler toegang in robots.txt' : 'Check AI crawler access in robots.txt',
+    description: isNl ? 'Zorg dat GPTBot en PerplexityBot niet geblokkeerd zijn.' : 'Ensure GPTBot and PerplexityBot are not blocked.',
+  })
+
+  if (geoScore < 60) {
+    recs.push({
+      category: 'content', priority: 'medium',
+      title: isNl ? 'Maak je bedrijfsnaam prominenter in de content' : 'Make your brand name more prominent in content',
+      description: isNl ? 'Vermeld je bedrijfsnaam meerdere keren en koppel het aan je expertise.' : 'Mention your brand multiple times and link it to your expertise.',
+    })
+  }
+
+  // Top competitors
+  const allCompetitors = results.flatMap(r => r.competitors || [])
+  const counts = {}
+  allCompetitors.forEach(c => { counts[c] = (counts[c] || 0) + 1 })
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
+  if (top) {
+    recs.push({
+      category: 'content', priority: 'medium',
+      title: isNl ? `Analyseer concurrent ${top[0]} (${top[1]}x genoemd)` : `Analyze competitor ${top[0]} (mentioned ${top[1]}x)`,
+      description: isNl ? `Bekijk welke content ${top[0]} inzet voor AI-zichtbaarheid.` : `Review what content ${top[0]} uses for AI visibility.`,
+    })
+  }
+
+  return recs.sort((a, b) => {
+    const p = { high: 0, medium: 1, low: 2 }
+    return p[a.priority] - p[b.priority]
+  })
 }
 
 function calculateGeoScore(results, platforms) {
