@@ -80,7 +80,7 @@ export async function POST(request) {
     const {
       website_id, page_url, page_path, post_id, language,
       title, h1, focus_keyword, content_excerpt, schema_types,
-      force,
+      location: wpLocation, force,
     } = body
 
     if (!website_id || !page_url) {
@@ -121,12 +121,12 @@ export async function POST(request) {
     // ─── Generate prompts with Claude ───
     const promptLimit = auth.data.limits.prompts_per_page || 3
 
-    // Detect location from WP content first, fallback to ScraperAPI (full page with footer)
+    // Detect location: settings > WP content > ScraperAPI
     const allText = `${title} ${h1} ${focus_keyword} ${content_excerpt}`.toLowerCase()
-    let scrapedLocation = detectLocation(allText)
+    let scrapedLocation = wpLocation || detectLocation(allText)
 
     if (!scrapedLocation && page_url) {
-      console.log(`📍 No location in WP content, trying ScraperAPI for: ${page_url}`)
+      console.log(`📍 No location in settings/content, trying ScraperAPI for: ${page_url}`)
       scrapedLocation = await detectLocationFromPage(page_url)
       if (scrapedLocation) console.log(`📍 ScraperAPI found location: ${scrapedLocation}`)
     }

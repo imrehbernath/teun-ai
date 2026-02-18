@@ -10,7 +10,7 @@ import { validateApiKey, checkScanLimit, incrementScanCount, supabase } from '@/
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY
 const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY
 
-export const maxDuration = 60
+export const maxDuration = 90
 export const dynamic = 'force-dynamic'
 
 export async function POST(request) {
@@ -23,7 +23,7 @@ export async function POST(request) {
     if (!scanLimit.allowed) return NextResponse.json({ error: 'Monthly scan limit reached.', used: scanLimit.used, limit: scanLimit.limit }, { status: 429 })
 
     const body = await request.json()
-    const { page_id, prompts, platforms, language, site_name: wpSiteName, brand_name: brandName } = body
+    const { page_id, prompts, platforms, language, site_name: wpSiteName, brand_name: brandName, location: wpLocation, brand_perception: doBrandPerception } = body
     if (!page_id || !prompts || prompts.length === 0) return NextResponse.json({ error: 'page_id and prompts are required' }, { status: 400 })
 
     const [websiteId, ...urlParts] = page_id.split(':')
@@ -42,24 +42,51 @@ export async function POST(request) {
     if (!pagePrompts || pagePrompts.length === 0) return NextResponse.json({ error: 'No prompts found. Run analyze first.' }, { status: 400 })
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // STEP 1: SCRAPE + ROBOTS + LLMS (parallel with Perplexity)
+    // STEP 1: SCRAPE + ROBOTS + LLMS + PERPLEXITY + BRAND PERCEPTION (all parallel)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const domain = (() => { try { return new URL(pageUrl).origin } catch { return '' } })()
 
+    // Determine brand for perception scan
+    const brandForPerception = brandName || wpSiteName || siteDomain.replace(/\.(nl|com|eu|org|net)$/i, '').replace(/[-_.]/g, ' ')
+    const locationForPrompts = wpLocation || null
+
+    // Brand perception prompts (only when requested)
+    const brandPerceptionPrompts = (doBrandPerception && brandForPerception) ? [
+      `Wat zijn ervaringen met ${brandForPerception}? Is het betrouwbaar?`,
+      `${brandForPerception} reviews en klachten`,
+      `Is ${brandForPerception}${locationForPrompts ? ' in ' + locationForPrompts : ''} een goed bedrijf? Bereikbaarheid en service?`,
+    ] : []
+    
+    if (doBrandPerception) console.log(`🏷️ Brand perception enabled for: ${brandForPerception}`)
+
     // Run EVERYTHING in parallel
-    const [html, robotsTxt, llmsTxt, ...perplexityResults] = await Promise.all([
+    const allPromises = [
       scrapePage(pageUrl),
       fetchTextFile(`${domain}/robots.txt`),
       fetchTextFile(`${domain}/llms.txt`),
       ...pagePrompts.map(p => scanWithPerplexity(p.prompt_text, brandVariants).catch(() => ({
         mentioned: false, position: null, snippet: null, competitors: [], mentionCount: 0, fullResponse: ''
-      })))
-    ])
+      }))),
+      ...brandPerceptionPrompts.map(p => scanBrandPerception(p, brandForPerception).catch(() => ({
+        prompt: p, sentiment: 'unknown', mentioned: false, response: '', signals: []
+      }))),
+    ]
+
+    const allResults = await Promise.all(allPromises)
+    const html = allResults[0]
+    const robotsTxt = allResults[1]
+    const llmsTxt = allResults[2]
+    const perplexityResults = allResults.slice(3, 3 + pagePrompts.length)
+    const brandPerceptionResults = allResults.slice(3 + pagePrompts.length)
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // STEP 2: ANALYZE HTML (rule-based, instant)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const extracted = html ? extractContent(html) : null
+    // Override location with settings value if available
+    if (extracted && wpLocation && !extracted.detectedLocation) {
+      extracted.detectedLocation = wpLocation
+    }
     const technicalChecks = extracted ? analyzeTechnical(extracted, robotsTxt, llmsTxt) : null
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -93,7 +120,7 @@ export async function POST(request) {
     await incrementScanCount(auth.data.keyId)
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // STEP 4: GEO SCORE + RECOMMENDATIONS
+    // STEP 4: GEO SCORE + RECOMMENDATIONS + BRAND PERCEPTION
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const mentionedResults = scanResults.filter(r => r.mentioned)
     const mentionRate = mentionedResults.length / Math.max(1, scanResults.length)
@@ -150,6 +177,7 @@ export async function POST(request) {
       } : null,
       competitors: topCompetitors.map(([name, count]) => ({ name, count })),
       recommendations,
+      brand_perception: brandPerceptionResults.length > 0 ? analyzeBrandPerception(brandPerceptionResults, brandForPerception) : null,
       scans_remaining: scanLimit.limit === -1 ? 'unlimited' : (scanLimit.limit - scanLimit.used - 1),
     })
 
@@ -479,6 +507,93 @@ async function scanWithPerplexity(promptText, brandVariants) {
 
   console.log(`  ${mentioned ? '✅' : '❌'} "${promptText.substring(0, 50)}..." → ${mentioned ? `${mentionCount}x` : 'NOT found'}`)
   return { mentioned, position, snippet, competitors: competitors.slice(0, 5), mentionCount, fullResponse: content.substring(0, 600) }
+}
+
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// BRAND PERCEPTION SCANNER
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+async function scanBrandPerception(prompt, brandName) {
+  if (!PERPLEXITY_API_KEY) throw new Error('No Perplexity key')
+  const response = await fetch('https://api.perplexity.ai/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${PERPLEXITY_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'sonar',
+      messages: [
+        { role: 'system', content: 'Je bent een behulpzame assistent die ALTIJD in het Nederlands antwoordt. Geef eerlijke, gebalanceerde informatie over bedrijven.' },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 800,
+    }),
+    signal: AbortSignal.timeout(25000),
+  })
+  if (!response.ok) throw new Error(`Perplexity ${response.status}`)
+  const data = await response.json()
+  const content = data.choices?.[0]?.message?.content || ''
+  const lower = content.toLowerCase()
+
+  // Detect if brand is mentioned
+  const mentioned = brandName ? lower.includes(brandName.toLowerCase()) : false
+
+  // Detect sentiment signals
+  const signals = []
+  const positiveWords = ['betrouwbaar', 'goed', 'uitstekend', 'professioneel', 'tevreden', 'aanrader', 'deskundig', 'snel', 'prettig', 'fijn', 'positief', 'hoge score', 'goede reviews', 'top', 'excellent']
+  const negativeWords = ['klachten', 'slecht', 'onbetrouwbaar', 'negatief', 'problemen', 'teleurgesteld', 'ontevreden', 'langzaam', 'duur', 'niet bereikbaar', 'slechte service', 'oplichting', 'waarschuwing']
+  const neutralWords = ['reviews', 'ervaringen', 'beoordelingen', 'meningen', 'gemiddeld']
+
+  let posCount = 0, negCount = 0
+  positiveWords.forEach(w => { if (lower.includes(w)) { posCount++; signals.push({ type: 'positive', word: w }) } })
+  negativeWords.forEach(w => { if (lower.includes(w)) { negCount++; signals.push({ type: 'negative', word: w }) } })
+
+  const sentiment = posCount > negCount ? 'positive' : negCount > posCount ? 'negative' : posCount > 0 ? 'mixed' : 'neutral'
+
+  // Extract specific aspects
+  const aspects = []
+  if (/bereikba|contact|telefoon|bellen/i.test(content)) aspects.push('bereikbaarheid')
+  if (/review|beoordeling|sterren|score|trustpilot|google reviews/i.test(content)) aspects.push('reviews')
+  if (/klacht|probleem|negatief|teleurgesteld/i.test(content)) aspects.push('klachten')
+  if (/service|klantenservice|helpdesk|support/i.test(content)) aspects.push('service')
+  if (/openingstijd|geopend|open|beschikbaar/i.test(content)) aspects.push('openingstijden')
+  if (/betrouwba|vertrouw|veilig|gecertificeerd/i.test(content)) aspects.push('betrouwbaarheid')
+  if (/prijs|kost|betaalbaar|duur|goedkoop|tarief/i.test(content)) aspects.push('prijs')
+  if (/snel|wachttijd|respons|reactietijd/i.test(content)) aspects.push('snelheid')
+
+  console.log(`  🏷️ Brand: "${prompt.substring(0, 50)}..." → ${sentiment} (${posCount}+/${negCount}-)`)
+  return { prompt, sentiment, mentioned, response: content.substring(0, 500), signals: signals.slice(0, 8), aspects, posCount, negCount }
+}
+
+function analyzeBrandPerception(results, brandName) {
+  if (!results || results.length === 0) return null
+
+  const totalPos = results.reduce((s, r) => s + (r.posCount || 0), 0)
+  const totalNeg = results.reduce((s, r) => s + (r.negCount || 0), 0)
+  const allAspects = [...new Set(results.flatMap(r => r.aspects || []))]
+  const overallSentiment = totalPos > totalNeg * 2 ? 'positive' : totalNeg > totalPos * 2 ? 'negative' : totalPos > 0 || totalNeg > 0 ? 'mixed' : 'unknown'
+
+  // Sentiment score 0-100
+  const total = totalPos + totalNeg
+  const sentimentScore = total > 0 ? Math.round((totalPos / total) * 100) : 50
+
+  const mentioned = results.some(r => r.mentioned)
+
+  return {
+    brand: brandName,
+    sentiment: overallSentiment,
+    sentiment_score: sentimentScore,
+    mentioned_in_perception: mentioned,
+    positive_signals: totalPos,
+    negative_signals: totalNeg,
+    aspects_found: allAspects,
+    results: results.map(r => ({
+      prompt: r.prompt,
+      sentiment: r.sentiment,
+      mentioned: r.mentioned,
+      response_excerpt: r.response,
+      aspects: r.aspects,
+    })),
+  }
 }
 
 
