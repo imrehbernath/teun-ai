@@ -25,6 +25,7 @@ export async function POST(request) {
     const {
       website_id, page_url, page_path, post_id, language,
       title, h1, focus_keyword, content_excerpt, schema_types,
+      force,
     } = body
 
     if (!website_id || !page_url) {
@@ -36,26 +37,30 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Website not found for this API key' }, { status: 403 })
     }
 
-    // ─── Check for existing prompts (24h cache) ───
-    const { data: existingPrompts } = await supabase
-      .from('page_prompts')
-      .select('*')
-      .eq('website_id', website_id)
-      .eq('page_url', page_url)
-      .eq('language', language || 'nl')
+    // ─── Check for existing prompts (24h cache, skip if force) ───
+    if (!force) {
+      const { data: existingPrompts } = await supabase
+        .from('page_prompts')
+        .select('*')
+        .eq('website_id', website_id)
+        .eq('page_url', page_url)
+        .eq('language', language || 'nl')
 
-    if (existingPrompts && existingPrompts.length > 0) {
-      const mostRecent = new Date(existingPrompts[0].updated_at)
-      const hoursSinceUpdate = (Date.now() - mostRecent.getTime()) / (1000 * 60 * 60)
+      if (existingPrompts && existingPrompts.length > 0) {
+        const mostRecent = new Date(existingPrompts[0].updated_at)
+        const hoursSinceUpdate = (Date.now() - mostRecent.getTime()) / (1000 * 60 * 60)
 
-      if (hoursSinceUpdate < 24) {
-        return NextResponse.json({
-          page_id: `${website_id}:${page_url}`,
-          matched_prompts: existingPrompts.map(formatPrompt),
-          suggested_prompts: [],
-          cached: true,
-        })
+        if (hoursSinceUpdate < 24) {
+          return NextResponse.json({
+            page_id: `${website_id}:${page_url}`,
+            matched_prompts: existingPrompts.map(formatPrompt),
+            suggested_prompts: [],
+            cached: true,
+          })
+        }
       }
+    } else {
+      console.log(`🔄 Force regenerate prompts for: ${page_url}`)
     }
 
     // ─── Generate prompts with Claude ───
