@@ -6,9 +6,11 @@
 
 import { NextResponse } from 'next/server'
 import { validateApiKey, checkScanLimit, incrementScanCount, supabase } from '@/lib/wp-plugin/auth'
+import Anthropic from '@anthropic-ai/sdk'
 
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY
 const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export const maxDuration = 90
 export const dynamic = 'force-dynamic'
@@ -89,6 +91,9 @@ export async function POST(request) {
     }
     const technicalChecks = extracted ? analyzeTechnical(extracted, robotsTxt, llmsTxt) : null
 
+    // Claude content analysis (parallel with Perplexity processing, no extra wait)
+    const contentAnalysisPromise = extracted ? analyzeContentWithClaude(extracted, pageUrl) : Promise.resolve(null)
+
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // STEP 3: PROCESS PERPLEXITY RESULTS
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -122,6 +127,9 @@ export async function POST(request) {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // STEP 4: GEO SCORE + RECOMMENDATIONS + BRAND PERCEPTION
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Await Claude content analysis (was running in background during Perplexity scans)
+    const contentAnalysis = await contentAnalysisPromise
+
     const mentionedResults = scanResults.filter(r => r.mentioned)
     const mentionRate = mentionedResults.length / Math.max(1, scanResults.length)
 
@@ -177,6 +185,7 @@ export async function POST(request) {
       } : null,
       competitors: topCompetitors.map(([name, count]) => ({ name, count })),
       recommendations,
+      content_analysis: contentAnalysis,
       brand_perception: brandPerceptionResults.length > 0 ? analyzeBrandPerception(brandPerceptionResults, brandForPerception) : null,
       scans_remaining: scanLimit.limit === -1 ? 'unlimited' : (scanLimit.limit - scanLimit.used - 1),
     })
@@ -495,15 +504,8 @@ async function scanWithPerplexity(promptText, brandVariants) {
     snippet = content.substring(Math.max(0, idx - 80), Math.min(content.length, idx + 180)).trim()
   }
 
-  // Extract competitor names from URLs
-  const competitors = []
-  const urlPattern = /(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9-]+\.[a-zA-Z]{2,})/g
-  let m
-  while ((m = urlPattern.exec(content)) !== null) {
-    const d = m[1].toLowerCase()
-    const isOwn = brandVariants.some(v => d.includes(v) || v.includes(d.split('.')[0]))
-    if (!isOwn && !d.includes('perplexity') && !d.includes('wikipedia') && !competitors.includes(d)) competitors.push(d)
-  }
+  // Extract competitor names from bold text + numbered lists (not URLs)
+  const competitors = extractCompetitorNames(content, brandVariants)
 
   console.log(`  ${mentioned ? '✅' : '❌'} "${promptText.substring(0, 50)}..." → ${mentioned ? `${mentionCount}x` : 'NOT found'}`)
   return { mentioned, position, snippet, competitors: competitors.slice(0, 5), mentionCount, fullResponse: content.substring(0, 600) }
@@ -623,6 +625,196 @@ function generateRecommendations(results, tech, ext, mentionRate, lang) {
   }
 
   return recs.sort((a, b) => ({ critical: 0, high: 1, medium: 2, low: 3 }[a.priority] - { critical: 0, high: 1, medium: 2, low: 3 }[b.priority]))
+}
+
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CLAUDE CONTENT ANALYSIS (GEO Audit style, 3 categories)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+async function analyzeContentWithClaude(extracted, pageUrl) {
+  try {
+    const headingText = (extracted.headings || []).slice(0, 10).map(h => `${h.level}: ${h.text}`).join(' | ')
+    const schemaText = (extracted.structuredDataTypes || []).join(', ') || 'Geen'
+
+    const message = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1500,
+      system: `Je bent een GEO (Generative Engine Optimization) expert. Analyseer webpagina's op AI-geschiktheid. Antwoord ALTIJD als pure JSON. Geen markdown, geen backticks, geen uitleg.`,
+      messages: [{
+        role: 'user',
+        content: `Analyseer deze pagina voor GEO-geschiktheid.
+
+URL: ${pageUrl}
+Title: ${extracted.title || ''}
+Meta description: ${extracted.description || ''}
+Headings: ${headingText}
+Woorden: ${extracted.wordCount || 0}
+Schema types: ${schemaText}
+
+Content:
+---
+${(extracted.bodyText || '').substring(0, 1500)}
+---
+
+Geef als JSON:
+{
+  "content_score": <0-100>,
+  "content_summary": "<1 zin beschrijving van content kwaliteit>",
+  "content_checks": [
+    {"name": "<checknaam>", "status": "good|warning|error", "detail": "<korte uitleg>", "priority": "hoog|middel|laag"}
+  ],
+  "citation_score": <0-100>,
+  "citation_summary": "<1 zin>",
+  "citation_checks": [
+    {"name": "<checknaam>", "status": "good|warning|error", "detail": "<korte uitleg>", "priority": "hoog|middel|laag"}
+  ],
+  "eat_score": <0-100>,
+  "eat_summary": "<1 zin>",
+  "eat_checks": [
+    {"name": "<checknaam>", "status": "good|warning|error", "detail": "<korte uitleg>", "priority": "hoog|middel|laag"}
+  ],
+  "top_recommendations": ["<concrete actie 1>", "<concrete actie 2>", "<concrete actie 3>"]
+}
+
+CONTENT checks (minimaal 4, specifiek voor deze pagina):
+- Directe antwoorden bovenaan de pagina?
+- Q&A formaat aanwezig?
+- Begrippen/termen uitgelegd?
+- Lijsten of gestructureerde informatie voor AI?
+- Taalgebruik: helder, informatief, bondig?
+
+CITATION checks (minimaal 3):
+- Unieke data: statistieken, cijfers, feiten aanwezig?
+- Expert claims of uitspraken?
+- Bedrijfsnaam duidelijk aanwezig?
+
+EAT checks (minimaal 3):
+- Auteur of bedrijfsprofiel zichtbaar?
+- Expertise signalen: certificeringen, ervaring, klanten?
+- Reviews of testimonials?
+- Contactinformatie beschikbaar?
+
+Geef TOP_RECOMMENDATIONS als concrete, specifieke acties voor DEZE pagina.
+ALLEEN JSON.`
+      }]
+    })
+
+    const text = message.content[0].text.trim()
+    const jsonStr = text.replace(/^```json[\r\n]*/g, '').replace(/```[\r\n]*$/g, '').trim()
+    const parsed = JSON.parse(jsonStr)
+
+    return {
+      categories: [
+        {
+          name: 'AI Content Kwaliteit',
+          slug: 'content',
+          score: parsed.content_score || 0,
+          icon: '📝',
+          summary: parsed.content_summary || '',
+          checks: parsed.content_checks || []
+        },
+        {
+          name: 'Citatie-potentieel',
+          slug: 'citation',
+          score: parsed.citation_score || 0,
+          icon: '🎯',
+          summary: parsed.citation_summary || '',
+          checks: parsed.citation_checks || []
+        },
+        {
+          name: 'E-E-A-T Signalen',
+          slug: 'eeat',
+          score: parsed.eat_score || 0,
+          icon: '🏆',
+          summary: parsed.eat_summary || '',
+          checks: parsed.eat_checks || []
+        }
+      ],
+      top_recommendations: parsed.top_recommendations || []
+    }
+
+  } catch (error) {
+    console.error('[Scan] Claude content analysis error:', error.message)
+    return null
+  }
+}
+
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// COMPETITOR NAME EXTRACTION (text-based, no URLs)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function cleanCompetitorName(raw) {
+  return raw
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')  // Strip markdown links
+    .replace(/https?:\/\/\S+/g, '')               // Strip URLs
+    .replace(/\*\*/g, '').replace(/[`_~]/g, '')   // Strip markdown
+    .replace(/\[\d+\]/g, '')                      // Strip citations [1]
+    .replace(/\s*·\s*.*/g, '')                     // Strip after ·
+    .replace(/\(\d+\s*(?:beoordelingen|reviews?)\)/gi, '')
+    .replace(/\(\s*\d+\s*\)/g, '')
+    .replace(/\b(Nu geopend|Gesloten|Tijdelijk gesloten)\b/gi, '')
+    .replace(/\d+[.,]\d+\s*★?/g, '').replace(/★+/g, '')
+    .replace(/\d{4}\s*[A-Z]{2}\b/g, '')
+    .replace(/\+?\d[\d\s\-]{8,}/g, '')
+    .replace(/^[\s·•\-–—:,;|()\[\]]+/, '')
+    .replace(/[\s·•\-–—:,;|()\[\]]+$/, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function extractCompetitorNames(text, brandVariants) {
+  const competitors = []
+  const seen = new Set()
+  const companyLower = (brandVariants[0] || '').toLowerCase()
+
+  const excludeList = new Set([
+    'google', 'facebook', 'instagram', 'linkedin', 'twitter', 'youtube',
+    'amazon', 'apple', 'microsoft', 'chatgpt', 'openai', 'anthropic', 'perplexity',
+    'wikipedia', 'trustpilot', 'thuiswinkel', 'kvk', 'rijksoverheid',
+    'nederland', 'netherlands', 'amsterdam', 'rotterdam', 'den haag', 'utrecht',
+    'eindhoven', 'groningen', 'maastricht', 'breda', 'tilburg', 'almere'
+  ])
+
+  // Pre-clean markdown links
+  const cleanedText = text.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+
+  function isValid(name) {
+    if (!name || name.length < 4 || name.length > 50) return false
+    const nl = name.toLowerCase()
+    const wc = name.split(/\s+/).length
+    return (
+      wc <= 5 &&
+      !nl.includes(companyLower) && !companyLower.includes(nl) &&
+      !excludeList.has(nl) && !seen.has(nl) &&
+      !/\?/.test(nl) &&
+      !/^(dit|deze|dat|die|er|het|de|een|als|voor|naar|van|met|bij|wat|wie|waar|hoe|welke|enkele|diverse|ook|meer|nog|veel|alle|andere)\s/i.test(name) &&
+      !/^(tip|stap|punt|optie|keuze|voordeel|nadeel|conclusie|samenvatting)\b/i.test(name) &&
+      /[a-zA-Z]/.test(name) &&
+      /^[A-Z0-9]/.test(name) &&
+      !/(\.(nl|com|org|net|be|de|eu))$/i.test(name) &&  // No domain names
+      !/^https?/i.test(name) &&
+      !/^www\./i.test(name)
+    )
+  }
+
+  // Pattern 1: **Bold names**
+  const boldPattern = /\*\*([^*]{3,60})\*\*/g
+  let m
+  while ((m = boldPattern.exec(cleanedText)) !== null) {
+    const name = cleanCompetitorName(m[1]).replace(/\s*[-–—:].*/, '').replace(/^\d+[.).]\s*/, '').trim()
+    if (isValid(name)) { seen.add(name.toLowerCase()); competitors.push(name) }
+  }
+
+  // Pattern 2: Numbered list items (1. Company Name)
+  const numberedPattern = /^\s*\d+[.)\-]\s*\**([^*\n]{2,60})/gm
+  while ((m = numberedPattern.exec(cleanedText)) !== null) {
+    const name = cleanCompetitorName(m[1]).replace(/\s*[-–—:].*/, '').trim()
+    if (isValid(name)) { seen.add(name.toLowerCase()); competitors.push(name) }
+  }
+
+  return competitors.slice(0, 6)
 }
 
 
