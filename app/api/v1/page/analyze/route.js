@@ -1,15 +1,15 @@
 // app/api/v1/page/analyze/route.js
-// Page Analysis & Prompt Matching Endpoint
+// Page Analysis & Prompt Matching — ULTIMATE VERSION
 //
-// Receives page signals from WordPress, generates relevant prompts
-// using AI, and stores the page-prompt mappings.
+// Uses Claude Sonnet (same engine as Teun.ai webapp) for
+// high-quality commercial prompt generation.
 
 import { NextResponse } from 'next/server'
 import { validateApiKey, supabase } from '@/lib/wp-plugin/auth'
-import OpenAI from 'openai'
+import Anthropic from '@anthropic-ai/sdk'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY
 })
 
 export async function POST(request) {
@@ -23,36 +23,20 @@ export async function POST(request) {
 
     const body = await request.json()
     const {
-      website_id,
-      page_url,
-      page_path,
-      post_id,
-      language,
-      title,
-      h1,
-      focus_keyword,
-      content_excerpt,
-      schema_types,
+      website_id, page_url, page_path, post_id, language,
+      title, h1, focus_keyword, content_excerpt, schema_types,
     } = body
 
-    // ─── Validate ───
     if (!website_id || !page_url) {
-      return NextResponse.json(
-        { error: 'website_id and page_url are required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'website_id and page_url are required' }, { status: 400 })
     }
 
-    // Verify website belongs to this API key
     const connection = auth.data.connections.find(c => c.website_id === website_id)
     if (!connection) {
-      return NextResponse.json(
-        { error: 'Website not found for this API key' },
-        { status: 403 }
-      )
+      return NextResponse.json({ error: 'Website not found for this API key' }, { status: 403 })
     }
 
-    // ─── Check for existing prompts ───
+    // ─── Check for existing prompts (24h cache) ───
     const { data: existingPrompts } = await supabase
       .from('page_prompts')
       .select('*')
@@ -60,7 +44,6 @@ export async function POST(request) {
       .eq('page_url', page_url)
       .eq('language', language || 'nl')
 
-    // If we already have prompts and they're recent (< 24h), return them
     if (existingPrompts && existingPrompts.length > 0) {
       const mostRecent = new Date(existingPrompts[0].updated_at)
       const hoursSinceUpdate = (Date.now() - mostRecent.getTime()) / (1000 * 60 * 60)
@@ -75,29 +58,28 @@ export async function POST(request) {
       }
     }
 
-    // ─── Generate prompts with AI ───
+    // ─── Generate prompts with Claude ───
     const promptLimit = auth.data.limits.prompts_per_page || 3
-    const generatedPrompts = await generatePrompts({
+    const generatedPrompts = await generatePromptsWithClaude({
       title,
       h1,
       focus_keyword,
       content_excerpt,
+      schema_types,
+      site_name: connection.site_name,
+      site_url: connection.site_url,
       language: language || 'nl',
-      limit: promptLimit + 3, // Generate a few extra for suggestions
+      limit: promptLimit + 3,
     })
 
     if (!generatedPrompts || generatedPrompts.length === 0) {
-      return NextResponse.json(
-        { error: 'Could not generate prompts for this page' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'Could not generate prompts for this page' }, { status: 500 })
     }
 
     // ─── Store matched prompts ───
     const matchedPrompts = generatedPrompts.slice(0, promptLimit)
     const suggestedPrompts = generatedPrompts.slice(promptLimit)
 
-    // Delete old auto-matched prompts (keep manual ones)
     await supabase
       .from('page_prompts')
       .delete()
@@ -105,7 +87,6 @@ export async function POST(request) {
       .eq('page_url', page_url)
       .eq('match_type', 'auto')
 
-    // Insert new prompts
     const promptsToInsert = matchedPrompts.map((prompt, index) => ({
       website_id,
       page_url,
@@ -119,16 +100,11 @@ export async function POST(request) {
 
     const { data: inserted, error: insertError } = await supabase
       .from('page_prompts')
-      .upsert(promptsToInsert, {
-        onConflict: 'website_id,page_url,prompt_text',
-      })
+      .upsert(promptsToInsert, { onConflict: 'website_id,page_url,prompt_text' })
       .select()
 
-    if (insertError) {
-      console.error('Error storing prompts:', insertError)
-    }
+    if (insertError) console.error('Error storing prompts:', insertError)
 
-    // ─── Also fetch any existing manual prompts ───
     const { data: manualPrompts } = await supabase
       .from('page_prompts')
       .select('*')
@@ -146,66 +122,145 @@ export async function POST(request) {
     return NextResponse.json({
       page_id: `${website_id}:${page_url}`,
       matched_prompts: allMatched,
-      suggested_prompts: suggestedPrompts.map(p => ({
-        text: p.text,
-        confidence: p.confidence,
-      })),
+      suggested_prompts: suggestedPrompts.map(p => ({ text: p.text, confidence: p.confidence })),
       cached: false,
     })
 
   } catch (error) {
     console.error('Page analyze error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-// ─── Prompt Generation with OpenAI ───
+// ─── ULTIMATE Prompt Generation with Claude Sonnet ───
 
-async function generatePrompts({ title, h1, focus_keyword, content_excerpt, language, limit }) {
-  const langLabel = language === 'nl' ? 'Dutch' : language === 'de' ? 'German' : language === 'fr' ? 'French' : 'English'
+async function generatePromptsWithClaude({
+  title, h1, focus_keyword, content_excerpt, schema_types,
+  site_name, site_url, language, limit,
+}) {
+  // Detect business context from page content
+  const contentLower = (content_excerpt || '').toLowerCase()
+  const titleLower = (title || '').toLowerCase()
+  const allText = `${title} ${h1} ${focus_keyword} ${content_excerpt}`.toLowerCase()
 
-  const systemPrompt = `You are an AI search query expert. Your job is to generate realistic search prompts that people would type into AI assistants like ChatGPT, Perplexity, or Google AI.
+  // Detect business type
+  const businessType = detectBusinessType(allText)
+  const audienceType = detectAudienceType(allText)
+  const coreActivity = detectCoreActivity(allText, businessType)
 
-These prompts should be:
-- In ${langLabel} language
-- Natural conversational queries (how people actually ask AI, not Google keyword style)
-- Relevant to the page content provided
-- A mix of informational, commercial, and local queries where applicable
-- Between 5-15 words each
+  const systemPrompt = `Jij genereert commerciële, klantgerichte zoekvragen die een potentiële klant zou stellen aan een AI-assistent (ChatGPT, Perplexity, Google AI) om **concrete bedrijven of aanbieders** te vinden.
 
-Return ONLY a JSON array of objects with "text" (the prompt) and "confidence" (0.0-1.0 relevance score).
-Example: [{"text": "beste tandarts voor implantaten Amsterdam", "confidence": 0.95}]
+**DOELGROEP: ${audienceType === 'B2C' ? 'CONSUMENTEN (B2C)' : audienceType === 'both' ? 'CONSUMENTEN + ZAKELIJK' : 'ZAKELIJK (B2B)'}**
+${audienceType === 'B2C' ? 'Vragen worden gesteld vanuit het perspectief van een PARTICULIER/CONSUMENT.' : audienceType === 'both' ? 'Mix vragen vanuit particulier EN zakelijk perspectief.' : 'Vragen worden gesteld vanuit zakelijk perspectief.'}
 
-Return exactly ${limit} prompts, sorted by confidence descending. No markdown, no explanation, just the JSON array.`
+**ABSOLUTE PRIORITEITEN:**
+1. **NATUURLIJKHEID**: Vragen klinken als ECHTE MENSEN die typen in ChatGPT
+2. **COMMERCIEEL**: Vragen leiden tot concrete bedrijfsnamen als antwoord
+3. **BEDRIJFSNEUTRAAL**: Vermeld NIET de naam "${site_name}" of het exacte merk
+4. **DOELGROEP-PASSEND**: Vragen passen bij het type klant
+5. **NEDERLANDS**: ALTIJD in het Nederlands
+
+${businessType === 'winkel' ? `
+🛒 **DIT IS EEN WINKEL** → Vragen moeten gaan over KOPEN/VINDEN, niet over installeren
+- ✅ "Waar kan ik goede [product] kopen?"
+- ❌ "Specialisten die [product] installeren" (FOUT!)` : ''}
+
+${businessType === 'juridisch' ? `
+⚖️ **JURIDISCH BEDRIJF** → Gebruik exacte juridische terminologie
+- ✅ "Kun je goede advocaten aanbevelen voor..."
+- ❌ "juridisch adviseurs" als het advocaten zijn` : ''}
+
+${businessType === 'zorg' ? `
+🏥 **ZORGBEDRIJF** → Gebruik medische/zorg terminologie
+- ✅ "Welke klinieken zijn gespecialiseerd in..."
+- ✅ "Kun je goede praktijken aanbevelen voor..."` : ''}
+
+${coreActivity ? `
+📌 **KERNACTIVITEIT: ${coreActivity}**
+- Als het bedrijf VERKOOPT → "Waar kan ik ... kopen?"
+- Als het bedrijf INSTALLEERT → "Welke bedrijven installeren...?"
+- Als het bedrijf ADVISEERT → "Welke specialisten adviseren over...?"
+- Als het bedrijf BEHANDELT → "Welke klinieken behandelen...?"` : ''}
+
+**VERBODEN:**
+- "Lijst ... op", "Geef voorbeelden van ..." (robotachtig)
+- Geforceerde keyword-combinaties
+- Onnatuurlijk Nederlands
+- Vragen die leiden tot zoekadvies i.p.v. bedrijfsnamen
+- Twee zoekwoorden combineren in één prompt
+- Synoniemen die het beroep VERANDEREN
+
+**VERPLICHT:**
+- Vragen die DIRECT om bedrijfsnamen vragen
+- Natuurlijke menselijke taal (lees hardop — klinkt het echt?)
+- Variatie in structuur: "Kun je...", "Welke...", "Noem...", "Ken je...", "Wat zijn..."
+- Focus op concrete aanbevelingen
+
+**GOEDE STARTPATRONEN:**
+${audienceType === 'B2C' ? `
+- "Waar kan ik goede [product/dienst] vinden?"
+- "Welke bedrijven raad je aan voor..."
+- "Kun je goede aanbieders aanbevelen voor..."
+- "Ken je bedrijven met goede reviews voor..."` : `
+- "Kun je goede bedrijven aanbevelen voor..."
+- "Welke specialisten hebben ervaring met..."
+- "Noem een paar gerenommeerde bureaus die..."
+- "Welke leveranciers raad je aan voor..."
+- "Heb je aanbevelingen voor bedrijven die..."`}
+
+**OUTPUT FORMAAT:**
+Exact ${limit} natuurlijke, commerciële vragen als JSON array.
+ALLEEN de array, geen extra tekst.
+
+[{"text": "vraag", "confidence": 0.95}, ...]`
 
   const pageContext = [
-    title && `Page title: ${title}`,
-    h1 && `H1: ${h1}`,
-    focus_keyword && `Focus keyword: ${focus_keyword}`,
-    content_excerpt && `Content excerpt: ${content_excerpt.substring(0, 800)}`,
-  ].filter(Boolean).join('\n')
+    title && `**PAGINA TITEL:** ${title}`,
+    h1 && `**H1 KOP:** ${h1}`,
+    focus_keyword && `**FOCUS ZOEKWOORD:** ${focus_keyword}`,
+    content_excerpt && `**CONTENT FRAGMENT:** ${content_excerpt.substring(0, 1500)}`,
+    schema_types?.length > 0 && `**SCHEMA TYPES:** ${schema_types.join(', ')}`,
+  ].filter(Boolean).join('\n\n')
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Generate AI search prompts for this page:\n\n${pageContext}` },
-      ],
-      temperature: 0.7,
-      max_tokens: 1000,
+    const message = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      system: systemPrompt,
+      messages: [{
+        role: 'user',
+        content: `Genereer ${limit} zeer specifieke, commercieel relevante zoekvragen voor deze pagina.
+
+${pageContext}
+
+${focus_keyword ? `
+**🚨 ZOEKWOORD INSTRUCTIE:**
+Het focus zoekwoord is "${focus_keyword}". 
+- Minimaal ${Math.min(limit, 5)} van de ${limit} prompts MOETEN dit zoekwoord (of een directe variant) bevatten
+- Gebruik het EXACT — geen synoniemen die de betekenis veranderen
+- Combineer NOOIT twee verschillende zoekwoorden in één prompt
+
+**TOEGESTANE VARIATIES:**
+- Enkelvoud ↔ meervoud
+- Met/zonder type-aanduiding (advocaat ↔ advocatenkantoor)
+` : ''}
+
+**KRITIEKE VEREISTEN:**
+1. Commerciële focus — vragen leiden tot concrete bedrijfsnamen
+2. Natuurlijke taal — klinkt als echte mensen
+3. Bedrijfsneutraal — geen "${site_name}" noemen
+4. Variatie — verschillende startwoorden en structuren
+
+GEEF ALLEEN DE JSON ARRAY TERUG, GEEN EXTRA TEKST.`
+      }]
     })
 
-    const content = completion.choices[0]?.message?.content?.trim()
-    if (!content) return []
+    const responseText = message.content[0]?.type === 'text' ? message.content[0].text : ''
+    let cleaned = responseText.trim()
+    if (cleaned.startsWith('```json')) cleaned = cleaned.replace(/^```json\n?/, '').replace(/\n?```$/, '')
+    else if (cleaned.startsWith('```')) cleaned = cleaned.replace(/^```\n?/, '').replace(/\n?```$/, '')
 
-    // Parse JSON (handle potential markdown wrapping)
-    const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     const prompts = JSON.parse(cleaned)
-
     if (!Array.isArray(prompts)) return []
 
     return prompts
@@ -216,46 +271,68 @@ Return exactly ${limit} prompts, sorted by confidence descending. No markdown, n
       }))
 
   } catch (error) {
-    console.error('OpenAI prompt generation error:', error)
-    
-    // Fallback: generate basic prompts from title/keyword
+    console.error('Claude prompt generation error:', error)
+    // Fallback to basic prompts
     return generateFallbackPrompts({ title, h1, focus_keyword, language, limit })
   }
 }
 
-// ─── Fallback when AI is unavailable ───
+// ─── Business context detection from page content ───
+
+function detectBusinessType(text) {
+  if (/advocat|juridisch|notaris|recht/i.test(text)) return 'juridisch'
+  if (/kliniek|praktijk|behandel|therapie|zorg|arts|tandarts|fysiotherap/i.test(text)) return 'zorg'
+  if (/winkel|shop|kopen|bestellen|assortiment|collectie|webshop/i.test(text)) return 'winkel'
+  if (/restaurant|café|hotel|horeca|catering/i.test(text)) return 'horeca'
+  if (/installat|monteren|aansluiten|plaatsen/i.test(text)) return 'ambacht'
+  if (/bureau|agency|advies|consult|strategie/i.test(text)) return 'dienstverlener'
+  return 'overig'
+}
+
+function detectAudienceType(text) {
+  const b2cSignals = /particulier|consument|thuis|gezin|persoonlijk|klant|bezoeker/i.test(text)
+  const b2bSignals = /zakelijk|bedrijven|b2b|enterprise|organisatie|mkb|onderneming/i.test(text)
+  if (b2cSignals && b2bSignals) return 'both'
+  if (b2cSignals) return 'B2C'
+  if (b2bSignals) return 'B2B'
+  return 'B2B' // Default for most service businesses
+}
+
+function detectCoreActivity(text, businessType) {
+  if (businessType === 'winkel') return 'verkoopt'
+  if (businessType === 'ambacht') return 'installeert'
+  if (businessType === 'juridisch') return 'adviseert'
+  if (businessType === 'zorg') return 'behandelt'
+  if (businessType === 'horeca') return 'verzorgt'
+  if (/installeert|installatie|monteren/i.test(text)) return 'installeert'
+  if (/verkoopt|verkoop|kopen/i.test(text)) return 'verkoopt'
+  if (/adviseert|advies|consult/i.test(text)) return 'adviseert'
+  if (/maakt|ontwerpt|bouwt/i.test(text)) return 'maakt'
+  return 'levert'
+}
+
+// ─── Fallback prompts ───
 
 function generateFallbackPrompts({ title, h1, focus_keyword, language, limit }) {
-  const baseQuery = focus_keyword || h1 || title || ''
-  if (!baseQuery) return []
+  const base = focus_keyword || h1 || title || ''
+  if (!base) return []
 
-  const isNl = language === 'nl'
-
-  const templates = isNl
-    ? [
-        `beste ${baseQuery}`,
-        `wat is ${baseQuery}`,
-        `${baseQuery} ervaringen`,
-        `${baseQuery} kosten`,
-        `${baseQuery} vergelijken`,
-        `waar vind ik ${baseQuery}`,
-      ]
-    : [
-        `best ${baseQuery}`,
-        `what is ${baseQuery}`,
-        `${baseQuery} reviews`,
-        `${baseQuery} cost`,
-        `${baseQuery} comparison`,
-        `where to find ${baseQuery}`,
-      ]
+  const templates = [
+    `Kun je goede ${base} bedrijven aanbevelen?`,
+    `Welke ${base} specialisten hebben de beste reviews?`,
+    `Wat zijn betrouwbare ${base} aanbieders?`,
+    `Ken je ervaren ${base} bedrijven?`,
+    `Welke ${base} partijen raad je aan?`,
+    `Heb je aanbevelingen voor ${base}?`,
+  ]
 
   return templates.slice(0, limit).map((text, i) => ({
     text,
-    confidence: 0.6 - i * 0.05,
+    confidence: 0.7 - i * 0.05,
   }))
 }
 
-// ─── Format prompt for API response ───
+// ─── Format ───
 
 function formatPrompt(prompt) {
   return {
