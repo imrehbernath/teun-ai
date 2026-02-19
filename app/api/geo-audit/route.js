@@ -256,6 +256,7 @@ export async function POST(request) {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // STEP 0: RESOLVE URL (follow redirects, normalize)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    console.log('[GEO Audit] Step 0: Resolving URL:', normalizedUrl)
     normalizedUrl = await resolveUrl(normalizedUrl)
 
     const urlObj = new URL(normalizedUrl)
@@ -278,6 +279,7 @@ export async function POST(request) {
     }
 
     const html = await scrapeResponse.text()
+    console.log(`[GEO Audit] Step 1 OK: Scraped ${html.length} chars`)
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // LANGUAGE CHECK — alleen Nederlandse websites
@@ -323,6 +325,7 @@ export async function POST(request) {
     // STEP 2: EXTRACT CONTENT
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const extracted = extractContent(html)
+    console.log(`[GEO Audit] Step 2 OK: Extracted - title="${extracted.title?.substring(0, 50)}", words=${extracted.wordCount}, schema=${extracted.structuredDataTypes.join(',')}`)
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // STEP 3: CHECK ROBOTS.TXT + LLMS.TXT + CWV (parallel)
@@ -332,6 +335,7 @@ export async function POST(request) {
       fetchTextFile(`${resolvedDomain}/llms.txt`),
       fetchCoreWebVitals(normalizedUrl)
     ])
+    console.log(`[GEO Audit] Step 3 OK: robots=${!!robotsTxt}, llms=${!!llmsTxt}, cwv=${!!coreWebVitals}`)
 
     // Rich snippet analysis
     const richSnippets = analyzeRichSnippets(extracted.structuredData, extracted.structuredDataTypes)
@@ -340,17 +344,21 @@ export async function POST(request) {
     // STEP 4: TECHNICAL CHECKS (rule-based, instant)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const technicalChecks = analyzeTechnical(extracted, robotsTxt, llmsTxt, coreWebVitals, richSnippets)
+    console.log(`[GEO Audit] Step 4 OK: Technical score=${technicalChecks.score}`)
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // STEP 5: AI CONTENT ANALYSIS (Claude)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    console.log('[GEO Audit] Step 5: Calling Claude...')
     const aiAnalysis = await analyzeContentWithClaude(extracted, resolvedHostname, normalizedUrl)
+    console.log(`[GEO Audit] Step 5 OK: contentScore=${aiAnalysis.contentScore}, prompt="${aiAnalysis.generatedPrompt?.substring(0, 60)}"`)
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // STEP 6: LIVE PERPLEXITY TEST 🔥
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     let liveTest = null
     if (aiAnalysis?.generatedPrompt) {
+      console.log('[GEO Audit] Step 6: Testing on Perplexity...')
       liveTest = await testPromptOnPerplexity(
         aiAnalysis.generatedPrompt,
         aiAnalysis.companyName || resolvedHostname,
@@ -361,6 +369,7 @@ export async function POST(request) {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // COMBINE SCORES
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    console.log(`[GEO Audit] Step 6 OK: liveTest=${liveTest ? `mentioned=${liveTest.mentioned}` : 'null'}`)
     // Live test weegt 15% mee in de score
     const liveTestScore = liveTest 
       ? (liveTest.mentioned ? 100 : 15) 
@@ -387,6 +396,7 @@ export async function POST(request) {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // RESPONSE
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    console.log(`[GEO Audit] ✅ SUCCESS: ${normalizedUrl} — score=${overallScore}`)
     return NextResponse.json({
       success: true,
       url: normalizedUrl,
@@ -469,9 +479,32 @@ export async function POST(request) {
     })
 
   } catch (error) {
-    console.error('[GEO Audit] Error:', error)
+    console.error('[GEO Audit] Error:', error?.message || error, error?.stack?.substring(0, 500))
+    
+    // Specifieke foutmeldingen op basis van error type
+    const msg = error?.message || ''
+    if (msg.includes('fetch') || msg.includes('ECONNREFUSED') || msg.includes('timeout')) {
+      return NextResponse.json({
+        error: 'Kon de pagina niet bereiken. Controleer of de URL correct en toegankelijk is.',
+        debug: msg.substring(0, 200)
+      }, { status: 400 })
+    }
+    if (msg.includes('Invalid URL') || msg.includes('URL')) {
+      return NextResponse.json({
+        error: 'Ongeldige URL. Controleer het formaat (bijv. https://voorbeeld.nl).',
+        debug: msg.substring(0, 200)
+      }, { status: 400 })
+    }
+    if (msg.includes('API') || msg.includes('401') || msg.includes('403') || msg.includes('429')) {
+      return NextResponse.json({
+        error: 'Er is een tijdelijk probleem met onze dienst. Probeer het over een paar minuten opnieuw.',
+        debug: msg.substring(0, 200)
+      }, { status: 503 })
+    }
+    
     return NextResponse.json({
-      error: 'Er ging iets mis bij het analyseren. Probeer het opnieuw.'
+      error: 'Er ging iets mis bij het analyseren. Probeer het opnieuw.',
+      debug: msg.substring(0, 200)
     }, { status: 500 })
   }
 }
