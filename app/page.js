@@ -83,7 +83,11 @@ export default function Home() {
         },
         "parentOrganization": {
           "@id": "https://www.onlinelabs.nl/#organization"
-        }
+        },
+        "sameAs": [
+          "https://profiles.wordpress.org/teunai/",
+          "https://chromewebstore.google.com/detail/teunai-chatgpt-visibility/jjhjnmkanlmjhmobcgemjakkjdbkkfmk"
+        ]
       },
       {
         "@type": "WebSite",
@@ -121,6 +125,7 @@ export default function Home() {
         "name": "Teun.ai AI Visibility Scanner",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Web",
+        "url": `${siteUrl}`,
         "offers": {
           "@type": "Offer",
           "price": "0",
@@ -128,6 +133,39 @@ export default function Home() {
           "description": "2 gratis scans per maand"
         },
         "description": "Scan hoe zichtbaar jouw bedrijf is in AI-zoekmachines zoals ChatGPT, Perplexity, Claude en Gemini.",
+        "provider": {
+          "@id": `${siteUrl}/#organization`
+        }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "Teun.ai ChatGPT Visibility Checker",
+        "applicationCategory": "BrowserApplication",
+        "operatingSystem": "Chrome",
+        "url": "https://chromewebstore.google.com/detail/teunai-chatgpt-visibility/jjhjnmkanlmjhmobcgemjakkjdbkkfmk",
+        "installUrl": "https://chromewebstore.google.com/detail/teunai-chatgpt-visibility/jjhjnmkanlmjhmobcgemjakkjdbkkfmk",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "EUR"
+        },
+        "description": "Chrome extensie die direct in ChatGPT laat zien of jouw bedrijf wordt genoemd in AI-antwoorden.",
+        "provider": {
+          "@id": `${siteUrl}/#organization`
+        }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "Teun.ai GEO — AI Visibility Optimizer",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "WordPress",
+        "url": "https://profiles.wordpress.org/teunai/",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "EUR"
+        },
+        "description": "WordPress plugin voor GEO-analyse. Meet hoe AI-klaar je pagina's zijn voor ChatGPT, Perplexity en Google AI Overviews.",
         "provider": {
           "@id": `${siteUrl}/#organization`
         }
