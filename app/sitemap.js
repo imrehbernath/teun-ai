@@ -53,7 +53,36 @@ export default async function sitemap() {
     { path: '/tools/ai-rank-tracker', changeFrequency: 'weekly', priority: 0.8 },
     { path: '/tools/geo-audit', changeFrequency: 'weekly', priority: 0.8 },
     { path: '/login', changeFrequency: 'monthly', priority: 0.4 },
-    { path: '/privacyverklaring', changeFrequency: 'monthly', priority: 0.3 },
+  ];
+
+  // Privacy page has different slugs per language
+  const privacyPages = [
+    {
+      url: `${siteUrl}/privacyverklaring`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.3,
+      alternates: {
+        languages: {
+          nl: `${siteUrl}/privacyverklaring`,
+          en: `${siteUrl}/en/privacy`,
+          'x-default': `${siteUrl}/privacyverklaring`,
+        },
+      },
+    },
+    {
+      url: `${siteUrl}/en/privacy`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.3,
+      alternates: {
+        languages: {
+          nl: `${siteUrl}/privacyverklaring`,
+          en: `${siteUrl}/en/privacy`,
+          'x-default': `${siteUrl}/privacyverklaring`,
+        },
+      },
+    },
   ];
 
   const staticPages = multiLangPages.flatMap((page) => [
@@ -100,5 +129,5 @@ export default async function sitemap() {
     alternates: nlOnlyAlternates(`/${post.slug}`),
   }));
 
-  return [...staticPages, ...nlOnlyPages, ...blogPages];
+  return [...staticPages, ...privacyPages, ...nlOnlyPages, ...blogPages];
 }
