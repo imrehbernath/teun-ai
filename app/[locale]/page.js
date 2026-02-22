@@ -163,7 +163,7 @@ export default async function Home({ params }) {
       },
       {
         "@type": "SoftwareApplication",
-        "name": "Teun.ai AI Visibility Scanner",
+        "name": locale === 'nl' ? "Teun.ai AI Zichtbaarheid Scanner" : "Teun.ai AI Visibility Scanner",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Web",
         "offers": {
@@ -181,7 +181,7 @@ export default async function Home({ params }) {
       },
       {
         "@type": "SoftwareApplication",
-        "name": "Teun.ai ChatGPT Visibility Checker",
+        "name": locale === 'nl' ? "Teun.ai ChatGPT Zichtbaarheid Checker" : "Teun.ai ChatGPT Visibility Checker",
         "applicationCategory": "BrowserApplication",
         "operatingSystem": "Chrome",
         "url": "https://chromewebstore.google.com/detail/teunai-chatgpt-visibility/jjhjnmkanlmjhmobcgemjakkjdbkkfmk",
@@ -197,7 +197,7 @@ export default async function Home({ params }) {
       },
       {
         "@type": "SoftwareApplication",
-        "name": "Teun.ai GEO — AI Visibility Optimizer",
+        "name": locale === 'nl' ? "Teun.ai GEO — AI Zichtbaarheid Optimizer" : "Teun.ai GEO — AI Visibility Optimizer",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "WordPress",
         "url": "https://profiles.wordpress.org/teunai/",
