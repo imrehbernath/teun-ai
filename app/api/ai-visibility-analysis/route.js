@@ -266,7 +266,7 @@ function parseHtmlContent(html) {
 // ============================================
 // ✨ ANALYZE WEBSITE WITH CLAUDE
 // ============================================
-async function analyzeWebsiteForKeywords(websiteUrl, companyName, companyCategory) {
+async function analyzeWebsiteForKeywords(websiteUrl, companyName, companyCategory, isNL = true) {
   try {
     // Step 1: Scrape the website
     const scrapeResult = await scrapeWebsite(websiteUrl)
@@ -281,7 +281,8 @@ async function analyzeWebsiteForKeywords(websiteUrl, companyName, companyCategor
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
-      system: `Je bent een expert in het analyseren van websites voor zoekwoord-extractie en commerciële intentie.
+      system: isNL 
+        ? `Je bent een expert in het analyseren van websites voor zoekwoord-extractie en commerciële intentie.
 Je analyseert websites om te begrijpen:
 1. Welke diensten/producten het bedrijf aanbiedt
 2. Wat hun USPs (unique selling points) zijn
@@ -291,10 +292,28 @@ Je analyseert websites om te begrijpen:
 Let EXTRA op menu-items en navigatie — daar staan vaak de kernactiviteiten.
 Diensten-pagina's en H3-koppen bevatten vaak de beste zoekwoorden.
 
-Antwoord ALTIJD in het Nederlands. Wees CONCREET en SPECIFIEK.`,
+Antwoord ALTIJD in het Nederlands. Wees CONCREET en SPECIFIEK.`
+        : `You are an expert at analyzing websites for keyword extraction and commercial intent.
+You analyze websites to understand:
+1. What services/products the company offers
+2. What their USPs (unique selling points) are
+3. What keywords potential customers would use
+4. What their geographic focus is
+
+Pay EXTRA attention to menu items and navigation — core activities are often listed there.
+Service pages and H3 headings often contain the best keywords.
+
+ALWAYS respond in English. Be CONCRETE and SPECIFIC.
+
+CRITICAL: The website content may be in a non-English language (e.g., Dutch, German, French).
+You MUST translate ALL keywords, services, and USPs to their ENGLISH equivalents.
+Examples: "zoekmachineoptimalisatie" → "SEO", "Google Ads beheer" → "Google Ads management",
+"webdesign bureau" → "web design agency", "linkbuilding" → "link building".
+Use the terms that English-speaking customers would actually search for.`,
       messages: [{
         role: 'user',
-        content: `Analyseer deze website-informatie voor "${companyName}" (branche: ${companyCategory}):
+        content: isNL 
+          ? `Analyseer deze website-informatie voor "${companyName}" (branche: ${companyCategory}):
 
 **META TITEL:** ${parsed.title || 'Niet gevonden'}
 
@@ -341,6 +360,54 @@ BELANGRIJKE REGELS:
 - Alles in het Nederlands
 
 Geef ALLEEN de JSON terug, geen extra tekst.`
+          : `Analyze this website information for "${companyName}" (industry: ${companyCategory}):
+
+**META TITLE:** ${parsed.title || 'Not found'}
+
+**META DESCRIPTION:** ${parsed.metaDescription || 'Not found'}
+
+**H1 HEADINGS:** ${parsed.h1s.length > 0 ? parsed.h1s.join(' | ') : 'Not found'}
+
+**H2 HEADINGS:** ${parsed.h2s.length > 0 ? parsed.h2s.join(' | ') : 'Not found'}
+
+**H3 HEADINGS:** ${parsed.h3s?.length > 0 ? parsed.h3s.join(' | ') : 'Not found'}
+
+**NAVIGATION/MENU ITEMS:** ${parsed.navItems?.length > 0 ? parsed.navItems.join(' | ') : 'Not found'}
+
+**SERVICE/PRODUCT LINKS:** ${parsed.serviceLinks?.length > 0 ? parsed.serviceLinks.join(' | ') : 'Not found'}
+
+**PAGE CONTENT (excerpt):** ${parsed.bodyContent.slice(0, 1500)}
+
+---
+
+Provide your analysis in EXACTLY this JSON format:
+
+{
+  "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5", "keyword6", "keyword7", "keyword8", "keyword9", "keyword10"],
+  "services": ["service1", "service2", "service3"],
+  "usps": ["usp1", "usp2"],
+  "location": "location or region focus (or null)",
+  "targetAudience": "target audience description",
+  "businessType": "shop|service_provider|craft|manufacturer|hospitality|healthcare|legal|financial|education|other",
+  "audienceType": "B2C|B2B|both",
+  "coreActivity": "sells|installs|advises|treats|repairs|designs|makes|delivers|provides"
+}
+
+IMPORTANT RULES:
+- keywords: provide EXACTLY 10 commercial keywords that potential customers would use
+- Extract keywords from: menu items, service links, H1/H2/H3 headings, meta description
+- Focus on keywords that do NOT contain the company name
+- Think from the customer's perspective: what would someone type when looking for this business?
+- Mix short (1-2 words) and longer (2-4 words) keywords
+- services: concrete services/products the company offers (extract from nav and H2/H3)
+- usps: unique selling points
+- businessType: choose the MOST fitting type
+- audienceType: B2C if consumer-facing, B2B if business-facing, both if applicable
+- coreActivity: what does the company primarily DO? A lamp shop SELLS, an installer INSTALLS, a lawyer ADVISES
+- Everything in English
+- CRITICAL: If the website is in another language, TRANSLATE all keywords to English equivalents that English-speaking searchers would use
+
+Return ONLY the JSON, no additional text.`
       }]
     })
     
@@ -388,19 +455,22 @@ export async function POST(request) {
       customTerms = null,
       customPrompts = null,  // ✨ Pre-made prompts from dashboard edit
       websiteUrl = null,     // ✨ Website URL for smart analysis
-      serviceArea = null     // ✨ Servicegebied voor lokale AI-resultaten
+      serviceArea = null,    // ✨ Servicegebied voor lokale AI-resultaten
+      locale = 'nl'          // ✨ i18n: 'nl' or 'en'
     } = body
+
+    const isNL = locale === 'nl'
 
     if (!companyName?.trim()) {
       return NextResponse.json(
-        { error: 'Bedrijfsnaam is verplicht' }, 
+        { error: isNL ? 'Bedrijfsnaam is verplicht' : 'Company name is required' }, 
         { status: 400 }
       )
     }
 
     if (companyName.trim().length < 3) {
       return NextResponse.json(
-        { error: 'Bedrijfsnaam moet minimaal 3 tekens zijn' }, 
+        { error: isNL ? 'Bedrijfsnaam moet minimaal 3 tekens zijn' : 'Company name must be at least 3 characters' }, 
         { status: 400 }
       )
     }
@@ -411,21 +481,21 @@ export async function POST(request) {
     ]
     if (BLOCKED_COMPANIES.includes(companyName.trim().toLowerCase())) {
       return NextResponse.json(
-        { error: 'Er is een probleem opgetreden. Neem contact op via hallo@onlinelabs.nl' },
+        { error: isNL ? 'Er is een probleem opgetreden. Neem contact op via hallo@onlinelabs.nl' : 'An error occurred. Please contact hallo@onlinelabs.nl' },
         { status: 403 }
       )
     }
 
     if (!companyCategory?.trim() || companyCategory.trim().length < 3) {
       return NextResponse.json(
-        { error: 'Categorie/branche moet minimaal 3 tekens zijn' }, 
+        { error: isNL ? 'Categorie/branche moet minimaal 3 tekens zijn' : 'Category/industry must be at least 3 characters' }, 
         { status: 400 }
       )
     }
 
     if (!websiteUrl?.trim()) {
       return NextResponse.json(
-        { error: 'Website URL is verplicht' }, 
+        { error: isNL ? 'Website URL is verplicht' : 'Website URL is required' }, 
         { status: 400 }
       )
     }
@@ -439,7 +509,7 @@ export async function POST(request) {
     const tld = urlForTldCheck.split('.').pop()
     if (!tld || tld.length < 2) {
       return NextResponse.json(
-        { error: 'Vul een geldige website URL in met een correcte domeinextensie (bijv. .nl of .com)' },
+        { error: isNL ? 'Vul een geldige website URL in met een correcte domeinextensie (bijv. .nl of .com)' : 'Enter a valid website URL with a correct domain extension (e.g. .com or .co.uk)' },
         { status: 400 }
       )
     }
@@ -480,7 +550,7 @@ export async function POST(request) {
     if (websiteUrl && websiteUrl.trim()) {
       console.log('🌐 Website URL provided, starting smart analysis...')
       try {
-        websiteAnalysis = await analyzeWebsiteForKeywords(websiteUrl, companyName, companyCategory)
+        websiteAnalysis = await analyzeWebsiteForKeywords(websiteUrl, companyName, companyCategory, isNL)
         if (websiteAnalysis.success) {
           console.log(`✅ Website analysis complete: ${websiteAnalysis.keywords.length} keywords extracted`)
           
@@ -533,7 +603,8 @@ export async function POST(request) {
         companyCategory,
         enhancedKeywords,
         customTerms,
-        websiteAnalysis  // Pass website analysis for extra context
+        websiteAnalysis,  // Pass website analysis for extra context
+        isNL              // ✨ i18n
       )
 
       if (!promptGenerationResult.success) {
@@ -576,8 +647,8 @@ export async function POST(request) {
       }
       
       const [perplexityResult, chatgptResult] = await Promise.all([
-        analyzeWithPerplexity(prompt, companyName),
-        analyzeWithChatGPT(chatgptPrompt, companyName, serviceArea)
+        analyzeWithPerplexity(prompt, companyName, isNL),
+        analyzeWithChatGPT(chatgptPrompt, companyName, serviceArea, isNL)
       ])
       
       // Perplexity result (backwards compatible)
@@ -588,7 +659,7 @@ export async function POST(request) {
           company_mentioned: false,
           mentions_count: 0,
           competitors_mentioned: [],
-          simulated_ai_response_snippet: perplexityResult.error || 'Analyse mislukt',
+          simulated_ai_response_snippet: perplexityResult.error || (isNL ? 'Analyse mislukt' : 'Analysis failed'),
           error: perplexityResult.error
         })
       })
@@ -605,7 +676,7 @@ export async function POST(request) {
           company_mentioned: false,
           mentions_count: 0,
           competitors_mentioned: [],
-          simulated_ai_response_snippet: chatgptResult.error || 'ChatGPT analyse mislukt',
+          simulated_ai_response_snippet: chatgptResult.error || (isNL ? 'ChatGPT analyse mislukt' : 'ChatGPT analysis failed'),
           error: chatgptResult.error
         })
       })
@@ -711,15 +782,15 @@ export async function POST(request) {
           coreActivity: websiteAnalysis.coreActivity
         } : null,
         betaMessage: userId 
-          ? `Je hebt nog ${updatedCheck.scansRemaining} scans deze maand!` 
-          : `Maak een gratis account voor ${BETA_CONFIG.TOOLS['ai-visibility'].limits.authenticated} scans per maand`
+          ? (isNL ? `Je hebt nog ${updatedCheck.scansRemaining} scans deze maand!` : `You have ${updatedCheck.scansRemaining} scans remaining this month!`)
+          : (isNL ? `Maak een gratis account voor ${BETA_CONFIG.TOOLS['ai-visibility'].limits.authenticated} scans per maand` : `Create a free account for ${BETA_CONFIG.TOOLS['ai-visibility'].limits.authenticated} scans per month`)
       }
     })
 
   } catch (error) {
     console.error('❌ API Error:', error)
     return NextResponse.json(
-      { error: 'Server error bij AI-analyse' },
+      { error: isNL ? 'Server error bij AI-analyse' : 'Server error during AI analysis' },
       { status: 500 }
     )
   }
@@ -734,7 +805,8 @@ async function generatePromptsWithClaude(
   companyCategory, 
   queries,
   customTerms = null,
-  websiteAnalysis = null  // ✨ NEW: Website analysis for better prompts
+  websiteAnalysis = null,  // ✨ Website analysis for better prompts
+  isNL = true              // ✨ i18n
 ) {
   const primaryKeyword = queries.length > 0 ? queries[0] : null
   
@@ -743,25 +815,28 @@ async function generatePromptsWithClaude(
   // ============================================
   let websiteContext = '';
   if (websiteAnalysis && websiteAnalysis.success) {
-    websiteContext = `
+    const nf = isNL ? 'Niet gedetecteerd' : 'Not detected'
+    const ns = isNL ? 'Niet specifiek' : 'Not specific'
+    websiteContext = isNL 
+      ? `
 
 **🌐 WEBSITE ANALYSE - GEBRUIK DEZE CONTEXT:**
 
 **DIENSTEN/PRODUCTEN:**
-${websiteAnalysis.services?.length > 0 ? websiteAnalysis.services.map(s => `- ${s}`).join('\n') : 'Niet gedetecteerd'}
+${websiteAnalysis.services?.length > 0 ? websiteAnalysis.services.map(s => `- ${s}`).join('\n') : nf}
 
 **UNIQUE SELLING POINTS:**
-${websiteAnalysis.usps?.length > 0 ? websiteAnalysis.usps.map(u => `- ${u}`).join('\n') : 'Niet gedetecteerd'}
+${websiteAnalysis.usps?.length > 0 ? websiteAnalysis.usps.map(u => `- ${u}`).join('\n') : nf}
 
-**DOELGROEP:** ${websiteAnalysis.targetAudience || 'Niet gedetecteerd'}
+**DOELGROEP:** ${websiteAnalysis.targetAudience || nf}
 
-**BEDRIJFSTYPE:** ${websiteAnalysis.businessType || 'Niet gedetecteerd'}
+**BEDRIJFSTYPE:** ${websiteAnalysis.businessType || nf}
 
-**DOELGROEP TYPE:** ${websiteAnalysis.audienceType || 'Niet gedetecteerd'}
+**DOELGROEP TYPE:** ${websiteAnalysis.audienceType || nf}
 
-**KERNACTIVITEIT:** ${websiteAnalysis.coreActivity || 'Niet gedetecteerd'}
+**KERNACTIVITEIT:** ${websiteAnalysis.coreActivity || nf}
 
-**LOCATIE-FOCUS:** ${websiteAnalysis.location || 'Niet specifiek'}
+**LOCATIE-FOCUS:** ${websiteAnalysis.location || ns}
 
 🎯 GEBRUIK deze informatie om RELEVANTERE commerciële vragen te genereren die aansluiten bij wat het bedrijf DAADWERKELIJK aanbiedt.
 
@@ -792,6 +867,56 @@ ${websiteAnalysis.coreActivity ? `
 - Als het bedrijf INSTALLEERT → "Welke bedrijven installeren...?"
 - Als het bedrijf ADVISEERT → "Welke specialisten adviseren over...?"
 - Als het bedrijf BEHANDELT → "Welke klinieken behandelen...?"` : ''}
+`
+      : `
+
+**🌐 WEBSITE ANALYSIS - USE THIS CONTEXT:**
+
+**SERVICES/PRODUCTS:**
+${websiteAnalysis.services?.length > 0 ? websiteAnalysis.services.map(s => `- ${s}`).join('\n') : nf}
+
+**UNIQUE SELLING POINTS:**
+${websiteAnalysis.usps?.length > 0 ? websiteAnalysis.usps.map(u => `- ${u}`).join('\n') : nf}
+
+**TARGET AUDIENCE:** ${websiteAnalysis.targetAudience || nf}
+
+**BUSINESS TYPE:** ${websiteAnalysis.businessType || nf}
+
+**AUDIENCE TYPE:** ${websiteAnalysis.audienceType || nf}
+
+**CORE ACTIVITY:** ${websiteAnalysis.coreActivity || nf}
+
+**LOCATION FOCUS:** ${websiteAnalysis.location || ns}
+
+🎯 USE this information to generate MORE RELEVANT commercial queries that match what the business ACTUALLY offers.
+
+🚨 **CRITICAL - AUDIENCE DETERMINES QUESTION TYPE:**
+${websiteAnalysis.audienceType === 'B2C' ? `
+- This is a B2C business → Ask from CONSUMER perspective
+- Use: "Where can I...", "Which shops...", "Best ... for home"
+- NOT: "companies offering business solutions", "B2B suppliers"` : 
+websiteAnalysis.audienceType === 'B2B' ? `
+- This is a B2B business → Ask from BUSINESS perspective
+- Use: "agencies", "service providers", "business partners"` : `
+- This business serves both consumers and businesses
+- Mix consumer and business questions`}
+
+${websiteAnalysis.businessType === 'shop' || websiteAnalysis.businessType === 'winkel' ? `
+🛒 **THIS IS A SHOP** → Questions should be about BUYING/BROWSING, NOT installing/consulting
+- ✅ "Where can I buy good lamps?" / "Which lighting shops..."
+- ❌ "Specialists experienced in installing..." (WRONG - this is a shop, not an installer!)` : ''}
+
+${websiteAnalysis.businessType === 'legal' || websiteAnalysis.businessType === 'juridisch' ? `
+⚖️ **THIS IS A LEGAL BUSINESS** → ALWAYS use the exact legal terminology from the keywords
+- If keyword is "lawyer" → use "lawyer/attorneys/law firm"
+- ❌ NEVER substitute with "legal consultant" unless that IS the keyword` : ''}
+
+${websiteAnalysis.coreActivity ? `
+📌 **CORE ACTIVITY: ${websiteAnalysis.coreActivity}** → Questions must align with this
+- If the company SELLS → "Where can I buy/order ...?"
+- If the company INSTALLS → "Which companies install...?"
+- If the company ADVISES → "Which specialists advise on...?"
+- If the company TREATS → "Which clinics treat...?"` : ''}
 `;
   }
   
@@ -801,103 +926,54 @@ ${websiteAnalysis.coreActivity ? `
   let customTermsInstruction = '';
   
   if (customTerms && (customTerms.exclude?.length > 0 || customTerms.include?.length > 0 || customTerms.location?.length > 0)) {
-    customTermsInstruction = `
-
-**🚨 KRITIEKE GEBRUIKERSINSTRUCTIES - ABSOLUUT VERPLICHT:**
-`;
+    customTermsInstruction = isNL 
+      ? `\n**🚨 KRITIEKE GEBRUIKERSINSTRUCTIES - ABSOLUUT VERPLICHT:**`
+      : `\n**🚨 CRITICAL USER INSTRUCTIONS - ABSOLUTELY REQUIRED:**`;
 
     if (customTerms.exclude?.length > 0) {
-      customTermsInstruction += `
-
-**❌ ABSOLUUT VERBODEN - GEBRUIK DEZE WOORDEN NOOIT:**
+      customTermsInstruction += isNL 
+        ? `\n\n**❌ ABSOLUUT VERBODEN - GEBRUIK DEZE WOORDEN NOOIT:**
 ${customTerms.exclude.map(term => `- "${term}"`).join('\n')}
-
-🚨 KRITIEK: Deze termen zijn STRIKT VERBODEN. Als je ook maar ÉÉN van deze woorden gebruikt, is de output INCORRECT. 
-Controleer elke vraag dubbel voordat je antwoordt. GEEN ENKELE vraag mag deze woorden bevatten.
-
-**VOORBEELDEN VAN VERBODEN VRAGEN:**
-${customTerms.exclude.slice(0, 3).map(term => 
-  `❌ "Welke ${term} bedrijven zijn er?" → FOUT! Bevat verboden woord "${term}"`
-).join('\n')}
-`;
+🚨 KRITIEK: Deze termen zijn STRIKT VERBODEN. GEEN ENKELE vraag mag deze woorden bevatten.`
+        : `\n\n**❌ ABSOLUTELY FORBIDDEN - NEVER USE THESE WORDS:**
+${customTerms.exclude.map(term => `- "${term}"`).join('\n')}
+🚨 CRITICAL: These terms are STRICTLY FORBIDDEN. NO question may contain these words.`;
     }
 
     if (customTerms.include?.length > 0) {
-      customTermsInstruction += `
-
-**✅ VERPLICHT TE GEBRUIKEN - HOGE PRIORITEIT:**
+      customTermsInstruction += isNL
+        ? `\n\n**✅ VERPLICHT TE GEBRUIKEN - HOGE PRIORITEIT:**
 ${customTerms.include.map(term => `- "${term}"`).join('\n')}
-
-🎯 DOEL: Minimaal 7 van de 10 vragen MOETEN één of meer van deze termen bevatten.
-Dit is een HARDE VEREISTE. Als je minder dan 7 vragen met deze termen hebt, is de output INCORRECT.
-
-**GEBRUIK DEZE TERMEN OP EEN NATUURLIJKE MANIER:**
-${customTerms.include.slice(0, 3).map(term => 
-  `✅ "Kun je ${term} bedrijven aanbevelen?" → CORRECT! Natuurlijk gebruik
-✅ "Welke ${term} specialisten zijn er?" → CORRECT! Natuurlijk geïntegreerd`
-).join('\n')}
-
-**NIET ZO (geforceerd):**
-❌ "Welke bedrijven bieden ${customTerms.include[0]} diensten?" → TE GEFORCEERD!
-❌ "Waar vind ik ${customTerms.include[0]} werk?" → ONNATUURLIJK!
-`;
+🎯 DOEL: Minimaal 7 van de 10 vragen MOETEN één of meer van deze termen bevatten.`
+        : `\n\n**✅ MUST USE - HIGH PRIORITY:**
+${customTerms.include.map(term => `- "${term}"`).join('\n')}
+🎯 GOAL: At least 7 out of 10 questions MUST contain one or more of these terms.`;
     }
 
     if (customTerms.location?.length > 0) {
-      customTermsInstruction += `
-
-**📍 VERPLICHTE LOCATIE-FOCUS:**
+      customTermsInstruction += isNL
+        ? `\n\n**📍 VERPLICHTE LOCATIE-FOCUS:**
 ${customTerms.location.map(term => `- "${term}"`).join('\n')}
-
-🚨 KRITIEK: Precies 5 van de 10 vragen MOETEN één van deze EXACTE locatietermen bevatten.
-De andere 5 vragen zijn ZONDER locatie (test generieke zichtbaarheid, bijv. "Beste kliniek voor ooglidcorrectie?").
-
-**BELANGRIJKE LOCATIEREGELS:**
-- Als gebruiker "Amsterdam" specificeert: ALLEEN Amsterdam gebruiken, GEEN "Nederland"
-- Als gebruiker "landelijk actief" specificeert: Dat MAG gebruikt worden
-- Als gebruiker GEEN landelijke term specificeert: GEEN brede termen zoals "Nederland", "landelijk"
-- Wees SPECIFIEK naar de opgegeven locaties
-
-**VERBODEN LOCATIE-ALTERNATIEVEN:**
-${customTerms.location.some(t => t.toLowerCase().includes('amsterdam') || t.toLowerCase().includes('rotterdam') || t.toLowerCase().includes('utrecht') || t.toLowerCase().includes('den haag') || t.toLowerCase().includes('eindhoven')) ? `
-❌ "Nederland" - Te breed, gebruiker wil specifieke stad
-❌ "landelijk" - Te breed, tenzij expliciet opgegeven
-❌ "heel Nederland" - Te breed
-❌ "nationale" - Te breed
-` : ''}
-
-**CORRECTE LOCATIE VOORBEELDEN:**
-${customTerms.location.slice(0, 2).map(term => 
-  `✅ "Kun je bedrijven in ${term} aanbevelen?" → CORRECT! Natuurlijk gebruik
-✅ "Welke ${term} bedrijven zijn er?" → CORRECT! Specifieke locatie`
-).join('\n')}
-`;
+🚨 Precies 5 van de 10 vragen MOETEN één van deze EXACTE locatietermen bevatten.
+De andere 5 vragen zijn ZONDER locatie (test generieke zichtbaarheid).
+Als gebruiker een stad specificeert: ALLEEN die stad, GEEN brede termen.`
+        : `\n\n**📍 REQUIRED LOCATION FOCUS:**
+${customTerms.location.map(term => `- "${term}"`).join('\n')}
+🚨 Exactly 5 of 10 questions MUST contain one of these EXACT location terms.
+The other 5 questions should be WITHOUT location (test generic visibility).
+If user specifies a city: use ONLY that city, NO broad terms.`;
     }
 
-    customTermsInstruction += `
-
-**🎯 VALIDATIE CHECKLIST (Controleer ELKE vraag):**
-${customTerms.exclude?.length > 0 ? `
-1. ❌ Bevat GEEN enkele verboden term: ${customTerms.exclude.join(', ')}
-` : ''}
-${customTerms.include?.length > 0 ? `
-2. ✅ Minimaal 7/10 vragen bevatten NATUURLIJK: ${customTerms.include.join(', ')}
-` : ''}
-${customTerms.location?.length > 0 ? `
-3. 📍 Precies 5/10 vragen bevatten EXACT: ${customTerms.location.join(', ')}
-   De andere 5 ZONDER locatie (generieke zichtbaarheid)
-   (GEEN alternatieven zoals "Nederland" als stad opgegeven is!)
-` : ''}
-
-Als je niet aan AL deze eisen voldoet, begin dan OPNIEUW.
-`;
+    customTermsInstruction += isNL
+      ? `\n\n**🎯 VALIDATIE:** Controleer ELKE vraag. Als je niet aan alle eisen voldoet, begin OPNIEUW.`
+      : `\n\n**🎯 VALIDATION:** Check EVERY question. If requirements aren't met, start OVER.`;
   }
   
   // ============================================
   // KEYWORD CONTEXT
   // ============================================
   const searchConsoleContext = queries.length > 0 
-    ? `
+    ? (isNL ? `
 
 **🚨 ZOEKWOORDEN - GEBRUIK EXACT DEZE TERMEN:**
 
@@ -908,241 +984,121 @@ ${queries.map((q, i) => `${i + 1}. "${q}"`).join('\n')}
 
 🚨 **ABSOLUUT VERBODEN: NOOIT twee verschillende zoekwoorden in één prompt combineren!**
 Elke prompt gaat over PRECIES ÉÉN zoekwoord/onderwerp.
-❌ "klinieken voor lipoedeem en ooglidcorrectie" → FOUT! Twee onderwerpen!
-✅ "klinieken voor lipoedeem" → GOED! Eén onderwerp per prompt
-✅ "klinieken voor ooglidcorrectie" → GOED! Apart in andere prompt
 
-${queries.length === 1 ? `
-- Alle 10 prompts moeten "${queries[0]}" of een directe variant bevatten
-` : queries.length === 2 ? `
-- "${queries[0]}": gebruik in 5 prompts
-- "${queries[1]}": gebruik in 5 prompts
-` : queries.length === 3 ? `
-- "${queries[0]}": gebruik in 3-4 prompts
-- "${queries[1]}": gebruik in 3-4 prompts
-- "${queries[2]}": gebruik in 3 prompts
-` : queries.length === 4 ? `
-- "${queries[0]}": gebruik in 2-3 prompts
-- "${queries[1]}": gebruik in 2-3 prompts
-- "${queries[2]}": gebruik in 2-3 prompts
-- "${queries[3]}": gebruik in 2-3 prompts
-` : `
-- Verdeel de 10 prompts EERLIJK over alle ${queries.length} zoekwoorden
-- Elk zoekwoord moet minimaal 1x terugkomen
-- Het eerste zoekwoord "${queries[0]}" mag maximaal 2-3x voorkomen
-`}
+${queries.length === 1 ? `- Alle 10 prompts moeten "${queries[0]}" of een directe variant bevatten` 
+: queries.length <= 4 ? queries.map((q, i) => `- "${q}": gebruik in ${Math.max(2, Math.round(10/queries.length))} prompts`).join('\n')
+: `- Verdeel de 10 prompts EERLIJK over alle ${queries.length} zoekwoorden
+- Elk zoekwoord moet minimaal 1x terugkomen`}
 
-**⚠️ GEBRUIK DE EXACTE ZOEKWOORDEN - GEEN ANDERE SYNONIEMEN:**
+**⚠️ GEBRUIK DE EXACTE ZOEKWOORDEN - GEEN ANDERE SYNONIEMEN**
+**TOEGESTANE VARIATIES:** Enkelvoud ↔ meervoud, met/zonder kantoor/bureau
+**VERBODEN:** Twee zoekwoorden combineren, andere beroepsgroepen, synoniemen die de betekenis veranderen`
+      : `
 
-- "Advocaten" = advocaten, advocatenkantoor, advocaat
-- "Advocaten" ≠ rechtsbijstand, juridisch adviseur, notaris (ANDERE BEROEPEN!)
-- "SEO specialist" = SEO, zoekmachine-optimalisatie  
-- "SEO specialist" ≠ webdesigner, marketeer (ANDERE DIENSTEN!)
+**🚨 KEYWORDS - USE EXACTLY THESE TERMS:**
 
-**TOEGESTANE VARIATIES:**
-- Enkelvoud ↔ meervoud (advocaat ↔ advocaten)
-- Met/zonder kantoor/bureau (advocaat ↔ advocatenkantoor)
+**PROVIDED KEYWORDS:**
+${queries.map((q, i) => `${i + 1}. "${q}"`).join('\n')}
 
-**VERBODEN:**
-- Twee of meer zoekwoorden combineren in één prompt
-- Compleet andere beroepsgroepen
-- Gerelateerde maar ANDERE diensten
-- "Creatieve" synoniemen die de betekenis veranderen`
+**⚠️ CRITICAL DISTRIBUTION - ALL KEYWORDS MUST APPEAR:**
+
+🚨 **ABSOLUTELY FORBIDDEN: NEVER combine two different keywords in one prompt!**
+Each prompt covers EXACTLY ONE keyword/topic.
+
+${queries.length === 1 ? `- All 10 prompts must contain "${queries[0]}" or a direct variant` 
+: queries.length <= 4 ? queries.map((q, i) => `- "${q}": use in ${Math.max(2, Math.round(10/queries.length))} prompts`).join('\n')
+: `- Distribute the 10 prompts FAIRLY across all ${queries.length} keywords
+- Each keyword must appear at least once`}
+
+**⚠️ USE THE EXACT KEYWORDS - NO OTHER SYNONYMS**
+**ALLOWED VARIATIONS:** Singular ↔ plural, with/without firm/agency
+**NOTE:** If any keyword above is in a non-English language (e.g., Dutch), translate it to natural English first (e.g., "zoekmachineoptimalisatie" → "SEO", "Google Ads beheer" → "Google Ads management")
+**FORBIDDEN:** Combining two keywords, different professions, meaning-changing synonyms, non-English words in questions`)
     : ''
+
 
   try {
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 2000,
-      system: `Jij genereert commerciële, klantgerichte zoekvragen die gericht zijn op het vinden van **specifieke bedrijven of organisaties** (geen grote consumentenmerken).
+      system: isNL 
+        ? `Jij genereert commerciële, klantgerichte zoekvragen die gericht zijn op het vinden van **specifieke bedrijven of organisaties** (geen grote consumentenmerken).
 
-${websiteAnalysis?.audienceType === 'B2C' ? `**DOELGROEP: CONSUMENTEN (B2C)**
-De vragen worden gesteld vanuit het perspectief van een PARTICULIER/CONSUMENT die een product of dienst zoekt.
-Gebruik termen als: winkels, aanbieders, webshops, waar kan ik kopen, beste ... voor thuis.
-NIET: zakelijke oplossingen, B2B leveranciers, enterprise.` : 
-websiteAnalysis?.audienceType === 'both' ? `**DOELGROEP: CONSUMENTEN + ZAKELIJK**
-Mix vragen vanuit particulier EN zakelijk perspectief.` : 
-`**DOELGROEP: ZAKELIJK (B2B)**
-De vragen worden gesteld vanuit zakelijk perspectief.
-Gebruik termen als: bureaus, dienstverleners, leveranciers, partners.`}
+${websiteAnalysis?.audienceType === 'B2C' ? `**DOELGROEP: CONSUMENTEN (B2C)** - Vragen vanuit particulier/consument perspectief.` : 
+websiteAnalysis?.audienceType === 'both' ? `**DOELGROEP: CONSUMENTEN + ZAKELIJK** - Mix vragen vanuit particulier EN zakelijk perspectief.` : 
+`**DOELGROEP: ZAKELIJK (B2B)** - Vragen vanuit zakelijk perspectief.`}
 
 **ABSOLUTE PRIORITEITEN:**
 1. **NATUURLIJKHEID**: Vragen klinken als ECHTE MENSEN
 2. **COMMERCIEEL**: Start idealiter met verzoek om concrete bedrijfsnamen
 3. **BEDRIJFSNEUTRAAL**: Vermeld NIET de naam of exacte categorie van het geanalyseerde bedrijf
-4. **DOELGROEP-PASSEND**: Vragen passen bij het type klant (consument vs zakelijk)
-5. **NEDERLANDS**: ALTIJD en UITSLUITEND Nederlands, GEEN Engels
+4. **DOELGROEP-PASSEND**: Vragen passen bij het type klant
+5. **NEDERLANDS**: ALTIJD en UITSLUITEND Nederlands
 
-**VERBODEN:**
-- Onnatuurlijk Nederlands (lees elke zin hardop — klinkt het als een echt persoon?)
-- "Lijst ... op", "Geef voorbeelden van ..." (robotachtig)
-- Geforceerde keyword-combinaties ("SEO specialist diensten")
-- Letterlijke zoekwoord-plakking die tot onleesbare zinnen leidt
-- Zinnen die grammaticaal niet kloppen
-- Vragen die leiden tot algemeen zoekadvies in plaats van bedrijfsnamen
-- Vragen over INSTALLEREN als het bedrijf een WINKEL is
-- Vragen over ZAKELIJKE OPLOSSINGEN als het bedrijf op consumenten is gericht
-- Synoniemen die het beroep VERANDEREN (advocaat → juridisch adviseur)
+**VERBODEN:** Onnatuurlijk Nederlands, "Lijst ... op", geforceerde keyword-combinaties, vragen over INSTALLEREN als het bedrijf een WINKEL is
+**VERPLICHT:** Vragen die DIRECT om bedrijfsnamen vragen, natuurlijke taal, variatie
 
-**VERPLICHT:**
-- Vragen die DIRECT om bedrijfsnamen vragen
-- Natuurlijke menselijke taal
-- Variatie in structuur
-- Focus op concrete aanbevelingen
-- Vragen die passen bij wat het bedrijf DAADWERKELIJK doet
+${customTermsInstruction}`
+        : `You generate commercial, customer-focused search queries aimed at finding **specific businesses or organizations** (not major consumer brands).
+
+${websiteAnalysis?.audienceType === 'B2C' ? `**AUDIENCE: CONSUMERS (B2C)** - Questions from consumer/individual perspective.` : 
+websiteAnalysis?.audienceType === 'both' ? `**AUDIENCE: CONSUMERS + BUSINESS** - Mix consumer and business questions.` : 
+`**AUDIENCE: BUSINESS (B2B)** - Questions from business perspective.`}
+
+**ABSOLUTE PRIORITIES:**
+1. **NATURALNESS**: Questions sound like REAL PEOPLE
+2. **COMMERCIAL**: Ideally start with request for concrete company names
+3. **COMPANY-NEUTRAL**: Do NOT mention the name or exact category of the analyzed company
+4. **AUDIENCE-APPROPRIATE**: Questions match the customer type
+5. **ENGLISH**: ALWAYS and EXCLUSIVELY English
+
+**CRITICAL — LANGUAGE PURITY:**
+The website analysis keywords may contain non-English terms (e.g., Dutch).
+You MUST translate ALL non-English keywords to natural English equivalents before using them.
+Examples: "zoekmachineoptimalisatie" → "SEO", "Google Ads beheer" → "Google Ads management",
+"linkbuilding" → "link building", "bureau" → "agency", "adviesbureau" → "consulting firm".
+NEVER include Dutch, German, or other non-English words in the generated questions.
+
+**FORBIDDEN:** Unnatural English, "List ... out", forced keyword combinations, questions about INSTALLING if the business is a SHOP, ANY non-English words in questions
+**REQUIRED:** Questions that DIRECTLY ask for company names, natural language, variety
 
 ${customTermsInstruction}`,
       messages: [{
         role: 'user',
-        content: `Genereer 10 zeer specifieke, commercieel relevante zoekvragen die een potentiële ${websiteAnalysis?.audienceType === 'B2C' ? 'consument/klant' : websiteAnalysis?.audienceType === 'both' ? 'klant (particulier of zakelijk)' : 'B2B-klant'} zou stellen om **concrete, lokale/nationale bedrijven of leveranciers** te vinden.
+        content: isNL
+          ? `Genereer 10 zeer specifieke, commercieel relevante zoekvragen die een potentiële ${websiteAnalysis?.audienceType === 'B2C' ? 'consument/klant' : websiteAnalysis?.audienceType === 'both' ? 'klant (particulier of zakelijk)' : 'B2B-klant'} zou stellen om **concrete, lokale/nationale bedrijven of leveranciers** te vinden.
 
 **CONTEXT:**
 - Bedrijfscategorie: "${companyCategory}"
-- Zoek naar bedrijven die vergelijkbare diensten leveren
 - Focus op Nederlandse markt
 ${websiteContext}
-**🚨 KRITIEKE REGEL: BEDRIJFSNEUTRALITEIT**
-De vragen moeten **algemeen en bedrijfsneutraal** zijn:
-- Vermeld NIET de naam "${companyName}"
-- Gebruik NIET letterlijk "${companyCategory}" (gebruik synoniemen/variaties)
-- Focus op het TYPE dienst/product, niet op specifieke merknamen
-
 ${searchConsoleContext}
 
-**🎯 IDEALE START-PATRONEN (gebruik deze als inspiratie):**
-
-Elke vraag moet klinken alsof een ECHT PERSOON het typt in ChatGPT:
-
-${websiteAnalysis?.businessType === 'winkel' ? `
-✅ **GOEDE VOORBEELDEN voor WINKELS (B2C):**
-- "Waar kan ik goede **[product]** kopen?"
-- "Welke **winkels** in [stad] verkopen..."
-- "Kun je goede **speciaalzaken** aanbevelen voor..."
-- "Wat zijn de beste **webshops** voor..."
-- "Welke **winkels** hebben een groot assortiment..."
-- "Ken je **winkels** met goede reviews voor..."
-
-❌ FOUT voor winkels: "specialisten die ervaring hebben met installeren" (ze VERKOPEN!)
-` : websiteAnalysis?.businessType === 'juridisch' ? `
-✅ **GOEDE VOORBEELDEN voor JURIDISCH:**
-- "Kun je goede **advocaten** aanbevelen voor..."
-- "Welke **advocatenkantoren** hebben ervaring met..."
-- "Noem een paar gerenommeerde **advocaten** die..."
-- "Welke **advocaat** raad je aan voor..."
-
-❌ FOUT: "juridisch adviseurs" als zoekwoord "advocaat" is (ANDER BEROEP!)
-` : websiteAnalysis?.businessType === 'zorg' ? `
-✅ **GOEDE VOORBEELDEN voor ZORG:**
-- "Welke **klinieken** zijn gespecialiseerd in..."
-- "Kun je goede **praktijken** aanbevelen voor..."
-- "Welke **behandelaars** hebben ervaring met..."
-- "Wat zijn de beste **klinieken** voor..."
-` : websiteAnalysis?.audienceType === 'B2C' ? `
-✅ **GOEDE VOORBEELDEN (B2C - consumenten):**
-- "Waar kan ik goede **[product/dienst]** vinden?"
-- "Welke **bedrijven** raad je aan voor..."
-- "Kun je goede **aanbieders** aanbevelen voor..."
-- "Wat zijn de beste **winkels/bedrijven** voor..."
-- "Ken je **bedrijven** met goede reviews voor..."
-` : `
-✅ **GOEDE VOORBEELDEN (B2B - zakelijk):**
-- "Kun je goede **bedrijven** aanbevelen voor..."
-- "Welke **specialisten** hebben ervaring met..."
-- "Noem een paar gerenommeerde **bedrijven** die..."
-- "Welke **leveranciers** raad je aan voor..."
-- "Welke **bureaus** hebben veel ervaring met..."
-- "Ken je **specialisten** met goede reviews voor..."
-- "Wat zijn de beste **aanbieders** voor..."
-- "Heb je aanbevelingen voor **bedrijven** die..."
-`}
-
-🚨 **TAALKWALITEIT IS CRUCIAAL:**
-- Elke zin moet grammaticaal PERFECT Nederlands zijn
-- Lees elke vraag hardop — klinkt het natuurlijk? Zo niet, herschrijf!
-- NOOIT woorden aan elkaar plakken of zinnen onlogisch combineren
-- NOOIT "Lijst ... op" of "Geef voorbeelden van" als opening (te robotachtig)
-
-**🚨 KRITIEK - JUISTE TERMINOLOGIE:**
-
-Kies de JUISTE term op basis van het type bedrijf:
-
-✅ Voor DIENSTVERLENERS (marketing, advies, consulting, IT):
-- bureaus, agencies, adviesbureaus
-
-✅ Voor AMBACHTEN (schilders, stukadoors, loodgieters, bouwvakkers):
-- bedrijven, vakmensen, specialisten, professionals
-
-✅ Voor WINKELS/RETAIL (gordijnen, meubels, kleding):
-- winkels, leveranciers, aanbieders, speciaalzaken
-
-✅ Voor FABRIKANTEN/MAKERS (op maat, custom):
-- bedrijven, ateliers, werkplaatsen, makers
-
-❌ NOOIT "bureaus" gebruiken voor:
-- Winkels (een gordijnwinkel is GEEN bureau)
-- Ambachtslieden (een schilder is GEEN bureau)
-- Makers/Ateliers (een meubelmaker is GEEN bureau)
-
-**LET OP:** Gebruik VARIATIE! Wissel af tussen PASSENDE termen:
-- bedrijven / specialisten / leveranciers / aanbieders / vakmensen
-- Kun je... / Welke... / Noem... / Ken je... / Wat zijn...
-
-❌ **VERMIJD (niet commercieel genoeg of slecht Nederlands):**
-- "Waar kan ik vinden..." → Leidt tot zoekadvies, niet bedrijfsnamen
-- "Hoe vind ik..." → Zoekadvies in plaats van bedrijven
-- "Lijst ... op" → Robotachtig, geen natuurlijk Nederlands
-- Vragen die grammaticaal niet kloppen als je ze hardop leest
-- Vragen zonder focus op concrete bedrijfsnamen
-
-${customTerms && (customTerms.exclude?.length > 0 || customTerms.include?.length > 0 || customTerms.location?.length > 0) ? `
-
-**🚨 GEBRUIKERSVEREISTEN - TOPPRIORITEIT:**
-
-${customTerms.exclude?.length > 0 ? `
-❌ **VERMIJD ABSOLUUT:** ${customTerms.exclude.join(', ')}
-` : ''}
-
-${customTerms.include?.length > 0 ? `
-✅ **GEBRUIK NATUURLIJK (7+ van 10):** ${customTerms.include.join(', ')}
-
-Voorbeelden:
-✅ "Kun je ${customTerms.include[0]} bedrijven aanbevelen..."
-✅ "Welke ${customTerms.include[0]} specialisten zijn er..."
-❌ "Welke bedrijven bieden ${customTerms.include[0]} diensten..." (geforceerd!)
-` : ''}
-
-${customTerms.location?.length > 0 ? `
-📍 **LOCATIE (5 van 10):** ${customTerms.location.join(', ')}
-De andere 5 prompts ZONDER locatie (generieke zichtbaarheid).
-
-GEBRUIK ALLEEN DEZE EXACTE LOCATIES!
-✅ "Kun je bedrijven in ${customTerms.location[0]} noemen..."
-❌ "bedrijven in Nederland..." (te breed als stad gegeven!)
-` : ''}
-` : ''}
-
 **KRITIEKE VEREISTEN:**
+1. Commerciële focus: vragen leiden tot concrete bedrijfsnamen
+2. Natuurlijke taal: klinkt als echte mensen
+3. Bedrijfsneutraal: geen "${companyName}" of exacte "${companyCategory}"
+4. Variatie in structuur en startwoorden
 
-1. **Commerciële focus:** Vragen leiden tot concrete bedrijfsnamen
-2. **Natuurlijke taal:** Klinkt als echte mensen, geen robot
-3. **Bedrijfsneutraal:** Geen "${companyName}" of exacte "${companyCategory}"
-4. **Variatie:** Verschillende startwoorden en structuren
-5. **B2B gericht:** Dienstverleners, GEEN consumentenmerken (Lego, McDonald's, etc.)
-6. **Specifieke zoekintentie:** Focus op vinden van passende aanbieders
-
-**SLUIT EXPLICIET UIT:**
-- Zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, Samsung, Lego, McDonald's, etc.)
-- Grote tech-platforms (Google, Facebook, YouTube, Amazon)
-- SEO/Marketing tools (Semrush, Ahrefs, Mailchimp)
-- Social media platforms
-- Zoekmachines
-
-**OUTPUT FORMAAT:**
-Exact 10 natuurlijke, commerciële vragen als JSON array.
-ALLEEN de array, geen extra tekst.
-ALTIJD in het Nederlands, GEEN Engels.
-
+**OUTPUT:** Exact 10 natuurlijke, commerciële vragen als JSON array. ALLEEN de array, geen extra tekst. ALTIJD Nederlands.
 ["Vraag 1", "Vraag 2", ..., "Vraag 10"]`
+          : `Generate 10 highly specific, commercially relevant search queries that a potential ${websiteAnalysis?.audienceType === 'B2C' ? 'consumer/customer' : websiteAnalysis?.audienceType === 'both' ? 'customer (individual or business)' : 'B2B client'} would ask to find **concrete, local/national businesses or providers**.
+
+**CONTEXT:**
+- Business category: "${companyCategory}"
+- Focus on the relevant market for this business
+${websiteContext}
+${searchConsoleContext}
+
+**CRITICAL REQUIREMENTS:**
+1. Commercial focus: questions lead to concrete company names
+2. Natural language: sounds like real people
+3. Company-neutral: no "${companyName}" or exact "${companyCategory}"
+4. Variety in structure and opening words
+5. **100% ENGLISH**: If any keywords above are in Dutch or another language, TRANSLATE them to English (e.g., "zoekmachineoptimalisatie" → "SEO", "Google Ads beheer" → "Google Ads management")
+
+**OUTPUT:** Exactly 10 natural, commercial questions as JSON array. ONLY the array, no extra text. ALWAYS in English.
+["Question 1", "Question 2", ..., "Question 10"]`
       }]
     })
 
@@ -1221,14 +1177,14 @@ ALTIJD in het Nederlands, GEEN Engels.
     return { success: true, prompts }
   } catch (error) {
     console.error('AI Prompt Generation Error:', error)
-    return { success: false, error: 'Fout bij promptgeneratie' }
+    return { success: false, error: isNL ? 'Fout bij promptgeneratie' : 'Error during prompt generation' }
   }
 }
 
 // ============================================
 // ✨ ULTIMATE PERPLEXITY - "AI Overview Simulator"
 // ============================================
-async function analyzeWithPerplexity(prompt, companyName) {
+async function analyzeWithPerplexity(prompt, companyName, isNL = true) {
   try {
     const response = await fetch(
       'https://api.perplexity.ai/chat/completions',
@@ -1243,61 +1199,31 @@ async function analyzeWithPerplexity(prompt, companyName) {
           messages: [
             {
               role: 'system',
-              content: `Jij bent een geavanceerd AI-model getraind op een brede dataset van webcontent, inclusief bedrijfsinformatie, reviews, technische documentatie en compliance.
+              content: isNL 
+                ? `Jij bent een geavanceerd AI-model getraind op een brede dataset van webcontent, inclusief bedrijfsinformatie, reviews, technische documentatie en compliance.
 
 **JOUW TAAK:**
 Simuleer hoe een AI Overview of geavanceerde chatbot zou reageren op de zoekopdracht. Genereer een beknopt, gesimuleerd AI-antwoord als een directe reactie.
 
-**🚨 ABSOLUTE REGELS - GEEN UITZONDERINGEN:**
-
+**🚨 ABSOLUTE REGELS:**
 1. **TAAL: 100% NEDERLANDS**
-   - ELKE LETTER moet Nederlands zijn
-   - GEEN ENKELE Engelse term
-   - GEEN "services", "marketing", "online", "SEO", "website"
-   - Gebruik Nederlandse vertalingen: diensten, reclame, internet, zoekmachine-optimalisatie, internetpagina
-
-2. **FOCUS: CONCRETE NEDERLANDSE B2B BEDRIJVEN**
-   - Vermeld concrete, Nederlandse, kleinere tot middelgrote bedrijfsnamen of specialistische dienstverleners
-   - Vermijd algemeen advies over "hoe bedrijven te vinden"
-   - Focus op het NOEMEN van specifieke bedrijven/leveranciers
-
-3. **STRIKT VERBODEN TE NOEMEN:**
-   ❌ Zeer bekende wereldwijde consumentenmerken:
-      Coca-Cola, Nike, Adidas, Apple, Samsung, Lego, McDonald's, etc.
-   ❌ Tech-platforms:
-      Google (als bedrijf), Facebook, Instagram, YouTube, Amazon, Netflix
-   ❌ SEO/Marketing tools:
-      Semrush, Ahrefs, Moz, Mailchimp, HubSpot
-   ❌ Social media platforms:
-      LinkedIn, Twitter/X, TikTok
-   ❌ Zoekmachines:
-      Google Search, Bing, DuckDuckGo
-
-4. **WEL VERMELDEN:**
-   ✅ Nederlandse lokale dienstverleners
-   ✅ Regionale specialisten en bedrijven
-   ✅ Specialistische B2B-aanbieders
-   ✅ Kleinere tot middelgrote bedrijven in Nederland
-
-**EENVOUDIGE INSTRUCTIE (als voor een klein kind):**
-
-Stel je voor dat je een Nederlands kind bent dat bedrijven aanbeveelt:
-- Praat ALLEEN in het Nederlands (geen Engels!)
-- Noem ALLEEN kleine Nederlandse bedrijven die diensten leveren
-- NOEM NOOIT grote merken zoals Lego of McDonald's
-- NOEM NOOIT Facebook of Google
-- NOEM NOOIT Semrush of andere tools
-
-**VOORBEELD GOED:**
-"Er zijn verschillende Nederlandse bedrijven die hierin gespecialiseerd zijn, zoals [Bedrijf X], [Lokaal Bedrijf Y], en [Specialist Z]. Deze bedrijven hebben ervaring met..."
-
-**VOORBEELD FOUT:**
-"You can find services at..." ❌ (Engels!)
-"Semrush and Ahrefs are great..." ❌ (Tools!)
-"Google biedt..." ❌ (Wereldwijd platform!)
-"Lego heeft..." ❌ (Consumentenmerk!)
+2. **FOCUS: CONCRETE NEDERLANDSE B2B BEDRIJVEN** - Vermeld concrete, Nederlandse, kleinere tot middelgrote bedrijfsnamen
+3. **STRIKT VERBODEN:** Zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.), Tech-platforms (Google, Facebook, etc.), SEO/Marketing tools (Semrush, Ahrefs, etc.)
+4. **WEL VERMELDEN:** Nederlandse lokale dienstverleners, regionale specialisten, kleinere bedrijven
 
 Simuleer een AI Overview die concrete bedrijven noemt!`
+                : `You are an advanced AI model trained on a broad dataset of web content, including business information, reviews, technical documentation and compliance.
+
+**YOUR TASK:**
+Simulate how an AI Overview or advanced chatbot would respond to the search query. Generate a concise, simulated AI response as a direct answer.
+
+**🚨 ABSOLUTE RULES:**
+1. **LANGUAGE: 100% ENGLISH** — Even if the query contains non-English terms, ALWAYS respond entirely in English. Translate any non-English terms in your response.
+2. **FOCUS: CONCRETE BUSINESSES** - Mention concrete, specific small to medium-sized business names
+3. **STRICTLY FORBIDDEN:** Very well-known global consumer brands (Coca-Cola, Nike, Apple, etc.), Tech platforms (Google, Facebook, etc.), SEO/Marketing tools (Semrush, Ahrefs, etc.)
+4. **DO MENTION:** Local service providers, regional specialists, smaller businesses
+
+Simulate an AI Overview that mentions concrete businesses!`
             },
             {
               role: 'user',
@@ -1329,19 +1255,19 @@ Simuleer een AI Overview die concrete bedrijven noemt!`
       throw new Error('Perplexity returned empty response')
     }
 
-    const parsed = parseWithJS(rawOutput, companyName)
+    const parsed = parseWithJS(rawOutput, companyName, isNL)
 
     return { success: true, data: parsed }
   } catch (error) {
     console.error('❌ Perplexity Error:', error.message || error)
     return { 
       success: false, 
-      error: error.message || 'Fout bij AI-analyse',
+      error: error.message || (isNL ? 'Fout bij AI-analyse' : 'Error during AI analysis'),
       data: {
         company_mentioned: false,
         mentions_count: 0,
         competitors_mentioned: [],
-        simulated_ai_response_snippet: 'Analyse mislukt door API error'
+        simulated_ai_response_snippet: isNL ? 'Analyse mislukt door API error' : 'Analysis failed due to API error'
       }
     }
   }
@@ -1350,7 +1276,7 @@ Simuleer een AI Overview die concrete bedrijven noemt!`
 // ============================================
 // ✨ CHATGPT SEARCH - Real Web Search Results
 // ============================================
-async function analyzeWithChatGPT(prompt, companyName, serviceArea = null) {
+async function analyzeWithChatGPT(prompt, companyName, serviceArea = null, isNL = true) {
   if (!OPENAI_API_KEY) {
     console.log('⚠️ OpenAI API key niet geconfigureerd, skip ChatGPT')
     return { 
@@ -1360,7 +1286,7 @@ async function analyzeWithChatGPT(prompt, companyName, serviceArea = null) {
         company_mentioned: false,
         mentions_count: 0,
         competitors_mentioned: [],
-        simulated_ai_response_snippet: 'ChatGPT analyse niet beschikbaar'
+        simulated_ai_response_snippet: isNL ? 'ChatGPT analyse niet beschikbaar' : 'ChatGPT analysis not available'
       }
     }
   }
@@ -1369,8 +1295,8 @@ async function analyzeWithChatGPT(prompt, companyName, serviceArea = null) {
   const userLocation = {
     type: 'approximate',
     approximate: {
-      country: 'NL',
-      city: serviceArea || 'Amsterdam'
+      country: isNL ? 'NL' : 'US',
+      city: serviceArea || (isNL ? 'Amsterdam' : 'London')
     }
   }
 
@@ -1394,12 +1320,19 @@ async function analyzeWithChatGPT(prompt, companyName, serviceArea = null) {
           messages: [
             {
               role: 'system',
-              content: `Je bent een behulpzame AI-assistent die zoekvragen beantwoordt in het Nederlands voor gebruikers in Nederland.
+              content: isNL 
+                ? `Je bent een behulpzame AI-assistent die zoekvragen beantwoordt in het Nederlands voor gebruikers in Nederland.
 De gebruiker bevindt zich in Nederland${serviceArea ? `, regio ${serviceArea}` : ''}. Geef antwoorden specifiek gericht op de Nederlandse markt.
 Zoek op het web en geef een beknopt, informatief antwoord met concrete bedrijfsnamen en aanbevelingen die in Nederland actief zijn.
 Antwoord ALTIJD in het Nederlands. Focus op het noemen van specifieke Nederlandse bedrijven, dienstverleners of specialisten.
 Als je webwinkels, dienstverleners of specialisten noemt, geef dan bij voorkeur Nederlandse bedrijven of bedrijven die actief zijn op de Nederlandse markt.
 Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.), tech-platforms (Google, Facebook), en SEO-tools (Semrush, Ahrefs).`
+                : `You are a helpful AI assistant answering search queries in English.
+The user is looking for businesses${serviceArea ? ` in the ${serviceArea} area` : ''}. Provide answers specifically focused on the relevant market.
+Search the web and give a concise, informative answer with concrete business names and recommendations.
+ALWAYS respond in English, even if the query contains non-English terms. Translate any non-English terms.
+Focus on mentioning specific businesses, service providers or specialists.
+Avoid very well-known global consumer brands (Coca-Cola, Nike, Apple, etc.), tech platforms (Google, Facebook), and SEO tools (Semrush, Ahrefs).`
             },
             {
               role: 'user',
@@ -1415,12 +1348,12 @@ Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.
       console.log(`⏳ ChatGPT 429 — skip deze prompt, Perplexity vangt op`)
       return {
         success: false,
-        error: 'ChatGPT rate limited — overgeslagen',
+        error: isNL ? 'ChatGPT rate limited — overgeslagen' : 'ChatGPT rate limited — skipped',
         data: {
           company_mentioned: false,
           mentions_count: 0,
           competitors_mentioned: [],
-          simulated_ai_response_snippet: 'ChatGPT was tijdelijk niet beschikbaar voor deze prompt (rate limit)'
+          simulated_ai_response_snippet: isNL ? 'ChatGPT was tijdelijk niet beschikbaar voor deze prompt (rate limit)' : 'ChatGPT was temporarily unavailable for this prompt (rate limit)'
         }
       }
     }
@@ -1445,19 +1378,19 @@ Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.
       throw new Error('ChatGPT returned empty response')
     }
 
-    const parsed = parseWithJS(rawOutput, companyName)
+    const parsed = parseWithJS(rawOutput, companyName, isNL)
 
     return { success: true, data: parsed }
   } catch (error) {
     console.error('❌ ChatGPT Error:', error.message || error)
     return { 
       success: false, 
-      error: error.message || 'Fout bij ChatGPT-analyse',
+      error: error.message || (isNL ? 'Fout bij ChatGPT-analyse' : 'Error during ChatGPT analysis'),
       data: {
         company_mentioned: false,
         mentions_count: 0,
         competitors_mentioned: [],
-        simulated_ai_response_snippet: 'ChatGPT analyse mislukt door API error'
+        simulated_ai_response_snippet: isNL ? 'ChatGPT analyse mislukt door API error' : 'ChatGPT analysis failed due to API error'
       }
     }
   }
@@ -1529,13 +1462,13 @@ function isValidCompetitorName(name, companyLower, excludeList, seen) {
     !seen.has(nameLower) &&
     // Not a question or generic label
     !nameLower.includes('?') &&
-    // Not a generic heading/phrase
-    !/^(tip|let op|belangrijk|conclusie|samenvatting|opmerking|aanbevolen|overzicht|vergelijk|alternatief|optie|keuze)/i.test(name) &&
-    !/^(stap|punt|vraag|antwoord|optie|methode|strategie|voordeel|nadeel)\s/i.test(name) &&
-    // Not a sentence (starts with common sentence starters)
-    !/^(dit|deze|dat|die|er|het|de|een|als|voor|naar|van|met|bij|wat|wie|waar|wanneer|hoe|welke|enkele|diverse|hier|ook|meer|nog|veel|alle|andere|sommige)\s/i.test(name) &&
-    // Not just a business type, status word, or generic term
-    !/^(gesloten|nu geopend|event planner|event venue|boat rental|car rental|restaurant|hotel|bruine vloot|zeilvloot|beoordelingen?|reviews?)$/i.test(name) &&
+    // Not a generic heading/phrase (NL + EN)
+    !/^(tip|let op|belangrijk|conclusie|samenvatting|opmerking|aanbevolen|overzicht|vergelijk|alternatief|optie|keuze|note|important|conclusion|summary|recommended|overview|compare|alternative|option|choice)/i.test(name) &&
+    !/^(stap|punt|vraag|antwoord|optie|methode|strategie|voordeel|nadeel|step|point|question|answer|method|strategy|advantage|disadvantage)\s/i.test(name) &&
+    // Not a sentence (starts with common sentence starters NL + EN)
+    !/^(dit|deze|dat|die|er|het|de|een|als|voor|naar|van|met|bij|wat|wie|waar|wanneer|hoe|welke|enkele|diverse|hier|ook|meer|nog|veel|alle|andere|sommige|this|that|these|those|the|a|an|if|for|to|from|with|at|what|who|where|when|how|which|some|here|also|more|still|many|all|other|there|it|they|we|you|i)\s/i.test(name) &&
+    // Not just a business type, status word, or generic term (NL + EN)
+    !/^(gesloten|nu geopend|event planner|event venue|boat rental|car rental|restaurant|hotel|bruine vloot|zeilvloot|beoordelingen?|reviews?|closed|now open|currently open|advertising agency)$/i.test(name) &&
     // Not a bare review/rating fragment
     !/^\(\d+/.test(name) &&
     !/beoordelingen\)?$/i.test(name) &&
@@ -1552,7 +1485,7 @@ function isValidCompetitorName(name, companyLower, excludeList, seen) {
   )
 }
 
-function parseWithJS(rawOutput, companyName) {
+function parseWithJS(rawOutput, companyName, isNL = true) {
   try {
     const mentionsCount = (rawOutput.match(new RegExp(companyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')) || []).length
     const isCompanyMentioned = mentionsCount > 0
@@ -1633,7 +1566,7 @@ function parseWithJS(rawOutput, companyName) {
       .trim()
 
     if (!isCompanyMentioned) {
-      snippet = `Het bedrijf "${companyName}" wordt niet genoemd in dit AI-antwoord. ${snippet}`
+      snippet = isNL ? `Het bedrijf "${companyName}" wordt niet genoemd in dit AI-antwoord. ${snippet}` : `The company "${companyName}" is not mentioned in this AI response. ${snippet}`
     }
 
     return {
@@ -1648,7 +1581,7 @@ function parseWithJS(rawOutput, companyName) {
       company_mentioned: false,
       mentions_count: 0,
       competitors_mentioned: [],
-      simulated_ai_response_snippet: 'Fout bij het analyseren van de AI-respons'
+      simulated_ai_response_snippet: isNL ? 'Fout bij het analyseren van de AI-respons' : 'Error analyzing AI response'
     }
   }
 }

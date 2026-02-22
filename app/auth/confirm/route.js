@@ -17,11 +17,10 @@ export async function GET(request) {
     })
 
     if (!error) {
-      // Redirect naar success pagina of direct naar tool
       return NextResponse.redirect(`${requestUrl.origin}${next}`)
     }
   }
 
-  // Als verificatie faalt, redirect naar error
+  // If verification fails, redirect to error page
   return NextResponse.redirect(`${requestUrl.origin}/auth/error`)
 }

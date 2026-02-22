@@ -29,35 +29,76 @@ export default async function sitemap() {
     console.error('Sitemap fetch error:', error);
   }
 
-  // Static pages
-  const staticPages = [
+  // Helper: create alternates for multilingual pages (nl + en)
+  const multiLangAlternates = (path) => ({
+    languages: {
+      nl: `${siteUrl}/nl${path}`,
+      en: `${siteUrl}/en${path}`,
+      'x-default': `${siteUrl}/nl${path}`,
+    },
+  });
+
+  // Helper: create alternates for NL-only pages (blog)
+  const nlOnlyAlternates = (path) => ({
+    languages: {
+      nl: `${siteUrl}/nl${path}`,
+      'x-default': `${siteUrl}/nl${path}`,
+    },
+  });
+
+  // Static pages — both languages
+  const multiLangPages = [
+    { path: '', changeFrequency: 'weekly', priority: 1.0 },
+    { path: '/tools/ai-visibility', changeFrequency: 'weekly', priority: 0.8 },
+    { path: '/tools/ai-rank-tracker', changeFrequency: 'weekly', priority: 0.8 },
+    { path: '/tools/geo-audit', changeFrequency: 'weekly', priority: 0.8 },
+    { path: '/login', changeFrequency: 'monthly', priority: 0.4 },
+    { path: '/privacyverklaring', changeFrequency: 'monthly', priority: 0.3 },
+  ];
+
+  const staticPages = multiLangPages.flatMap((page) => [
     {
-      url: siteUrl,
+      url: `${siteUrl}/nl${page.path}`,
       lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 1.0,
+      changeFrequency: page.changeFrequency,
+      priority: page.priority,
+      alternates: multiLangAlternates(page.path),
     },
     {
-      url: `${siteUrl}/blog`,
+      url: `${siteUrl}/en${page.path}`,
+      lastModified: new Date(),
+      changeFrequency: page.changeFrequency,
+      priority: page.priority,
+      alternates: multiLangAlternates(page.path),
+    },
+  ]);
+
+  // NL-only static pages (blog, author)
+  const nlOnlyPages = [
+    {
+      url: `${siteUrl}/nl/blog`,
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.9,
+      alternates: nlOnlyAlternates('/blog'),
     },
     {
-      url: `${siteUrl}/auteur/imre`,
+      url: `${siteUrl}/nl/auteur/imre`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.7,
+      alternates: nlOnlyAlternates('/auteur/imre'),
     },
   ];
 
-  // Dynamic blog post pages
+  // Dynamic blog post pages — NL only
   const blogPages = posts.map((post) => ({
-    url: `${siteUrl}/${post.slug}`,
+    url: `${siteUrl}/nl/${post.slug}`,
     lastModified: new Date(post.modified),
     changeFrequency: 'weekly',
     priority: 0.8,
+    alternates: nlOnlyAlternates(`/${post.slug}`),
   }));
 
-  return [...staticPages, ...blogPages];
+  return [...staticPages, ...nlOnlyPages, ...blogPages];
 }

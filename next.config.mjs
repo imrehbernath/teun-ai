@@ -1,3 +1,8 @@
+// next.config.mjs
+import createNextIntlPlugin from 'next-intl/plugin';
+
+const withNextIntl = createNextIntlPlugin('./i18n/request.js');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Image optimization
@@ -40,8 +45,6 @@ const nextConfig = {
     removeConsole: process.env.NODE_ENV === 'production',
   },
 
-
-
   // Redirect www to non-www
   async redirects() {
     return [
@@ -68,109 +71,64 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // API routes: never cache
         source: '/api/:path*',
         headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-store, no-cache, must-revalidate'
-          }
+          { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate' }
         ],
       },
       {
-        // Admin pages: never cache
         source: '/admin/:path*',
         headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-store, no-cache, must-revalidate'
-          }
+          { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate' }
         ],
       },
       {
-        // Dashboard: never cache
         source: '/dashboard/:path*',
         headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-store, no-cache, must-revalidate'
-          }
+          { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate' }
         ],
       },
       {
         source: '/:path*',
         headers: [
-          {
-            key: 'X-DNS-Prefetch-Control',
-            value: 'on'
-          },
-          {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=63072000; includeSubDomains; preload'
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff'
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN'
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin'
-          },
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=3600, stale-while-revalidate=86400'
-          }
+          { key: 'X-DNS-Prefetch-Control', value: 'on' },
+          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'Referrer-Policy', value: 'origin-when-cross-origin' },
+          { key: 'Cache-Control', value: 'public, max-age=3600, stale-while-revalidate=86400' }
         ],
       },
       {
         source: '/_next/image/:path*',
         headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable'
-          }
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
         ]
       },
       {
         source: '/_next/static/:path*',
         headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable'
-          }
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
         ]
       },
       {
         source: '/GEO-blog-teun-ai-bg.webp',
         headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable'
-          }
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
         ]
       },
       {
         source: '/:all*.(jpg|jpeg|gif|png|svg|ico|webp)',
         headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable'
-          }
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
         ]
       }
     ]
   },
 
-  // Compression
   compress: true,
-
-  // Production optimizations
   poweredByHeader: false,
   reactStrictMode: true,
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

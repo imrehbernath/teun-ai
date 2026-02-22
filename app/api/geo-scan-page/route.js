@@ -4,6 +4,111 @@ import { createClient } from '@/lib/supabase/server'
 const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY
 const PAGESPEED_API_KEY = process.env.GOOGLE_PAGESPEED_API_KEY // Add to .env
 
+// ============================================
+// i18n MESSAGES
+// ============================================
+const MESSAGES = {
+  nl: {
+    noHttps: 'Website gebruikt geen HTTPS - kritiek beveiligingsprobleem',
+    noViewport: 'Geen viewport meta tag - niet mobiel-vriendelijk',
+    lcpSlow: (val) => `LCP te traag (${val}s, max 2.5s)`,
+    fidHigh: (val) => `FID te hoog (${val}ms, max 100ms)`,
+    clsHigh: (val) => `CLS te hoog (${val}, max 0.1)`,
+    noLazyLoad: 'Geen lazy loading voor afbeeldingen',
+    noDeferAsync: 'Geen deferred/async scripts',
+    noCanonical: 'Geen canonical tag - risico op duplicate content',
+    noindex: 'Pagina staat op noindex - niet zichtbaar voor zoekmachines',
+    noTitle: 'Geen title tag gevonden - kritiek SEO probleem',
+    titleVeryShort: (len) => `Title veel te kort (${len} karakters, minimaal 40)`,
+    titleShort: (len) => `Title te kort (${len} karakters, optimaal 40-60)`,
+    titleLong: (len) => `Title te lang (${len} karakters, wordt afgekapt in Google)`,
+    noMeta: 'Geen meta description - gemiste kans voor CTR',
+    metaShort: (len) => `Meta description te kort (${len} karakters, minimaal 140)`,
+    metaCouldBeLonger: (len) => `Meta description kan langer (${len} karakters, optimaal 140-155)`,
+    metaLong: (len) => `Meta description te lang (${len} karakters, wordt afgekapt)`,
+    noH1: 'Geen H1 heading - kritiek voor SEO',
+    multiH1: (count) => `${count} H1 headings gevonden (gebruik precies 1)`,
+    fewH2: 'Te weinig H2 subheadings voor goede structuur',
+    contentCouldBeMore: (count) => `Content kan uitgebreider (${count} woorden, 1000+ aanbevolen voor GEO)`,
+    contentTooLittle: (count) => `Te weinig content (${count} woorden, minimaal 800 voor SEO)`,
+    contentVeryLittle: (count) => `Zeer weinig content (${count} woorden) - moeilijk te ranken`,
+    noImages: 'Geen afbeeldingen - voeg visuele content toe',
+    imagesMissingAlt: (missing, total) => `${missing} van ${total} afbeeldingen missen alt tekst`,
+    mostImagesMissingAlt: (missing, total) => `Meeste afbeeldingen (${missing}/${total}) missen alt tekst`,
+    fewInternalLinks: 'Weinig interne links - verbeter site structuur',
+    noInternalLinks: 'Geen interne links gevonden',
+    noJsonLd: 'Geen JSON-LD structured data - mist AI-readability',
+    noOrgSchema: 'Geen Organization/LocalBusiness schema',
+    noFaqSchema: 'Geen FAQ Schema - belangrijke GEO optimalisatie',
+    noBreadcrumb: 'Geen breadcrumb navigatie',
+    missingOgTags: (tags) => `Ontbrekende OG tags: ${tags}`,
+    noTwitterCard: 'Geen Twitter Card tags',
+    noFaqContent: 'Geen FAQ of Q&A content - belangrijk voor AI visibility',
+    noDirectAnswers: 'Content mist directe, AI-vriendelijke antwoorden',
+    noLocalInfo: 'Geen lokale informatie (stad/regio) - belangrijk voor lokale AI queries',
+    noExpertise: 'Geen auteur of expertise informatie - vermindert E-E-A-T',
+    noDate: 'Geen publicatie/update datum zichtbaar',
+    scoreExcellent: 'Uitstekend',
+    scoreGood: 'Goed',
+    scoreMedium: 'Matig',
+    scoreInsufficient: 'Onvoldoende',
+    scoreBad: 'Slecht',
+    scoreError: 'Fout',
+    cannotLoad: 'Kon pagina niet laden - controleer of de URL toegankelijk is',
+  },
+  en: {
+    noHttps: 'Website does not use HTTPS - critical security issue',
+    noViewport: 'No viewport meta tag - not mobile-friendly',
+    lcpSlow: (val) => `LCP too slow (${val}s, max 2.5s)`,
+    fidHigh: (val) => `FID too high (${val}ms, max 100ms)`,
+    clsHigh: (val) => `CLS too high (${val}, max 0.1)`,
+    noLazyLoad: 'No lazy loading for images',
+    noDeferAsync: 'No deferred/async scripts',
+    noCanonical: 'No canonical tag - risk of duplicate content',
+    noindex: 'Page is set to noindex - not visible to search engines',
+    noTitle: 'No title tag found - critical SEO issue',
+    titleVeryShort: (len) => `Title way too short (${len} characters, minimum 40)`,
+    titleShort: (len) => `Title too short (${len} characters, optimal 40-60)`,
+    titleLong: (len) => `Title too long (${len} characters, gets truncated in Google)`,
+    noMeta: 'No meta description - missed opportunity for CTR',
+    metaShort: (len) => `Meta description too short (${len} characters, minimum 140)`,
+    metaCouldBeLonger: (len) => `Meta description could be longer (${len} characters, optimal 140-155)`,
+    metaLong: (len) => `Meta description too long (${len} characters, gets truncated)`,
+    noH1: 'No H1 heading - critical for SEO',
+    multiH1: (count) => `${count} H1 headings found (use exactly 1)`,
+    fewH2: 'Too few H2 subheadings for good structure',
+    contentCouldBeMore: (count) => `Content could be more extensive (${count} words, 1000+ recommended for GEO)`,
+    contentTooLittle: (count) => `Too little content (${count} words, minimum 800 for SEO)`,
+    contentVeryLittle: (count) => `Very little content (${count} words) - hard to rank`,
+    noImages: 'No images - add visual content',
+    imagesMissingAlt: (missing, total) => `${missing} of ${total} images missing alt text`,
+    mostImagesMissingAlt: (missing, total) => `Most images (${missing}/${total}) missing alt text`,
+    fewInternalLinks: 'Few internal links - improve site structure',
+    noInternalLinks: 'No internal links found',
+    noJsonLd: 'No JSON-LD structured data - missing AI-readability',
+    noOrgSchema: 'No Organization/LocalBusiness schema',
+    noFaqSchema: 'No FAQ Schema - important GEO optimization',
+    noBreadcrumb: 'No breadcrumb navigation',
+    missingOgTags: (tags) => `Missing OG tags: ${tags}`,
+    noTwitterCard: 'No Twitter Card tags',
+    noFaqContent: 'No FAQ or Q&A content - important for AI visibility',
+    noDirectAnswers: 'Content lacks direct, AI-friendly answers',
+    noLocalInfo: 'No local information (city/region) - important for local AI queries',
+    noExpertise: 'No author or expertise information - reduces E-E-A-T',
+    noDate: 'No publication/update date visible',
+    scoreExcellent: 'Excellent',
+    scoreGood: 'Good',
+    scoreMedium: 'Moderate',
+    scoreInsufficient: 'Insufficient',
+    scoreBad: 'Poor',
+    scoreError: 'Error',
+    cannotLoad: 'Could not load page - check if the URL is accessible',
+  }
+}
+
+function getMsg(locale) { return MESSAGES[locale] || MESSAGES['nl'] }
+
+
 async function scrapeWebsite(url) {
   try {
     let normalizedUrl = url.trim()
@@ -80,7 +185,8 @@ async function getCoreWebVitals(url) {
   }
 }
 
-function analyzeHtml(html, url, coreWebVitals = null) {
+function analyzeHtml(html, url, coreWebVitals = null, locale = 'nl') {
+  const msg = getMsg(locale)
   const checks = {}
   const issues = []
   const scores = {} // Partial scores per category
@@ -107,29 +213,29 @@ function analyzeHtml(html, url, coreWebVitals = null) {
   // HTTPS (3 punten)
   checks.https = url.startsWith('https')
   if (checks.https) techScore += 3
-  else issues.push('Website gebruikt geen HTTPS - kritiek beveiligingsprobleem')
+  else issues.push(msg.noHttps)
   
   // Viewport (2 punten)
   checks.viewport = hasMatch(/viewport/)
   if (checks.viewport) techScore += 2
-  else issues.push('Geen viewport meta tag - niet mobiel-vriendelijk')
+  else issues.push(msg.noViewport)
   
   // Core Web Vitals (9 punten) - if available
   if (coreWebVitals) {
     // LCP (3 punten)
     checks.lcp_good = coreWebVitals.lcpGood
     if (coreWebVitals.lcpGood) techScore += 3
-    else issues.push(`LCP te traag (${Math.round(coreWebVitals.lcp / 1000 * 10) / 10}s, max 2.5s)`)
+    else issues.push(msg.lcpSlow(Math.round(coreWebVitals.lcp / 1000 * 10) / 10))
     
     // FID/INP (3 punten)
     checks.fid_good = coreWebVitals.fidGood
     if (coreWebVitals.fidGood) techScore += 3
-    else issues.push(`FID te hoog (${Math.round(coreWebVitals.fid)}ms, max 100ms)`)
+    else issues.push(msg.fidHigh(Math.round(coreWebVitals.fid)))
     
     // CLS (3 punten)
     checks.cls_good = coreWebVitals.clsGood
     if (coreWebVitals.clsGood) techScore += 3
-    else issues.push(`CLS te hoog (${coreWebVitals.cls?.toFixed(3)}, max 0.1)`)
+    else issues.push(msg.clsHigh(coreWebVitals.cls?.toFixed(3)))
     
     checks.cwv_score = coreWebVitals.performanceScore
   } else {
@@ -139,20 +245,20 @@ function analyzeHtml(html, url, coreWebVitals = null) {
     checks.performance_hints = hasLazyLoad && hasDeferAsync
     if (hasLazyLoad) techScore += 2
     if (hasDeferAsync) techScore += 2
-    if (!hasLazyLoad) issues.push('Geen lazy loading voor afbeeldingen')
-    if (!hasDeferAsync) issues.push('Geen deferred/async scripts')
+    if (!hasLazyLoad) issues.push(msg.noLazyLoad)
+    if (!hasDeferAsync) issues.push(msg.noDeferAsync)
   }
   
   // Canonical (2 punten)
   checks.has_canonical = hasMatch(/<link[^>]*rel=["']canonical["']/i)
   if (checks.has_canonical) techScore += 2
-  else issues.push('Geen canonical tag - risico op duplicate content')
+  else issues.push(msg.noCanonical)
   
   // Robots/indexeerbaar (2 punten)
   const hasNoindex = hasMatch(/noindex/i)
   checks.indexable = !hasNoindex
   if (checks.indexable) techScore += 2
-  else issues.push('Pagina staat op noindex - niet zichtbaar voor zoekmachines')
+  else issues.push(msg.noindex)
   
   scores.technisch = { score: techScore, max: techMax, percentage: Math.round((techScore / techMax) * 100) }
 
@@ -169,15 +275,15 @@ function analyzeHtml(html, url, coreWebVitals = null) {
   checks.title_optimal = titleLength >= 40 && titleLength <= 60
   
   if (!titleMatch) {
-    issues.push('Geen title tag gevonden - kritiek SEO probleem')
+    issues.push(msg.noTitle)
   } else if (titleLength < 30) {
-    issues.push(`Title veel te kort (${titleLength} karakters, minimaal 40)`)
+    issues.push(msg.titleVeryShort(titleLength))
     contentScore += 1
   } else if (titleLength < 40) {
-    issues.push(`Title te kort (${titleLength} karakters, optimaal 40-60)`)
+    issues.push(msg.titleShort(titleLength))
     contentScore += 2
   } else if (titleLength > 65) {
-    issues.push(`Title te lang (${titleLength} karakters, wordt afgekapt in Google)`)
+    issues.push(msg.titleLong(titleLength))
     contentScore += 2
   } else if (titleLength > 60) {
     contentScore += 3
@@ -193,15 +299,15 @@ function analyzeHtml(html, url, coreWebVitals = null) {
   checks.meta_optimal = descLength >= 140 && descLength <= 155
   
   if (!metaDescMatch) {
-    issues.push('Geen meta description - gemiste kans voor CTR')
+    issues.push(msg.noMeta)
   } else if (descLength < 100) {
-    issues.push(`Meta description te kort (${descLength} karakters, minimaal 140)`)
+    issues.push(msg.metaShort(descLength))
     contentScore += 1
   } else if (descLength < 140) {
-    issues.push(`Meta description kan langer (${descLength} karakters, optimaal 140-155)`)
+    issues.push(msg.metaCouldBeLonger(descLength))
     contentScore += 2
   } else if (descLength > 160) {
-    issues.push(`Meta description te lang (${descLength} karakters, wordt afgekapt)`)
+    issues.push(msg.metaLong(descLength))
     contentScore += 2
   } else {
     contentScore += 4
@@ -217,9 +323,9 @@ function analyzeHtml(html, url, coreWebVitals = null) {
   checks.has_h3s = h3Count >= 1
   
   if (h1Count === 0) {
-    issues.push('Geen H1 heading - kritiek voor SEO')
+    issues.push(msg.noH1)
   } else if (h1Count > 1) {
-    issues.push(`${h1Count} H1 headings gevonden (gebruik precies 1)`)
+    issues.push(msg.multiH1(h1Count))
     contentScore += 2
   } else {
     contentScore += 2
@@ -227,7 +333,7 @@ function analyzeHtml(html, url, coreWebVitals = null) {
   
   if (h2Count >= 3) contentScore += 2
   else if (h2Count >= 2) contentScore += 1
-  else issues.push('Te weinig H2 subheadings voor goede structuur')
+  else issues.push(msg.fewH2)
   
   if (h3Count >= 2) contentScore += 1
   else if (h3Count >= 1) contentScore += 0.5
@@ -241,13 +347,13 @@ function analyzeHtml(html, url, coreWebVitals = null) {
     contentScore += 4
   } else if (wordCount >= 800) {
     contentScore += 3
-    issues.push(`Content kan uitgebreider (${wordCount} woorden, 1000+ aanbevolen voor GEO)`)
+    issues.push(msg.contentCouldBeMore(wordCount))
   } else if (wordCount >= 500) {
     contentScore += 2
-    issues.push(`Te weinig content (${wordCount} woorden, minimaal 800 voor SEO)`)
+    issues.push(msg.contentTooLittle(wordCount))
   } else {
     contentScore += 1
-    issues.push(`Zeer weinig content (${wordCount} woorden) - moeilijk te ranken`)
+    issues.push(msg.contentVeryLittle(wordCount))
   }
   
   // Afbeeldingen (4 punten)
@@ -259,7 +365,7 @@ function analyzeHtml(html, url, coreWebVitals = null) {
   checks.all_images_have_alt = imgCount === 0 || imgAltCount === imgCount
   
   if (imgCount === 0) {
-    issues.push('Geen afbeeldingen - voeg visuele content toe')
+    issues.push(msg.noImages)
     contentScore += 1
   } else {
     const altPercentage = imgAltCount / imgCount
@@ -267,10 +373,10 @@ function analyzeHtml(html, url, coreWebVitals = null) {
     else if (altPercentage >= 0.8) contentScore += 3
     else if (altPercentage >= 0.5) {
       contentScore += 2
-      issues.push(`${imgCount - imgAltCount} van ${imgCount} afbeeldingen missen alt tekst`)
+      issues.push(msg.imagesMissingAlt(imgCount - imgAltCount, imgCount))
     } else {
       contentScore += 1
-      issues.push(`Meeste afbeeldingen (${imgCount - imgAltCount}/${imgCount}) missen alt tekst`)
+      issues.push(msg.mostImagesMissingAlt(imgCount - imgAltCount, imgCount))
     }
   }
   
@@ -283,9 +389,9 @@ function analyzeHtml(html, url, coreWebVitals = null) {
   else if (internalLinks >= 3) contentScore += 2
   else if (internalLinks >= 1) {
     contentScore += 1
-    issues.push('Weinig interne links - verbeter site structuur')
+    issues.push(msg.fewInternalLinks)
   } else {
-    issues.push('Geen interne links gevonden')
+    issues.push(msg.noInternalLinks)
   }
   
   scores.content = { score: contentScore, max: contentMax, percentage: Math.round((contentScore / contentMax) * 100) }
@@ -302,17 +408,17 @@ function analyzeHtml(html, url, coreWebVitals = null) {
   checks.has_jsonld = jsonLdMatches.length > 0
   
   if (checks.has_jsonld) structuredScore += 4
-  else issues.push('Geen JSON-LD structured data - mist AI-readability')
+  else issues.push(msg.noJsonLd)
   
   // Organization/LocalBusiness (4 punten)
   checks.has_org_schema = /Organization|LocalBusiness|Corporation|ProfessionalService/i.test(jsonLdContent)
   if (checks.has_org_schema) structuredScore += 4
-  else if (checks.has_jsonld) issues.push('Geen Organization/LocalBusiness schema')
+  else if (checks.has_jsonld) issues.push(msg.noOrgSchema)
   
   // FAQ Schema (4 punten) - belangrijk voor AI
   checks.has_faq_schema = /FAQPage|Question.*acceptedAnswer/i.test(jsonLdContent)
   if (checks.has_faq_schema) structuredScore += 4
-  else issues.push('Geen FAQ Schema - belangrijke GEO optimalisatie')
+  else issues.push(msg.noFaqSchema)
   
   // Product/Service schema (3 punten)
   checks.has_product_schema = /Product|Service|Offer/i.test(jsonLdContent)
@@ -321,7 +427,7 @@ function analyzeHtml(html, url, coreWebVitals = null) {
   // Breadcrumb (3 punten)
   checks.has_breadcrumb = /BreadcrumbList/i.test(jsonLdContent) || hasMatch(/class=["'][^"']*breadcrumb/i)
   if (checks.has_breadcrumb) structuredScore += 3
-  else issues.push('Geen breadcrumb navigatie')
+  else issues.push(msg.noBreadcrumb)
   
   // Article/WebPage schema (2 punten)
   checks.has_article_schema = /Article|WebPage|BlogPosting/i.test(jsonLdContent)
@@ -358,8 +464,8 @@ function analyzeHtml(html, url, coreWebVitals = null) {
   if (!hasOgTitle) missingOg.push('og:title')
   if (!hasOgDesc) missingOg.push('og:description')
   if (!hasOgImage) missingOg.push('og:image')
-  if (missingOg.length > 0) issues.push(`Ontbrekende OG tags: ${missingOg.join(', ')}`)
-  if (!hasTwitterCard) issues.push('Geen Twitter Card tags')
+  if (missingOg.length > 0) issues.push(msg.missingOgTags(missingOg.join(', ')))
+  if (!hasTwitterCard) issues.push(msg.noTwitterCard)
   
   scores.social = { score: socialScore, max: socialMax, percentage: Math.round((socialScore / socialMax) * 100) }
 
@@ -377,7 +483,7 @@ function analyzeHtml(html, url, coreWebVitals = null) {
   if (hasFaqSection && questionCount >= 3) geoScore += 5
   else if (hasFaqSection || questionCount >= 5) geoScore += 3
   else if (questionCount >= 2) geoScore += 1
-  else issues.push('Geen FAQ of Q&A content - belangrijk voor AI visibility')
+  else issues.push(msg.noFaqContent)
   
   // Directe antwoorden (5 punten)
   const hasDirectAnswer = hasMatch(/<(p|div|span)[^>]*>[^<]{0,50}(ja|nee|dit is|het antwoord|kort gezegd|samengevat)/i)
@@ -387,7 +493,7 @@ function analyzeHtml(html, url, coreWebVitals = null) {
   
   if (hasDirectAnswer && hasHowTo) geoScore += 5
   else if (hasDirectAnswer || hasHowTo || hasDefinition) geoScore += 3
-  else issues.push('Content mist directe, AI-vriendelijke antwoorden')
+  else issues.push(msg.noDirectAnswers)
   
   // Lokale informatie (4 punten)
   const dutchCities = /amsterdam|rotterdam|den haag|utrecht|eindhoven|groningen|tilburg|almere|breda|nijmegen/i
@@ -398,7 +504,7 @@ function analyzeHtml(html, url, coreWebVitals = null) {
   
   if (hasCity && (hasPostcode || hasRegion)) geoScore += 4
   else if (hasCity || hasPostcode) geoScore += 2
-  else issues.push('Geen lokale informatie (stad/regio) - belangrijk voor lokale AI queries')
+  else issues.push(msg.noLocalInfo)
   
   // Auteur/expertise (4 punten)
   const hasAuthor = hasMatch(/geschreven door|auteur|door\s+[A-Z][a-z]+\s+[A-Z]/i)
@@ -408,7 +514,7 @@ function analyzeHtml(html, url, coreWebVitals = null) {
   
   if (hasAuthor && hasCredentials) geoScore += 4
   else if (hasAuthor || hasCredentials || hasAboutAuthor) geoScore += 2
-  else issues.push('Geen auteur of expertise informatie - vermindert E-E-A-T')
+  else issues.push(msg.noExpertise)
   
   // Datum/actualiteit (3 punten)
   const hasDate = hasMatch(/\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}|\d{1,2}\s+(januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december)\s+\d{4}/i)
@@ -417,7 +523,7 @@ function analyzeHtml(html, url, coreWebVitals = null) {
   
   if (hasDate && hasUpdated) geoScore += 3
   else if (hasDate || hasUpdated) geoScore += 2
-  else issues.push('Geen publicatie/update datum zichtbaar')
+  else issues.push(msg.noDate)
   
   // Conversationele stijl (4 punten)
   const hasConversational = hasMatch(/(wij|we|ons|onze|u |je |jouw )/i)
@@ -439,11 +545,11 @@ function analyzeHtml(html, url, coreWebVitals = null) {
   const finalScore = Math.round((totalScore / totalMax) * 100)
   
   // Bepaal score label
-  let scoreLabel = 'Slecht'
-  if (finalScore >= 80) scoreLabel = 'Uitstekend'
-  else if (finalScore >= 65) scoreLabel = 'Goed'
-  else if (finalScore >= 50) scoreLabel = 'Matig'
-  else if (finalScore >= 35) scoreLabel = 'Onvoldoende'
+  let scoreLabel = msg.scoreBad
+  if (finalScore >= 80) scoreLabel = msg.scoreExcellent
+  else if (finalScore >= 65) scoreLabel = msg.scoreGood
+  else if (finalScore >= 50) scoreLabel = msg.scoreMedium
+  else if (finalScore >= 35) scoreLabel = msg.scoreInsufficient
   
   return {
     checklist: checks,
@@ -474,7 +580,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
-    const { url } = await request.json()
+    const { url, locale = 'nl' } = await request.json()
     
     if (!url) {
       return NextResponse.json({ error: 'URL required' }, { status: 400 })
@@ -490,14 +596,14 @@ export async function POST(request) {
       return NextResponse.json({ 
         checklist: {},
         score: 0,
-        scoreLabel: 'Fout',
-        issues: ['Kon pagina niet laden - controleer of de URL toegankelijk is'],
+        scoreLabel: getMsg(locale).scoreError,
+        issues: [getMsg(locale).cannotLoad],
         scanned: false
       })
     }
     
     // Analyze with Core Web Vitals data
-    const results = analyzeHtml(html, url, coreWebVitals)
+    const results = analyzeHtml(html, url, coreWebVitals, locale)
     
     return NextResponse.json({
       ...results,

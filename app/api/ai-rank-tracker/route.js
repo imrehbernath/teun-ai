@@ -10,43 +10,86 @@ const supabase = createClient(
 );
 
 // ============================================================
-// NATUURLIJKE PROMPT GENERATOR
-// Gebaseerd op master ai-visibility-analysis stijl:
-// - Klinkt als een ECHT persoon die typt in ChatGPT
-// - NOOIT robotachtig ("Geef me een genummerde top 10 lijst")
-// - Commercieel: vraagt om concrete bedrijfsnamen
+// i18n MESSAGES
 // ============================================================
-function generatePrompt(keyword, serviceArea) {
+const MESSAGES = {
+  nl: {
+    domainRequired: 'Website URL is verplicht (min. 3 tekens)',
+    brandRequired: 'Bedrijfsnaam is verplicht (min. 2 tekens)',
+    keywordRequired: 'Zoekwoord is verplicht (min. 2 tekens)',
+    dailyLimit: 'Dagelijks limiet bereikt (3 per dag). Probeer morgen opnieuw.',
+    freeLimit: 'Je hebt je 2 gratis rank checks gebruikt. Maak een gratis account aan voor meer.',
+    scanError: 'Er ging iets mis bij het scannen. Probeer het opnieuw.',
+    scanFailed: 'Scan mislukt',
+  },
+  en: {
+    domainRequired: 'Website URL is required (min. 3 characters)',
+    brandRequired: 'Company name is required (min. 2 characters)',
+    keywordRequired: 'Keyword is required (min. 2 characters)',
+    dailyLimit: 'Daily limit reached (3 per day). Try again tomorrow.',
+    freeLimit: 'You have used your 2 free rank checks. Create a free account for more.',
+    scanError: 'Something went wrong while scanning. Please try again.',
+    scanFailed: 'Scan failed',
+  }
+};
+
+function getMsg(locale) { return MESSAGES[locale] || MESSAGES['nl']; }
+
+// ============================================================
+// NATUURLIJKE PROMPT GENERATOR (NL + EN)
+// ============================================================
+function generatePrompt(keyword, serviceArea, locale = 'nl') {
   const kw = keyword.trim();
   const area = serviceArea?.trim() || '';
   const kwLower = kw.toLowerCase();
   const areaLower = area.toLowerCase();
   
-  // ── Stap 1: Check of zoekwoord al de locatie bevat ──
   const keywordContainsArea = area && kwLower.includes(areaLower);
   
-  // ── Stap 2: Schoon keyword op ──
   let cleanKw = kw;
   let effectiveArea = area;
   
   if (keywordContainsArea) {
-    // Haal locatie uit keyword voor schonere zin
     cleanKw = kw.replace(new RegExp(area, 'i'), '').trim();
-    // Verwijder trailing "in" als die overblijft
     cleanKw = cleanKw.replace(/\s+in\s*$/i, '').trim();
     effectiveArea = area;
   }
   
-  // Verwijder "beste" prefix (dat zit al impliciet in de vraag)
-  cleanKw = cleanKw.replace(/^(de\s+)?beste\s+/i, '').trim();
+  if (locale === 'nl') {
+    cleanKw = cleanKw.replace(/^(de\s+)?beste\s+/i, '').trim();
+  } else {
+    cleanKw = cleanKw.replace(/^(the\s+)?best\s+/i, '').trim();
+  }
   
-  // Locatie deel
   const inArea = effectiveArea ? ` in ${effectiveArea}` : '';
-  
-  // ── Stap 3: Detecteer type keyword ──
   const cleanLower = cleanKw.toLowerCase();
   
-  // Actie-keywords: "website laten maken", "tuin laten aanleggen", "auto kopen"
+  if (locale === 'en') {
+    // English action keywords
+    const actionPatternsEn = [
+      'have built', 'have made', 'have designed', 'get installed',
+      'buy', 'rent', 'book', 'order', 'arrange', 'hire',
+    ];
+    const isAction = actionPatternsEn.some(v => cleanLower.includes(v));
+    
+    if (isAction) {
+      const templates = [
+        `I want to ${cleanKw}${inArea}. Which companies can you recommend?`,
+        `I want to ${cleanKw}${inArea}. What companies would you suggest?`,
+        `I want to ${cleanKw}${inArea}. Do you know good companies for this?`,
+      ];
+      return templates[cleanKw.length % templates.length];
+    }
+    
+    const templates = [
+      `Can you recommend good ${cleanKw}${inArea}?`,
+      `Which ${cleanKw}${inArea} would you recommend?`,
+      `What are the best ${cleanKw}${inArea}?`,
+    ];
+    return templates[cleanKw.length % templates.length];
+  }
+  
+  // Dutch (original logic)
   const actionPatterns = [
     'laten maken', 'laten bouwen', 'laten ontwerpen', 'laten aanleggen',
     'laten renoveren', 'laten schilderen', 'laten verbouwen', 'laten installeren',
@@ -56,28 +99,21 @@ function generatePrompt(keyword, serviceArea) {
   ];
   const isAction = actionPatterns.some(v => cleanLower.includes(v));
   
-  // ── Stap 4: Bouw natuurlijke prompt ──
   if (isAction) {
-    // "website laten maken" → "Ik wil een website laten maken in Amsterdam. Welke bedrijven kun je aanbevelen?"
-    // "gordijnen kopen" → "Ik wil gordijnen kopen in Den Haag. Welke bedrijven raad je aan?"
     const templates = [
       `Ik wil ${cleanKw}${inArea}. Welke bedrijven kun je aanbevelen?`,
       `Ik wil ${cleanKw}${inArea}. Welke bedrijven raad je aan?`,
       `Ik wil ${cleanKw}${inArea}. Ken je goede bedrijven hiervoor?`,
     ];
-    const idx = cleanKw.length % templates.length;
-    return templates[idx];
+    return templates[cleanKw.length % templates.length];
   }
   
-  // Noun-keywords: "SEO bureau", "tandarts", "lampenwinkel"
-  // Klinkt als echte mensen in ChatGPT - perfecte grammatica is niet nodig
   const templates = [
     `Kun je goede ${cleanKw}${inArea} aanbevelen?`,
     `Welke ${cleanKw}${inArea} raad je aan?`,
     `Wat zijn de beste ${cleanKw}${inArea}?`,
   ];
-  const idx = cleanKw.length % templates.length;
-  return templates[idx];
+  return templates[cleanKw.length % templates.length];
 }
 
 // ============================================================
@@ -173,19 +209,29 @@ function parseRankings(text, brandName, domain) {
 
 // ============================================================
 // PLATFORM SCANNERS
-// System prompt vraagt om genummerde lijst + bedrijfsnamen
-// User prompt is NATUURLIJK (geen "geef me een lijst")
 // ============================================================
 
-const SYSTEM_PROMPT_NL = (serviceArea) => `Je bent een behulpzame assistent die aanbevelingen geeft voor Nederlandse bedrijven en diensten. De gebruiker bevindt zich in Nederland${serviceArea ? `, regio ${serviceArea}` : ''}.
+function getSystemPrompt(serviceArea, locale = 'nl') {
+  if (locale === 'en') {
+    return `You are a helpful assistant that provides recommendations for businesses and services. The user is located${serviceArea ? ` in the ${serviceArea} area` : ''}.
+
+Always provide a numbered top 10 list with:
+- Business name
+- Brief explanation of why they are good
+
+Base your recommendations on current information and reviews.`;
+  }
+
+  return `Je bent een behulpzame assistent die aanbevelingen geeft voor Nederlandse bedrijven en diensten. De gebruiker bevindt zich in Nederland${serviceArea ? `, regio ${serviceArea}` : ''}.
 
 Geef ALTIJD een genummerde top 10 lijst met:
 - Bedrijfsnaam
 - Korte toelichting waarom ze goed zijn
 
 Baseer je aanbevelingen op actuele informatie en reviews.`;
+}
 
-async function scanChatGPT(prompt, brandName, domain, serviceArea) {
+async function scanChatGPT(prompt, brandName, domain, serviceArea, locale) {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -198,11 +244,11 @@ async function scanChatGPT(prompt, brandName, domain, serviceArea) {
         search_context_size: 'medium',
         user_location: {
           type: 'approximate',
-          approximate: { country: 'NL', city: serviceArea || 'Amsterdam' }
+          approximate: { country: locale === 'en' ? 'GB' : 'NL', city: serviceArea || (locale === 'en' ? 'London' : 'Amsterdam') }
         }
       },
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT_NL(serviceArea) },
+        { role: 'system', content: getSystemPrompt(serviceArea, locale) },
         { role: 'user', content: prompt }
       ]
     })
@@ -215,7 +261,7 @@ async function scanChatGPT(prompt, brandName, domain, serviceArea) {
   return { ...parseRankings(text, brandName, domain), platform: 'chatgpt', fullResponse: text };
 }
 
-async function scanPerplexity(prompt, brandName, domain, serviceArea) {
+async function scanPerplexity(prompt, brandName, domain, serviceArea, locale) {
   const response = await fetch('https://api.perplexity.ai/chat/completions', {
     method: 'POST',
     headers: {
@@ -225,7 +271,7 @@ async function scanPerplexity(prompt, brandName, domain, serviceArea) {
     body: JSON.stringify({
       model: 'sonar-pro',
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT_NL(serviceArea) },
+        { role: 'system', content: getSystemPrompt(serviceArea, locale) },
         { role: 'user', content: prompt }
       ]
     })
@@ -242,7 +288,7 @@ async function scanPerplexity(prompt, brandName, domain, serviceArea) {
 // RATE LIMITING
 // ============================================================
 
-async function checkRateLimit(ip, userId) {
+async function checkRateLimit(ip, userId, msg) {
   if (userId) {
     const { data: user } = await supabase.auth.admin.getUserById(userId);
     if (user?.user?.email === process.env.ADMIN_EMAIL) {
@@ -261,7 +307,7 @@ async function checkRateLimit(ip, userId) {
       .gte('created_at', today.toISOString());
     
     if (count >= 3) {
-      return { allowed: false, reason: 'Dagelijks limiet bereikt (3 per dag). Probeer morgen opnieuw.' };
+      return { allowed: false, reason: msg.dailyLimit };
     }
     return { allowed: true };
   }
@@ -273,10 +319,7 @@ async function checkRateLimit(ip, userId) {
     .is('user_id', null);
   
   if (count >= 2) {
-    return { 
-      allowed: false, 
-      reason: 'Je hebt je 2 gratis rank checks gebruikt. Maak een gratis account aan voor meer.' 
-    };
+    return { allowed: false, reason: msg.freeLimit };
   }
   return { allowed: true };
 }
@@ -288,35 +331,36 @@ async function checkRateLimit(ip, userId) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { domain, brandName, keyword, serviceArea, userId } = body;
+    const { domain, brandName, keyword, serviceArea, userId, locale = 'nl' } = body;
+    const msg = getMsg(locale);
     
     if (!domain || domain.length < 3) {
-      return NextResponse.json({ error: 'Website URL is verplicht (min. 3 tekens)' }, { status: 400 });
+      return NextResponse.json({ error: msg.domainRequired }, { status: 400 });
     }
     if (!brandName || brandName.length < 2) {
-      return NextResponse.json({ error: 'Bedrijfsnaam is verplicht (min. 2 tekens)' }, { status: 400 });
+      return NextResponse.json({ error: msg.brandRequired }, { status: 400 });
     }
     if (!keyword || keyword.length < 2) {
-      return NextResponse.json({ error: 'Zoekwoord is verplicht (min. 2 tekens)' }, { status: 400 });
+      return NextResponse.json({ error: msg.keywordRequired }, { status: 400 });
     }
     
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
                request.headers.get('x-real-ip') || 
                'unknown';
     
-    const rateLimit = await checkRateLimit(ip, userId);
+    const rateLimit = await checkRateLimit(ip, userId, msg);
     if (!rateLimit.allowed) {
       return NextResponse.json({ error: rateLimit.reason, rateLimited: true }, { status: 429 });
     }
     
-    // Genereer natuurlijke prompt (master-stijl)
-    const prompt = generatePrompt(keyword, serviceArea);
+    // Genereer natuurlijke prompt
+    const prompt = generatePrompt(keyword, serviceArea, locale);
     
     const startTime = Date.now();
     
     const [chatgptResult, perplexityResult] = await Promise.allSettled([
-      scanChatGPT(prompt, brandName, domain, serviceArea),
-      scanPerplexity(prompt, brandName, domain, serviceArea)
+      scanChatGPT(prompt, brandName, domain, serviceArea, locale),
+      scanPerplexity(prompt, brandName, domain, serviceArea, locale)
     ]);
     
     const duration = Date.now() - startTime;
@@ -327,7 +371,7 @@ export async function POST(request) {
       return { 
         platform: platformName, found: false, position: null, 
         totalResults: 0, rankings: [], snippet: '', 
-        error: true, errorMessage: settled.reason?.message || 'Scan mislukt'
+        error: true, errorMessage: settled.reason?.message || msg.scanFailed
       };
     };
     
@@ -384,6 +428,7 @@ export async function POST(request) {
     
   } catch (error) {
     console.error('Rank check error:', error);
-    return NextResponse.json({ error: 'Er ging iets mis bij het scannen. Probeer het opnieuw.' }, { status: 500 });
+    const msg = getMsg('nl');
+    return NextResponse.json({ error: msg.scanError }, { status: 500 });
   }
 }

@@ -16,6 +16,6 @@ export async function GET(request) {
     }
   }
 
-  // Als er iets misgaat, redirect naar error pagina
+  // If something goes wrong, redirect to error page
   return NextResponse.redirect(`${requestUrl.origin}/auth/error`)
 }

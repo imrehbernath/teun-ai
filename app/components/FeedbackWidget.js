@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ThumbsUp, ThumbsDown, Share2, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
   const [step, setStep] = useState('initial'); // initial, comment, linkedin, success
@@ -9,6 +10,7 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
   const [comment, setComment] = useState('');
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const t = useTranslations('feedback');
 
   const handleRating = async (selectedRating) => {
     setRating(selectedRating);
@@ -42,7 +44,7 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
       }
     } catch (error) {
       console.error('Feedback error:', error);
-      alert('Er ging iets mis. Probeer het opnieuw.');
+      alert(t('submitError'));
     } finally {
       setSubmitting(false);
     }
@@ -63,9 +65,9 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
 
       // Open LinkedIn share
       const linkedInText = encodeURIComponent(
-        `🎯 Zojuist mijn AI-zichtbaarheid getest met TEUN.AI\n\n` +
-        `📊 Resultaat: ${totalMentions}/5 vermeldingen in AI-zoekmachines\n\n` +
-        `Benieuwd hoe vaak ChatGPT, Perplexity en Claude jouw bedrijf vermelden? Test het gratis:\n` +
+        `🎯 ${t('linkedin.text1')}\n\n` +
+        `📊 ${t('linkedin.text2', { mentions: totalMentions })}\n\n` +
+        `${t('linkedin.text3')}\n` +
         `👉 https://teun.ai/tools/ai-visibility\n\n` +
         `#GEO #AISEO #ChatGPT #AIZichtbaarheid`
       );
@@ -86,7 +88,7 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
       <div className="bg-green-50 border border-green-200 rounded-xl p-4 mt-6 animate-in fade-in slide-in-from-bottom-4">
         <div className="flex items-center gap-2 text-green-700">
           <span className="text-2xl">🎉</span>
-          <p className="font-semibold">Bedankt voor je feedback!</p>
+          <p className="font-semibold">{t('thankYou')}</p>
         </div>
       </div>
     );
@@ -105,16 +107,16 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
         <div className="text-center">
           <Share2 className="w-12 h-12 text-blue-500 mx-auto mb-4" />
           <h3 className="text-xl font-bold text-slate-900 mb-2">
-            🚀 Deel je resultaat op LinkedIn!
+            {t('linkedin.title')}
           </h3>
           <p className="text-blue-700 mb-4">
-            Help anderen hun AI-zichtbaarheid te ontdekken
+            {t('linkedin.subtitle')}
           </p>
           
           <div className="bg-white rounded-lg p-4 mb-6 text-left text-sm text-slate-600 border border-blue-100">
             <p className="italic">
-              &ldquo;🎯 Zojuist mijn AI-zichtbaarheid getest met TEUN.AI<br/>
-              📊 Resultaat: {totalMentions}/5 vermeldingen in AI-zoekmachines...&rdquo;
+              &ldquo;🎯 {t('linkedin.text1')}<br/>
+              📊 {t('linkedin.text2', { mentions: totalMentions })}...&rdquo;
             </p>
           </div>
 
@@ -123,13 +125,13 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
               onClick={() => handleLinkedInShare(true)}
               className="flex-1 px-6 py-3 bg-[#0A66C2] text-white font-bold rounded-lg hover:bg-[#004182] transition cursor-pointer"
             >
-              Deel op LinkedIn
+              {t('linkedin.shareButton')}
             </button>
             <button
               onClick={() => handleLinkedInShare(false)}
               className="px-6 py-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition cursor-pointer"
             >
-              Sla over
+              {t('linkedin.skip')}
             </button>
           </div>
         </div>
@@ -148,16 +150,16 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
         </button>
 
         <h3 className="text-xl font-bold text-slate-900 mb-2">
-          😔 Wat kunnen we verbeteren?
+          {t('negative.title')}
         </h3>
         <p className="text-orange-700 mb-4 text-sm">
-          Je feedback helpt ons om de tool te verbeteren!
+          {t('negative.subtitle')}
         </p>
 
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          placeholder="Vertel ons wat beter kan..."
+          placeholder={t('negative.placeholder')}
           className="w-full h-32 bg-white border border-orange-200 rounded-lg px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none mb-4"
         />
 
@@ -165,7 +167,7 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email (optioneel, voor follow-up)"
+          placeholder={t('negative.emailPlaceholder')}
           className="w-full bg-white border border-orange-200 rounded-lg px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-400 mb-4"
         />
 
@@ -174,7 +176,7 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
           disabled={submitting || !comment}
           className="w-full px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-lg hover:from-orange-600 hover:to-red-600 transition disabled:opacity-50 cursor-pointer"
         >
-          {submitting ? 'Versturen...' : 'Verstuur feedback'}
+          {submitting ? t('negative.submitting') : t('negative.submit')}
         </button>
       </div>
     );
@@ -185,7 +187,7 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
     <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-6">
       <div className="flex items-center justify-between">
         <p className="text-slate-600 text-sm sm:text-base">
-          💭 Hoe vond je deze analyse?
+          {t('question')}
         </p>
         <div className="flex gap-2">
           <button
@@ -193,14 +195,14 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
             className="px-4 py-2 bg-green-100 hover:bg-green-200 border border-green-300 rounded-lg transition flex items-center gap-2 text-green-700 font-semibold cursor-pointer"
           >
             <ThumbsUp className="w-4 h-4" />
-            <span className="hidden sm:inline">Handig</span>
+            <span className="hidden sm:inline">{t('helpful')}</span>
           </button>
           <button
             onClick={() => handleRating('negative')}
             className="px-4 py-2 bg-orange-100 hover:bg-orange-200 border border-orange-300 rounded-lg transition flex items-center gap-2 text-orange-700 font-semibold cursor-pointer"
           >
             <ThumbsDown className="w-4 h-4" />
-            <span className="hidden sm:inline">Kan beter</span>
+            <span className="hidden sm:inline">{t('canImprove')}</span>
           </button>
         </div>
       </div>

@@ -3,10 +3,141 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import fs from 'fs'
 import path from 'path'
 
+// ============================================
+// i18n MESSAGES FOR PDF REPORT
+// ============================================
+const PDF_MESSAGES = {
+  nl: {
+    // Title page
+    reportTitle: 'GEO Analyse Rapport',
+    unknown: 'Onbekend',
+    disclaimer: 'Dit rapport toont hoe zichtbaar uw bedrijf is in AI-gestuurde zoeksystemen.',
+    scannedOn: (count, names) => `Gescand op ${count} platform${count === 1 ? '' : 's'}: ${names}.`,
+    noPlatformsScanned: 'Nog geen platforms gescand.',
+    liveResults: 'Voor live resultaten en updates, bekijk het dashboard op teun.ai.',
+    aiVisibilityScore: 'AI Visibility Score',
+    geoOptimization: 'GEO Optimalisatie',
+    platformsScanned: 'Platforms Gescand',
+    aiVisibility: (label, score) => `${label} \u2014 ${score}% AI-zichtbaarheid`,
+    quickStats: (prompts, mentioned, total, platforms) => `${prompts} commerciele prompts getest  \u2022  ${mentioned} van ${total} keer vermeld  \u2022  ${platforms} AI-platforms`,
+    // Score labels
+    excellent: 'Uitstekend',
+    good: 'Goed',
+    average: 'Gemiddeld',
+    poor: 'Slecht',
+    // Section headers
+    resultsPerPlatform: '1. Resultaten per AI-platform',
+    testedIntro: (prompts, platforms) => `We hebben ${prompts} commerciele prompts getest op ${platforms} AI-platforms. Hieronder de resultaten per platform met de exacte prompts en AI-antwoorden.`,
+    // Table headers
+    platform: 'Platform',
+    mentioned: 'Vermeld',
+    total: 'Totaal',
+    score: 'Score',
+    // Platform detail
+    platformMentioned: (name, m, t, pct) => `${name}  \u2014  ${m}/${t} vermeld (${pct}%)`,
+    competitors: 'Concurrenten: ',
+    // Prompt summary
+    promptOverview: '2. Overzicht alle prompts',
+    promptOverviewIntro: (count) => `Totaal ${count} prompts getest. Hieronder per prompt op welke platforms uw bedrijf vermeld wordt.`,
+    yes: 'Ja',
+    no: 'Nee',
+    // Page scores
+    pageScores: '3. Pagina Scores',
+    pageScoresIntro: (count) => `GEO-optimalisatiescore voor alle ${count} gescande pagina\'s:`,
+    page: 'Pagina',
+    status: 'Status',
+    averageScore: (score, label) => `Gemiddelde score: ${score}/100 (${label})`,
+    // Recommendations
+    recommendations: 'Aanbevelingen',
+    recommendationsIntro: 'Op basis van de analyse adviseren we de volgende stappen:',
+    priorityHigh: 'Hoog',
+    priorityMedium: 'Middel',
+    recVisibility: 'Vergroot je AI-zichtbaarheid',
+    recVisibilityDesc: (company, notMentioned, total) => `${company} wordt bij ${notMentioned} van de ${total} prompts niet vermeld door AI-platforms. Maak gerichte content die direct antwoord geeft op deze vragen.`,
+    recPlatform: (name) => `Verbeter zichtbaarheid op ${name}`,
+    recPlatformDesc: (score, name) => `Met slechts ${score}% zichtbaarheid op ${name} laat u klanten liggen. Elk platform heeft eigen criteria \u2014 optimaliseer uw content specifiek voor ${name}.`,
+    recStructuredData: 'Implementeer structured data',
+    recStructuredDataDesc: 'Voeg JSON-LD markup toe (Organization, FAQ, Product, LocalBusiness) zodat AI-systemen uw content beter kunnen begrijpen en citeren.',
+    recEeat: 'Versterk E-E-A-T signalen',
+    recEeatDesc: 'Zorg voor duidelijke auteursinformatie, referenties naar betrouwbare bronnen en regelmatig bijgewerkte content om uw autoriteit te vergroten.',
+    recConversational: 'Optimaliseer voor conversational search',
+    recConversationalDesc: 'AI-platforms beantwoorden steeds meer vragen in gespreksvorm. Structureer uw content met duidelijke vragen en antwoorden, zodat AI uw tekst direct kan overnemen.',
+    recGeoPages: "Optimaliseer landingspagina\'s voor GEO",
+    recGeoPagesDesc: "Verbeter de GEO-score door betere contentstructuur, FAQ-secties en gedetailleerde antwoorden op veelgestelde vragen.",
+    fomo: 'Wacht niet te lang \u2014 elke dag zonder GEO-optimalisatie gaan potentiele klanten naar concurrenten die wel zichtbaar zijn in AI-antwoorden.',
+    // Footer
+    needHelp: 'Hulp nodig bij GEO-optimalisatie?',
+    poweredBy: 'Powered by teun.ai',
+    // Date locale
+    dateLocale: 'nl-NL',
+    andWord: ' en ',
+  },
+  en: {
+    reportTitle: 'GEO Analysis Report',
+    unknown: 'Unknown',
+    disclaimer: 'This report shows how visible your business is in AI-powered search systems.',
+    scannedOn: (count, names) => `Scanned on ${count} platform${count === 1 ? '' : 's'}: ${names}.`,
+    noPlatformsScanned: 'No platforms scanned yet.',
+    liveResults: 'For live results and updates, visit the dashboard at teun.ai.',
+    aiVisibilityScore: 'AI Visibility Score',
+    geoOptimization: 'GEO Optimization',
+    platformsScanned: 'Platforms Scanned',
+    aiVisibility: (label, score) => `${label} \u2014 ${score}% AI visibility`,
+    quickStats: (prompts, mentioned, total, platforms) => `${prompts} commercial prompts tested  \u2022  ${mentioned} of ${total} times mentioned  \u2022  ${platforms} AI platforms`,
+    excellent: 'Excellent',
+    good: 'Good',
+    average: 'Average',
+    poor: 'Poor',
+    resultsPerPlatform: '1. Results per AI platform',
+    testedIntro: (prompts, platforms) => `We tested ${prompts} commercial prompts on ${platforms} AI platforms. Below are the results per platform with the exact prompts and AI responses.`,
+    platform: 'Platform',
+    mentioned: 'Mentioned',
+    total: 'Total',
+    score: 'Score',
+    platformMentioned: (name, m, t, pct) => `${name}  \u2014  ${m}/${t} mentioned (${pct}%)`,
+    competitors: 'Competitors: ',
+    promptOverview: '2. All prompts overview',
+    promptOverviewIntro: (count) => `${count} prompts tested in total. Below shows on which platforms your business is mentioned per prompt.`,
+    yes: 'Yes',
+    no: 'No',
+    pageScores: '3. Page Scores',
+    pageScoresIntro: (count) => `GEO optimization score for all ${count} scanned pages:`,
+    page: 'Page',
+    status: 'Status',
+    averageScore: (score, label) => `Average score: ${score}/100 (${label})`,
+    recommendations: 'Recommendations',
+    recommendationsIntro: 'Based on the analysis, we recommend the following steps:',
+    priorityHigh: 'High',
+    priorityMedium: 'Medium',
+    recVisibility: 'Increase your AI visibility',
+    recVisibilityDesc: (company, notMentioned, total) => `${company} is not mentioned by AI platforms for ${notMentioned} of ${total} prompts. Create targeted content that directly answers these questions.`,
+    recPlatform: (name) => `Improve visibility on ${name}`,
+    recPlatformDesc: (score, name) => `With only ${score}% visibility on ${name}, you are missing potential customers. Each platform has its own criteria \u2014 optimize your content specifically for ${name}.`,
+    recStructuredData: 'Implement structured data',
+    recStructuredDataDesc: 'Add JSON-LD markup (Organization, FAQ, Product, LocalBusiness) so AI systems can better understand and cite your content.',
+    recEeat: 'Strengthen E-E-A-T signals',
+    recEeatDesc: 'Ensure clear author information, references to reliable sources, and regularly updated content to increase your authority.',
+    recConversational: 'Optimize for conversational search',
+    recConversationalDesc: 'AI platforms increasingly answer questions in conversational form. Structure your content with clear questions and answers, so AI can directly use your text.',
+    recGeoPages: 'Optimize landing pages for GEO',
+    recGeoPagesDesc: 'Improve the GEO score through better content structure, FAQ sections, and detailed answers to frequently asked questions.',
+    fomo: 'Don\'t wait too long \u2014 every day without GEO optimization, potential customers go to competitors who are visible in AI responses.',
+    needHelp: 'Need help with GEO optimization?',
+    poweredBy: 'Powered by teun.ai',
+    dateLocale: 'en-GB',
+    andWord: ' and ',
+  }
+}
+
+function getPdfMsg(locale) { return PDF_MESSAGES[locale] || PDF_MESSAGES['nl'] }
+
+
 export async function POST(request) {
   try {
     const data = await request.json()
-    const { companyName, companyWebsite, companyCategory, matches, scanResults, aiResults, overallScore, manualChecks, combinedResults } = data
+    const { companyName, companyWebsite, companyCategory, matches, scanResults, aiResults, overallScore, manualChecks, combinedResults, locale = 'nl' } = data
+
+    const msg = getPdfMsg(locale)
 
     const pdfDoc = await PDFDocument.create()
     const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica)
@@ -66,10 +197,10 @@ export async function POST(request) {
 
     // Score helpers
     const getStatus = (score) => {
-      if (score >= 95) return { label: 'Uitstekend', color: GREEN }
-      if (score >= 80) return { label: 'Goed', color: GREEN }
-      if (score >= 55) return { label: 'Gemiddeld', color: ORANGE }
-      return { label: 'Slecht', color: RED }
+      if (score >= 95) return { label: msg.excellent, color: GREEN }
+      if (score >= 80) return { label: msg.good, color: GREEN }
+      if (score >= 55) return { label: msg.average, color: ORANGE }
+      return { label: msg.poor, color: RED }
     }
     const getScoreColor = (score) => score >= 80 ? GREEN : score >= 55 ? ORANGE : RED
 
@@ -139,7 +270,7 @@ export async function POST(request) {
     }
 
     // Date
-    const today = new Date().toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })
+    const today = new Date().toLocaleDateString(msg.dateLocale, { day: 'numeric', month: 'long', year: 'numeric' })
 
     // Extract platform data from combinedResults or fall back to aiResults
     const cr = combinedResults || {}
@@ -178,10 +309,10 @@ export async function POST(request) {
     let page = newPage()
 
     y -= 120
-    drawCentered(page, 'GEO Analyse Rapport', y, helveticaBold, 28, BLACK)
+    drawCentered(page, msg.reportTitle, y, helveticaBold, 28, BLACK)
 
     y -= 40
-    drawCentered(page, companyName || 'Onbekend', y, helveticaBold, 20, PURPLE)
+    drawCentered(page, companyName || msg.unknown, y, helveticaBold, 20, PURPLE)
 
     y -= 30
     drawCentered(page, today, y, helvetica, 11, LIGHTGRAY)
@@ -193,14 +324,14 @@ export async function POST(request) {
 
     // Disclaimer
     y -= 50
-    drawCentered(page, 'Dit rapport toont hoe zichtbaar uw bedrijf is in AI-gestuurde zoeksystemen.', y, helveticaOblique, 9, LIGHTGRAY)
+    drawCentered(page, msg.disclaimer, y, helveticaOblique, 9, LIGHTGRAY)
     y -= 14
-    const scannedPlatformNames = activePlatforms.map(p => p.name).join(', ').replace(/, ([^,]*)$/, ' en $1')
+    const scannedPlatformNames = activePlatforms.map(p => p.name).join(', ').replace(/, ([^,]*)$/, msg.andWord + '$1')
     drawCentered(page, activePlatforms.length > 0 
-      ? `Gescand op ${activePlatforms.length} platform${activePlatforms.length === 1 ? '' : 's'}: ${scannedPlatformNames}.`
-      : 'Nog geen platforms gescand.', y, helveticaOblique, 9, LIGHTGRAY)
+      ? msg.scannedOn(activePlatforms.length, scannedPlatformNames)
+      : msg.noPlatformsScanned, y, helveticaOblique, 9, LIGHTGRAY)
     y -= 14
-    drawCentered(page, 'Voor live resultaten en updates, bekijk het dashboard op teun.ai.', y, helveticaOblique, 9, LIGHTGRAY)
+    drawCentered(page, msg.liveResults, y, helveticaOblique, 9, LIGHTGRAY)
 
     // Score boxes
     y -= 50
@@ -212,12 +343,12 @@ export async function POST(request) {
     const boxHeight = 70
 
     const boxes = [
-      { label: 'AI Visibility Score', value: `${aiVisScore}%`, color: rgb(0.58, 0.25, 0.85) },
+      { label: msg.aiVisibilityScore, value: `${aiVisScore}%`, color: rgb(0.58, 0.25, 0.85) },
     ]
     if (hasGeoData) {
-      boxes.push({ label: 'GEO Optimalisatie', value: `${geoScore}%`, color: rgb(0.25, 0.35, 0.85) })
+      boxes.push({ label: msg.geoOptimization, value: `${geoScore}%`, color: rgb(0.25, 0.35, 0.85) })
     }
-    boxes.push({ label: 'Platforms Gescand', value: `${activePlatforms.length}/4`, color: rgb(0.15, 0.39, 0.6) })
+    boxes.push({ label: msg.platformsScanned, value: `${activePlatforms.length}/4`, color: rgb(0.15, 0.39, 0.6) })
 
     boxes.forEach((box, i) => {
       const bx = startX + i * (boxWidth + boxGap)
@@ -230,11 +361,11 @@ export async function POST(request) {
 
     // Status text
     const status = getStatus(aiVisScore)
-    drawCentered(page, `${status.label} — ${aiVisScore}% AI-zichtbaarheid`, y, helveticaBold, 12, status.color)
+    drawCentered(page, msg.aiVisibility(status.label, aiVisScore), y, helveticaBold, 12, status.color)
 
     // Quick stats
     y -= 40
-    const statsText = `${uniquePrompts.length} commerciele prompts getest  •  ${totalMentioned} van ${totalScanned} keer vermeld  •  ${activePlatforms.length} AI-platforms`
+    const statsText = msg.quickStats(uniquePrompts.length, totalMentioned, totalScanned, activePlatforms.length)
     drawCentered(page, statsText, y, helvetica, 9, DARKGRAY)
 
     // ===========================
@@ -242,14 +373,14 @@ export async function POST(request) {
     // ===========================
     page = newPage()
 
-    page.drawText('1. Resultaten per AI-platform', { x: margin, y, size: 18, font: helveticaBold, color: BLACK })
+    page.drawText(msg.resultsPerPlatform, { x: margin, y, size: 18, font: helveticaBold, color: BLACK })
     y -= 8
     page.drawRectangle({ x: margin, y, width: 240, height: 2, color: PURPLE })
     y -= 25
 
     const introWidth = contentWidth - mascotWidth - 25
     const introLines = wrapText(
-      `We hebben ${uniquePrompts.length} commerciele prompts getest op ${activePlatforms.length} AI-platforms. Hieronder de resultaten per platform met de exacte prompts en AI-antwoorden.`,
+      msg.testedIntro(uniquePrompts.length, activePlatforms.length),
       helvetica, 10, introWidth
     )
     introLines.forEach(line => {
@@ -263,7 +394,7 @@ export async function POST(request) {
     const rowHeight = 22
     currentPage.drawRectangle({ x: margin, y: y - rowHeight, width: contentWidth, height: rowHeight, color: BLACK })
     let cx = margin + 8
-    ;['Platform', 'Vermeld', 'Totaal', 'Score'].forEach((h, i) => {
+    ;[msg.platform, msg.mentioned, msg.total, msg.score].forEach((h, i) => {
       currentPage.drawText(h, { x: cx, y: y - 15, size: 9, font: helveticaBold, color: WHITE })
       cx += colWidths[i]
     })
@@ -297,7 +428,7 @@ export async function POST(request) {
       // Platform header
       currentPage.drawRectangle({ x: margin, y: y - 24, width: contentWidth, height: 24, color: platform.bg })
       const platformScore = platform.data.total > 0 ? Math.round((platform.data.mentioned / platform.data.total) * 100) : 0
-      currentPage.drawText(`${platform.name}  —  ${platform.data.mentioned}/${platform.data.total} vermeld (${platformScore}%)`, {
+      currentPage.drawText(msg.platformMentioned(platform.name, platform.data.mentioned, platform.data.total, platformScore), {
         x: margin + 10, y: y - 17, size: 11, font: helveticaBold, color: platform.color
       })
       y -= 34
@@ -354,10 +485,10 @@ export async function POST(request) {
 
         // Competitors
         if (competitors.length > 0) {
-          currentPage.drawText('Concurrenten: ', { x: margin + 28, y, size: 8, font: helveticaBold, color: ORANGE })
+          currentPage.drawText(msg.competitors, { x: margin + 28, y, size: 8, font: helveticaBold, color: ORANGE })
           const compText = competitors.join(', ')
           const compLines = wrapText(compText, helvetica, 8, contentWidth - 100)
-          const labelWidth = helveticaBold.widthOfTextAtSize('Concurrenten: ', 8)
+          const labelWidth = helveticaBold.widthOfTextAtSize(msg.competitors, 8)
           compLines.forEach((line, i) => {
             currentPage.drawText(line, {
               x: margin + 28 + (i === 0 ? labelWidth : 0), y: y - (i * 10), size: 8, font: helvetica, color: ORANGE
@@ -381,13 +512,13 @@ export async function POST(request) {
     }
     page = newPage()
 
-    currentPage.drawText('2. Overzicht alle prompts', { x: margin, y, size: 18, font: helveticaBold, color: BLACK })
+    currentPage.drawText(msg.promptOverview, { x: margin, y, size: 18, font: helveticaBold, color: BLACK })
     y -= 8
     currentPage.drawRectangle({ x: margin, y, width: 200, height: 2, color: PURPLE })
     y -= 25
 
     currentPage.drawText(
-      `Totaal ${uniquePrompts.length} prompts getest. Hieronder per prompt op welke platforms uw bedrijf vermeld wordt.`,
+      msg.promptOverviewIntro(uniquePrompts.length),
       { x: margin, y, size: 10, font: helvetica, color: DARKGRAY }
     )
     y -= 20
@@ -420,7 +551,7 @@ export async function POST(request) {
       let badgeX = margin + 28
       platformStatus.forEach(ps => {
         if (ps.status === '-') return
-        const label = `${ps.name}: ${ps.status === 'V' ? 'Ja' : 'Nee'}`
+        const label = `${ps.name}: ${ps.status === 'V' ? msg.yes : msg.no}`
         const labelWidth = helvetica.widthOfTextAtSize(label, 7)
         const badgeW = labelWidth + 10
         
@@ -443,23 +574,23 @@ export async function POST(request) {
     if (pageEntries.length > 0) {
       page = newPage()
 
-      page.drawText('3. Pagina Scores', { x: margin, y, size: 18, font: helveticaBold, color: BLACK })
+      page.drawText(msg.pageScores, { x: margin, y, size: 18, font: helveticaBold, color: BLACK })
       y -= 8
       page.drawRectangle({ x: margin, y, width: 140, height: 2, color: PURPLE })
       y -= 25
 
-      page.drawText(`GEO-optimalisatiescore voor alle ${pageEntries.length} gescande pagina's:`, { x: margin, y, size: 10, font: helvetica, color: DARKGRAY })
+      page.drawText(msg.pageScoresIntro(pageEntries.length), { x: margin, y, size: 10, font: helvetica, color: DARKGRAY })
       y -= 25
 
       const colW = [300, 80, 80]
       const rowH = 22
       page.drawRectangle({ x: margin, y: y - rowH, width: contentWidth, height: rowH, color: BLACK })
       let cx2 = margin + 8
-      page.drawText('Pagina', { x: cx2, y: y - 15, size: 9, font: helveticaBold, color: WHITE })
+      page.drawText(msg.page, { x: cx2, y: y - 15, size: 9, font: helveticaBold, color: WHITE })
       cx2 += colW[0]
-      page.drawText('Score', { x: cx2 + 15, y: y - 15, size: 9, font: helveticaBold, color: WHITE })
+      page.drawText(msg.score, { x: cx2 + 15, y: y - 15, size: 9, font: helveticaBold, color: WHITE })
       cx2 += colW[1]
-      page.drawText('Status', { x: cx2 + 10, y: y - 15, size: 9, font: helveticaBold, color: WHITE })
+      page.drawText(msg.status, { x: cx2 + 10, y: y - 15, size: 9, font: helveticaBold, color: WHITE })
       y -= rowH
 
       pageEntries.forEach(([url, result], idx) => {
@@ -480,7 +611,7 @@ export async function POST(request) {
       y -= 15
       const avgScore = Math.round(pageEntries.reduce((sum, [, r]) => sum + (r.score || 0), 0) / pageEntries.length)
       const avgSt = getStatus(avgScore)
-      currentPage.drawText(`Gemiddelde score: ${avgScore}/100 (${avgSt.label})`, {
+      currentPage.drawText(msg.averageScore(avgScore, avgSt.label), {
         x: margin, y, size: 11, font: helveticaBold, color: avgSt.color
       })
     }
@@ -491,12 +622,12 @@ export async function POST(request) {
     page = newPage()
     const recNum = pageEntries.length > 0 ? '4' : '3'
 
-    page.drawText(`${recNum}. Aanbevelingen`, { x: margin, y, size: 18, font: helveticaBold, color: BLACK })
+    page.drawText(`${recNum}. ${msg.recommendations}`, { x: margin, y, size: 18, font: helveticaBold, color: BLACK })
     y -= 8
     page.drawRectangle({ x: margin, y, width: 140, height: 2, color: PURPLE })
     y -= 25
 
-    page.drawText('Op basis van de analyse adviseren we de volgende stappen:', { x: margin, y, size: 10, font: helvetica, color: DARKGRAY })
+    page.drawText(msg.recommendationsIntro, { x: margin, y, size: 10, font: helvetica, color: DARKGRAY })
     y -= 20
 
     // Build smart recommendations based on actual data
@@ -521,9 +652,9 @@ export async function POST(request) {
 
     if (notMentionedCount > 0) {
       recommendations.push({
-        title: 'Vergroot je AI-zichtbaarheid',
-        priority: 'Hoog',
-        desc: `${companyName} wordt bij ${notMentionedCount} van de ${uniquePrompts.length} prompts niet vermeld door AI-platforms. Maak gerichte content die direct antwoord geeft op deze vragen.`
+        title: msg.recVisibility,
+        priority: msg.priorityHigh,
+        desc: msg.recVisibilityDesc(companyName, notMentionedCount, uniquePrompts.length)
       })
     }
 
@@ -531,43 +662,43 @@ export async function POST(request) {
       const wScore = weakestPlatform.data.total > 0 ? Math.round((weakestPlatform.data.mentioned / weakestPlatform.data.total) * 100) : 0
       if (wScore < 50) {
         recommendations.push({
-          title: `Verbeter zichtbaarheid op ${weakestPlatform.name}`,
-          priority: 'Hoog',
-          desc: `Met slechts ${wScore}% zichtbaarheid op ${weakestPlatform.name} laat u klanten liggen. Elk platform heeft eigen criteria — optimaliseer uw content specifiek voor ${weakestPlatform.name}.`
+          title: msg.recPlatform(weakestPlatform.name),
+          priority: msg.priorityHigh,
+          desc: msg.recPlatformDesc(wScore, weakestPlatform.name)
         })
       }
     }
 
     recommendations.push({
-      title: 'Implementeer structured data',
-      priority: 'Hoog',
-      desc: 'Voeg JSON-LD markup toe (Organization, FAQ, Product, LocalBusiness) zodat AI-systemen uw content beter kunnen begrijpen en citeren.'
+      title: msg.recStructuredData,
+      priority: msg.priorityHigh,
+      desc: msg.recStructuredDataDesc
     })
 
     recommendations.push({
-      title: 'Versterk E-E-A-T signalen',
-      priority: 'Hoog',
-      desc: 'Zorg voor duidelijke auteursinformatie, referenties naar betrouwbare bronnen en regelmatig bijgewerkte content om uw autoriteit te vergroten.'
+      title: msg.recEeat,
+      priority: msg.priorityHigh,
+      desc: msg.recEeatDesc
     })
 
     recommendations.push({
-      title: 'Optimaliseer voor conversational search',
-      priority: 'Middel',
-      desc: 'AI-platforms beantwoorden steeds meer vragen in gespreksvorm. Structureer uw content met duidelijke vragen en antwoorden, zodat AI uw tekst direct kan overnemen.'
+      title: msg.recConversational,
+      priority: msg.priorityMedium,
+      desc: msg.recConversationalDesc
     })
 
     if (hasGeoData) {
       recommendations.push({
-        title: "Optimaliseer landingspagina's voor GEO",
-        priority: 'Hoog',
-        desc: "Verbeter de GEO-score door betere contentstructuur, FAQ-secties en gedetailleerde antwoorden op veelgestelde vragen."
+        title: msg.recGeoPages,
+        priority: msg.priorityHigh,
+        desc: msg.recGeoPagesDesc
       })
     }
 
     recommendations.forEach((rec, i) => {
       ensureSpace(50)
       currentPage.drawText(`${i + 1}. ${rec.title}`, { x: margin, y, size: 11, font: helveticaBold, color: BLACK })
-      const priorityColor = rec.priority === 'Hoog' ? RED : ORANGE
+      const priorityColor = rec.priority === msg.priorityHigh ? RED : ORANGE
       currentPage.drawText(`  [${rec.priority}]`, {
         x: margin + helveticaBold.widthOfTextAtSize(`${i + 1}. ${rec.title}`, 11) + 4,
         y, size: 8, font: helveticaBold, color: priorityColor
@@ -587,7 +718,7 @@ export async function POST(request) {
     y -= 15
     ensureSpace(40)
     const fomoLines = wrapText(
-      'Wacht niet te lang — elke dag zonder GEO-optimalisatie gaan potentiele klanten naar concurrenten die wel zichtbaar zijn in AI-antwoorden.',
+      msg.fomo,
       helveticaBold, 10, contentWidth
     )
     fomoLines.forEach(line => {
@@ -604,11 +735,11 @@ export async function POST(request) {
     currentPage.drawRectangle({ x: margin + 50, y: y + 5, width: contentWidth - 100, height: 0.5, color: rgb(0.85, 0.85, 0.85) })
     y -= 15
 
-    drawCentered(currentPage, 'Hulp nodig bij GEO-optimalisatie?', y, helveticaBold, 11, BLACK)
+    drawCentered(currentPage, msg.needHelp, y, helveticaBold, 11, BLACK)
     y -= 16
     drawCentered(currentPage, 'hallo@onlinelabs.nl  |  onlinelabs.nl', y, helvetica, 10, PURPLE)
     y -= 20
-    drawCentered(currentPage, 'Powered by teun.ai', y, helvetica, 9, LIGHTGRAY)
+    drawCentered(currentPage, msg.poweredBy, y, helvetica, 9, LIGHTGRAY)
 
     // ===========================
     // GENERATE
@@ -619,7 +750,7 @@ export async function POST(request) {
     return new NextResponse(pdfBytes, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="GEO-Rapport-${companySlug}.pdf"`
+        'Content-Disposition': `attachment; filename="GEO-${locale === 'en' ? 'Report' : 'Rapport'}-${companySlug}.pdf"`
       }
     })
 
