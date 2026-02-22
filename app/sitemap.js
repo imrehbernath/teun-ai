@@ -29,20 +29,20 @@ export default async function sitemap() {
     console.error('Sitemap fetch error:', error);
   }
 
-  // Helper: create alternates for multilingual pages (nl + en)
+  // Helper: alternates for multilingual pages (NL in root, EN under /en/)
   const multiLangAlternates = (path) => ({
     languages: {
-      nl: `${siteUrl}/nl${path}`,
+      nl: `${siteUrl}${path}`,
       en: `${siteUrl}/en${path}`,
-      'x-default': `${siteUrl}/nl${path}`,
+      'x-default': `${siteUrl}${path}`,
     },
   });
 
-  // Helper: create alternates for NL-only pages (blog)
+  // Helper: alternates for NL-only pages (blog)
   const nlOnlyAlternates = (path) => ({
     languages: {
-      nl: `${siteUrl}/nl${path}`,
-      'x-default': `${siteUrl}/nl${path}`,
+      nl: `${siteUrl}${path}`,
+      'x-default': `${siteUrl}${path}`,
     },
   });
 
@@ -58,7 +58,7 @@ export default async function sitemap() {
 
   const staticPages = multiLangPages.flatMap((page) => [
     {
-      url: `${siteUrl}/nl${page.path}`,
+      url: `${siteUrl}${page.path}`,
       lastModified: new Date(),
       changeFrequency: page.changeFrequency,
       priority: page.priority,
@@ -73,17 +73,17 @@ export default async function sitemap() {
     },
   ]);
 
-  // NL-only static pages (blog, author)
+  // NL-only static pages (blog, author) — in root
   const nlOnlyPages = [
     {
-      url: `${siteUrl}/nl/blog`,
+      url: `${siteUrl}/blog`,
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.9,
       alternates: nlOnlyAlternates('/blog'),
     },
     {
-      url: `${siteUrl}/nl/auteur/imre`,
+      url: `${siteUrl}/auteur/imre`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.7,
@@ -91,9 +91,9 @@ export default async function sitemap() {
     },
   ];
 
-  // Dynamic blog post pages — NL only
+  // Dynamic blog post pages — NL only, in root
   const blogPages = posts.map((post) => ({
-    url: `${siteUrl}/nl/${post.slug}`,
+    url: `${siteUrl}/${post.slug}`,
     lastModified: new Date(post.modified),
     changeFrequency: 'weekly',
     priority: 0.8,
