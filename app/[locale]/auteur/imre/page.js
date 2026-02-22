@@ -71,6 +71,7 @@ export const metadata = {
     },
   },
   openGraph: {
+    type: 'profile',
     title: 'Imre Bernáth - SEO & AI Visibility Specialist | Teun.ai',
     description: 'Imre Bernáth is SEO- en AI-visibility specialist uit Nederland, oprichter van Teun.ai en eigenaar van OnlineLabs. 15+ jaar ervaring in technische SEO, contentstrategie, structured data en GEO-optimalisatie.',
     url: 'https://teun.ai/auteur/imre',

@@ -170,6 +170,10 @@ export async function generateMetadata({ params }) {
       },
     },
     openGraph: {
+      type: 'article',
+      locale: 'nl_NL',
+      siteName: 'Teun.ai',
+      url: `https://teun.ai/${resolvedParams.slug}`,
       title,
       description,
       images: ogImage ? [ogImage] : [],
