@@ -4,7 +4,9 @@ import { routing } from './i18n/routing';
 import { NextResponse } from 'next/server';
 
 const intlMiddleware = createMiddleware(routing, {
-  localeDetection: true,
+  // UIT: voorkomt dat Googlebot (en-US) naar /en wordt gestuurd
+  // Gebruikers kiezen zelf hun taal via de language switcher
+  localeDetection: false,
   alternateLinks: false,
 });
 
