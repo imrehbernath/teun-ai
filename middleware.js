@@ -8,6 +8,19 @@ const intlMiddleware = createMiddleware(routing, {
   localeDetection: true,
 });
 
+// Pagina's die WEL in het Engels bestaan (naast tools/login/etc.)
+const knownEnglishPaths = [
+  '/en',
+  '/en/tools',
+  '/en/tools/ai-visibility',
+  '/en/tools/ai-rank-tracker',
+  '/en/tools/geo-audit',
+  '/en/login',
+  '/en/signup',
+  '/en/privacy',
+  '/en/dashboard',
+];
+
 export default function middleware(request) {
   const { pathname } = request.nextUrl;
 
@@ -33,13 +46,36 @@ export default function middleware(request) {
   }
 
   // ============================================
-  // BLOG IS ALLEEN BESCHIKBAAR IN HET NEDERLANDS
-  // Redirect /en/blog en /en/blog/* naar /en
+  // NL-ONLY PAGINA'S: REDIRECT EN → NL
+  // Blog, auteur, en alle onbekende /en/ slugs
   // ============================================
+
+  // /en/blog en /en/blog/* → /blog
   if (pathname === '/en/blog' || pathname.startsWith('/en/blog/')) {
     const url = request.nextUrl.clone();
-    url.pathname = '/en';
+    url.pathname = pathname.replace('/en/', '/');
     return NextResponse.redirect(url, 301);
+  }
+
+  // /en/auteur/* → /auteur/*
+  if (pathname.startsWith('/en/auteur')) {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname.replace('/en/', '/');
+    return NextResponse.redirect(url, 301);
+  }
+
+  // /en/{slug} waar slug GEEN bekende EN pagina is → redirect naar NL (root)
+  // Dit vangt alle blog post slugs op die niet in het Engels bestaan
+  if (pathname.startsWith('/en/')) {
+    const isKnownEnPath = knownEnglishPaths.some(
+      (path) => pathname === path || pathname.startsWith(path + '/')
+    );
+
+    if (!isKnownEnPath) {
+      const url = request.nextUrl.clone();
+      url.pathname = pathname.replace('/en/', '/');
+      return NextResponse.redirect(url, 301);
+    }
   }
 
   return intlMiddleware(request);

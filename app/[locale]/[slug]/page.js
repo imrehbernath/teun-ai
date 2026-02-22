@@ -163,7 +163,11 @@ export async function generateMetadata({ params }) {
     },
     description,
     alternates: {
-      canonical: `/${resolvedParams.slug}`,
+      canonical: `https://teun.ai/${resolvedParams.slug}`,
+      languages: {
+        'nl': `https://teun.ai/${resolvedParams.slug}`,
+        'x-default': `https://teun.ai/${resolvedParams.slug}`,
+      },
     },
     openGraph: {
       title,
