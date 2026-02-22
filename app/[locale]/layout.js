@@ -1,11 +1,26 @@
 // app/[locale]/layout.js
-import { NextIntlClientProvider, useMessages } from 'next-intl';
+import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { Nunito, Montserrat } from 'next/font/google';
 import { routing } from '@/i18n/routing';
 import GoogleTagManager from '../components/GoogleTagManager';
 import LanguageBanner from '../components/LanguageBanner';
+
+const nunito = Nunito({ 
+  subsets: ['latin'],
+  weight: ['400', '600', '700'],
+  display: 'swap',
+  variable: '--font-nunito'
+});
+
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
+  variable: '--font-montserrat'
+});
 
 // Genereer statische params voor beide locales
 export function generateStaticParams() {
@@ -105,26 +120,28 @@ export default async function LocaleLayout({ children, params }) {
   const messages = await getMessages();
 
   return (
-    // lang attribuut wordt dynamisch gezet per locale
-    // Dit overschrijft de <html> uit root layout via Next.js
-    <>
-      {/* Dynamisch lang attribuut toevoegen */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `document.documentElement.lang="${locale}";`,
-        }}
-      />
+    <html lang={locale} className={`${nunito.variable} ${montserrat.variable}`} suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://assets.teun.ai" />
+        <link rel="dns-prefetch" href="https://assets.teun.ai" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon-66x66.png" type="image/png" sizes="66x66" />
+        <link rel="icon" href="/favicon-200x200.png" type="image/png" sizes="200x200" />
+        <link rel="icon" href="/favicon-300x300.png" type="image/png" sizes="300x300" />
+        <link rel="apple-touch-icon" href="/favicon-300x300.png" />
+      </head>
+      <body className="antialiased" suppressHydrationWarning>
+        {/* Google Tag Manager */}
+        <GoogleTagManager />
 
-      {/* Google Tag Manager */}
-      <GoogleTagManager />
+        {/* NextIntl Provider wraps all locale-aware content */}
+        <NextIntlClientProvider messages={messages}>
+          {children}
+        </NextIntlClientProvider>
 
-      {/* NextIntl Provider wraps all locale-aware content */}
-      <NextIntlClientProvider messages={messages}>
-        {children}
-      </NextIntlClientProvider>
-
-      <Analytics />
-      <SpeedInsights />
-    </>
+        <Analytics />
+        <SpeedInsights />
+      </body>
+    </html>
   );
 }
