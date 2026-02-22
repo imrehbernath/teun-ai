@@ -88,13 +88,14 @@ export async function generateMetadata() {
     title,
     description,
     alternates: {
-      canonical: isEn ? '/en/blog' : '/blog',
+      canonical: 'https://teun.ai/blog',
       languages: {
         nl: 'https://teun.ai/blog',
-        en: 'https://teun.ai/en/blog',
+        'x-default': 'https://teun.ai/blog',
       },
     },
     openGraph: {
+      type: 'website',
       title: isEn
         ? 'GEO Blog – AI & SEO Insights 2026 | Teun.ai'
         : 'GEO Blog – AI & SEO Inzichten 2026 | Teun.ai',
