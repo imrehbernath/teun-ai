@@ -124,7 +124,11 @@ export default async function Home({ params }) {
         },
         "parentOrganization": {
           "@id": "https://www.onlinelabs.nl/#organization"
-        }
+        },
+        "sameAs": [
+          "https://profiles.wordpress.org/teunai/",
+          "https://chromewebstore.google.com/detail/teunai-chatgpt-visibility/jjhjnmkanlmjhmobcgemjakkjdbkkfmk"
+        ]
       },
       {
         "@type": "WebSite",
@@ -173,6 +177,38 @@ export default async function Home({ params }) {
         "description": locale === 'nl'
           ? "Scan hoe zichtbaar jouw bedrijf is in AI-zoekmachines zoals ChatGPT, Perplexity, Claude en Gemini."
           : "Scan how visible your business is in AI search engines like ChatGPT, Perplexity, Claude, and Gemini.",
+        "provider": { "@id": `${siteUrl}/#organization` }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "Teun.ai ChatGPT Visibility Checker",
+        "applicationCategory": "BrowserApplication",
+        "operatingSystem": "Chrome",
+        "url": "https://chromewebstore.google.com/detail/teunai-chatgpt-visibility/jjhjnmkanlmjhmobcgemjakkjdbkkfmk",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "EUR"
+        },
+        "description": locale === 'nl'
+          ? "Chrome extensie om direct je AI-zichtbaarheid te checken in ChatGPT en andere AI-zoekmachines."
+          : "Chrome extension to instantly check your AI visibility in ChatGPT and other AI search engines.",
+        "provider": { "@id": `${siteUrl}/#organization` }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "Teun.ai GEO — AI Visibility Optimizer",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "WordPress",
+        "url": "https://profiles.wordpress.org/teunai/",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "EUR"
+        },
+        "description": locale === 'nl'
+          ? "WordPress plugin voor GEO-analyse en AI-zichtbaarheidsoptimalisatie direct vanuit je WordPress dashboard."
+          : "WordPress plugin for GEO analysis and AI visibility optimization directly from your WordPress dashboard.",
         "provider": { "@id": `${siteUrl}/#organization` }
       },
       {
