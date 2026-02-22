@@ -52,7 +52,6 @@ export default async function sitemap() {
     { path: '/tools/ai-visibility', changeFrequency: 'weekly', priority: 0.8 },
     { path: '/tools/ai-rank-tracker', changeFrequency: 'weekly', priority: 0.8 },
     { path: '/tools/geo-audit', changeFrequency: 'weekly', priority: 0.8 },
-    { path: '/login', changeFrequency: 'monthly', priority: 0.4 },
   ];
 
   // Privacy page has different slugs per language
