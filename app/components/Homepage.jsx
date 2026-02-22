@@ -219,6 +219,7 @@ export default function Homepage() {
                     width={220}
                     height={280}
                     className="drop-shadow-xl"
+                    priority
                   />
                 </div>
 
