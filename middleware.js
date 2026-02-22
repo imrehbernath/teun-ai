@@ -4,8 +4,6 @@ import { routing } from './i18n/routing';
 import { NextResponse } from 'next/server';
 
 const intlMiddleware = createMiddleware(routing, {
-  // UIT: voorkomt dat Googlebot (en-US) naar /en wordt gestuurd
-  // Gebruikers kiezen zelf hun taal via de language switcher
   localeDetection: false,
   alternateLinks: false,
 });
@@ -77,14 +75,24 @@ export default function middleware(request) {
     }
   }
 
+  // ============================================
+  // FORCEER NL VOOR NIET-EN PADEN
+  // next-intl checkt NEXT_LOCALE cookie vóór Accept-Language
+  // Door deze cookie te injecteren voorkomt we /en redirects
+  // voor Googlebot en andere en-US clients
+  // ============================================
+  if (!pathname.startsWith('/en')) {
+    const hasLocaleCookie = request.cookies.get('NEXT_LOCALE');
+    if (!hasLocaleCookie) {
+      // Injecteer NL cookie in het request zodat next-intl NL kiest
+      request.cookies.set('NEXT_LOCALE', 'nl');
+    }
+  }
+
   // Run next-intl middleware
   const response = intlMiddleware(request);
 
-  // ============================================
-  // STRIP ALLE HREFLANG LINK HEADERS
-  // next-intl voegt automatisch Link headers toe voor alle locales
-  // We beheren hreflang volledig zelf via page metadata
-  // ============================================
+  // Strip alle hreflang Link headers
   if (response?.headers) {
     response.headers.delete('link');
   }
