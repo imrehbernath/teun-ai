@@ -4,13 +4,11 @@ import { routing } from './i18n/routing';
 import { NextResponse } from 'next/server';
 
 const intlMiddleware = createMiddleware(routing, {
-  // Detecteer browser-taal voor eerste bezoek
   localeDetection: true,
-  // Geen automatische hreflang Link headers — we regelen dit zelf per pagina
   alternateLinks: false,
 });
 
-// Pagina's die WEL in het Engels bestaan (naast tools/login/etc.)
+// Pagina's die WEL in het Engels bestaan
 const knownEnglishPaths = [
   '/en',
   '/en/tools',
@@ -23,6 +21,22 @@ const knownEnglishPaths = [
   '/en/dashboard',
 ];
 
+// NL-only paden (geen EN versie)
+function isNlOnlyPath(pathname) {
+  // Blog overview
+  if (pathname === '/blog' || pathname.startsWith('/blog/')) return true;
+  // Auteur
+  if (pathname.startsWith('/auteur')) return true;
+  // Blog post slugs (niet in bekende tool/static paths)
+  const knownNlPaths = ['/', '/tools', '/login', '/signup', '/privacyverklaring', '/dashboard', '/blog', '/auteur'];
+  const isKnownPath = knownNlPaths.some(
+    (path) => pathname === path || pathname.startsWith(path + '/')
+  );
+  // Als het geen bekende NL path is, is het een blog slug → ook NL-only
+  if (!isKnownPath && pathname !== '/') return true;
+  return false;
+}
+
 export default function middleware(request) {
   const { pathname } = request.nextUrl;
 
@@ -33,7 +47,7 @@ export default function middleware(request) {
     '/favicon',
     '/robots',
     '/sitemap',
-    '/GEO-',        // statische images
+    '/GEO-',
     '/og-image',
     '/Teun-ai-logo',
   ];
@@ -49,7 +63,6 @@ export default function middleware(request) {
 
   // ============================================
   // NL-ONLY PAGINA'S: REDIRECT EN → NL
-  // Blog, auteur, en alle onbekende /en/ slugs
   // ============================================
 
   // /en/blog en /en/blog/* → /blog
@@ -66,8 +79,7 @@ export default function middleware(request) {
     return NextResponse.redirect(url, 301);
   }
 
-  // /en/{slug} waar slug GEEN bekende EN pagina is → redirect naar NL (root)
-  // Dit vangt alle blog post slugs op die niet in het Engels bestaan
+  // /en/{slug} waar slug GEEN bekende EN pagina is → redirect naar NL
   if (pathname.startsWith('/en/')) {
     const isKnownEnPath = knownEnglishPaths.some(
       (path) => pathname === path || pathname.startsWith(path + '/')
@@ -80,15 +92,25 @@ export default function middleware(request) {
     }
   }
 
-  return intlMiddleware(request);
+  // Run next-intl middleware
+  const response = intlMiddleware(request);
+
+  // ============================================
+  // STRIP HREFLANG LINK HEADERS VOOR NL-ONLY PAGINA'S
+  // next-intl voegt automatisch Link headers toe voor alle locales
+  // Voor NL-only pagina's willen we die niet
+  // ============================================
+  const cleanPathname = pathname.replace(/^\/(nl|en)/, '') || '/';
+  if (isNlOnlyPath(cleanPathname) && response?.headers) {
+    response.headers.delete('link');
+  }
+
+  return response;
 }
 
 export const config = {
-  // Match alle paden behalve _next, api, en statische bestanden
   matcher: [
-    // Match root
     '/',
-    // Match alles behalve _next, api, en bestanden met extensie
     '/((?!api|_next|.*\\..*).*)',
   ],
 };
