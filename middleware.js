@@ -20,22 +20,6 @@ const knownEnglishPaths = [
   '/en/dashboard',
 ];
 
-// NL-only paden (geen EN versie)
-function isNlOnlyPath(pathname) {
-  // Blog overview
-  if (pathname === '/blog' || pathname.startsWith('/blog/')) return true;
-  // Auteur
-  if (pathname.startsWith('/auteur')) return true;
-  // Blog post slugs (niet in bekende tool/static paths)
-  const knownNlPaths = ['/', '/tools', '/login', '/signup', '/privacyverklaring', '/dashboard', '/blog', '/auteur'];
-  const isKnownPath = knownNlPaths.some(
-    (path) => pathname === path || pathname.startsWith(path + '/')
-  );
-  // Als het geen bekende NL path is, is het een blog slug → ook NL-only
-  if (!isKnownPath && pathname !== '/') return true;
-  return false;
-}
-
 export default function middleware(request) {
   const { pathname } = request.nextUrl;
 
@@ -95,12 +79,11 @@ export default function middleware(request) {
   const response = intlMiddleware(request);
 
   // ============================================
-  // STRIP HREFLANG LINK HEADERS VOOR NL-ONLY PAGINA'S
+  // STRIP ALLE HREFLANG LINK HEADERS
   // next-intl voegt automatisch Link headers toe voor alle locales
-  // Voor NL-only pagina's willen we die niet
+  // We beheren hreflang volledig zelf via page metadata
   // ============================================
-  const cleanPathname = pathname.replace(/^\/(nl|en)/, '') || '/';
-  if (isNlOnlyPath(cleanPathname) && response?.headers) {
+  if (response?.headers) {
     response.headers.delete('link');
   }
 
