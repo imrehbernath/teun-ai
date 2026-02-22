@@ -1733,7 +1733,7 @@ export default function WebsiteDetailPage() {
                     <XCircle className="w-5 h-5 text-red-500" />
                   )}
                   <span className={website.platforms.perplexity.scans.length > 0 ? 'text-green-700' : 'text-red-700'}>
-                    Perplexity {website.platforms.perplexity.scans.length > 0 ? '✓' : '{t('notYetScanned')}'}
+                    Perplexity {website.platforms.perplexity.scans.length > 0 ? '✓' : t('notYetScanned')}
                   </span>
                 </div>
                 <div className={`flex items-center gap-3 p-3 rounded-lg ${website.platforms.chatgpt.scans.length > 0 ? 'bg-green-50' : 'bg-red-50'}`}>
@@ -1743,7 +1743,7 @@ export default function WebsiteDetailPage() {
                     <XCircle className="w-5 h-5 text-red-500" />
                   )}
                   <span className={website.platforms.chatgpt.scans.length > 0 ? 'text-green-700' : 'text-red-700'}>
-                    ChatGPT {website.platforms.chatgpt.scans.length > 0 ? '✓' : '{t('notYetScanned')}'}
+                    ChatGPT {website.platforms.chatgpt.scans.length > 0 ? '✓' : t('notYetScanned')}
                   </span>
                 </div>
                 <div className={`flex items-center gap-3 p-3 rounded-lg ${website.platforms.google.scans.length > 0 ? 'bg-green-50' : 'bg-red-50'}`}>
@@ -1753,7 +1753,7 @@ export default function WebsiteDetailPage() {
                     <XCircle className="w-5 h-5 text-red-500" />
                   )}
                   <span className={website.platforms.google.scans.length > 0 ? 'text-green-700' : 'text-red-700'}>
-                    Google AI Modus {website.platforms.google.scans.length > 0 ? '✓' : '{t('notYetScanned')}'}
+                    Google AI Modus {website.platforms.google.scans.length > 0 ? '✓' : t('notYetScanned')}
                   </span>
                 </div>
                 <div className={`flex items-center gap-3 p-3 rounded-lg ${website.platforms.googleOverview.scans.length > 0 ? 'bg-green-50' : 'bg-red-50'}`}>
@@ -1763,7 +1763,7 @@ export default function WebsiteDetailPage() {
                     <XCircle className="w-5 h-5 text-red-500" />
                   )}
                   <span className={website.platforms.googleOverview.scans.length > 0 ? 'text-green-700' : 'text-red-700'}>
-                    Google {t('aiOverview')}s {website.platforms.googleOverview.scans.length > 0 ? '✓' : '{t('notYetScanned')}'}
+                    Google {t('aiOverview')}s {website.platforms.googleOverview.scans.length > 0 ? '✓' : t('notYetScanned')}
                   </span>
                 </div>
               </div>
