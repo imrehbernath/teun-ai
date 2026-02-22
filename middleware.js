@@ -10,7 +10,6 @@ const intlMiddleware = createMiddleware(routing, {
 
 // Pagina's die WEL in het Engels bestaan
 const knownEnglishPaths = [
-  '/en',
   '/en/tools',
   '/en/tools/ai-visibility',
   '/en/tools/ai-rank-tracker',
@@ -80,7 +79,7 @@ export default function middleware(request) {
   }
 
   // /en/{slug} waar slug GEEN bekende EN pagina is → redirect naar NL
-  if (pathname.startsWith('/en/')) {
+  if (pathname.startsWith('/en/') && pathname !== '/en/') {
     const isKnownEnPath = knownEnglishPaths.some(
       (path) => pathname === path || pathname.startsWith(path + '/')
     );
