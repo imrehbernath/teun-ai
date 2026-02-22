@@ -6,6 +6,8 @@ import { NextResponse } from 'next/server';
 const intlMiddleware = createMiddleware(routing, {
   // Detecteer browser-taal voor eerste bezoek
   localeDetection: true,
+  // Geen automatische hreflang Link headers — we regelen dit zelf per pagina
+  alternateLinks: false,
 });
 
 // Pagina's die WEL in het Engels bestaan (naast tools/login/etc.)
