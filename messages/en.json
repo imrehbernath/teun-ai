@@ -25,12 +25,17 @@
     },
     "geoAudit": {
       "name": "GEO Audit",
-      "description": "Scan your page for AI visibility, free",
+      "description": "Free AI visibility page scan",
       "badge": "NEW"
     },
     "geoAnalysis": {
       "name": "GEO Analysis",
       "description": "Full analysis available in your dashboard"
+    },
+    "brandCheck": {
+      "name": "AI Brand Check",
+      "description": "Check what AI says about your brand",
+      "badge": "NEW"
     }
   },
   "footer": {
@@ -1144,5 +1149,19 @@
     "popupSubmit": "Put me on the list",
     "popupSuccess": "✓ Thank you! You will receive more information soon.",
     "popupError": "✗ Something went wrong. Please try again."
+  },
+  "brandCheck": {
+    "heroTitle": "What does AI say about your business?",
+    "heroSubtitle": "Enter your company name and discover in <strong class=\"text-slate-700\">30 seconds</strong> what ChatGPT and Perplexity say about your brand. 6 checks, 2 platforms.",
+    "scanButton": "Start brand check",
+    "somethingWentWrong": "Something went wrong. Please try again.",
+    "dailyLimitTitle": "Daily limit reached",
+    "dailyLimitDesc": "You have used your {count} free brand checks for today. Come back tomorrow or upgrade for unlimited checks.",
+    "freeLimitTitle": "You have used {count} free brand checks",
+    "freeLimitDesc": "Create a free account for {count} brand checks per day plus access to the full GEO Analysis dashboard.",
+    "backToDashboard": "Back to dashboard",
+    "createFreeAccount": "Create free account",
+    "ctaTitle": "Want a complete AI visibility analysis?",
+    "ctaDesc": "Combine brand perception with page-level GEO analysis. Match AI prompts to your best pages with targeted optimization."
   }
 }

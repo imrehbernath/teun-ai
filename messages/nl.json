@@ -25,12 +25,17 @@
     },
     "geoAudit": {
       "name": "GEO Audit",
-      "description": "Scan gratis je pagina op AI-zichtbaarheid",
+      "description": "Gratis AI-zichtbaarheid audit aanvragen",
       "badge": "NIEUW"
     },
     "geoAnalysis": {
       "name": "GEO Analyse",
       "description": "Uitgebreide analyse beschikbaar in dashboard"
+    },
+    "brandCheck": {
+      "name": "AI Brand Check",
+      "description": "Check wat AI over jouw merk zegt",
+      "badge": "NEW"
     }
   },
   "footer": {
@@ -1144,5 +1149,19 @@
     "popupSubmit": "Zet me op de lijst",
     "popupSuccess": "✓ Bedankt! Je ontvangt binnenkort meer informatie.",
     "popupError": "✗ Er ging iets mis. Probeer het opnieuw."
+  },
+  "brandCheck": {
+    "heroTitle": "Wat zegt AI over jouw bedrijf?",
+    "heroSubtitle": "Vul je bedrijfsnaam in en ontdek in <strong class=\"text-slate-700\">30 seconden</strong> wat ChatGPT en Perplexity over jouw merk zeggen. 6 checks, 2 platformen.",
+    "scanButton": "Start brand check",
+    "somethingWentWrong": "Er ging iets mis. Probeer het opnieuw.",
+    "dailyLimitTitle": "Daglimiet bereikt",
+    "dailyLimitDesc": "Je hebt je {count} gratis brand checks voor vandaag gebruikt. Kom morgen terug of upgrade voor onbeperkt.",
+    "freeLimitTitle": "Je hebt {count} gratis brand checks gebruikt",
+    "freeLimitDesc": "Maak een gratis account aan voor {count} brand checks per dag plus toegang tot het volledige GEO Analyse dashboard.",
+    "backToDashboard": "Terug naar dashboard",
+    "createFreeAccount": "Gratis account aanmaken",
+    "ctaTitle": "Wil je een complete AI-zichtbaarheidsanalyse?",
+    "ctaDesc": "Combineer merkperceptie met pagina-niveau GEO analyse. Match AI-prompts aan je beste pagina's met gerichte optimalisatie per pagina."
   }
 }

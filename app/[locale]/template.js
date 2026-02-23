@@ -35,6 +35,13 @@ function useTools() {
       description: t('geoAudit.description'),
     },
     {
+      name: t('brandCheck.name'),
+      href: '/tools/brand-check',
+      badge: t('brandCheck.badge'),
+      badgeColor: 'bg-pink-500/20 text-pink-300',
+      description: t('brandCheck.description'),
+    },
+    {
       name: t('geoAnalysis.name'),
       href: '/dashboard',
       description: t('geoAnalysis.description'),
@@ -367,6 +374,11 @@ function Footer() {
               <li>
                 <Link href="/tools/geo-audit" className="text-white/70 hover:text-white text-sm transition-colors">
                   GEO Audit
+                </Link>
+              </li>
+              <li>
+                <Link href="/tools/brand-check" className="text-white/70 hover:text-white text-sm transition-colors">
+                  AI Brand Check
                 </Link>
               </li>
               <li>
