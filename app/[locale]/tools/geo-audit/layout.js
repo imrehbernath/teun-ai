@@ -5,11 +5,11 @@ export async function generateMetadata() {
   const isEn = locale === 'en';
 
   const title = isEn
-    ? 'Free GEO Audit — Test your AI visibility live'
-    : 'Gratis GEO Audit — Test je AI-zichtbaarheid live';
+    ? 'Free GEO Audit - Does AI mention your business?'
+    : 'Gratis GEO Audit - Noemt AI jouw bedrijf?';
   const description = isEn
-    ? 'Test for free if your page is found by AI. Live Perplexity test, technical analysis and actionable recommendations. Results in 30 seconds.'
-    : 'Test gratis of jouw pagina gevonden wordt door AI. Live Perplexity test, technische analyse en concrete aanbevelingen. Resultaat in 30 seconden.';
+    ? 'Scan your page for AI visibility. 20+ checks, live Perplexity test and actionable recommendations. See instantly if AI mentions your business.'
+    : 'Scan je pagina gratis op AI-zichtbaarheid. 20+ checks, live Perplexity test en concrete aanbevelingen. Zie direct of AI jouw bedrijf noemt.';
   const url = isEn
     ? 'https://teun.ai/en/tools/geo-audit'
     : 'https://teun.ai/tools/geo-audit';
@@ -21,12 +21,8 @@ export async function generateMetadata() {
       ? ['GEO audit', 'AI visibility', 'generative engine optimization', 'Perplexity SEO', 'ChatGPT optimization', 'Google AI Overviews', 'AI search results', 'GEO analysis tool', 'AI findability test']
       : ['GEO audit', 'AI-zichtbaarheid', 'generative engine optimization', 'Perplexity SEO', 'ChatGPT optimalisatie', 'Google AI Overviews', 'AI zoekresultaten', 'GEO analyse tool', 'AI vindbaarheid testen'],
     openGraph: {
-      title: isEn
-        ? 'Free GEO Audit — Is your business found by AI?'
-        : 'Gratis GEO Audit — Wordt jouw bedrijf gevonden door AI?',
-      description: isEn
-        ? 'Test directly if your page appears in AI answers. Live Perplexity test, technical analysis and actionable improvements. Free in 30 seconds.'
-        : 'Test direct of jouw pagina verschijnt in AI-antwoorden. Live Perplexity test, technische analyse en concrete verbeterpunten. Gratis in 30 seconden.',
+      title,
+      description,
       url,
       siteName: 'Teun.ai',
       type: 'website',
@@ -44,12 +40,8 @@ export async function generateMetadata() {
     },
     twitter: {
       card: 'summary_large_image',
-      title: isEn
-        ? 'Free GEO Audit — Is your business found by AI?'
-        : 'Gratis GEO Audit — Wordt jouw bedrijf gevonden door AI?',
-      description: isEn
-        ? 'Test directly if your page appears in AI answers. Live Perplexity test + actionable improvements.'
-        : 'Test direct of jouw pagina verschijnt in AI-antwoorden. Live Perplexity test + concrete verbeterpunten.',
+      title,
+      description,
       images: ['https://teun.ai/images/og-geo-audit.png'],
     },
     alternates: {

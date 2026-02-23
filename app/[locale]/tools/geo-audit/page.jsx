@@ -73,6 +73,41 @@ export default function GeoAuditPage() {
   const [completedSteps, setCompletedSteps] = useState([])
   const [scanUrl, setScanUrl] = useState('')
 
+  // ── FAQ Structured Data ──────────────────────
+  const faqItems = locale === 'en' ? [
+    { q: 'Is the GEO Audit really free?', a: 'Yes, you can scan 2 pages per day for free. No credit card required. For unlimited scans, create a free account and use the GEO Analyse tool in your dashboard.' },
+    { q: 'What is the difference between GEO and SEO?', a: 'SEO focuses on ranking in Google\'s link-based results. GEO optimizes your content to be cited and recommended by AI platforms like ChatGPT, Perplexity and Google AI Overviews.' },
+    { q: 'Why does AI visibility matter for my business?', a: 'More than 40% of online searches will involve AI by 2026. If your competitors are mentioned and you are not, you lose visibility and potential customers, even if you rank well in Google.' },
+    { q: 'Which AI platforms does the audit test?', a: 'The live test runs on Perplexity. The technical and content analysis covers optimization for ChatGPT, Perplexity, Google AI Overviews and Claude.' },
+    { q: 'How can I improve my GEO Score?', a: 'The audit gives you 3 concrete recommendations. Common improvements include: adding FAQ schema, structuring content with direct answers, implementing JSON-LD structured data, and creating an llms.txt file.' },
+  ] : [
+    { q: 'Is de GEO Audit echt gratis?', a: 'Ja, je kunt 2 pagina\'s per dag gratis scannen . Geen creditcard nodig. Voor onbeperkte scans maak je een gratis account aan en gebruik je de GEO Analyse tool in je dashboard.' },
+    { q: 'Wat is het verschil tussen GEO en SEO?', a: 'SEO richt zich op ranken in Google\'s linkgebaseerde resultaten. GEO optimaliseert je content om geciteerd en aanbevolen te worden door AI-platformen zoals ChatGPT, Perplexity en Google AI Overviews.' },
+    { q: 'Waarom is AI-zichtbaarheid belangrijk voor mijn bedrijf?', a: 'Meer dan 40% van online zoekopdrachten gaat in 2026 via AI. Als jouw concurrenten wél genoemd worden en jij niet, verlies je zichtbaarheid en potentiële klanten, zelfs als je goed rankt in Google.' },
+    { q: 'Welke AI-platformen test de audit?', a: 'De live test draait op Perplexity. De technische en content-analyse dekt optimalisatie voor ChatGPT, Perplexity, Google AI Overviews en Claude.' },
+    { q: 'Hoe verbeter ik mijn GEO Score?', a: 'De audit geeft je 3 concrete aanbevelingen. Veelvoorkomende verbeteringen zijn: FAQ-schema toevoegen, content structureren met directe antwoorden, JSON-LD structured data implementeren, en een llms.txt bestand aanmaken.' },
+  ]
+
+  useEffect(() => {
+    const faqData = {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqItems.map(item => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a }
+      }))
+    }
+    const script = document.createElement('script')
+    script.type = 'application/ld+json'
+    script.textContent = JSON.stringify(faqData)
+    script.id = 'faq-schema'
+    const existing = document.getElementById('faq-schema')
+    if (existing) existing.remove()
+    document.head.appendChild(script)
+    return () => { const el = document.getElementById('faq-schema'); if (el) el.remove() }
+  }, [locale])
+
   // ── Check auth + load scan count ──────────────
   useEffect(() => {
     const supabase = createClient()
@@ -579,7 +614,7 @@ export default function GeoAuditPage() {
               </div>
               <div className="text-center sm:text-left flex-1">
                 <h2 className="text-xl font-bold text-slate-900 mb-1">GEO Score</h2>
-                <p className="text-sm text-slate-500 mb-3">{results.domain} — {getScoreLabel(results.analysis.overallScore, t)}</p>
+                <p className="text-sm text-slate-500 mb-3">{results.domain} · {getScoreLabel(results.analysis.overallScore, t)}</p>
                 <div className="space-y-2">
                   {results.analysis.categories.map((cat) => (
                     <div key={cat.slug} className="flex items-center gap-3">
@@ -772,6 +807,212 @@ export default function GeoAuditPage() {
             )}
           </div>
         </section>
+      )}
+
+      {/* ── SEO CONTENT ────────────────────────────── */}
+      {!results && !loading && (
+        <>
+          {/* Wat is een GEO Audit */}
+          <section className="max-w-3xl mx-auto px-4 sm:px-6 pt-20 pb-16">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 leading-tight">
+                  {locale === 'en'
+                    ? <>What does ChatGPT say<br /><span className="text-[#4F46E5]">when someone searches for your business?</span></>
+                    : <>Wat zegt ChatGPT<br /><span className="text-[#4F46E5]">als iemand naar jouw bedrijf zoekt?</span></>}
+                </h2>
+                <p className="text-slate-600 leading-relaxed mb-4">
+                  {locale === 'en'
+                    ? 'A GEO audit measures something different than traditional SEO. Not your Google position, but whether AI platforms like ChatGPT, Perplexity and Google AI Overviews actually recommend your business when someone asks a question.'
+                    : 'Een GEO audit meet iets anders dan traditionele SEO. Niet je Google-positie, maar of AI-platformen zoals ChatGPT, Perplexity en Google AI Overviews jouw bedrijf daadwerkelijk aanbevelen als iemand een vraag stelt.'}
+                </p>
+                <p className="text-slate-600 leading-relaxed">
+                  {locale === 'en'
+                    ? 'With this free tool you get instant insight. We scan your page on 20+ signals, and test live on Perplexity whether your business appears. No account needed, result in 60 seconds.'
+                    : 'Met deze gratis tool krijg je direct inzicht. We scannen je pagina op 20+ signalen, en testen live op Perplexity of jouw bedrijf verschijnt. Geen account nodig, resultaat in 60 seconden.'}
+                </p>
+              </div>
+          </section>
+
+          {/* Wat wordt er getest — stijl zoals "Hoe het werkt" op homepage */}
+          <section className="bg-slate-50 py-16">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 text-center mb-4">
+                {locale === 'en' ? 'What do we check?' : 'Wat checken we?'}
+              </h2>
+              <p className="text-slate-500 text-center mb-10 max-w-2xl mx-auto">
+                {locale === 'en'
+                  ? 'The GEO Audit analyzes four areas that determine whether AI cites your content.'
+                  : 'De GEO Audit analyseert vier gebieden die bepalen of AI jouw content citeert.'}
+              </p>
+              <div className="grid sm:grid-cols-2 gap-6">
+                {[
+                  {
+                    num: '1',
+                    title: locale === 'en' ? 'Content Quality' : 'Content Kwaliteit',
+                    desc: locale === 'en'
+                      ? 'Does your text contain direct answers that AI can extract? We check structure, word count, FAQ presence and whether your content is citation-ready.'
+                      : 'Bevat je tekst directe antwoorden die AI kan extraheren? We checken structuur, woordaantal, FAQ-aanwezigheid en of je content citeerbaar is.'
+                  },
+                  {
+                    num: '2',
+                    title: locale === 'en' ? 'Technical Setup' : 'Technische Setup',
+                    desc: locale === 'en'
+                      ? 'Can AI bots reach your page? We verify robots.txt, llms.txt, structured data, Core Web Vitals and schema markup.'
+                      : 'Kunnen AI-bots je pagina bereiken? We controleren robots.txt, llms.txt, structured data, Core Web Vitals en schema markup.'
+                  },
+                  {
+                    num: '3',
+                    title: locale === 'en' ? 'Citation Potential' : 'Citatie-potentieel',
+                    desc: locale === 'en'
+                      ? 'How likely is AI to cite you as a source? We look at unique data, expert signals, factual density and what competitors AI already mentions.'
+                      : 'Hoe groot is de kans dat AI jou als bron citeert? We kijken naar unieke data, expertise-signalen, feitelijke dichtheid en welke concurrenten AI al noemt.'
+                  },
+                  {
+                    num: '4',
+                    title: locale === 'en' ? 'E-E-A-T Signals' : 'E-E-A-T Signalen',
+                    desc: locale === 'en'
+                      ? 'AI prioritizes trusted sources. We evaluate the same Experience, Expertise, Authority and Trust signals that Google and AI use.'
+                      : 'AI geeft voorrang aan betrouwbare bronnen. We beoordelen dezelfde Ervaring, Expertise, Autoriteit en Betrouwbaarheid signalen die Google en AI gebruiken.'
+                  }
+                ].map((item, i) => (
+                  <div key={i} className="bg-white rounded-xl p-6 border border-slate-200">
+                    <div className="w-8 h-8 rounded-full bg-[#292956] text-white flex items-center justify-center text-sm font-bold mb-3">{item.num}</div>
+                    <h3 className="font-semibold text-slate-900 mb-2">{item.title}</h3>
+                    <p className="text-sm text-slate-600 leading-relaxed">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Live test uitleg */}
+          <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 text-center">
+              {locale === 'en'
+                ? <>Not just analysis.<br /><span className="text-[#4F46E5]">a real AI test</span></>
+                : <>Niet alleen analyse.<br /><span className="text-[#4F46E5]">een échte AI-test</span></>}
+            </h2>
+            <p className="text-slate-600 leading-relaxed text-center mb-6 max-w-2xl mx-auto">
+              {locale === 'en'
+                ? 'What makes this GEO audit unique: we generate a commercial prompt based on your page, send it to Perplexity in real-time, and check if your business is actually mentioned in the answer. You immediately see who AI recommends instead of you.'
+                : 'Wat deze GEO audit uniek maakt: we genereren een commerciële prompt op basis van je pagina, sturen die real-time naar Perplexity, en controleren of jouw bedrijf daadwerkelijk in het antwoord staat. Je ziet direct wie AI aanbeveelt in plaats van jou.'}
+            </p>
+            <div className="bg-[#292956] rounded-2xl p-6 sm:p-8 text-white">
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-xs">👤</span>
+                  </div>
+                  <div className="bg-white/10 rounded-lg rounded-tl-none px-4 py-2.5 text-sm text-white/90">
+                    {locale === 'en'
+                      ? '"Can you recommend a good [your industry] in [your city]?"'
+                      : '"Kun je een goede [jouw branche] in [jouw stad] aanbevelen?"'}
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-emerald-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-xs">🤖</span>
+                  </div>
+                  <div className="bg-white/10 rounded-lg rounded-tl-none px-4 py-2.5 text-sm text-white/90">
+                    {locale === 'en'
+                      ? '"Here are some options I can recommend..."'
+                      : '"Hier zijn enkele opties die ik kan aanbevelen..."'}
+                    <br />
+                    <span className="text-emerald-400 font-medium">
+                      {locale === 'en' ? 'Does your business appear? Or only your competitors?' : 'Staat jouw bedrijf erbij? Of alleen je concurrenten?'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* SEO vs GEO */}
+          <section className="bg-slate-50 py-16">
+            <div className="max-w-3xl mx-auto px-4 sm:px-6">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 text-center">
+                {locale === 'en' ? 'SEO Audit vs GEO Audit' : 'SEO Audit vs GEO Audit'}
+              </h2>
+              <p className="text-slate-500 text-center mb-8 max-w-2xl mx-auto">
+                {locale === 'en'
+                  ? 'A GEO audit complements your SEO. Pages that rank well are more likely to be cited by AI, but only if the content is structured for it.'
+                  : 'Een GEO audit is een aanvulling op je SEO. Pagina\'s die goed ranken worden vaker geciteerd door AI, maar alleen als de content ervoor gestructureerd is.'}
+              </p>
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="text-left p-4 font-semibold text-slate-700"></th>
+                      <th className="text-left p-4 font-semibold text-slate-700">SEO Audit</th>
+                      <th className="text-left p-4 font-semibold text-[#4F46E5]">GEO Audit</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {[
+                      { label: locale === 'en' ? 'Goal' : 'Doel', seo: locale === 'en' ? 'Rank higher in Google' : 'Hoger ranken in Google', geo: locale === 'en' ? 'Get cited by AI' : 'Geciteerd worden door AI' },
+                      { label: locale === 'en' ? 'Measures' : 'Meet', seo: locale === 'en' ? 'Position, clicks' : 'Positie, klikken', geo: locale === 'en' ? 'Mentions, recommendations' : 'Vermeldingen, aanbevelingen' },
+                      { label: 'Focus', seo: locale === 'en' ? 'Keywords & backlinks' : 'Zoekwoorden & backlinks', geo: locale === 'en' ? 'Content structure & authority' : 'Contentstructuur & autoriteit' },
+                      { label: 'Test', seo: 'Google SERP', geo: locale === 'en' ? 'Live Perplexity check' : 'Live Perplexity check' },
+                      { label: locale === 'en' ? 'Technical' : 'Technisch', seo: 'robots.txt, sitemap', geo: 'llms.txt, JSON-LD, FAQ schema' },
+                    ].map((row, i) => (
+                      <tr key={i}>
+                        <td className="p-4 font-medium text-slate-700">{row.label}</td>
+                        <td className="p-4 text-slate-500">{row.seo}</td>
+                        <td className="p-4 text-slate-900">{row.geo}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          {/* FAQ */}
+          <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
+                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-6">
+                  {locale === 'en' ? 'Frequently asked questions' : 'Veelgestelde vragen'}
+                </h2>
+                <div className="space-y-3">
+                  {faqItems.map((item, i) => (
+                    <details key={i} className="group border border-slate-200 rounded-xl bg-white">
+                      <summary className="flex items-center justify-between p-4 cursor-pointer font-medium text-slate-900 hover:bg-slate-50 rounded-xl text-sm sm:text-base">
+                        {item.q}
+                        <ChevronDown className="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform flex-shrink-0 ml-2" />
+                      </summary>
+                      <p className="px-4 pb-4 text-sm text-slate-600 leading-relaxed">{item.a}</p>
+                    </details>
+                  ))}
+                </div>
+          </section>
+
+          {/* CTA */}
+          <section className="max-w-3xl mx-auto px-4 sm:px-6 pb-16">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 sm:p-8 text-center">
+              <p className="text-lg font-bold text-slate-900 mb-2">
+                {locale === 'en' ? 'Want to optimize more than one page?' : 'Wil je meer dan één pagina analyseren?'}
+              </p>
+              <p className="text-slate-600 text-sm max-w-md mx-auto mb-5">
+                {locale === 'en'
+                  ? 'In the dashboard you do a complete GEO Analyse: prompts matched to your pages, with targeted recommendations per page. Completely free.'
+                  : 'In het dashboard maak je een uitgebreide GEO Analyse: prompts gematcht aan jouw pagina\'s, met gerichte aanbevelingen per pagina. Helemaal gratis.'}
+              </p>
+              <Link href="/signup" className="inline-flex items-center gap-2 bg-[#292956] text-white font-semibold px-6 py-3 rounded-lg hover:bg-[#1e1e45] transition-colors cursor-pointer">
+                {locale === 'en' ? 'Create free account' : 'Gratis account aanmaken'} <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </section>
+
+          {/* Teun welkom */}
+          <div className="flex justify-center pb-12">
+            <Image
+              src="/Teun-ai_welkom.png"
+              alt={locale === 'en' ? 'Teun.ai mascot' : 'Teun.ai mascotte'}
+              width={200}
+              height={200}
+              className="w-40 sm:w-48"
+            />
+          </div>
+        </>
       )}
 
       {/* ── CSS Animations ─────────────────────────── */}
