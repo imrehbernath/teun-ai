@@ -424,7 +424,7 @@ function Footer() {
         <div className="mt-12 pt-8 border-t border-white/10">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-white/60 text-xs flex items-center gap-1.5">
-              🇳🇱 Made in Holland by <a href="https://www.onlinelabs.nl" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors font-medium">OnlineLabs</a>
+              <svg className="w-4 h-3 rounded-[1px] flex-shrink-0" viewBox="0 0 640 480" aria-label="Nederlandse vlag"><rect width="640" height="160" fill="#AE1C28"/><rect y="160" width="640" height="160" fill="#FFF"/><rect y="320" width="640" height="160" fill="#21468B"/></svg> Made in Holland by <a href="https://www.onlinelabs.nl" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors font-medium">OnlineLabs</a>
             </p>
             
             <div className="flex gap-4">
