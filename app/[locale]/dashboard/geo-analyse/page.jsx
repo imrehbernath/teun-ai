@@ -157,6 +157,7 @@ function GEOAnalyseContent() {
   const [scPages, setScPages] = useState([]) // Pages from Search Console
   const [csvFileName, setCsvFileName] = useState('')
   const [csvParsing, setCsvParsing] = useState(false)
+  const [csvError, setCsvError] = useState('')
   
   // Step 3: Prompt-Page Matching
   const [matches, setMatches] = useState([]) // { prompt, page }
@@ -773,7 +774,7 @@ function GEOAnalyseContent() {
     const headers = firstLine.split(delimiter).map(h => h.trim().toLowerCase().replace(/"/g, ''))
     
     const pageIndex = headers.findIndex(h => 
-      h.includes('page') || h.includes('pagina') || h.includes('url')
+      h.includes('page') || h.includes('pagina') || h.includes('url') || h.includes('top pages')
     )
     const clicksIndex = headers.findIndex(h => h.includes('click') || h.includes('klik'))
     
@@ -791,36 +792,78 @@ function GEOAnalyseContent() {
     return pages
   }
 
+  const parseXLSXPages = async (file, loc) => {
+    const xlsxModule = await import('xlsx')
+    const XLSX = xlsxModule.default || xlsxModule
+    const arrayBuffer = await file.arrayBuffer()
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+    
+    // Zoek het Pages tabblad (EN: Pages, NL: Pagina's)
+    const pagesSheetName = workbook.SheetNames.find(name => 
+      name.toLowerCase().includes('pages') || name.toLowerCase().includes('pagina')
+    )
+    
+    if (!pagesSheetName) {
+      return { pages: [], error: loc === 'en' 
+        ? 'No "Pages" tab found. Upload the Search Console Excel file.'
+        : 'Geen "Pages" tabblad gevonden. Upload het Search Console Excel-bestand.' }
+    }
+    
+    const sheet = workbook.Sheets[pagesSheetName]
+    const rows = XLSX.utils.sheet_to_json(sheet)
+    
+    const pages = []
+    for (const row of rows) {
+      const pageKey = Object.keys(row).find(k => {
+        const kl = k.toLowerCase()
+        return kl.includes('page') || kl.includes('pagina') || kl.includes('url')
+      })
+      const clicksKey = Object.keys(row).find(k => {
+        const kl = k.toLowerCase()
+        return kl.includes('click') || kl.includes('klik')
+      })
+      
+      if (pageKey) {
+        const page = String(row[pageKey]).trim()
+        const clicks = parseInt(row[clicksKey]) || 0
+        if (page.startsWith('http')) {
+          pages.push({ page, clicks })
+        }
+      }
+    }
+    
+    return { pages, error: pages.length === 0 
+      ? (loc === 'en' ? 'No page URLs found in the Pages tab.' : 'Geen pagina-URLs gevonden in het Pages-tabblad.')
+      : '' }
+  }
+
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
     
     setCsvParsing(true)
     setCsvFileName(file.name)
+    setCsvError('')
+    setScPages([])
     
     try {
-      const isZip = file.name.toLowerCase().endsWith('.zip')
+      const fileName = file.name.toLowerCase()
       
-      if (isZip) {
-        const JSZip = (await import('jszip')).default
-        const zip = await JSZip.loadAsync(file)
-        
-        for (const fileName of Object.keys(zip.files)) {
-          if (fileName.toLowerCase().includes('pages') || fileName.toLowerCase().includes('pagina')) {
-            const csvContent = await zip.files[fileName].async('string')
-            const pages = parseCSVContent(csvContent)
-            setScPages(pages)
-            break
-          }
+      if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+        const { pages, error } = await parseXLSXPages(file, locale)
+        if (error) {
+          setCsvError(error)
+        } else {
+          setScPages(pages)
         }
       } else {
-        const text = await file.text()
-        const pages = parseCSVContent(text)
-        setScPages(pages)
+        setCsvError(locale === 'en' 
+          ? 'Upload the Excel file (.xlsx) from Search Console. Go to Export → Download Excel.'
+          : 'Upload het Excel-bestand (.xlsx) uit Search Console. Ga naar Exporteren → Download Excel.')
       }
     } catch (err) {
       console.error('File parse error:', err)
-      alert(t('fileReadError') + ': ' + err.message)
+      setCsvError((locale === 'en' ? 'Could not read file: ' : 'Bestand kon niet worden gelezen: ') + err.message)
     }
     
     setCsvParsing(false)
@@ -2428,19 +2471,31 @@ function GEOAnalyseContent() {
 
               {/* ZIP Upload */}
               <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-slate-300 transition">
-                <input type="file" accept=".csv,.zip" onChange={handleFileUpload} className="hidden" id="csv-upload" />
+                <input type="file" accept=".xlsx,.xls" onChange={handleFileUpload} className="hidden" id="csv-upload" />
                 <label htmlFor="csv-upload" className="cursor-pointer">
                   {csvParsing ? (
                     <Loader2 className="w-10 h-10 text-blue-500 mx-auto mb-2 animate-spin" />
-                  ) : csvFileName ? (
+                  ) : csvError ? (
+                    <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-2" />
+                  ) : csvFileName && scPages.length > 0 ? (
                     <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto mb-2" />
                   ) : (
                     <Upload className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                   )}
-                  <p className="text-slate-600 font-medium text-sm">{csvFileName || t('uploadZipCsv')}</p>
-                  <p className="text-slate-400 text-xs mt-1">{t('scExportHint')}</p>
+                  <p className="text-slate-600 font-medium text-sm">{csvFileName || (locale === 'en' ? 'Upload Search Console Excel' : 'Upload Search Console Excel')}</p>
+                  <p className="text-slate-400 text-xs mt-1">{locale === 'en' ? 'Search Console → Export → Download Excel (6 months)' : 'Search Console → Exporteren → Download Excel (6 maanden)'}</p>
                 </label>
               </div>
+
+              {/* Error Message */}
+              {csvError && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-800">{csvError}</p>
+                  </div>
+                </div>
+              )}
 
               {/* Pages Preview */}
               {scPages.length > 0 && (
