@@ -362,16 +362,37 @@ export async function POST(request) {
     const hostname = urlObj.hostname.replace(/^www\./, '')
 
     // STEP 1: SCRAPE THE PAGE
-    const scrapeResponse = await fetch(
-      `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(normalizedUrl)}&render=true`,
-      { signal: AbortSignal.timeout(30000) }
-    )
-
-    if (!scrapeResponse.ok) {
-      return NextResponse.json({ error: m.pageLoadFailed }, { status: 400 })
+    let html
+    try {
+      const scrapeResponse = await fetch(
+        `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(normalizedUrl)}&render=true`,
+        { signal: AbortSignal.timeout(45000) }
+      )
+      if (scrapeResponse.ok) {
+        html = await scrapeResponse.text()
+      }
+    } catch (e) {
+      console.warn('[GEO Audit] Render scrape failed, retrying without render:', e.message)
     }
 
-    const html = await scrapeResponse.text()
+    // Fallback: zonder render (sneller, werkt voor de meeste sites)
+    if (!html) {
+      try {
+        const scrapeResponse = await fetch(
+          `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(normalizedUrl)}`,
+          { signal: AbortSignal.timeout(30000) }
+        )
+        if (scrapeResponse.ok) {
+          html = await scrapeResponse.text()
+        }
+      } catch (e) {
+        console.warn('[GEO Audit] Non-render scrape also failed:', e.message)
+      }
+    }
+
+    if (!html) {
+      return NextResponse.json({ error: m.pageLoadFailed }, { status: 400 })
+    }
 
     // LANGUAGE CHECK — only for NL locale, skip for EN
     if (locale === 'nl') {
