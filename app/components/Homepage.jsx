@@ -758,7 +758,7 @@ export default function Homepage() {
             </div>
 
             <div className="hidden lg:flex justify-center items-end relative">
-              <div className="translate-y-24">
+              <div className="translate-y-20">
                 <Image
                   src="/teun-ai-mascotte.png"
                   alt="Teun helpt je"
