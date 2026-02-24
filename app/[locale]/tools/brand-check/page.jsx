@@ -295,7 +295,7 @@ export default function BrandCheckPage() {
               <div className={`bg-white rounded-xl shadow-lg shadow-slate-200/50 border border-slate-200 p-4 sm:p-6 transition-opacity ${loading ? 'opacity-60' : ''}`}>
                 <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
                   <Building2 className="w-5 h-5 text-slate-400 flex-shrink-0" />
-                  <input type="text" value={brandName} onChange={e => setBrandName(e.target.value)} placeholder={locale === 'en' ? 'Company name, e.g. OnlineLabs' : 'Bedrijfsnaam, bijv. OnlineLabs'} className="w-full py-2 text-base text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent" required minLength={2} disabled={loading} />
+                  <input type="text" value={brandName} onChange={e => setBrandName(e.target.value)} placeholder={locale === 'en' ? 'Company name' : 'Je bedrijfsnaam'} className="w-full py-2 text-base text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent" required minLength={2} disabled={loading} />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex items-center gap-3">
@@ -304,7 +304,7 @@ export default function BrandCheckPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <Briefcase className="w-5 h-5 text-slate-400 flex-shrink-0" />
-                    <input type="text" value={category} onChange={e => setCategory(e.target.value)} placeholder={locale === 'en' ? 'Industry, e.g. web design' : 'Branche, bijv. webdesign'} className="w-full py-2 text-base text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent" required minLength={2} disabled={loading} />
+                    <input type="text" value={category} onChange={e => setCategory(e.target.value)} placeholder={locale === 'en' ? 'Your industry' : 'Jouw branche'} className="w-full py-2 text-base text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent" required minLength={2} disabled={loading} />
                   </div>
                 </div>
               </div>

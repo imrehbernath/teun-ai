@@ -8,8 +8,8 @@ export async function generateMetadata() {
     ? 'AI Rank Tracker – Free Position Check'
     : 'AI Rank Tracker – Gratis Positie Check';
   const description = isEn
-    ? 'Is your business recommended by ChatGPT and Perplexity? Check your position for free with the AI Rank Tracker. Results in 15 sec, no account needed.'
-    : 'Wordt jouw bedrijf aanbevolen door ChatGPT en Perplexity? Check je positie gratis met de AI Rank Tracker. Resultaat in 15 sec, geen account nodig.';
+    ? 'Free AI Rank Tracker: check your business position in ChatGPT and Perplexity. Track AI rankings by keyword and location. Results in 15 seconds.'
+    : 'Gratis AI Rank Tracker: check je bedrijfspositie in ChatGPT en Perplexity. Monitor AI-rankings per zoekwoord en locatie. Resultaat in 15 seconden.';
   const url = isEn
     ? 'https://teun.ai/en/tools/ai-rank-tracker'
     : 'https://teun.ai/tools/ai-rank-tracker';
@@ -18,8 +18,8 @@ export async function generateMetadata() {
     title,
     description,
     keywords: isEn
-      ? 'AI rank tracker, ChatGPT ranking, Perplexity ranking, AI position check, AI visibility, GEO, business ranking AI'
-      : 'AI rank tracker, ChatGPT ranking, Perplexity ranking, AI positie check, AI zichtbaarheid, GEO, bedrijf ranking AI',
+      ? ['AI rank tracker', 'free AI rank tracking tool', 'GEO rank tracker', 'ChatGPT ranking', 'Perplexity ranking', 'AI position check', 'AI search rankings', 'generative search monitoring', 'AI visibility tracking', 'competitor analysis AI', 'track AI rankings free']
+      : ['AI rank tracker', 'gratis AI rank tracker', 'GEO rank tracker', 'ChatGPT ranking checken', 'Perplexity ranking', 'AI positie check', 'AI zoekposities', 'generatieve zoekmachine monitoring', 'AI zichtbaarheid tracking', 'concurrentie analyse AI', 'AI ranking gratis checken'],
     openGraph: {
       title: `${title} | Teun.ai`,
       description,

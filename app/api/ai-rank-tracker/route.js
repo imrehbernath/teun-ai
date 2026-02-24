@@ -136,11 +136,19 @@ function parseRankings(text, brandName, domain) {
         .replace(/\s*[-–—:].*/g, '')
         .trim();
       
-      if (name.length > 2 && name.length < 80) {
+      // Skip rating/score lines that aren't actual company names
+      const isRatingLine = /^\d[\d.,/]*\s*(\/\s*\d|rating|score|stars?|sterren|punt|out of)/i.test(name);
+      const isTooShort = name.length <= 2;
+      const isTooLong = name.length >= 80;
+      
+      if (!isRatingLine && !isTooShort && !isTooLong) {
         rankings.push({ position: parseInt(match[1]), name, isTarget: false });
       }
     }
   }
+  
+  // Re-number positions sequentially after filtering
+  rankings.forEach((r, i) => { r.position = i + 1; });
   
   // Fallback: bold names
   if (rankings.length < 3) {
@@ -231,28 +239,64 @@ Geef ALTIJD een genummerde top 10 lijst met:
 Baseer je aanbevelingen op actuele informatie en reviews.`;
 }
 
+function getPerplexitySystemPrompt(serviceArea, locale = 'nl') {
+  if (locale === 'en') {
+    return `You are a helpful assistant that provides recommendations for businesses and services. The user is located${serviceArea ? ` in ${serviceArea}` : ' in the United Kingdom'}.
+
+IMPORTANT INSTRUCTIONS:
+- Only recommend businesses that actually operate in the user's location
+- Provide a numbered top 10 list
+- For each entry: business name + brief reason why they are good
+- Base recommendations on current reviews and reputation
+- Do NOT include ratings or scores in the business name line`;
+  }
+
+  return `Je bent een behulpzame assistent die aanbevelingen geeft voor bedrijven en diensten in Nederland. De gebruiker zoekt specifiek naar Nederlandse bedrijven${serviceArea ? ` in de regio ${serviceArea}` : ''}.
+
+BELANGRIJKE INSTRUCTIES:
+- Antwoord ALTIJD in het Nederlands
+- Noem ALLEEN bedrijven die daadwerkelijk in Nederland actief zijn${serviceArea ? `, bij voorkeur in of rond ${serviceArea}` : ''}
+- Geen internationale bedrijven tenzij ze een Nederlandse vestiging hebben
+- Geef een genummerde top 10 lijst
+- Per bedrijf: bedrijfsnaam + korte toelichting waarom ze goed zijn
+- Baseer je op actuele reviews, Google Reviews, Trustpilot en branche-informatie
+- Vermeld GEEN ratings of scores op de bedrijfsnaam-regel zelf`;
+}
+
 async function scanChatGPT(prompt, brandName, domain, serviceArea, locale) {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-search-preview',
-      web_search_options: {
-        search_context_size: 'medium',
-        user_location: {
-          type: 'approximate',
-          approximate: { country: locale === 'en' ? 'GB' : 'NL', city: serviceArea || (locale === 'en' ? 'London' : 'Amsterdam') }
-        }
+  let response;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
       },
-      messages: [
-        { role: 'system', content: getSystemPrompt(serviceArea, locale) },
-        { role: 'user', content: prompt }
-      ]
-    })
-  });
+      body: JSON.stringify({
+        model: 'gpt-4o-search-preview',
+        web_search_options: {
+          search_context_size: 'medium',
+          user_location: {
+            type: 'approximate',
+            approximate: { country: locale === 'en' ? 'GB' : 'NL', city: serviceArea || (locale === 'en' ? 'London' : 'Amsterdam') }
+          }
+        },
+        messages: [
+          { role: 'system', content: getSystemPrompt(serviceArea, locale) },
+          { role: 'user', content: prompt }
+        ]
+      })
+    });
+    
+    if (response.status === 429 && attempt < 3) {
+      const retryAfter = parseInt(response.headers.get('retry-after') || '0');
+      const waitMs = retryAfter ? retryAfter * 1000 : attempt * 20000;
+      console.log(`⏳ Rank Tracker ChatGPT 429 — wacht ${Math.round(waitMs/1000)}s (poging ${attempt}/3)`);
+      await new Promise(r => setTimeout(r, waitMs));
+      continue;
+    }
+    break;
+  }
   
   if (!response.ok) throw new Error(`ChatGPT API error: ${response.status}`);
   
@@ -271,7 +315,7 @@ async function scanPerplexity(prompt, brandName, domain, serviceArea, locale) {
     body: JSON.stringify({
       model: 'sonar-pro',
       messages: [
-        { role: 'system', content: getSystemPrompt(serviceArea, locale) },
+        { role: 'system', content: getPerplexitySystemPrompt(serviceArea, locale) },
         { role: 'user', content: prompt }
       ]
     })

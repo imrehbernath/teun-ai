@@ -3,14 +3,29 @@
 'use client';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
-import { Search, Trophy, Eye, EyeOff, ChevronDown, ChevronUp, Loader2, AlertCircle, Sparkles, MapPin, Globe, Building2, Hash, ArrowRight, ExternalLink, BookOpen, MessageSquareQuote } from 'lucide-react';
+import { Search, Trophy, Eye, EyeOff, ChevronDown, ChevronUp, Loader2, AlertCircle, Sparkles, MapPin, Globe, Building2, Hash, ArrowRight, ExternalLink, BookOpen, MessageSquareQuote, Shield, BarChart3 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Link } from '@/i18n/navigation';
 import { useTranslations, useLocale } from 'next-intl';
+import Image from 'next/image';
 
 // ====================================
 // PLATFORM CONFIGURATIE
 // ====================================
+function stripMarkdown(text) {
+  if (!text) return text;
+  return text
+    .replace(/\[(\d+)\]/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*{1,3}([^*]+)\*{1,3}/g, '$1')
+    .replace(/^>\s?/gm, '')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/  +/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 const PLATFORMS = {
   chatgpt: { 
     name: 'ChatGPT', 
@@ -159,7 +174,7 @@ function PlatformScoreCard({ platformKey, result, isLoading, t }) {
           <p className="text-xs text-slate-400 mb-1 flex items-center gap-1">
             <MessageSquareQuote className="w-3 h-3" /> {t('fragment')}
           </p>
-          <p className="text-sm text-slate-600 italic leading-relaxed">&ldquo;{result.snippet}&rdquo;</p>
+          <p className="text-sm text-slate-600 italic leading-relaxed">&ldquo;{stripMarkdown(result.snippet)}&rdquo;</p>
         </div>
       )}
       
@@ -207,7 +222,7 @@ function PlatformScoreCard({ platformKey, result, isLoading, t }) {
         <div className="mt-3 p-3 rounded-xl bg-white/70 border border-slate-200/60 animate-fadeIn">
           <p className="text-xs text-slate-400 mb-2">{t('fullAiResponse')}:</p>
           <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap max-h-64 overflow-y-auto">
-            {result.fullResponse}
+            {stripMarkdown(result.fullResponse)}
           </div>
         </div>
       )}
@@ -234,6 +249,7 @@ function RankTrackerContent() {
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
   const [duration, setDuration] = useState(null);
+  const [openFaq, setOpenFaq] = useState(0);
   
   const resultsRef = useRef(null);
   
@@ -314,73 +330,51 @@ function RankTrackerContent() {
           </div>
         </div>
         
-        {/* Form + Teun */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr,auto] gap-6 mb-8 items-start">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
-            <form onSubmit={handleScan} className="space-y-5">
+        {/* Form */}
+        <div className="max-w-3xl mx-auto mb-8">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-lg shadow-slate-200/60 p-5 sm:p-6">
+            <form onSubmit={handleScan} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-1.5">
-                    <Globe className="w-4 h-4 text-slate-400" /> Website
-                  </label>
+                <div className="flex items-center gap-3 border-b sm:border-b-0 border-slate-100 pb-3 sm:pb-0">
+                  <Globe className="w-5 h-5 text-slate-400 flex-shrink-0" />
                   <input type="text" value={domain} onChange={(e) => setDomain(e.target.value)}
-                    placeholder={t('placeholderDomain')} required
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none text-slate-700 placeholder:text-slate-300 transition-all" />
+                    placeholder={locale === 'en' ? 'Your website' : 'Jouw website'} required
+                    className="w-full py-2 text-base text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent" />
                 </div>
-                <div>
-                  <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-1.5">
-                    <Building2 className="w-4 h-4 text-slate-400" /> {t('companyName')}
-                  </label>
+                <div className="flex items-center gap-3 border-b sm:border-b-0 border-slate-100 pb-3 sm:pb-0">
+                  <Building2 className="w-5 h-5 text-slate-400 flex-shrink-0" />
                   <input type="text" value={brandName} onChange={(e) => setBrandName(e.target.value)}
-                    placeholder={t('placeholderBrand')} required
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none text-slate-700 placeholder:text-slate-300 transition-all" />
+                    placeholder={locale === 'en' ? 'Company name' : 'Je bedrijfsnaam'} required
+                    className="w-full py-2 text-base text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent" />
                 </div>
-                <div>
-                  <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-1.5">
-                    <Hash className="w-4 h-4 text-slate-400" /> {t('keyword')}
-                  </label>
+                <div className="flex items-center gap-3">
+                  <Hash className="w-5 h-5 text-slate-400 flex-shrink-0" />
                   <input type="text" value={keyword} onChange={(e) => setKeyword(e.target.value)}
-                    placeholder={t('placeholderKeyword')} required
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none text-slate-700 placeholder:text-slate-300 transition-all" />
+                    placeholder={locale === 'en' ? 'Your keyword' : 'Je zoekwoord'} required
+                    className="w-full py-2 text-base text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent" />
                 </div>
-                <div>
-                  <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-1.5">
-                    <MapPin className="w-4 h-4 text-slate-400" /> {t('serviceArea')}
-                    <span className="text-slate-400 font-normal text-xs">({t('optional')})</span>
-                  </label>
+                <div className="flex items-center gap-3">
+                  <MapPin className="w-5 h-5 text-slate-400 flex-shrink-0" />
                   <input type="text" value={serviceArea} onChange={(e) => setServiceArea(e.target.value)}
-                    placeholder={t('placeholderArea')}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-teal-400 focus:ring-2 focus:ring-teal-100 outline-none text-slate-700 placeholder:text-slate-300 transition-all" />
+                    placeholder={locale === 'en' ? 'City (optional)' : 'Vestigingsplaats (optioneel)'}
+                    className="w-full py-2 text-base text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent" />
                 </div>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-                <p className="text-sm text-slate-400">
-                  {!user ? t('freeLimit') : t('dailyLimit')} • ChatGPT + Perplexity • {t('resultTime')}
-                </p>
-                <button type="submit" disabled={loading}
-                  className="w-full sm:w-auto bg-slate-800 hover:bg-slate-900 text-white font-semibold px-8 py-3 rounded-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-sm hover:shadow-md flex items-center justify-center gap-2">
-                  {loading ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> {t('scanning')}</>
-                  ) : (
-                    <><Trophy className="w-4 h-4" /> {t('checkRanking')}</>
-                  )}
-                </button>
               </div>
             </form>
           </div>
-
-          {/* Teun mascotte - desktop */}
-          <div className="hidden lg:flex flex-col items-center justify-center pt-4">
-            <img 
-              src="/images/teun-met-vergrootglas.png" 
-              alt="Teun"
-              className="w-[180px] drop-shadow-lg"
-            />
-            <p className="text-sm text-slate-400 mt-2 text-center max-w-[180px]">
-              {t('teunMessage')}
-            </p>
-          </div>
+          
+          <button onClick={handleScan} disabled={loading}
+            className="w-full mt-3 bg-[#292956] hover:bg-[#1e1e45] text-white font-semibold py-3.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg cursor-pointer">
+            {loading ? (
+              <><Loader2 className="w-5 h-5 animate-spin" /> {t('scanning')}</>
+            ) : (
+              <><Trophy className="w-5 h-5" /> {t('checkRanking')}</>
+            )}
+          </button>
+          
+          <p className="text-xs text-slate-400 text-center mt-2.5">
+            {!user ? t('freeLimit') : t('dailyLimit')} • ChatGPT + Perplexity • {t('resultTime')}
+          </p>
         </div>
         
         {/* Error */}
@@ -478,43 +472,34 @@ function RankTrackerContent() {
                     </div>
                   </div>
                 </div>
-
-                <div className="hidden lg:flex items-center justify-center p-6 relative">
-                  <div className="absolute inset-0 bg-gradient-to-l from-white/5 to-transparent"></div>
-                  <img
-                    src="/images/teun-ai-mascotte.png"
-                    alt="Teun"
-                    className="w-[200px] drop-shadow-2xl relative z-10"
-                  />
-                </div>
               </div>
             </div>
           </div>
         )}
         
-        {/* Info (before first scan) */}
+        {/* Info cards */}
         {!results && !loading && (
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center">
-              <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-                <Search className="w-6 h-6 text-teal-600" />
+          <div className="max-w-3xl mx-auto mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center mb-3">
+                <Search className="w-5 h-5" />
               </div>
-              <p className="font-bold text-slate-800 mb-2">{t('info1Title')}</p>
-              <p className="text-sm text-slate-500">{t('info1Desc')}</p>
+              <p className="font-semibold text-slate-800 mb-1 text-sm">{t('info1Title')}</p>
+              <p className="text-xs text-slate-500">{t('info1Desc')}</p>
             </div>
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center">
-              <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-                <Trophy className="w-6 h-6 text-amber-600" />
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center mb-3">
+                <Trophy className="w-5 h-5" />
               </div>
-              <p className="font-bold text-slate-800 mb-2">{t('info2Title')}</p>
-              <p className="text-sm text-slate-500">{t('info2Desc')}</p>
+              <p className="font-semibold text-slate-800 mb-1 text-sm">{t('info2Title')}</p>
+              <p className="text-xs text-slate-500">{t('info2Desc')}</p>
             </div>
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center">
-              <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-                <Eye className="w-6 h-6 text-emerald-600" />
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center mb-3">
+                <Eye className="w-5 h-5" />
               </div>
-              <p className="font-bold text-slate-800 mb-2">{t('info3Title')}</p>
-              <p className="text-sm text-slate-500">{t('info3Desc')}</p>
+              <p className="font-semibold text-slate-800 mb-1 text-sm">{t('info3Title')}</p>
+              <p className="text-xs text-slate-500">{t('info3Desc')}</p>
             </div>
           </div>
         )}
@@ -530,6 +515,119 @@ function RankTrackerContent() {
           </div>
         )}
       </div>
+
+      {/* ── SEO CONTENT ── */}
+      {!results && !loading && (
+        <>
+          <section className="max-w-3xl mx-auto px-4 sm:px-6 pt-20 pb-16">
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 leading-tight">{locale === 'en' ? <>Track your AI rankings<br /><span className="text-amber-600">across ChatGPT and Perplexity</span></> : <>Volg je AI-rankings<br /><span className="text-amber-600">op ChatGPT en Perplexity</span></>}</h2>
+            <p className="text-slate-600 leading-relaxed mb-4">{locale === 'en' ? 'More and more consumers ask ChatGPT and Perplexity for recommendations instead of Googling. Does your business rank when someone asks "best [your industry] in [your city]"? An AI Rank Tracker shows exactly where you stand in AI-generated answers — and who your competitors are that do get mentioned.' : 'Steeds meer consumenten vragen ChatGPT en Perplexity om aanbevelingen in plaats van te Googelen. Staat jouw bedrijf in de ranking als iemand vraagt "beste [jouw branche] in [jouw stad]"? Een AI Rank Tracker toont precies waar je staat in AI-gegenereerde antwoorden — en welke concurrenten wél worden genoemd.'}</p>
+            <p className="text-slate-600 leading-relaxed">{locale === 'en' ? 'This free GEO rank tracking tool checks your position on both ChatGPT and Perplexity for any keyword. You see your exact ranking position, which competitors appear above you, and get actionable insights to improve your AI visibility. Track your AI search rankings and optimize your generative engine presence.' : 'Deze gratis AI rank tracker checkt je positie op zowel ChatGPT als Perplexity voor elk zoekwoord. Je ziet je exacte rankingpositie, welke concurrenten boven je staan, en krijgt concrete inzichten om je AI-zichtbaarheid te verbeteren. Monitor je AI-zoekposities en optimaliseer je aanwezigheid in generatieve zoekmachines.'}</p>
+          </section>
+
+          <section className="bg-slate-50 py-16">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 text-center mb-4">{locale === 'en' ? 'How does AI ranking work?' : 'Hoe werkt AI-ranking?'}</h2>
+              <p className="text-slate-500 text-center mb-10 max-w-2xl mx-auto">{locale === 'en' ? 'AI platforms rank businesses differently than Google. Understanding the factors is key to improving your position.' : 'AI-platformen rangschikken bedrijven anders dan Google. De factoren begrijpen is essentieel voor een betere positie.'}</p>
+              <div className="grid sm:grid-cols-3 gap-6">
+                {[
+                  { icon: <Search className="w-5 h-5" />, title: locale === 'en' ? 'Keyword analysis' : 'Zoekwoord analyse', desc: locale === 'en' ? 'We query both ChatGPT and Perplexity with your exact keyword and location context.' : 'We bevragen zowel ChatGPT als Perplexity met je exacte zoekwoord en locatiecontext.' },
+                  { icon: <BarChart3 className="w-5 h-5" />, title: locale === 'en' ? 'Position tracking' : 'Positie tracking', desc: locale === 'en' ? 'We detect exactly at which position your business appears in the AI-generated answer.' : 'We detecteren precies op welke positie jouw bedrijf verschijnt in het AI-antwoord.' },
+                  { icon: <Eye className="w-5 h-5" />, title: locale === 'en' ? 'Competitor insights' : 'Concurrentie inzichten', desc: locale === 'en' ? 'See which competitors rank above you and understand what makes AI recommend them.' : 'Zie welke concurrenten boven je staan en begrijp waarom AI hen aanbeveelt.' }
+                ].map((item, i) => (
+                  <div key={i} className="bg-white rounded-xl p-6 border border-slate-200">
+                    <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center mb-4">{item.icon}</div>
+                    <h3 className="font-semibold text-slate-900 mb-2">{item.title}</h3>
+                    <p className="text-sm text-slate-600 leading-relaxed">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 text-center">{locale === 'en' ? <>Your competitors are already<br /><span className="text-amber-600">ranking in AI search</span></> : <>Je concurrenten staan al<br /><span className="text-amber-600">in AI-zoekresultaten</span></>}</h2>
+            <p className="text-slate-600 leading-relaxed text-center mb-6 max-w-2xl mx-auto">{locale === 'en' ? 'When someone asks ChatGPT "What is the best [service] in [city]?", AI creates a ranked list of recommendations. Your position in that list directly impacts whether potential customers find you or your competitor. Tracking your AI ranking is the first step to improving it.' : 'Als iemand ChatGPT vraagt "Wat is de beste [dienst] in [stad]?", maakt AI een gerangschikte lijst van aanbevelingen. Je positie in die lijst bepaalt direct of potentiële klanten jou vinden of je concurrent. Je AI-ranking monitoren is de eerste stap naar verbetering.'}</p>
+            <div className="bg-[#292956] rounded-2xl p-6 sm:p-8 text-white">
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5"><span className="text-xs">👤</span></div>
+                  <div className="bg-white/10 rounded-lg rounded-tl-none px-4 py-2.5 text-sm text-white/90">{locale === 'en' ? '"What is the best web design agency in Amsterdam?"' : '"Wat is het beste webdesign bureau in Amsterdam?"'}</div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-amber-500/30 flex items-center justify-center flex-shrink-0 mt-0.5"><Sparkles className="w-3 h-3 text-amber-300" /></div>
+                  <div className="bg-white/10 rounded-lg rounded-tl-none px-4 py-2.5 text-sm text-white/90">{locale === 'en' ? '"Here are the top web design agencies in Amsterdam: 1. ..."' : '"Dit zijn de beste webdesign bureaus in Amsterdam: 1. ..."'}<br /><span className="text-amber-300 font-medium">{locale === 'en' ? 'Is your business #1, #5, or not even mentioned?' : 'Staat jouw bedrijf op #1, #5, of word je niet eens genoemd?'}</span></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* FAQ Section — Homepage style with Teun */}
+          <section className="py-20 bg-slate-50 relative overflow-visible">
+            <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
+              <div className="grid lg:grid-cols-2 gap-12 items-start">
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-6">{locale === 'en' ? 'Frequently asked questions' : 'Veelgestelde vragen'}</h2>
+                  <div className="space-y-4">
+                    {(locale === 'en' ? [
+                      { q: 'What is an AI Rank Tracker?', a: 'An AI Rank Tracker checks where your business appears in AI-generated answers on platforms like ChatGPT and Perplexity. Unlike traditional SEO rankings, AI rankings are based on how AI models perceive your brand authority, reviews, and online presence.' },
+                      { q: 'Is this a free rank tracking tool?', a: 'Yes, you can check your ranking 3 times per day for free without creating an account. With a free account you get more daily checks and can track your position over time.' },
+                      { q: 'Which AI platforms do you track?', a: 'We currently track rankings on ChatGPT and Perplexity — the two most-used AI search platforms. Both are queried live with your keyword and location context.' },
+                      { q: 'How can I improve my AI ranking?', a: 'AI rankings are influenced by your online reputation (Google Reviews, Trustpilot), content authority (blog posts, case studies), brand mentions on authoritative sites, and consistent business information (NAP data). Our GEO Audit tool analyzes your page-level optimization.' },
+                      { q: 'How is AI ranking different from Google ranking?', a: 'Google ranks web pages based on links and keywords. AI platforms like ChatGPT synthesize information from multiple sources to create a recommendation. Being mentioned positively across many sources matters more than having one well-optimized page.' },
+                    ] : [
+                      { q: 'Wat is een AI Rank Tracker?', a: 'Een AI Rank Tracker checkt waar jouw bedrijf verschijnt in AI-gegenereerde antwoorden op platformen zoals ChatGPT en Perplexity. Anders dan traditionele SEO-rankings, zijn AI-rankings gebaseerd op hoe AI-modellen je merkautoriteit, reviews en online aanwezigheid interpreteren.' },
+                      { q: 'Is dit een gratis rank tracking tool?', a: 'Ja, je kunt 3 keer per dag gratis je ranking checken zonder account. Met een gratis account krijg je meer dagelijkse checks en kun je je positie over tijd volgen.' },
+                      { q: 'Welke AI-platformen worden getrackt?', a: 'We tracken momenteel rankings op ChatGPT en Perplexity — de twee meestgebruikte AI-zoekplatformen. Beide worden live bevraagd met je zoekwoord en locatiecontext.' },
+                      { q: 'Hoe verbeter ik mijn AI-ranking?', a: 'AI-rankings worden beïnvloed door je online reputatie (Google Reviews, Trustpilot), content-autoriteit (blogposts, case studies), merkvermeldingen op gezaghebbende sites, en consistente bedrijfsgegevens (NAP-data). Onze GEO Audit tool analyseert je optimalisatie op paginaniveau.' },
+                      { q: 'Hoe verschilt AI-ranking van Google-ranking?', a: 'Google rangschikt webpagina\'s op basis van links en zoekwoorden. AI-platformen zoals ChatGPT combineren informatie uit meerdere bronnen tot een aanbeveling. Positief vermeld worden op veel bronnen is belangrijker dan één goed geoptimaliseerde pagina.' },
+                    ]).map((item, i) => (
+                      <div key={i} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                        <button
+                          onClick={() => setOpenFaq(openFaq === i ? -1 : i)}
+                          className="w-full flex items-center justify-between p-6 text-left cursor-pointer"
+                        >
+                          <div className="flex items-center gap-4">
+                            <span className="text-slate-400 font-mono text-sm">
+                              {String(i + 1).padStart(2, '0')}
+                            </span>
+                            <span className="font-semibold text-slate-900">
+                              {item.q}
+                            </span>
+                          </div>
+                          <svg 
+                            className={`w-5 h-5 text-slate-400 transition-transform flex-shrink-0 ml-2 ${openFaq === i ? 'rotate-45' : ''}`} 
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                        </button>
+                        {openFaq === i && (
+                          <div className="px-6 pb-6 pt-0">
+                            <p className="text-slate-600 pl-10">{item.a}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="hidden lg:flex justify-center items-end relative">
+                  <div className="translate-y-20">
+                    <Image
+                      src="/teun-ai-mascotte.png"
+                      alt={locale === 'en' ? 'Teun helps you' : 'Teun helpt je'}
+                      width={420}
+                      height={530}
+                      className="drop-shadow-xl"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </>
+      )}
       
       <style jsx global>{`
         @keyframes fadeIn {
