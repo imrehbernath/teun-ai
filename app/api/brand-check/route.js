@@ -89,6 +89,9 @@ function stripMarkdown(text) {
     .replace(/\[(\d+)\]/g, '')
     // Remove markdown links: [text](url) → text
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Remove bare URLs
+    .replace(/https?:\/\/[^\s)\]]+/g, '')
+    .replace(/\([^)]*utm_source[^)]*\)/g, '')
     // Remove headers: ## Title → Title
     .replace(/^#{1,6}\s+/gm, '')
     // Remove bold/italic: **text** or *text* → text
@@ -101,6 +104,8 @@ function stripMarkdown(text) {
     .replace(/^[-*_]{3,}\s*$/gm, '')
     // Remove inline code backticks
     .replace(/`([^`]+)`/g, '$1')
+    // Remove empty parentheses from URL removal
+    .replace(/\(\s*\)/g, '')
     // Clean up double spaces from citation removal
     .replace(/  +/g, ' ')
     // Clean up multiple blank lines
@@ -111,10 +116,11 @@ function stripMarkdown(text) {
 // ============================================
 // PERPLEXITY CALL
 // ============================================
-async function queryPerplexity(prompt, brandName, locale) {
+async function queryPerplexity(prompt, brandName, locale, location) {
+  const locationCtx = location ? (locale === 'en' ? ` The business is located in ${location}, Netherlands.` : ` Het bedrijf is gevestigd in ${location}, Nederland.`) : ''
   const systemPrompt = locale === 'en'
-    ? 'You are a helpful assistant that provides balanced, honest information about businesses. Always answer in English. Do not use markdown formatting, citations, or reference numbers.'
-    : 'Je bent een behulpzame assistent die gebalanceerde, eerlijke informatie geeft over bedrijven. Antwoord altijd in het Nederlands. Gebruik geen markdown-opmaak, citaties of referentienummers.'
+    ? `You are a helpful assistant that provides balanced, honest information about businesses.${locationCtx} Always answer in English. Focus on factual information from reviews, ratings and customer experiences. Do not use markdown formatting, citations, or reference numbers.`
+    : `Je bent een behulpzame assistent die gebalanceerde, eerlijke informatie geeft over bedrijven.${locationCtx} Antwoord altijd in het Nederlands. Focus op feitelijke informatie uit reviews, beoordelingen en klantervaringen. Gebruik geen markdown-opmaak, citaties of referentienummers.`
 
   const response = await fetch('https://api.perplexity.ai/chat/completions', {
     method: 'POST',
@@ -161,17 +167,23 @@ async function queryChatGPT(prompt, brandName, locale, location) {
 // ============================================
 async function sendSlackNotification(data) {
   const webhookUrl = process.env.SLACK_WEBHOOK_URL
-  if (!webhookUrl) return
+  if (!webhookUrl) {
+    console.log('[Brand Check] No SLACK_WEBHOOK_URL configured')
+    return
+  }
   const emoji = data.sentiment === 'positive' ? '🟢' : data.sentiment === 'negative' ? '🔴' : data.sentiment === 'mixed' ? '🟡' : '⚪'
   try {
-    await fetch(webhookUrl, {
+    const res = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        text: `🏷️ Brand Check: *${data.brandName}*${data.location ? ` (${data.location})` : ''} | ${data.category}\n${emoji} ${data.sentiment} | PX: ${data.pxMentioned ? '✅' : '❌'} | CG: ${data.cgMentioned ? '✅' : '❌'} | Query: ${data.queryType}`
+        text: `🏷️ Brand Check: *${data.brandName}*${data.location ? ` (${data.location})` : ''} | ${data.category}\n${emoji} ${data.sentiment} | PX: ${data.pxMentioned ? '✅' : '❌'} | CG: ${data.cgMentioned ? '✅' : '❌'}`
       })
     })
-  } catch (e) {}
+    if (!res.ok) console.error(`[Brand Check] Slack webhook returned ${res.status}`)
+  } catch (e) {
+    console.error('[Brand Check] Slack error:', e.message)
+  }
 }
 
 // ============================================
@@ -209,7 +221,7 @@ export async function POST(request) {
 
     // Run Perplexity + ChatGPT in parallel for this single query
     const [pxResult, cgResult] = await Promise.all([
-      queryPerplexity(prompt, brand, locale).catch(err => {
+      queryPerplexity(prompt, brand, locale, loc).catch(err => {
         console.error(`[Brand Check] Perplexity error: ${err.message}`)
         return { platform: 'perplexity', response: '', mentioned: false, sentiment: 'neutral', score: 50, posSignals: [], negSignals: [], aspects: [], posCount: 0, negCount: 0 }
       }),
@@ -221,7 +233,7 @@ export async function POST(request) {
 
     // Slack on final query
     if (queryType === 'service') {
-      sendSlackNotification({ brandName: brand, location: loc, category: cat, sentiment: pxResult.sentiment, pxMentioned: pxResult.mentioned, cgMentioned: cgResult.mentioned, queryType }).catch(() => {})
+      await sendSlackNotification({ brandName: brand, location: loc, category: cat, sentiment: pxResult.sentiment, pxMentioned: pxResult.mentioned, cgMentioned: cgResult.mentioned }).catch(e => console.error('[Brand Check] Slack failed:', e.message))
     }
 
     return NextResponse.json({

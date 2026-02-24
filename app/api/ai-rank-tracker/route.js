@@ -117,6 +117,26 @@ function generatePrompt(keyword, serviceArea, locale = 'nl') {
 }
 
 // ============================================================
+// STRIP MARKDOWN from responses
+// ============================================================
+function stripMarkdown(text) {
+  if (!text) return ''
+  return text
+    .replace(/\[(\d+)\]/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/https?:\/\/[^\s)\]]+/g, '')
+    .replace(/\([^)]*utm_source[^)]*\)/g, '')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*{1,3}([^*]+)\*{1,3}/g, '$1')
+    .replace(/^>\s?/gm, '')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\(\s*\)/g, '')
+    .replace(/  +/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+// ============================================================
 // RANKING PARSER
 // ============================================================
 function parseRankings(text, brandName, domain) {
@@ -202,7 +222,7 @@ function parseRankings(text, brandName, domain) {
   if (brandIndex >= 0) {
     const start = Math.max(0, brandIndex - 80);
     const end = Math.min(text.length, brandIndex + searchTerm.length + 120);
-    snippet = (start > 0 ? '...' : '') + text.substring(start, end).trim() + (end < text.length ? '...' : '');
+    snippet = stripMarkdown((start > 0 ? '...' : '') + text.substring(start, end).trim() + (end < text.length ? '...' : ''));
   }
   
   return {
@@ -302,7 +322,7 @@ async function scanChatGPT(prompt, brandName, domain, serviceArea, locale) {
   
   const data = await response.json();
   const text = data.choices?.[0]?.message?.content || '';
-  return { ...parseRankings(text, brandName, domain), platform: 'chatgpt', fullResponse: text };
+  return { ...parseRankings(text, brandName, domain), platform: 'chatgpt', fullResponse: stripMarkdown(text) };
 }
 
 async function scanPerplexity(prompt, brandName, domain, serviceArea, locale) {
@@ -325,7 +345,7 @@ async function scanPerplexity(prompt, brandName, domain, serviceArea, locale) {
   
   const data = await response.json();
   const text = data.choices?.[0]?.message?.content || '';
-  return { ...parseRankings(text, brandName, domain), platform: 'perplexity', fullResponse: text };
+  return { ...parseRankings(text, brandName, domain), platform: 'perplexity', fullResponse: stripMarkdown(text) };
 }
 
 // ============================================================
