@@ -6,7 +6,7 @@ import { Link } from '@/i18n/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { useTranslations, useLocale } from 'next-intl'
-import { ArrowRight, CheckCircle2, XCircle, Building2, MapPin, Briefcase, ChevronDown, ChevronUp, Sparkles, Loader2, ThumbsUp, ThumbsDown, Minus, Eye, Search, MessageSquare, Star, Shield, BarChart3 } from 'lucide-react'
+import { ArrowRight, CheckCircle2, XCircle, Building2, MapPin, Briefcase, ChevronDown, ChevronUp, Sparkles, Loader2, ThumbsUp, ThumbsDown, Minus, Eye, Search, MessageSquare, Star, Shield } from 'lucide-react'
 
 // ============================================
 // QUERY TYPES (match API)
@@ -67,7 +67,6 @@ export default function BrandCheckPage() {
   const [error, setError] = useState('')
   const [expandedQuery, setExpandedQuery] = useState(null)
   const [activeTab, setActiveTab] = useState({})
-  const [openFaq, setOpenFaq] = useState(0)
   const resultsRef = useRef(null)
 
   const MAX_FREE_SCANS = 2
@@ -258,7 +257,7 @@ export default function BrandCheckPage() {
   const getSentimentIcon = (s) => s === 'positive' ? <ThumbsUp className="w-5 h-5" /> : s === 'negative' ? <ThumbsDown className="w-5 h-5" /> : <Minus className="w-5 h-5" />
 
   const ASPECT_LABELS = { bereikbaarheid: locale === 'en' ? 'Accessibility' : 'Bereikbaarheid', reviews: 'Reviews', klachten: locale === 'en' ? 'Complaints' : 'Klachten', service: 'Service', openingstijden: locale === 'en' ? 'Opening hours' : 'Openingstijden', betrouwbaarheid: locale === 'en' ? 'Reliability' : 'Betrouwbaarheid', prijs: locale === 'en' ? 'Price' : 'Prijs', snelheid: locale === 'en' ? 'Speed' : 'Snelheid' }
-  const ASPECT_ICONS = { bereikbaarheid: <MapPin className="w-3.5 h-3.5" />, reviews: <Star className="w-3.5 h-3.5" />, klachten: <Shield className="w-3.5 h-3.5" />, service: <MessageSquare className="w-3.5 h-3.5" />, openingstijden: <Eye className="w-3.5 h-3.5" />, betrouwbaarheid: <CheckCircle2 className="w-3.5 h-3.5" />, prijs: <BarChart3 className="w-3.5 h-3.5" />, snelheid: <Sparkles className="w-3.5 h-3.5" /> }
+  const ASPECT_ICONS = { bereikbaarheid: '📞', reviews: '⭐', klachten: '⚠️', service: '🛎️', openingstijden: '🕐', betrouwbaarheid: '🔒', prijs: '💰', snelheid: '⚡' }
 
   // Progress based on actual query states
   const completedCount = queryStates.filter(q => q.status === 'done' || q.status === 'error').length
@@ -275,10 +274,6 @@ export default function BrandCheckPage() {
           </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 text-slate-900 leading-tight px-4">{t('heroTitle')}</h1>
           <p className="text-base sm:text-lg md:text-xl text-slate-600 px-4 mb-4" dangerouslySetInnerHTML={{ __html: t.raw('heroSubtitle') }} />
-          <div className="flex justify-center gap-2 mb-6">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-slate-200 bg-white text-sm text-slate-600"><span className="w-2 h-2 rounded-full bg-emerald-400" />Perplexity</span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-slate-200 bg-white text-sm text-slate-600"><span className="w-2 h-2 rounded-full bg-emerald-400" />ChatGPT</span>
-          </div>
         </div>
 
         {limitReached && !isAdmin && authChecked ? (
@@ -421,7 +416,7 @@ export default function BrandCheckPage() {
           {results.aspects?.length > 0 && (
             <div className="mb-6">
               <h3 className="font-semibold text-slate-900 mb-3">{locale === 'en' ? 'Topics AI talks about' : 'Onderwerpen waarover AI spreekt'}</h3>
-              <div className="flex flex-wrap gap-2">{results.aspects.map((a, i) => (<span key={i} className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 text-sm px-3 py-1.5 rounded-lg">{ASPECT_ICONS[a] || <Search className="w-3.5 h-3.5" />} {ASPECT_LABELS[a] || a}</span>))}</div>
+              <div className="flex flex-wrap gap-2">{results.aspects.map((a, i) => (<span key={i} className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 text-sm px-3 py-1.5 rounded-lg">{ASPECT_ICONS[a] || '📋'} {ASPECT_LABELS[a] || a}</span>))}</div>
             </div>
           )}
 
@@ -496,26 +491,24 @@ export default function BrandCheckPage() {
       {/* ── SEO CONTENT ── */}
       {!results && !loading && (
         <>
-          {/* What does AI say */}
           <section className="max-w-3xl mx-auto px-4 sm:px-6 pt-20 pb-16">
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 leading-tight">{locale === 'en' ? <>What does AI say<br /><span className="text-[#7C3AED]">when someone asks about your business?</span></> : <>Wat zegt AI<br /><span className="text-[#7C3AED]">als iemand naar jouw bedrijf vraagt?</span></>}</h2>
             <p className="text-slate-600 leading-relaxed mb-4">{locale === 'en' ? 'Millions of people ask ChatGPT and Perplexity for business recommendations every day. What does ChatGPT say about my business? An AI Brand Check reveals exactly that: the brand mentions AI generates, the sentiment, and whether you appear at all. This free AI reputation check shows your brand perception across platforms.' : 'Miljoenen mensen vragen ChatGPT en Perplexity dagelijks om bedrijfsaanbevelingen. Wat zegt ChatGPT over mijn bedrijf? Een AI Brand Check onthult precies dat: de AI merkperceptie, het sentiment, en of je uberhaupt wordt genoemd. Deze gratis AI reputatie check toont hoe AI over jouw merk praat.'}</p>
             <p className="text-slate-600 leading-relaxed">{locale === 'en' ? 'This free tool runs 3 commercial queries on both Perplexity and ChatGPT about your brand: experiences, reviews, and service quality. 6 AI reputation checks in total. You see exactly how AI perceives your business and get concrete tips to improve your AI brand perception.' : 'Deze gratis tool voert 3 commerciele zoekvragen uit op zowel Perplexity als ChatGPT over jouw merk: ervaringen, reviews, en servicekwaliteit. 6 AI reputatie checks in totaal. Je ziet precies hoe AI over jouw merk praat en krijgt concrete tips om je AI merkperceptie te verbeteren.'}</p>
           </section>
 
-          {/* What do we check - with outlined icons like GEO Audit */}
           <section className="bg-slate-50 py-16">
             <div className="max-w-4xl mx-auto px-4 sm:px-6">
               <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 text-center mb-4">{locale === 'en' ? 'What do we check?' : 'Wat checken we?'}</h2>
               <p className="text-slate-500 text-center mb-10 max-w-2xl mx-auto">{locale === 'en' ? '3 targeted queries on 2 AI platforms reveal how AI perceives your brand.' : '3 gerichte zoekvragen op 2 AI-platformen onthullen hoe AI jouw merk ziet.'}</p>
               <div className="grid sm:grid-cols-3 gap-6">
                 {[
-                  { icon: <Shield className="w-5 h-5" />, title: locale === 'en' ? 'Experiences' : 'Ervaringen', desc: locale === 'en' ? 'Is your business considered reliable? What experiences does AI highlight?' : 'Wordt jouw bedrijf als betrouwbaar gezien? Welke ervaringen licht AI uit?' },
-                  { icon: <Star className="w-5 h-5" />, title: locale === 'en' ? 'Reviews' : 'Reviews', desc: locale === 'en' ? 'What does AI know about your reviews and complaints? Are there negative signals?' : 'Wat weet AI over je reviews en klachten? Zijn er negatieve signalen?' },
-                  { icon: <MessageSquare className="w-5 h-5" />, title: locale === 'en' ? 'Service' : 'Service', desc: locale === 'en' ? 'How does AI rate your accessibility, quality and service level?' : 'Hoe beoordeelt AI je bereikbaarheid, kwaliteit en serviceniveau?' }
+                  { num: '1', title: locale === 'en' ? 'Experiences' : 'Ervaringen', desc: locale === 'en' ? 'Is your business considered reliable? What experiences does AI highlight?' : 'Wordt jouw bedrijf als betrouwbaar gezien? Welke ervaringen licht AI uit?' },
+                  { num: '2', title: locale === 'en' ? 'Reviews' : 'Reviews', desc: locale === 'en' ? 'What does AI know about your reviews and complaints? Are there negative signals?' : 'Wat weet AI over je reviews en klachten? Zijn er negatieve signalen?' },
+                  { num: '3', title: locale === 'en' ? 'Service' : 'Service', desc: locale === 'en' ? 'How does AI rate your accessibility, quality and service level?' : 'Hoe beoordeelt AI je bereikbaarheid, kwaliteit en serviceniveau?' }
                 ].map((item, i) => (
                   <div key={i} className="bg-white rounded-xl p-6 border border-slate-200">
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center mb-4">{item.icon}</div>
+                    <div className="w-8 h-8 rounded-full bg-[#7C3AED] text-white flex items-center justify-center text-sm font-bold mb-3">{item.num}</div>
                     <h3 className="font-semibold text-slate-900 mb-2">{item.title}</h3>
                     <p className="text-sm text-slate-600 leading-relaxed">{item.desc}</p>
                     <div className="flex gap-2 mt-3">
@@ -528,7 +521,6 @@ export default function BrandCheckPage() {
             </div>
           </section>
 
-          {/* AI has an opinion */}
           <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 text-center">{locale === 'en' ? <>AI has an opinion<br /><span className="text-[#7C3AED]">about your business</span></> : <>AI heeft een mening<br /><span className="text-[#7C3AED]">over jouw bedrijf</span></>}</h2>
             <p className="text-slate-600 leading-relaxed text-center mb-6 max-w-2xl mx-auto">{locale === 'en' ? 'When someone asks "Is [your company] reliable?", AI constructs an answer from online sources. Reviews, forums, social media, and industry articles all influence AI brand mentions. Understanding what AI says about your business is the first step to improving your AI reputation.' : 'Als iemand vraagt "Is [jouw bedrijf] betrouwbaar?", stelt AI een antwoord samen uit online bronnen. Reviews, forums, social media en brancheartikelen bepalen de AI merkperceptie. Begrijpen hoe AI over jouw merk praat is de eerste stap naar een betere AI reputatie.'}</p>
@@ -539,67 +531,38 @@ export default function BrandCheckPage() {
                   <div className="bg-white/10 rounded-lg rounded-tl-none px-4 py-2.5 text-sm text-white/90">{locale === 'en' ? '"What are experiences with [your company]? Is it reliable?"' : '"Wat zijn ervaringen met [jouw bedrijf]? Is het betrouwbaar?"'}</div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-purple-500/30 flex items-center justify-center flex-shrink-0 mt-0.5"><Sparkles className="w-3 h-3 text-purple-300" /></div>
+                  <div className="w-6 h-6 rounded-full bg-purple-500/30 flex items-center justify-center flex-shrink-0 mt-0.5"><span className="text-xs">🤖</span></div>
                   <div className="bg-white/10 rounded-lg rounded-tl-none px-4 py-2.5 text-sm text-white/90">{locale === 'en' ? '"Based on available information..."' : '"Op basis van beschikbare informatie..."'}<br /><span className="text-purple-300 font-medium">{locale === 'en' ? 'Is the response positive, negative, or does AI not even know your brand?' : 'Is het antwoord positief, negatief, of kent AI je merk niet eens?'}</span></div>
                 </div>
               </div>
             </div>
           </section>
 
-          {/* FAQ Section — Homepage style with Teun */}
-          <section className="py-20 bg-slate-50 relative overflow-visible">
-            <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
-              <div className="grid lg:grid-cols-2 gap-12 items-start">
-                <div>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-6">{locale === 'en' ? 'Frequently asked questions' : 'Veelgestelde vragen'}</h2>
-                  <div className="space-y-4">
-                    {faqItems.map((item, i) => (
-                      <div key={i} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                        <button
-                          onClick={() => setOpenFaq(openFaq === i ? -1 : i)}
-                          className="w-full flex items-center justify-between p-6 text-left cursor-pointer"
-                        >
-                          <div className="flex items-center gap-4">
-                            <span className="text-slate-400 font-mono text-sm">
-                              {String(i + 1).padStart(2, '0')}
-                            </span>
-                            <span className="font-semibold text-slate-900">
-                              {item.q}
-                            </span>
-                          </div>
-                          <svg 
-                            className={`w-5 h-5 text-slate-400 transition-transform flex-shrink-0 ml-2 ${openFaq === i ? 'rotate-45' : ''}`} 
-                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                        </button>
-                        {openFaq === i && (
-                          <div className="px-6 pb-6 pt-0">
-                            <p className="text-slate-600 pl-10">{item.a}</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="hidden lg:flex justify-center items-end relative">
-                  <div className="translate-y-20">
-                    <Image
-                      src="/teun-ai-mascotte.png"
-                      alt={locale === 'en' ? 'Teun helps you' : 'Teun helpt je'}
-                      width={420}
-                      height={530}
-                      className="drop-shadow-xl"
-                    />
-                  </div>
-                </div>
+          <section className="bg-slate-50 py-16">
+            <div className="max-w-3xl mx-auto px-4 sm:px-6">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-6">{locale === 'en' ? 'Frequently asked questions' : 'Veelgestelde vragen'}</h2>
+              <div className="space-y-3">
+                {faqItems.map((item, i) => (
+                  <details key={i} className="group border border-slate-200 rounded-xl bg-white">
+                    <summary className="flex items-center justify-between p-4 cursor-pointer font-medium text-slate-900 hover:bg-slate-50 rounded-xl text-sm sm:text-base">{item.q}<ChevronDown className="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform flex-shrink-0 ml-2" /></summary>
+                    <p className="px-4 pb-4 text-sm text-slate-600 leading-relaxed">{item.a}</p>
+                  </details>
+                ))}
               </div>
             </div>
           </section>
 
-          {/* CTA */}
+          <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 sm:p-8 text-center">
+              <p className="text-lg font-bold text-slate-900 mb-2">{locale === 'en' ? 'Want a complete AI visibility analysis?' : 'Wil je een complete AI-zichtbaarheidsanalyse?'}</p>
+              <p className="text-slate-600 text-sm max-w-md mx-auto mb-5">{locale === 'en' ? 'Combine brand perception with page-level GEO analysis. Match AI prompts to your best pages with targeted optimization per page.' : 'Combineer merkperceptie met pagina-niveau GEO analyse. Match AI-prompts aan je beste pagina\'s met gerichte optimalisatie per pagina.'}</p>
+              <Link href="/signup" className="inline-flex items-center gap-2 bg-[#292956] text-white font-semibold px-6 py-3 rounded-lg hover:bg-[#1e1e45] transition-colors cursor-pointer">{locale === 'en' ? 'Create free account' : 'Gratis account aanmaken'} <ArrowRight className="w-4 h-4" /></Link>
+            </div>
+          </section>
+
+          <div className="flex justify-center pb-12">
+            <Image src="/Teun-ai_welkom.png" alt={locale === 'en' ? 'Teun.ai mascot' : 'Teun.ai mascotte'} width={200} height={200} className="w-40 sm:w-48" />
+          </div>
         </>
       )}
     </div>
