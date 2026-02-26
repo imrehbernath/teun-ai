@@ -164,8 +164,9 @@ function normalizeResults(results) {
 }
 
 // —— Helper: process Google AI scan results ——
-// FIXED: Checks BOTH camelCase (companyMentioned, query) AND snake_case (company_mentioned, ai_prompt)
-function processGoogleAiResults(scans) {
+// Detects company mentions from aiResponse text when no explicit flag exists
+// Extracts competitors from sources and aiResponse
+function processGoogleAiResults(scans, companyName) {
   if (!scans || scans.length === 0) return { found: 0, total: 0, pct: 0, prompts: [] }
 
   const latest = scans[0]
@@ -190,25 +191,89 @@ function processGoogleAiResults(scans) {
   }
 
   // Debug logging
-  console.log('[processGoogleAiResults] scan id:', latest.id, '| results count:', resultArr.length, '| prompts count:', scanPrompts.length)
+  console.log('[processGoogleAiResults] scan id:', latest.id, '| results count:', resultArr.length, '| prompts count:', scanPrompts.length, '| companyName:', companyName)
   if (resultArr[0]) console.log('[processGoogleAiResults] first result keys:', Object.keys(resultArr[0]))
 
-  // Check BOTH camelCase (new scans) AND snake_case (legacy)
-  const found = resultArr.filter(r => r.companyMentioned === true || r.company_mentioned === true).length
+  // Build search terms for company mention detection
+  const companyLower = (companyName || '').toLowerCase().trim()
+  const companyVariants = companyLower ? [
+    companyLower,
+    companyLower.replace(/\s+/g, ''),       // "online labs" → "onlinelabs"
+    companyLower.replace(/\s+/g, '-'),       // "online labs" → "online-labs"
+    companyLower.replace(/[-_.]/g, ' '),     // "online-labs" → "online labs"
+  ].filter((v, i, a) => a.indexOf(v) === i) : []
+
+  // Also check company website domain
+  const companyWebsite = (latest.website || '').toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '')
+
+  const processedPrompts = resultArr.map((r, i) => {
+    const responseText = r.aiResponse || r.textContent || r.simulated_ai_response_snippet || r.snippet || ''
+    const responseLower = responseText.toLowerCase()
+
+    // 1. Check explicit mention flags (if they exist)
+    let isMentioned = r.companyMentioned === true || r.company_mentioned === true
+
+    // 2. If no explicit flag, detect from aiResponse text
+    if (!isMentioned && companyVariants.length > 0 && responseLower) {
+      isMentioned = companyVariants.some(v => responseLower.includes(v))
+    }
+
+    // 3. Also check if company website domain appears in sources
+    if (!isMentioned && companyWebsite) {
+      const sources = r.sources || r.references || r.citedSources || r.cited_sources || []
+      isMentioned = sources.some(s => {
+        const srcDomain = (s.domain || s.link || '').toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '')
+        return srcDomain.includes(companyWebsite) || companyWebsite.includes(srcDomain.split('/')[0])
+      })
+    }
+
+    // 4. Extract competitors from sources (domains that are companies)
+    const competitorNames = []
+    const sources = r.sources || r.references || r.citedSources || r.cited_sources || []
+    for (const s of sources) {
+      const domain = (s.domain || '').trim()
+      const title = (s.title || '').trim()
+      // Use domain as competitor name if it looks like a company
+      if (domain && domain.length >= 2 && !domain.includes('sortlist') && !domain.includes('trustoo') &&
+          !domain.includes('google') && !domain.includes('wikipedia') &&
+          !(companyWebsite && domain.toLowerCase().includes(companyWebsite))) {
+        // Clean domain: remove "www." prefix and common suffixes
+        const cleanDomain = domain.replace(/^www\./, '').replace(/\.(nl|com|eu|org|net)$/i, '')
+        if (cleanDomain.length >= 2 && !competitorNames.some(c => c.toLowerCase() === cleanDomain.toLowerCase())) {
+          competitorNames.push(domain)
+        }
+      }
+    }
+
+    // Count mentions in response
+    let mentionCount = 0
+    if (isMentioned && companyVariants.length > 0) {
+      for (const v of companyVariants) {
+        const regex = new RegExp(v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+        const matches = responseLower.match(regex)
+        if (matches) mentionCount = Math.max(mentionCount, matches.length)
+      }
+    }
+    if (isMentioned && mentionCount === 0) mentionCount = 1
+
+    return {
+      text: r.query || r.ai_prompt || r.prompt || r.searchQuery || getPromptText(scanPrompts[i]) || `Prompt ${i + 1}`,
+      found: isMentioned,
+      mentionCount: r.mentionCount || r.mentions_count || mentionCount,
+      snippet: responseText || null,
+      competitors: r.competitorsInSources || r.competitorsMentioned || r.competitors_mentioned || competitorNames,
+      sources: sources,
+    }
+  })
+
+  const found = processedPrompts.filter(p => p.found).length
   const total = Math.max(resultArr.length, scanPrompts.length) || 0
 
   return {
     found,
     total,
     pct: total > 0 ? Math.round((found / total) * 100) : 0,
-    prompts: resultArr.map((r, i) => ({
-      text: r.query || r.ai_prompt || r.prompt || r.searchQuery || getPromptText(scanPrompts[i]) || `Prompt ${i + 1}`,
-      found: r.companyMentioned === true || r.company_mentioned === true,
-      mentionCount: r.mentionCount || r.mentions_count || 0,
-      snippet: r.textContent || r.aiResponse || r.simulated_ai_response_snippet || r.snippet || null,
-      competitors: r.competitorsInSources || r.competitorsMentioned || r.competitors_mentioned || [],
-      sources: r.sources || r.references || r.citedSources || r.cited_sources || [],
-    })),
+    prompts: processedPrompts,
     lastScan: latest.created_at,
   }
 }
@@ -439,8 +504,8 @@ export async function GET(request) {
     const competitors = extractCompetitors(mergedResults)
     const avgMentions = calcAvgMentions(promptDetails)
     const topCompetitor = competitors[0] || null
-    const googleAiMode = processGoogleAiResults(googleAiScans)
-    const googleAiOverview = processGoogleAiResults(googleAioScans)
+    const googleAiMode = processGoogleAiResults(googleAiScans, activeCompanyName)
+    const googleAiOverview = processGoogleAiResults(googleAioScans, activeCompanyName)
 
     const promptCount = promptDetails.length || visibility.totalPrompts
     const foundCount = promptDetails.filter(p => p.chatgpt.found || p.perplexity.found).length

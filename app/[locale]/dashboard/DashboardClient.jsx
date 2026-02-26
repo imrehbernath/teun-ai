@@ -65,7 +65,21 @@ const PLATFORM_COLORS = {
   googleAiOverview: '#fbbc04',
 }
 
-function PlatformBar({ name, found, total, color, pct, label }) {
+function PlatformBar({ name, found, total, color, pct, label, notScanned, notScannedLabel }) {
+  if (notScanned) {
+    return (
+      <div className="mb-5">
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full shrink-0 bg-slate-200" />
+            <span className="text-[13px] font-semibold text-slate-400">{name}</span>
+          </div>
+          <span className="text-[11px] text-slate-300 italic">{notScannedLabel || '—'}</span>
+        </div>
+        <div className="h-2 bg-slate-100 rounded overflow-hidden" />
+      </div>
+    )
+  }
   return (
     <div className="mb-5">
       <div className="flex justify-between items-center mb-2">
@@ -733,8 +747,8 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                   <div className="text-[12px] text-slate-400 mb-5">{t.platform.subtitle}</div>
                   <PlatformBar name="ChatGPT" found={visibility.chatgptFound || 0} total={visibility.chatgptTotal || 0} color={PLATFORM_COLORS.chatgpt} pct={visibility.chatgpt || 0} label={t.stats.promptsFound} />
                   <PlatformBar name="Perplexity" found={visibility.perplexityFound || 0} total={visibility.perplexityTotal || 0} color={PLATFORM_COLORS.perplexity} pct={visibility.perplexity || 0} label={t.stats.promptsFound} />
-                  <PlatformBar name="Google AI Mode" found={googleAiMode.found} total={googleAiMode.total} color={PLATFORM_COLORS.googleAiMode} pct={googleAiMode.pct} label={t.stats.promptsFound} />
-                  <PlatformBar name="AI Overviews" found={googleAiOverview.found} total={googleAiOverview.total} color={PLATFORM_COLORS.googleAiOverview} pct={googleAiOverview.pct} label={t.stats.promptsFound} />
+                  <PlatformBar name="Google AI Mode" found={googleAiMode.found} total={googleAiMode.total} color={PLATFORM_COLORS.googleAiMode} pct={googleAiMode.pct} label={t.stats.promptsFound} notScanned={googleAiMode.total === 0} notScannedLabel={locale === 'nl' ? 'niet gescand' : 'not scanned'} />
+                  <PlatformBar name="AI Overviews" found={googleAiOverview.found} total={googleAiOverview.total} color={PLATFORM_COLORS.googleAiOverview} pct={googleAiOverview.pct} label={t.stats.promptsFound} notScanned={googleAiOverview.total === 0} notScannedLabel={locale === 'nl' ? 'niet gescand' : 'not scanned'} />
                   <div className="h-px bg-slate-100 my-5" />
                   <div className="text-[13px] font-semibold text-slate-800 mb-3">{t.platform.topCompetitors}</div>
                   {competitors.slice(0, 3).map((c, i) => (
@@ -930,7 +944,8 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                   <div className="grid gap-3 px-6 py-3 bg-slate-50 text-[11px] text-slate-400 font-semibold uppercase tracking-wider" style={{ gridTemplateColumns: '32px 1fr 80px 80px 80px 80px 50px' }}>
                     <span>#</span><span>{t.promptTracker.prompt}</span>
                     <span className="text-center">{data?.hasExtensionData ? <span title={locale === 'nl' ? 'Via Chrome extensie' : 'Via Chrome extension'}>ChatGPT <span className="text-emerald-500">⚡</span></span> : 'ChatGPT'}</span><span className="text-center">Perplexity</span>
-                    <span className="text-center">AI Mode</span><span className="text-center">AI Overview</span>
+                    <span className="text-center" title={googleAiMode.total === 0 ? (locale === 'nl' ? 'Nog niet gescand' : 'Not scanned yet') : ''}>AI Mode{googleAiMode.total === 0 && <span className="text-slate-300 normal-case font-normal"> *</span>}</span>
+                    <span className="text-center" title={googleAiOverview.total === 0 ? (locale === 'nl' ? 'Nog niet gescand' : 'Not scanned yet') : ''}>AI Overview{googleAiOverview.total === 0 && <span className="text-slate-300 normal-case font-normal"> *</span>}</span>
                     <span className="text-center">{t.promptTracker.trend}</span>
                   </div>
 
@@ -989,8 +1004,8 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                           <>
                             <div className="text-center"><MentionBadge found={p.chatgpt.found} mentionCount={p.chatgpt.mentionCount} /></div>
                             <div className="text-center"><MentionBadge found={p.perplexity.found} mentionCount={p.perplexity.mentionCount} /></div>
-                            <div className="text-center"><MentionBadge found={gaiPrompt?.found || false} mentionCount={gaiPrompt?.mentionCount || 0} /></div>
-                            <div className="text-center"><MentionBadge found={gaioPrompt?.found || false} mentionCount={gaioPrompt?.mentionCount || 0} /></div>
+                            <div className="text-center">{googleAiMode.total > 0 ? <MentionBadge found={gaiPrompt?.found || false} mentionCount={gaiPrompt?.mentionCount || 0} /> : <span className="text-[11px] text-slate-300">—</span>}</div>
+                            <div className="text-center">{googleAiOverview.total > 0 ? <MentionBadge found={gaioPrompt?.found || false} mentionCount={gaioPrompt?.mentionCount || 0} /> : <span className="text-[11px] text-slate-300">—</span>}</div>
                             <div className="text-center"><TrendBadge trend={anyFound ? 'stable' : 'down'} /></div>
                           </>
                         ) : (
@@ -1155,6 +1170,13 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                     )
                   })}
                   {prompts.length === 0 && !editMode && <div className="px-6 py-16 text-center text-sm text-slate-400">{t.noData}</div>}
+                  {(googleAiMode.total === 0 || googleAiOverview.total === 0) && prompts.length > 0 && !editMode && (
+                    <div className="px-6 py-3 border-t border-slate-100 text-[11px] text-slate-400">
+                      * {locale === 'nl'
+                        ? 'AI Mode en AI Overviews worden apart gescand via de knop op het Overzicht-tab.'
+                        : 'AI Mode and AI Overviews are scanned separately via the button on the Overview tab.'}
+                    </div>
+                  )}
                 </div>
               </div>
             )
