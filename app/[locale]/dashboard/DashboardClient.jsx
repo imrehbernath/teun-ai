@@ -9,6 +9,10 @@ import {
   Eye, Flame, Crown, Target, Shield,
 } from 'lucide-react'
 import AuditTab from './AuditTab'
+import { createBrowserClient } from '@supabase/ssr'
+
+// Chrome Extension ID (from Chrome Web Store)
+const EXTENSION_ID = 'jjhjnmkanlmjhmobcgemjakkjdbkkfmk'
 
 // ═══════════════════════════════════════════════
 // ── Sub Components ──
@@ -314,16 +318,67 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
 
   useEffect(() => { document.body.classList.add('dashboard-active'); return () => document.body.classList.remove('dashboard-active') }, [])
 
-  // Detect Chrome extension
+  // Detect Chrome extension AND push auth token
   useEffect(() => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    )
+
+    async function pushAuthToExtension() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.access_token) {
+          console.warn('⚠️ No Supabase session for extension auth')
+          return
+        }
+
+        // Push auth to extension via external messaging
+        if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+          chrome.runtime.sendMessage(EXTENSION_ID, {
+            action: 'store_auth',
+            token: session.access_token,
+            user: { id: session.user.id, email: session.user.email }
+          }, (response) => {
+            if (chrome.runtime.lastError) {
+              console.log('Extension not available:', chrome.runtime.lastError.message)
+              return
+            }
+            if (response?.success) {
+              console.log('✅ Auth pushed to Teun.ai extension')
+              setExtensionInstalled(true)
+            }
+          })
+        }
+      } catch (err) {
+        console.warn('Extension auth push failed:', err)
+      }
+    }
+
+    // Check for extension presence via DOM attribute
     const check = setInterval(() => {
       if (document.documentElement.hasAttribute('data-teun-extension')) {
         setExtensionInstalled(true)
         clearInterval(check)
+        pushAuthToExtension()
       }
     }, 1000)
     setTimeout(() => clearInterval(check), 5000)
-    return () => clearInterval(check)
+
+    // Also try pushing auth immediately (extension might already be ready)
+    pushAuthToExtension()
+
+    // Re-push auth when session refreshes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.access_token && extensionInstalled) {
+        pushAuthToExtension()
+      }
+    })
+
+    return () => {
+      clearInterval(check)
+      subscription?.unsubscribe()
+    }
   }, [])
   useEffect(() => {
     const h = (e) => { if (showCompanyDropdown && !e.target.closest('[data-company-switcher]')) setShowCompanyDropdown(false) }
