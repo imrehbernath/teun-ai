@@ -639,7 +639,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
               <div className="flex gap-4 mb-6">
                 <StatCard label={t.stats.visibility} value={`${visibilityPct}%`} sub={`${totalFound}/${totalPrompts} ${t.stats.promptsFound}`} accent="#059669" />
                 <StatCard label={locale === 'nl' ? 'Platformvermeldingen' : 'Platform hits'} value={totalPlatformHits} sub={`ChatGPT ${chatgptFoundCount}/${totalPrompts} · Perplexity ${perplexityFoundCount}/${totalPrompts}`} />
-                <StatCard label={t.stats.topCompetitor} value={data.topCompetitor?.name || '—'} sub={data.topCompetitor ? `${data.topCompetitor.mentions}× ${locale === 'nl' ? 'genoemd' : 'mentioned'}` : ''} accent="#64748b" small />
+                <StatCard label={t.stats.topCompetitor} value={data.topCompetitor?.name || '—'} sub={data.topCompetitor ? `${data.topCompetitor.appearances || data.topCompetitor.mentions}× ${locale === 'nl' ? 'in ' + totalPrompts + ' prompts' : 'in ' + totalPrompts + ' prompts'}` : ''} accent="#64748b" small />
                 <StatCard label={t.stats.lastScan} value={lastScanText} sub={lastScanDate} />
               </div>
 
@@ -722,7 +722,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                     const wins = []
                     const notFoundCount = prompts.filter(p => !p.chatgpt.found && !p.perplexity.found).length
                     if (notFoundCount > 0) wins.push({ title: `${notFoundCount} ${t.promptsNotFound}`, desc: t.optimizeContent, impact: 'hoog', effort: 'medium' })
-                    if (competitors.length > 0) wins.push({ title: `${competitors[0].name} ${t.mentioned.replace('{count}', competitors[0].mentions)}`, desc: t.analyzeCompetitor, impact: 'hoog', effort: 'medium' })
+                    if (competitors.length > 0) wins.push({ title: `${competitors[0].name} ${t.mentioned.replace('{count}', competitors[0].appearances || competitors[0].mentions)}`, desc: t.analyzeCompetitor, impact: 'hoog', effort: 'medium' })
                     if (visibility.chatgpt !== visibility.perplexity) {
                       const weaker = visibility.chatgpt < visibility.perplexity ? 'ChatGPT' : 'Perplexity'
                       wins.push({ title: t.improveVisibility.replace('{platform}', weaker), desc: t.lowerScore.replace('{platform}', weaker), impact: 'medium', effort: 'laag' })
@@ -757,7 +757,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                         <span className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">{i + 1}</span>
                         <span className="text-[12px] text-slate-800 font-medium">{c.name}</span>
                       </div>
-                      <span className="text-[12px] font-semibold text-slate-800">{c.mentions}×</span>
+                      <span className="text-[12px] font-semibold text-slate-800">{c.appearances || c.mentions}×</span>
                     </div>
                   ))}
                 </div>

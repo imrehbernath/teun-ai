@@ -501,11 +501,62 @@ export async function GET(request) {
     // ——— Process (using merged results with extension priority) ———
     const promptDetails = buildPromptDetails(mergedResults, commercialPrompts)
     const visibility = calcVisibility(mergedResults)
-    const competitors = extractCompetitors(mergedResults)
     const avgMentions = calcAvgMentions(promptDetails)
-    const topCompetitor = competitors[0] || null
     const googleAiMode = processGoogleAiResults(googleAiScans, activeCompanyName)
     const googleAiOverview = processGoogleAiResults(googleAioScans, activeCompanyName)
+
+    // ——— Build unified competitor list across ALL 4 platforms ———
+    const competitorCounts = {}
+    // Count from ChatGPT + Perplexity (per prompt)
+    for (const platform of ['chatgpt', 'perplexity']) {
+      for (const r of (mergedResults?.[platform] || [])) {
+        for (const name of (r.competitors_mentioned || [])) {
+          if (!name || typeof name !== 'string') continue
+          const cleaned = name.trim()
+          if (cleaned.length >= 2 && cleaned.length <= 80) {
+            if (!competitorCounts[cleaned]) competitorCounts[cleaned] = { mentions: 0, prompts: new Set() }
+            competitorCounts[cleaned].mentions++
+          }
+        }
+      }
+    }
+    // Count from Google AI Mode + AI Overviews (per prompt index)
+    for (const gaiResults of [googleAiMode, googleAiOverview]) {
+      for (const p of (gaiResults.prompts || [])) {
+        for (const name of (p.competitors || [])) {
+          if (!name || typeof name !== 'string') continue
+          const cleaned = name.trim()
+          if (cleaned.length >= 2 && cleaned.length <= 80) {
+            if (!competitorCounts[cleaned]) competitorCounts[cleaned] = { mentions: 0, prompts: new Set() }
+            competitorCounts[cleaned].mentions++
+          }
+        }
+      }
+    }
+    // Also count prompt appearances (unique prompts where competitor appears)
+    for (let i = 0; i < promptDetails.length; i++) {
+      const p = promptDetails[i]
+      const gaiPrompt = googleAiMode.prompts?.[i]
+      const gaioPrompt = googleAiOverview.prompts?.[i]
+      const allCompetitors = [
+        ...(p.chatgpt.competitors || []),
+        ...(p.perplexity.competitors || []),
+        ...(gaiPrompt?.competitors || []),
+        ...(gaioPrompt?.competitors || []),
+      ]
+      for (const name of allCompetitors) {
+        if (!name || typeof name !== 'string') continue
+        const cleaned = name.trim()
+        if (competitorCounts[cleaned]) {
+          competitorCounts[cleaned].prompts.add(i)
+        }
+      }
+    }
+    const competitors = Object.entries(competitorCounts)
+      .map(([name, data]) => ({ name, mentions: data.mentions, appearances: data.prompts.size }))
+      .sort((a, b) => b.appearances - a.appearances || b.mentions - a.mentions)
+      .slice(0, 20)
+    const topCompetitor = competitors[0] || null
 
     const promptCount = promptDetails.length || visibility.totalPrompts
     const foundCount = promptDetails.filter((p, i) =>
