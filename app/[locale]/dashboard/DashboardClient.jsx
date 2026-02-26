@@ -1426,26 +1426,6 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                                 </div>
                               )}
 
-                              {/* Snippet preview */}
-                              {(a.chatgptSnippet || a.perplexitySnippet) && (
-                                <div className="px-4 py-2.5 border-t border-slate-100">
-                                  <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-1.5">
-                                    {locale === 'nl' ? 'Hoe AI over hen praat' : 'How AI talks about them'}
-                                  </div>
-                                  {a.chatgptSnippet && (
-                                    <div className="text-[11px] text-slate-600 leading-relaxed bg-emerald-50/50 rounded p-2 mb-1.5">
-                                      <span className="text-[9px] font-bold text-emerald-600 uppercase mr-1">ChatGPT:</span>
-                                      {a.chatgptSnippet.slice(0, 200)}{a.chatgptSnippet.length > 200 ? '…' : ''}
-                                    </div>
-                                  )}
-                                  {a.perplexitySnippet && (
-                                    <div className="text-[11px] text-slate-600 leading-relaxed bg-indigo-50/50 rounded p-2">
-                                      <span className="text-[9px] font-bold text-indigo-600 uppercase mr-1">Perplexity:</span>
-                                      {a.perplexitySnippet.slice(0, 200)}{a.perplexitySnippet.length > 200 ? '…' : ''}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
                             </div>
                           ))}
                         </div>
