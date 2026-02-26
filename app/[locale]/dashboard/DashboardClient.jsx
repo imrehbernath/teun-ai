@@ -1197,12 +1197,12 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
               })
 
               return { ...c, appearances, platformCount: platformCount.size, platforms: [...platformCount] }
-            })
+            }).sort((a, b) => b.appearances.length - a.appearances.length)
 
             const topThreat = competitorDetails[0]
             const totalPlatforms = 4
             const yourPct = visibilityPct
-            const topThreatPct = topThreat ? Math.min(100, Math.round((topThreat.mentions / Math.max(totalPrompts * 2, 1)) * 100)) : 0
+            const topThreatPct = topThreat ? Math.min(100, Math.round((topThreat.appearances.length / Math.max(totalPrompts, 1)) * 100)) : 0
             const threatDelta = topThreatPct - yourPct
             const threatLevel = threatDelta > 20 ? 'critical' : threatDelta > 0 ? 'high' : yourPct < 30 ? 'medium' : 'low'
 
@@ -1308,9 +1308,9 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                         {/* Mentions + expand */}
                         <div className="flex items-center gap-3 shrink-0">
                           <div className="text-right">
-                            <div className={`text-[18px] font-bold ${isTopThreat ? 'text-red-600' : 'text-slate-800'}`}>{c.mentions}×</div>
+                            <div className={`text-[18px] font-bold ${isTopThreat ? 'text-red-600' : 'text-slate-800'}`}>{c.appearances.length}×</div>
                             <div className="text-[10px] text-slate-400">
-                              {locale === 'nl' ? `in ${c.appearances.length} prompts` : `in ${c.appearances.length} prompts`}
+                              {locale === 'nl' ? `in ${totalPrompts} prompts` : `in ${totalPrompts} prompts`}
                             </div>
                           </div>
                           <ChevronRight className={`w-4 h-4 text-slate-300 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />

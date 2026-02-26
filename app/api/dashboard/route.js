@@ -326,7 +326,9 @@ export async function GET(request) {
               // Block strings with multiple ratings glued together
               !((name.match(/\d+\.\d+/g) || []).length >= 2) &&
               // Block generic section headers
-              !/^(creatieve|brede|full.service|lokale|kleinere|betaalbare|waar deze|gebruik|gratis|premium|populaire|aanbevolen|top\s)/i.test(name)
+              !/^(creatieve|brede|full.service|lokale|kleinere|betaalbare|waar deze|gebruik|gratis|premium|populaire|aanbevolen|top\s)/i.test(name) &&
+              // Block names starting with a digit (rating remnants like "9DGTLbase")
+              !/^\d/.test(name)
             ) {
               names.push(name)
             }
