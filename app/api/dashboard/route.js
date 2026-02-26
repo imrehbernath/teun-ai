@@ -280,17 +280,83 @@ export async function GET(request) {
       if (extQueryResults.length > 0) {
         hasExtensionData = true
 
+        // Collect all known competitor names from Perplexity results for cross-referencing
+        const perplexityResults = mergedResults?.perplexity || results?.perplexity || []
+        const knownCompetitors = new Set()
+        for (const pr of perplexityResults) {
+          for (const name of (pr.competitors_mentioned || [])) {
+            if (name && typeof name === 'string' && name.trim().length >= 2) {
+              knownCompetitors.add(name.trim())
+            }
+          }
+        }
+
+        // Extract business names directly from ChatGPT response text
+        // Patterns: "📌 Name –", "• Name –", "🔹 Name –", "Name –" at line start
+        function extractNamesFromResponse(text, ownCompany) {
+          if (!text) return []
+          const names = []
+          const ownLower = (ownCompany || '').toLowerCase()
+
+          // Split into lines and find business name patterns
+          const lines = text.split('\n')
+          for (const line of lines) {
+            const trimmed = line.trim()
+            // Match: bullet/emoji + Name + dash separator (–, —, -)
+            // Covers: "📌 Name –", "• Name –", "🔹 Name –", "1. Name –"
+            const match = trimmed.match(/^(?:[•📌🔹🔸▸►●✅✔️🌟🚀\d]+[.)]*\s*)([\p{L}\p{N}][\p{L}\p{N}\s&®™.'|,()]+?)\s*[–—\-]\s/u)
+            if (!match) continue
+
+            let name = match[1].trim()
+              .replace(/\*\*/g, '')           // remove markdown bold
+              .replace(/\[.*?\]\(.*?\)/g, '') // remove markdown links
+              .replace(/\s+/g, ' ')           // normalize spaces
+              .trim()
+            // Clean trailing ratings like "4.9"
+            name = name.replace(/\s*\d+\.\d+$/, '').trim()
+
+            if (
+              name.length >= 2 && name.length <= 80 &&
+              name.toLowerCase() !== ownLower &&
+              !name.toLowerCase().includes(ownLower) &&
+              !/^(tip|stap|optie|actie|check|let op|kortom|samenvatting|wil je|vraag)/i.test(name)
+            ) {
+              names.push(name)
+            }
+          }
+          return [...new Set(names)]
+        }
+
+        console.log('[Dashboard] Known competitors from Perplexity:', [...knownCompetitors])
+
         // Map extension results to same format as API chatgpt results
-        // NOTE: chatgpt_query_results uses `found` (not `company_mentioned`),
-        //       `full_response`/`response_preview` (not `ai_response`),
-        //       and doesn't store competitors — we extract from full_response
         const extChatgptResults = extQueryResults.map(qr => {
           const isMentioned = qr.company_mentioned || qr.found || false
+          const fullText = qr.full_response || qr.response_preview || ''
           const snippetText = qr.snippet || qr.response_preview || qr.ai_response || qr.response || qr.full_response || ''
 
-          // Extract competitor names from full response if available
-          // (extension doesn't parse competitors, so we leave empty — competitors come from Perplexity + API results)
+          // 1. Start with any stored competitors
           const competitors = qr.competitors_mentioned || []
+
+          // 2. Cross-reference: known Perplexity competitors in ChatGPT response
+          if (fullText && knownCompetitors.size > 0) {
+            const textLower = fullText.toLowerCase()
+            for (const comp of knownCompetitors) {
+              if (textLower.includes(comp.toLowerCase()) && !competitors.includes(comp)) {
+                competitors.push(comp)
+              }
+            }
+          }
+
+          // 3. Extract NEW competitors directly from ChatGPT response text
+          if (fullText) {
+            const extracted = extractNamesFromResponse(fullText, activeCompanyName)
+            for (const name of extracted) {
+              if (!competitors.some(c => c.toLowerCase() === name.toLowerCase())) {
+                competitors.push(name)
+              }
+            }
+          }
 
           return {
             platform: 'chatgpt',
@@ -305,7 +371,7 @@ export async function GET(request) {
           }
         })
 
-        console.log('[Dashboard] Extension merge:', { total: extChatgptResults.length, found: extChatgptResults.filter(r => r.company_mentioned).length })
+        console.log('[Dashboard] Extension merge:', { total: extChatgptResults.length, found: extChatgptResults.filter(r => r.company_mentioned).length, competitorsMatched: extChatgptResults.reduce((sum, r) => sum + r.competitors_mentioned.length, 0) })
 
         if (!mergedResults) {
           mergedResults = { chatgpt: extChatgptResults, perplexity: [] }

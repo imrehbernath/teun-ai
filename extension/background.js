@@ -22,6 +22,9 @@ let currentScan = null;
 let scanTab = null;
 let authToken = null;
 let userId = null;
+let scanTimeout = null;
+
+const SCAN_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes max per scan
 
 /**
  * Initialize extension
@@ -132,8 +135,17 @@ async function startScan(queries, companyName, integrationId = null) {
   console.log(`🔍 Starting scan: ${queries.length} queries for "${companyName}"`);
   
   if (currentScan) {
-    console.warn('⚠️ Scan already in progress');
-    return { success: false, error: 'Scan already in progress' };
+    // Auto-clear if stale (older than timeout)
+    const elapsed = Date.now() - currentScan.startTime;
+    if (elapsed > SCAN_TIMEOUT_MS) {
+      console.warn('⚠️ Clearing stale scan (', Math.round(elapsed / 1000), 's old)');
+      currentScan = null;
+      scanTab = null;
+      if (scanTimeout) { clearTimeout(scanTimeout); scanTimeout = null; }
+    } else {
+      console.warn('⚠️ Scan already in progress');
+      return { success: false, error: 'Scan already in progress. Use force_reset to cancel.' };
+    }
   }
   
   if (!authToken || !userId) {
@@ -185,6 +197,36 @@ async function startScan(queries, companyName, integrationId = null) {
       tabId: tab.id
     };
     
+    // Auto-timeout: reset if scan takes too long
+    if (scanTimeout) clearTimeout(scanTimeout);
+    scanTimeout = setTimeout(() => {
+      if (currentScan) {
+        console.warn('⚠️ Scan timed out after', SCAN_TIMEOUT_MS / 1000, 'seconds');
+        
+        // Try to save partial results if any
+        if (currentScan.results.length > 0) {
+          sendBatchResultsToAPI({
+            companyName: currentScan.companyName,
+            results: currentScan.results,
+            integrationId: currentScan.integrationId
+          }).catch(err => console.error('Failed to save partial results:', err));
+        }
+        
+        currentScan = null;
+        scanTab = null;
+        scanTimeout = null;
+        
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'assets/icon-128.png',
+          title: 'Scan timeout',
+          message: 'De scan duurde te lang en is automatisch gestopt. Probeer opnieuw.'
+        });
+        
+        chrome.runtime.sendMessage({ action: 'scan_progress', type: 'scan_timeout', data: { reason: 'timeout' } }).catch(() => {});
+      }
+    }, SCAN_TIMEOUT_MS);
+    
     // Send start message to content script
     chrome.tabs.sendMessage(tab.id, {
       action: 'start_scan',
@@ -228,6 +270,9 @@ function handleScanProgress(message) {
   if (type === 'scan_complete') {
     console.log('✅ Scan complete!', data);
     
+    // Clear timeout
+    if (scanTimeout) { clearTimeout(scanTimeout); scanTimeout = null; }
+    
     // Send batch results to API
     if (currentScan) {
       sendBatchResultsToAPI({
@@ -264,6 +309,9 @@ function handleScanProgress(message) {
   
   if (type === 'scan_error') {
     console.error('❌ Scan error:', data);
+    
+    // Clear timeout
+    if (scanTimeout) { clearTimeout(scanTimeout); scanTimeout = null; }
     
     // Show error notification
     chrome.notifications.create({
@@ -360,6 +408,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
   
+  // Force reset stuck scan
+  if (message.action === 'force_reset') {
+    console.log('🔄 Force resetting scan state');
+    const wasScanActive = !!currentScan;
+    currentScan = null;
+    scanTab = null;
+    if (scanTimeout) { clearTimeout(scanTimeout); scanTimeout = null; }
+    sendResponse({ success: true, wasActive: wasScanActive });
+    return true;
+  }
+  
   // Ping (health check)
   if (message.action === 'ping') {
     sendResponse({ 
@@ -438,6 +497,17 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
     return true;
   }
   
+  // Force reset stuck scan (from dashboard)
+  if (message.action === 'force_reset') {
+    console.log('🔄 Force resetting scan state (from dashboard)');
+    const wasScanActive = !!currentScan;
+    currentScan = null;
+    scanTab = null;
+    if (scanTimeout) { clearTimeout(scanTimeout); scanTimeout = null; }
+    sendResponse({ success: true, wasActive: wasScanActive });
+    return true;
+  }
+  
   // Unknown action
   console.warn('⚠️ Unknown action:', message.action);
   sendResponse({ success: false, error: 'Unknown action' });
@@ -456,6 +526,27 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       chrome.action.setBadgeText({ text: '✓', tabId: tabId });
       chrome.action.setBadgeBackgroundColor({ color: '#28a745', tabId: tabId });
     }
+  }
+});
+
+/**
+ * Detect when scan tab is closed — reset scan state
+ */
+chrome.tabs.onRemoved.addListener((tabId) => {
+  if (currentScan && currentScan.tabId === tabId) {
+    console.warn('⚠️ Scan tab was closed — resetting scan state');
+    currentScan = null;
+    scanTab = null;
+    
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'assets/icon-128.png',
+      title: 'Scan afgebroken',
+      message: 'De ChatGPT tab is gesloten. Start opnieuw vanuit het dashboard.'
+    });
+    
+    // Notify popup if open
+    chrome.runtime.sendMessage({ action: 'scan_progress', type: 'scan_cancelled', data: { reason: 'tab_closed' } }).catch(() => {});
   }
 });
 
