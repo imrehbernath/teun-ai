@@ -1,0 +1,29 @@
+/* Hide the main site header and footer when dashboard is active */
+.teun-dashboard-layout {
+  /* Reset any padding/margin from parent layout */
+  margin: 0;
+  padding: 0;
+}
+
+/* Hide parent nav/header — adjust selectors to match your actual header element */
+.teun-dashboard-layout ~ header,
+.teun-dashboard-layout ~ nav,
+.teun-dashboard-layout ~ footer,
+body:has(.teun-dashboard-layout) > header,
+body:has(.teun-dashboard-layout) > nav,
+body:has(.teun-dashboard-layout) > footer,
+body:has(.teun-dashboard-layout) header:not(.teun-dashboard-layout *),
+body:has(.teun-dashboard-layout) > div > header,
+body:has(.teun-dashboard-layout) > div > nav {
+  display: none !important;
+}
+
+/* Also hide the main site footer if present */
+body:has(.teun-dashboard-layout) > div > footer {
+  display: none !important;
+}
+
+/* Ensure dashboard takes full viewport */
+.teun-dashboard-layout {
+  min-height: 100vh;
+}
