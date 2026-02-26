@@ -2708,7 +2708,8 @@ function GEOAnalyseContent() {
                   </div>
                   <div className="space-y-2 max-h-[400px] overflow-y-auto">
                     {unmatchedPrompts.map((prompt, i) => {
-                      const result = existingAiResults.find(r => r.prompt === prompt)
+                      const matchingResults = existingAiResults.filter(r => r.prompt === prompt)
+                      const isMentionedAnywhere = matchingResults.some(r => r.mentioned)
                       const isEditing = editingPromptIndex === i
                       
                       if (isEditing) {
@@ -2745,14 +2746,14 @@ function GEOAnalyseContent() {
                           draggable
                           onDragStart={(e) => handleDragStart(e, prompt, 'unmatched')}
                           className={`p-3 rounded-lg border cursor-grab active:cursor-grabbing transition-all group ${
-                            result?.mentioned ? 'bg-green-50 border-green-200' : 'bg-white border-slate-200 hover:border-purple-300'
+                            isMentionedAnywhere ? 'bg-green-50 border-green-200' : 'bg-white border-slate-200 hover:border-purple-300'
                           }`}
                         >
                           <div className="flex items-start gap-2">
                             <GripVertical className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
                             <p className="flex-1 text-sm text-slate-700">{prompt}</p>
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                              {result?.mentioned && (
+                              {isMentionedAnywhere && (
                                 <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full mr-1">✓ AI</span>
                               )}
                               <button 
