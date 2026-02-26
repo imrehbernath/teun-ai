@@ -508,7 +508,10 @@ export async function GET(request) {
     const googleAiOverview = processGoogleAiResults(googleAioScans, activeCompanyName)
 
     const promptCount = promptDetails.length || visibility.totalPrompts
-    const foundCount = promptDetails.filter(p => p.chatgpt.found || p.perplexity.found).length
+    const foundCount = promptDetails.filter((p, i) =>
+      p.chatgpt.found || p.perplexity.found ||
+      googleAiMode.prompts?.[i]?.found || googleAiOverview.prompts?.[i]?.found
+    ).length
     const adjustedVisibility = {
       ...visibility,
       totalPrompts: promptCount,
