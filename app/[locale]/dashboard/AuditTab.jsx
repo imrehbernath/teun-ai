@@ -19,7 +19,7 @@ const STEPS_NL = [
   { id: 'images', label: 'Afbeeldingen & alt-tekst checken' },
   { id: 'robots', label: 'robots.txt & llms.txt controleren' },
   { id: 'cwv', label: 'Core Web Vitals meten' },
-  { id: 'ai_content', label: 'AI content analyse (Claude)' },
+  { id: 'ai_content', label: 'AI content analyse' },
   { id: 'ai_citation', label: 'Citatie-potentieel beoordelen' },
   { id: 'ai_eeat', label: 'E-E-A-T signalen analyseren' },
   { id: 'prompt', label: 'Commerciële prompt genereren' },
@@ -35,7 +35,7 @@ const STEPS_EN = [
   { id: 'images', label: 'Checking images & alt text' },
   { id: 'robots', label: 'Checking robots.txt & llms.txt' },
   { id: 'cwv', label: 'Measuring Core Web Vitals' },
-  { id: 'ai_content', label: 'AI content analysis (Claude)' },
+  { id: 'ai_content', label: 'AI content analysis' },
   { id: 'ai_citation', label: 'Citation potential assessment' },
   { id: 'ai_eeat', label: 'Analyzing E-E-A-T signals' },
   { id: 'prompt', label: 'Generating commercial prompt' },
@@ -286,13 +286,18 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
 
     // Context messages for slow steps
     const slowStepHints = {
-      cwv: nl ? 'Google PageSpeed API wordt bevraagd — dit kan even duren' : 'Querying Google PageSpeed API — this may take a moment',
-      ai_content: nl ? 'Claude analyseert je content op AI-citatie potentieel' : 'Claude is analyzing your content for AI citation potential',
+      cwv: nl ? 'Google PageSpeed API wordt bevraagd — dit kan tot 60 seconden duren' : 'Querying Google PageSpeed API — this can take up to 60 seconds',
+      ai_content: nl ? 'AI analyseert je content op citatie-potentieel' : 'AI is analyzing your content for citation potential',
       ai_citation: nl ? 'Citatie-kwaliteit wordt beoordeeld op basis van je content' : 'Citation quality is being assessed based on your content',
-      ai_eeat: nl ? 'E-E-A-T signalen worden geëvalueerd door AI' : 'E-E-A-T signals are being evaluated by AI',
+      ai_eeat: nl ? 'E-E-A-T signalen worden geëvalueerd' : 'E-E-A-T signals are being evaluated',
       perplexity: nl ? 'Live test op Perplexity — we checken of je daadwerkelijk gevonden wordt' : 'Live Perplexity test — checking if you are actually found',
     }
     const hint = slowStepHints[currentStepId] || null
+
+    // Finalizing message adapts based on elapsed time
+    const finalizingMsg = elapsed > 60
+      ? (nl ? 'Core Web Vitals meting loopt nog — Google PageSpeed reageert soms traag. Even geduld.' : 'Core Web Vitals measurement still running — Google PageSpeed can be slow. Please wait.')
+      : (nl ? 'Bijna klaar — Core Web Vitals worden gemeten via Google PageSpeed. Dit kan tot een minuut duren.' : 'Almost done — measuring Core Web Vitals via Google PageSpeed. This can take up to a minute.')
 
     return (
       <div className="space-y-5">
@@ -306,7 +311,7 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
               <div>
                 <div className="text-[15px] font-semibold text-slate-800">
                   {allStepsDone
-                    ? (nl ? 'Resultaten worden verwerkt...' : 'Processing results...')
+                    ? (nl ? 'Core Web Vitals meten...' : 'Measuring Core Web Vitals...')
                     : (STEPS[stepIdx]?.label || '...')}
                 </div>
                 <div className="text-[12px] text-slate-400 mt-0.5">{url}</div>
@@ -323,7 +328,7 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
                 <Loader2 className="w-3.5 h-3.5 text-indigo-500 animate-spin shrink-0" />
                 <span className="text-[12px] text-indigo-700">
                   {allStepsDone
-                    ? (nl ? 'Bijna klaar — server verwerkt de laatste resultaten. Dit duurt meestal 10-30 seconden.' : 'Almost done — server is processing final results. This usually takes 10-30 seconds.')
+                    ? finalizingMsg
                     : hint}
                 </span>
               </div>
