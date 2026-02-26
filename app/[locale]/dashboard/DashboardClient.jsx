@@ -28,7 +28,7 @@ function StatCard({ label, value, sub, accent, small }) {
   )
 }
 
-// Badge: shows ✓ (found) or — (not found), with optional mention count
+// Badge: shows ✓ (found) or ✗ (not found)
 function MentionBadge({ found, mentionCount }) {
   if (!found) return (
     <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-red-50 text-red-400 text-[11px] font-semibold">
@@ -36,8 +36,9 @@ function MentionBadge({ found, mentionCount }) {
     </span>
   )
   return (
-    <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 text-[11px] font-bold">
-      {mentionCount > 1 ? `${mentionCount}×` : <Check className="w-3.5 h-3.5" />}
+    <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 text-[11px] font-bold"
+      title={mentionCount > 1 ? `${mentionCount}× genoemd in dit antwoord` : ''}>
+      <Check className="w-3.5 h-3.5" />
     </span>
   )
 }
@@ -485,8 +486,10 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
 
   const subtitle = t.subtitles[activeTab]?.replace('{company}', activeCompany?.name || '').replace('van  op', 'van je bedrijf op').replace('of  in', 'of your company in')
 
-  // Total mentions across platforms
-  const totalMentions = prompts.reduce((sum, p) => sum + (p.chatgpt.mentionCount || 0) + (p.perplexity.mentionCount || 0), 0)
+  // Total platform hits (additive: ChatGPT found + Perplexity found + Google AI found)
+  const chatgptFoundCount = prompts.filter(p => p.chatgpt.found).length
+  const perplexityFoundCount = prompts.filter(p => p.perplexity.found).length
+  const totalPlatformHits = chatgptFoundCount + perplexityFoundCount + (googleAiMode.found || 0) + (googleAiOverview.found || 0)
 
   return (
     <>
@@ -621,7 +624,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
             <>
               <div className="flex gap-4 mb-6">
                 <StatCard label={t.stats.visibility} value={`${visibilityPct}%`} sub={`${totalFound}/${totalPrompts} ${t.stats.promptsFound}`} accent="#059669" />
-                <StatCard label={locale === 'nl' ? 'Vermeldingen' : 'Mentions'} value={totalMentions} sub={t.stats.allPlatforms} />
+                <StatCard label={locale === 'nl' ? 'Platformvermeldingen' : 'Platform hits'} value={totalPlatformHits} sub={`ChatGPT ${chatgptFoundCount}/${totalPrompts} · Perplexity ${perplexityFoundCount}/${totalPrompts}`} />
                 <StatCard label={t.stats.topCompetitor} value={data.topCompetitor?.name || '—'} sub={data.topCompetitor ? `${data.topCompetitor.mentions}× ${locale === 'nl' ? 'genoemd' : 'mentioned'}` : ''} accent="#64748b" small />
                 <StatCard label={t.stats.lastScan} value={lastScanText} sub={lastScanDate} />
               </div>
