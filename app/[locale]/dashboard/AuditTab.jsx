@@ -101,10 +101,12 @@ export default function AuditTab({ locale, activeCompany }) {
   }, [activeCompany?.website])
 
   // Scan animation
+  const [elapsed, setElapsed] = useState(0)
   useEffect(() => {
-    if (!loading) return
+    if (!loading) { setElapsed(0); return }
     setStepIdx(0)
     setDoneSteps([])
+    setElapsed(0)
     let step = 0
     const advance = () => {
       if (step < STEPS.length - 1) {
@@ -115,7 +117,9 @@ export default function AuditTab({ locale, activeCompany }) {
       }
     }
     timerRef.current = setTimeout(advance, INTERVALS[0])
-    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+    // Elapsed timer
+    const elapsedTimer = setInterval(() => setElapsed(prev => prev + 1), 1000)
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); clearInterval(elapsedTimer) }
   }, [loading])
 
   // Run audit
@@ -275,6 +279,19 @@ export default function AuditTab({ locale, activeCompany }) {
   // ── SCANNING VIEW ──
   if (view === 'scanning' && loading) {
     const pct = Math.round(((stepIdx + 1) / STEPS.length) * 100)
+    const allStepsDone = doneSteps.length >= STEPS.length - 1
+    const currentStepId = STEPS[stepIdx]?.id
+
+    // Context messages for slow steps
+    const slowStepHints = {
+      cwv: nl ? 'Google PageSpeed API wordt bevraagd — dit kan even duren' : 'Querying Google PageSpeed API — this may take a moment',
+      ai_content: nl ? 'Claude analyseert je content op AI-citatie potentieel' : 'Claude is analyzing your content for AI citation potential',
+      ai_citation: nl ? 'Citatie-kwaliteit wordt beoordeeld op basis van je content' : 'Citation quality is being assessed based on your content',
+      ai_eeat: nl ? 'E-E-A-T signalen worden geëvalueerd door AI' : 'E-E-A-T signals are being evaluated by AI',
+      perplexity: nl ? 'Live test op Perplexity — we checken of je daadwerkelijk gevonden wordt' : 'Live Perplexity test — checking if you are actually found',
+    }
+    const hint = slowStepHints[currentStepId] || null
+
     return (
       <div className="space-y-5">
         {/* Progress header */}
@@ -286,12 +303,29 @@ export default function AuditTab({ locale, activeCompany }) {
             <div className="flex items-center justify-between mb-5">
               <div>
                 <div className="text-[15px] font-semibold text-slate-800">
-                  {STEPS[stepIdx]?.label || '...'}
+                  {allStepsDone
+                    ? (nl ? 'Resultaten worden verwerkt...' : 'Processing results...')
+                    : (STEPS[stepIdx]?.label || '...')}
                 </div>
                 <div className="text-[12px] text-slate-400 mt-0.5">{url}</div>
               </div>
-              <div className="text-[20px] font-bold" style={{ color: '#4F46E5' }}>{pct}%</div>
+              <div className="flex items-center gap-3">
+                <span className="text-[11px] text-slate-400">{elapsed}s</span>
+                <div className="text-[20px] font-bold" style={{ color: '#4F46E5' }}>{pct}%</div>
+              </div>
             </div>
+
+            {/* Hint for slow steps */}
+            {(hint || allStepsDone) && (
+              <div className="mb-4 px-3.5 py-2.5 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center gap-2.5">
+                <Loader2 className="w-3.5 h-3.5 text-indigo-500 animate-spin shrink-0" />
+                <span className="text-[12px] text-indigo-700">
+                  {allStepsDone
+                    ? (nl ? 'Bijna klaar — server verwerkt de laatste resultaten. Dit duurt meestal 10-30 seconden.' : 'Almost done — server is processing final results. This usually takes 10-30 seconds.')
+                    : hint}
+                </span>
+              </div>
+            )}
 
             {/* Step grid */}
             <div className="grid grid-cols-2 gap-x-8 gap-y-2">
