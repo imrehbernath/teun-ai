@@ -720,7 +720,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                   <div className="text-[12px] text-slate-400 mb-4">{t.quickWins.subtitle}</div>
                   {(() => {
                     const wins = []
-                    const notFoundCount = prompts.filter(p => !p.chatgpt.found && !p.perplexity.found).length
+                    const notFoundCount = prompts.filter((p, i) => !p.chatgpt.found && !p.perplexity.found && !googleAiMode.prompts?.[i]?.found && !googleAiOverview.prompts?.[i]?.found).length
                     if (notFoundCount > 0) wins.push({ title: `${notFoundCount} ${t.promptsNotFound}`, desc: t.optimizeContent, impact: 'hoog', effort: 'medium' })
                     if (competitors.length > 0) wins.push({ title: `${competitors[0].name} ${t.mentioned.replace('{count}', competitors[0].appearances || competitors[0].mentions)}`, desc: t.analyzeCompetitor, impact: 'hoog', effort: 'medium' })
                     if (visibility.chatgpt !== visibility.perplexity) {
