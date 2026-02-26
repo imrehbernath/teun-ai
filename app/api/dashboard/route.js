@@ -275,21 +275,37 @@ export async function GET(request) {
     if (extensionScans && extensionScans.length > 0) {
       const latestExtScan = extensionScans[0]
       const extQueryResults = latestExtScan.chatgpt_query_results || []
+      console.log('[Dashboard] Extension scan found:', { scanId: latestExtScan.id, queryResults: extQueryResults.length, firstResult: extQueryResults[0] ? Object.keys(extQueryResults[0]) : 'none' })
 
       if (extQueryResults.length > 0) {
         hasExtensionData = true
 
         // Map extension results to same format as API chatgpt results
-        const extChatgptResults = extQueryResults.map(qr => ({
-          platform: 'chatgpt',
-          ai_prompt: qr.query || qr.prompt || '',
-          company_mentioned: qr.company_mentioned || false,
-          mentions_count: qr.mentions_count || (qr.company_mentioned ? 1 : 0),
-          competitors_mentioned: qr.competitors_mentioned || [],
-          simulated_ai_response_snippet: qr.ai_response || qr.response || qr.snippet || '',
-          sources: qr.sources || qr.citations || [],
-          _fromExtension: true,
-        }))
+        // NOTE: chatgpt_query_results uses `found` (not `company_mentioned`),
+        //       `full_response`/`response_preview` (not `ai_response`),
+        //       and doesn't store competitors — we extract from full_response
+        const extChatgptResults = extQueryResults.map(qr => {
+          const isMentioned = qr.company_mentioned || qr.found || false
+          const snippetText = qr.snippet || qr.response_preview || qr.ai_response || qr.response || qr.full_response || ''
+
+          // Extract competitor names from full response if available
+          // (extension doesn't parse competitors, so we leave empty — competitors come from Perplexity + API results)
+          const competitors = qr.competitors_mentioned || []
+
+          return {
+            platform: 'chatgpt',
+            ai_prompt: qr.query || qr.prompt || '',
+            company_mentioned: isMentioned,
+            mentions_count: qr.mentions_count || qr.mention_count || (isMentioned ? 1 : 0),
+            competitors_mentioned: competitors,
+            simulated_ai_response_snippet: snippetText,
+            sources: qr.sources || qr.citations || [],
+            position: qr.position || null,
+            _fromExtension: true,
+          }
+        })
+
+        console.log('[Dashboard] Extension merge:', { total: extChatgptResults.length, found: extChatgptResults.filter(r => r.company_mentioned).length })
 
         if (!mergedResults) {
           mergedResults = { chatgpt: extChatgptResults, perplexity: [] }
