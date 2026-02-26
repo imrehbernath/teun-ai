@@ -319,12 +319,32 @@ export async function GET(request) {
               name.length >= 2 && name.length <= 80 &&
               name.toLowerCase() !== ownLower &&
               !name.toLowerCase().includes(ownLower) &&
-              !/^(tip|stap|optie|actie|check|let op|kortom|samenvatting|wil je|vraag)/i.test(name)
+              // Block Dutch/English action verbs and tips
+              !/^(tip|stap|optie|actie|check|let op|kortom|samenvatting|wil je|vraag|bekijk|bepaal|kijk|vergelijk|overweeg|zoek|lees|denk|kies|plan|budget|prijs|kosten|belangrijk|extra|meer|waarom|hoe |wat |welke|moderne|professionele|create|find|look|choose|compare|view|read|think)/i.test(name) &&
+              // Block rating concatenation strings (e.g. "4.8Whello4.7Webfluencer")
+              !/\d+\.\d+[A-Z]/i.test(name) &&
+              // Block strings with multiple ratings glued together
+              !((name.match(/\d+\.\d+/g) || []).length >= 2) &&
+              // Block generic section headers
+              !/^(creatieve|brede|full.service|lokale|kleinere|betaalbare|waar deze|gebruik|gratis|premium|populaire|aanbevolen|top\s)/i.test(name)
             ) {
               names.push(name)
             }
           }
-          return [...new Set(names)]
+          // Split any comma-separated names and deduplicate
+          const finalNames = []
+          for (const name of names) {
+            if (name.includes(',')) {
+              // Split "Name1, Name2, Name3" into individual entries
+              for (const part of name.split(',')) {
+                const cleaned = part.trim()
+                if (cleaned.length >= 2 && cleaned.length <= 80) finalNames.push(cleaned)
+              }
+            } else {
+              finalNames.push(name)
+            }
+          }
+          return [...new Set(finalNames)]
         }
 
         console.log('[Dashboard] Known competitors from Perplexity:', [...knownCompetitors])
