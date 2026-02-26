@@ -1609,7 +1609,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
 
           {/* ════════════ AUDIT ════════════ */}
           {activeTab === 'audit' && (
-            <AuditTab locale={locale} activeCompany={activeCompany} />
+            <AuditTab locale={locale} activeCompany={activeCompany} userEmail={userEmail} />
           )}
         </main>
       </div>

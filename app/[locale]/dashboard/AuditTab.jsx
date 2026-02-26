@@ -56,9 +56,11 @@ function scoreLabel(s, nl) {
 // ═══════════════════════════════════════════════
 // AUDIT TAB COMPONENT
 // ═══════════════════════════════════════════════
-export default function AuditTab({ locale, activeCompany }) {
+export default function AuditTab({ locale, activeCompany, userEmail }) {
   const nl = locale === 'nl'
   const STEPS = nl ? STEPS_NL : STEPS_EN
+  const ADMIN_EMAILS = ['imre@onlinelabs.nl']
+  const isAdmin = ADMIN_EMAILS.includes(userEmail?.toLowerCase())
 
   // State
   const [url, setUrl] = useState('')
@@ -73,8 +75,8 @@ export default function AuditTab({ locale, activeCompany }) {
   const [view, setView] = useState('input') // 'input' | 'scanning' | 'result' | 'history'
   const timerRef = useRef(null)
 
-  // Daily scan limit (BETA)
-  const scannedToday = history.length > 0 && new Date(history[0].timestamp).toDateString() === new Date().toDateString()
+  // Daily scan limit (BETA) — admins bypass
+  const scannedToday = !isAdmin && history.length > 0 && new Date(history[0].timestamp).toDateString() === new Date().toDateString()
 
   // Load history from localStorage
   useEffect(() => {
