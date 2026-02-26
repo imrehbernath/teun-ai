@@ -133,6 +133,36 @@ function calcAvgMentions(promptDetails) {
   return (mentions.reduce((a, b) => a + b, 0) / mentions.length).toFixed(1)
 }
 
+// —— Helper: normalize results format ——
+// Old scans stored flat array (Perplexity-only, pre dual-platform)
+// New scans store { chatgpt: [...], perplexity: [...] }
+// This ensures all code can safely access results.chatgpt / results.perplexity
+function normalizeResults(results) {
+  if (!results) return null
+
+  // Already correct format: { chatgpt: [...], perplexity: [...] }
+  if (!Array.isArray(results) && results.chatgpt !== undefined) return results
+  if (!Array.isArray(results) && results.perplexity !== undefined) return results
+
+  // Flat array — old format (Perplexity-only scans, pre Feb 2026)
+  if (Array.isArray(results)) {
+    // Check if items have a platform field to split them
+    const chatgpt = results.filter(r => r.platform === 'chatgpt')
+    const perplexity = results.filter(r => r.platform === 'perplexity')
+    const untagged = results.filter(r => !r.platform)
+
+    if (chatgpt.length > 0 || perplexity.length > 0) {
+      // Mixed array with platform tags — split by platform
+      return { chatgpt, perplexity: [...perplexity, ...untagged] }
+    }
+    // No platform tags — treat all as perplexity (legacy single-platform scans)
+    return { chatgpt: [], perplexity: results }
+  }
+
+  // Unknown object without chatgpt/perplexity keys
+  return { chatgpt: [], perplexity: [] }
+}
+
 // —— Helper: process Google AI scan results ——
 // FIXED: Checks BOTH camelCase (companyMentioned, query) AND snake_case (company_mentioned, ai_prompt)
 function processGoogleAiResults(scans) {
@@ -232,7 +262,7 @@ export async function GET(request) {
       : (allIntegrations || [])
 
     const latestScan = integrations[0] || null
-    const results = latestScan?.results || null
+    const results = normalizeResults(latestScan?.results || null)
     const commercialPrompts = latestScan?.commercial_prompts || []
     const activeWebsite = latestScan?.website || uniqueCompanies.find(c => c.company_name === activeCompanyName)?.website || null
 
@@ -424,7 +454,7 @@ export async function GET(request) {
     // Visibility trend
     const companyScans = integrations.filter(s => new Date(s.created_at) >= new Date(sinceDate)).reverse()
     const visibilityTrend = companyScans.map(scan => {
-      const v = calcVisibility(scan.results)
+      const v = calcVisibility(normalizeResults(scan.results))
       return {
         date: new Date(scan.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }),
         fullDate: scan.created_at,
