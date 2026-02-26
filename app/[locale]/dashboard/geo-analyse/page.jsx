@@ -566,21 +566,51 @@ function GEOAnalyseContent() {
             existing.category = scan.company_category || scan.category
           }
           
+          // Build company name variants for text-based mention detection
+          const companyLower = (scan.company_name || '').toLowerCase().trim()
+          const companyVariants = companyLower ? [
+            companyLower,
+            companyLower.replace(/\s+/g, ''),
+            companyLower.replace(/\s+/g, '-'),
+            companyLower.replace(/[-_.]/g, ' '),
+          ].filter((v, i, a) => a.indexOf(v) === i) : []
+          const websiteDomain = (scan.website || '').toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '')
+          
+          // Helper: detect mention from text + sources
+          const detectMention = (r) => {
+            // 1. Explicit flag
+            if (r.companyMentioned === true) return true
+            // 2. Text-based detection in aiResponse
+            const text = (r.aiResponse || r.textContent || r.aiResponsePreview || '').toLowerCase()
+            if (text && companyVariants.some(v => text.includes(v))) return true
+            // 3. Domain in sources
+            if (websiteDomain) {
+              const sources = r.sources || r.references || []
+              if (sources.some(s => {
+                const d = (s.domain || s.link || '').toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '')
+                return d.includes(websiteDomain) || websiteDomain.includes(d.split('/')[0])
+              })) return true
+            }
+            return false
+          }
+          
           // Handle both old (AI Overview) and new (AI Mode) format
+          const processedResults = results.map(r => ({
+            prompt: r.query || r.prompt,
+            mentioned: detectMention(r),
+            hasAiResponse: r.hasAiResponse === true || r.hasAiOverview === true || !!(r.aiResponse || r.textContent),
+            snippet: r.aiResponse || r.aiResponsePreview || r.aiOverviewText || r.textContent || '',
+            competitors: r.competitors || r.competitorsInSources || r.competitorsMentioned || []
+          }))
+          
           existing.combinedResults.googleAi = {
-            mentioned: results.filter(r => r.companyMentioned === true).length,
+            mentioned: processedResults.filter(r => r.mentioned).length,
             total: results.length,
-            results: results.map(r => ({
-              prompt: r.query || r.prompt,
-              mentioned: r.companyMentioned === true,
-              hasAiResponse: r.hasAiResponse === true || r.hasAiOverview === true,
-              snippet: r.aiResponse || r.aiResponsePreview || r.aiOverviewText || r.textContent || '',
-              competitors: r.competitors || r.competitorsInSources || r.competitorsMentioned || []
-            }))
+            results: processedResults
           }
           
           // Mark as having real AI data if we have responses
-          if (results.length > 0 && results.some(r => r.hasAiResponse || r.hasAiOverview)) {
+          if (results.length > 0 && results.some(r => r.hasAiResponse || r.hasAiOverview || r.aiResponse || r.textContent)) {
             existing.hasRealAiData = true
           }
         }
@@ -597,19 +627,45 @@ function GEOAnalyseContent() {
             existing.website = scan.website
           }
 
-          existing.combinedResults.googleAiOverview = {
-            mentioned: results.filter(r => r.companyMentioned === true).length,
-            total: results.length,
-            results: results.map(r => ({
-              prompt: r.query || r.prompt,
-              mentioned: r.companyMentioned === true,
-              hasAiOverview: r.hasAiOverview === true,
-              snippet: r.aiOverviewText || '',
-              competitors: r.competitorsMentioned || []
-            }))
+          // Build company name variants for text-based mention detection
+          const companyLower = (scan.company_name || '').toLowerCase().trim()
+          const companyVariants = companyLower ? [
+            companyLower,
+            companyLower.replace(/\s+/g, ''),
+            companyLower.replace(/\s+/g, '-'),
+            companyLower.replace(/[-_.]/g, ' '),
+          ].filter((v, i, a) => a.indexOf(v) === i) : []
+          const websiteDomain = (scan.website || '').toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '')
+
+          const detectMention = (r) => {
+            if (r.companyMentioned === true) return true
+            const text = (r.aiResponse || r.textContent || r.aiOverviewText || '').toLowerCase()
+            if (text && companyVariants.some(v => text.includes(v))) return true
+            if (websiteDomain) {
+              const sources = r.sources || r.references || []
+              if (sources.some(s => {
+                const d = (s.domain || s.link || '').toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '')
+                return d.includes(websiteDomain) || websiteDomain.includes(d.split('/')[0])
+              })) return true
+            }
+            return false
           }
 
-          if (results.length > 0 && results.some(r => r.hasAiOverview)) {
+          const processedResults = results.map(r => ({
+            prompt: r.query || r.prompt,
+            mentioned: detectMention(r),
+            hasAiOverview: r.hasAiOverview === true || !!(r.aiOverviewText || r.textContent),
+            snippet: r.aiOverviewText || r.aiResponse || r.textContent || '',
+            competitors: r.competitorsMentioned || []
+          }))
+
+          existing.combinedResults.googleAiOverview = {
+            mentioned: processedResults.filter(r => r.mentioned).length,
+            total: results.length,
+            results: processedResults
+          }
+
+          if (results.length > 0 && results.some(r => r.hasAiOverview || r.aiOverviewText || r.textContent)) {
             existing.hasRealAiData = true
           }
         }
