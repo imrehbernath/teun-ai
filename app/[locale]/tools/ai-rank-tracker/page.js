@@ -1,5 +1,5 @@
 // app/[locale]/tools/ai-rank-tracker/page.js
-// AI Rank Tracker - Check je positie op ChatGPT + Perplexity
+// AI Rank Tracker - Check je positie op ChatGPT + Perplexity + Google AI Mode
 'use client';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
@@ -10,20 +10,22 @@ import { useTranslations, useLocale } from 'next-intl';
 import Image from 'next/image';
 
 // ====================================
-// PLATFORM CONFIGURATIE
+// PLATFORM CONFIGURATIE — 3 platforms
 // ====================================
 function stripMarkdown(text) {
   if (!text) return text;
   return text
     .replace(/\[(\d+)\]/g, '')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .replace(/https?:\/\/[^\s)\]]+/g, '')
+    .replace(/https?:\/\/[^\s)\]\,]+/g, '')
+    .replace(/www\.[^\s)\]\,]+/g, '')
     .replace(/\([^)]*utm_source[^)]*\)/g, '')
+    .replace(/\([^)]*\.[a-z]{2,}[^)]*\)/gi, '')
+    .replace(/\(\s*\)/g, '')
     .replace(/^#{1,6}\s+/gm, '')
     .replace(/\*{1,3}([^*]+)\*{1,3}/g, '$1')
     .replace(/^>\s?/gm, '')
     .replace(/`([^`]+)`/g, '$1')
-    .replace(/\(\)/g, '')
     .replace(/  +/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
@@ -42,13 +44,23 @@ const PLATFORMS = {
   },
   perplexity: { 
     name: 'Perplexity', 
-    dotClass: 'bg-teal-400',
-    bgLight: 'bg-teal-50', 
-    bgMedium: 'bg-teal-100',
-    border: 'border-teal-200', 
-    text: 'text-teal-700',
-    accent: 'text-teal-600',
-    badgeBg: 'bg-teal-600'
+    dotClass: 'bg-indigo-400',
+    bgLight: 'bg-indigo-50', 
+    bgMedium: 'bg-indigo-100',
+    border: 'border-indigo-200', 
+    text: 'text-indigo-700',
+    accent: 'text-indigo-600',
+    badgeBg: 'bg-indigo-600'
+  },
+  google_ai: { 
+    name: 'Google AI Mode', 
+    dotClass: 'bg-blue-400',
+    bgLight: 'bg-blue-50', 
+    bgMedium: 'bg-blue-100',
+    border: 'border-blue-200', 
+    text: 'text-blue-700',
+    accent: 'text-blue-600',
+    badgeBg: 'bg-blue-600'
   }
 };
 
@@ -91,6 +103,8 @@ function PlatformScoreCard({ platformKey, result, isLoading, t }) {
   const [expanded, setExpanded] = useState(false);
   const [showResponse, setShowResponse] = useState(false);
   const platform = PLATFORMS[platformKey];
+  
+  if (!platform) return null;
   
   if (isLoading) {
     return (
@@ -177,7 +191,7 @@ function PlatformScoreCard({ platformKey, result, isLoading, t }) {
           <p className="text-xs text-slate-400 mb-1 flex items-center gap-1">
             <MessageSquareQuote className="w-3 h-3" /> {t('fragment')}
           </p>
-          <p className="text-sm text-slate-600 italic leading-relaxed">&ldquo;{stripMarkdown(result.snippet)}&rdquo;</p>
+          <p className="text-sm text-slate-600 italic leading-relaxed">&ldquo;{result.snippet}&rdquo;</p>
         </div>
       )}
       
@@ -225,7 +239,7 @@ function PlatformScoreCard({ platformKey, result, isLoading, t }) {
         <div className="mt-3 p-3 rounded-xl bg-white/70 border border-slate-200/60 animate-fadeIn">
           <p className="text-xs text-slate-400 mb-2">{t('fullAiResponse')}:</p>
           <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap max-h-64 overflow-y-auto">
-            {stripMarkdown(result.fullResponse)}
+            {result.fullResponse}
           </div>
         </div>
       )}
@@ -261,6 +275,14 @@ function RankTrackerContent() {
       setUser(session?.user ?? null);
     });
   }, []);
+  
+  // Determine which platforms have results (dynamic — handles missing google_ai gracefully)
+  const activePlatforms = results 
+    ? Object.keys(PLATFORMS).filter(key => results[key]) 
+    : Object.keys(PLATFORMS);
+  
+  // Grid columns: 2 for 2 platforms, 3 for 3
+  const gridCols = activePlatforms.length >= 3 ? 'lg:grid-cols-3' : 'sm:grid-cols-2';
   
   async function handleScan(e) {
     e.preventDefault();
@@ -308,7 +330,7 @@ function RankTrackerContent() {
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      <div className="relative max-w-5xl mx-auto px-4 py-6 sm:py-12">
+      <div className="relative max-w-6xl mx-auto px-4 py-6 sm:py-12">
         
         {/* Hero */}
         <div className="text-center mb-8 sm:mb-12">
@@ -323,7 +345,7 @@ function RankTrackerContent() {
             {t('heroSubtitle')}
           </p>
           
-          <div className="flex items-center justify-center gap-3 mt-5">
+          <div className="flex items-center justify-center gap-3 mt-5 flex-wrap">
             {Object.entries(PLATFORMS).map(([key, p]) => (
               <span key={key} className="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-full text-sm text-slate-600">
                 <span className={`w-2 h-2 rounded-full ${p.dotClass}`} />
@@ -376,7 +398,7 @@ function RankTrackerContent() {
           </button>
           
           <p className="text-xs text-slate-400 text-center mt-2.5">
-            {!user ? t('freeLimit') : t('dailyLimit')} • ChatGPT + Perplexity • {t('resultTime')}
+            {!user ? t('freeLimit') : t('dailyLimit')} • ChatGPT + Perplexity + Google AI • {t('resultTime')}
           </p>
         </div>
         
@@ -399,7 +421,7 @@ function RankTrackerContent() {
         
         {/* Skeleton cards - DIRECT bij klik */}
         {loading && (
-          <div ref={resultsRef} className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+          <div ref={resultsRef} className={`grid grid-cols-1 ${gridCols} gap-4 mb-8`}>
             {Object.keys(PLATFORMS).map(key => (
               <PlatformScoreCard key={key} platformKey={key} isLoading={true} t={t} />
             ))}
@@ -423,16 +445,18 @@ function RankTrackerContent() {
                       &ldquo;{generatedPrompt}&rdquo;
                     </p>
                     <p className="text-xs text-slate-400 mt-2">
-                      {t('promptSentTo')}
+                      {locale === 'en' 
+                        ? 'This prompt was sent to ChatGPT, Perplexity and Google AI Mode'
+                        : 'Deze prompt is verstuurd naar ChatGPT, Perplexity en Google AI Mode'}
                     </p>
                   </div>
                 </div>
               </div>
             )}
             
-            {/* Platform cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {Object.keys(PLATFORMS).map(key => (
+            {/* Platform cards — responsive 3-col grid */}
+            <div className={`grid grid-cols-1 ${gridCols} gap-4`}>
+              {activePlatforms.map(key => (
                 <PlatformScoreCard key={key} platformKey={key} result={results[key]} t={t} />
               ))}
             </div>
@@ -523,9 +547,9 @@ function RankTrackerContent() {
       {!results && !loading && (
         <>
           <section className="max-w-3xl mx-auto px-4 sm:px-6 pt-20 pb-16">
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 leading-tight">{locale === 'en' ? <>Track your AI rankings<br /><span className="text-amber-600">across ChatGPT and Perplexity</span></> : <>Volg je AI-rankings<br /><span className="text-amber-600">op ChatGPT en Perplexity</span></>}</h2>
-            <p className="text-slate-600 leading-relaxed mb-4">{locale === 'en' ? 'More and more consumers ask ChatGPT and Perplexity for recommendations instead of Googling. Does your business rank when someone asks "best [your industry] in [your city]"? An AI Rank Tracker shows exactly where you stand in AI-generated answers — and who your competitors are that do get mentioned.' : 'Steeds meer consumenten vragen ChatGPT en Perplexity om aanbevelingen in plaats van te Googelen. Staat jouw bedrijf in de ranking als iemand vraagt "beste [jouw branche] in [jouw stad]"? Een AI Rank Tracker toont precies waar je staat in AI-gegenereerde antwoorden — en welke concurrenten wél worden genoemd.'}</p>
-            <p className="text-slate-600 leading-relaxed">{locale === 'en' ? 'This free GEO rank tracking tool checks your position on both ChatGPT and Perplexity for any keyword. You see your exact ranking position, which competitors appear above you, and get actionable insights to improve your AI visibility. Track your AI search rankings and optimize your generative engine presence.' : 'Deze gratis AI rank tracker checkt je positie op zowel ChatGPT als Perplexity voor elk zoekwoord. Je ziet je exacte rankingpositie, welke concurrenten boven je staan, en krijgt concrete inzichten om je AI-zichtbaarheid te verbeteren. Monitor je AI-zoekposities en optimaliseer je aanwezigheid in generatieve zoekmachines.'}</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 leading-tight">{locale === 'en' ? <>Track your AI rankings<br /><span className="text-amber-600">across ChatGPT, Perplexity and Google AI</span></> : <>Volg je AI-rankings<br /><span className="text-amber-600">op ChatGPT, Perplexity en Google AI</span></>}</h2>
+            <p className="text-slate-600 leading-relaxed mb-4">{locale === 'en' ? 'More and more consumers ask ChatGPT, Perplexity and Google AI Mode for recommendations instead of Googling. Does your business rank when someone asks "best [your industry] in [your city]"? An AI Rank Tracker shows exactly where you stand in AI-generated answers — and who your competitors are that do get mentioned.' : 'Steeds meer consumenten vragen ChatGPT, Perplexity en Google AI Mode om aanbevelingen in plaats van te Googelen. Staat jouw bedrijf in de ranking als iemand vraagt "beste [jouw branche] in [jouw stad]"? Een AI Rank Tracker toont precies waar je staat in AI-gegenereerde antwoorden — en welke concurrenten wél worden genoemd.'}</p>
+            <p className="text-slate-600 leading-relaxed">{locale === 'en' ? 'This free GEO rank tracking tool checks your position on ChatGPT, Perplexity and Google AI Mode for any keyword. You see your exact ranking position, which competitors appear above you, and get actionable insights to improve your AI visibility. Track your AI search rankings and optimize your generative engine presence.' : 'Deze gratis AI rank tracker checkt je positie op ChatGPT, Perplexity én Google AI Mode voor elk zoekwoord. Je ziet je exacte rankingpositie, welke concurrenten boven je staan, en krijgt concrete inzichten om je AI-zichtbaarheid te verbeteren. Monitor je AI-zoekposities en optimaliseer je aanwezigheid in generatieve zoekmachines.'}</p>
           </section>
 
           <section className="bg-slate-50 py-16">
@@ -534,8 +558,8 @@ function RankTrackerContent() {
               <p className="text-slate-500 text-center mb-10 max-w-2xl mx-auto">{locale === 'en' ? 'AI platforms rank businesses differently than Google. Understanding the factors is key to improving your position.' : 'AI-platformen rangschikken bedrijven anders dan Google. De factoren begrijpen is essentieel voor een betere positie.'}</p>
               <div className="grid sm:grid-cols-3 gap-6">
                 {[
-                  { icon: <Search className="w-5 h-5" />, title: locale === 'en' ? 'Keyword analysis' : 'Zoekwoord analyse', desc: locale === 'en' ? 'We query both ChatGPT and Perplexity with your exact keyword and location context.' : 'We bevragen zowel ChatGPT als Perplexity met je exacte zoekwoord en locatiecontext.' },
-                  { icon: <BarChart3 className="w-5 h-5" />, title: locale === 'en' ? 'Position tracking' : 'Positie tracking', desc: locale === 'en' ? 'We detect exactly at which position your business appears in the AI-generated answer.' : 'We detecteren precies op welke positie jouw bedrijf verschijnt in het AI-antwoord.' },
+                  { icon: <Search className="w-5 h-5" />, title: locale === 'en' ? 'Keyword analysis' : 'Zoekwoord analyse', desc: locale === 'en' ? 'We query ChatGPT, Perplexity and Google AI Mode with your exact keyword and location context.' : 'We bevragen ChatGPT, Perplexity én Google AI Mode met je exacte zoekwoord en locatiecontext.' },
+                  { icon: <BarChart3 className="w-5 h-5" />, title: locale === 'en' ? 'Position tracking' : 'Positie tracking', desc: locale === 'en' ? 'We detect exactly at which position your business appears in each AI-generated answer.' : 'We detecteren precies op welke positie jouw bedrijf verschijnt in elk AI-antwoord.' },
                   { icon: <Eye className="w-5 h-5" />, title: locale === 'en' ? 'Competitor insights' : 'Concurrentie inzichten', desc: locale === 'en' ? 'See which competitors rank above you and understand what makes AI recommend them.' : 'Zie welke concurrenten boven je staan en begrijp waarom AI hen aanbeveelt.' }
                 ].map((item, i) => (
                   <div key={i} className="bg-white rounded-xl p-6 border border-slate-200">
@@ -565,7 +589,7 @@ function RankTrackerContent() {
             </div>
           </section>
 
-          {/* FAQ Section — Homepage style with Teun */}
+          {/* FAQ Section */}
           <section className="py-20 bg-slate-50 relative overflow-visible">
             <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
               <div className="grid lg:grid-cols-2 gap-12 items-start">
@@ -573,15 +597,15 @@ function RankTrackerContent() {
                   <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-6">{locale === 'en' ? 'Frequently asked questions' : 'Veelgestelde vragen'}</h2>
                   <div className="space-y-4">
                     {(locale === 'en' ? [
-                      { q: 'What is an AI Rank Tracker?', a: 'An AI Rank Tracker checks where your business appears in AI-generated answers on platforms like ChatGPT and Perplexity. Unlike traditional SEO rankings, AI rankings are based on how AI models perceive your brand authority, reviews, and online presence.' },
+                      { q: 'What is an AI Rank Tracker?', a: 'An AI Rank Tracker checks where your business appears in AI-generated answers on platforms like ChatGPT, Perplexity, and Google AI Mode. Unlike traditional SEO rankings, AI rankings are based on how AI models perceive your brand authority, reviews, and online presence.' },
                       { q: 'Is this a free rank tracking tool?', a: 'Yes, you can check your ranking 3 times per day for free without creating an account. With a free account you get more daily checks and can track your position over time.' },
-                      { q: 'Which AI platforms do you track?', a: 'We currently track rankings on ChatGPT and Perplexity — the two most-used AI search platforms. Both are queried live with your keyword and location context.' },
+                      { q: 'Which AI platforms do you track?', a: 'We track rankings on ChatGPT, Perplexity, and Google AI Mode — the three most important AI search platforms. All are queried live with your keyword and location context.' },
                       { q: 'How can I improve my AI ranking?', a: 'AI rankings are influenced by your online reputation (Google Reviews, Trustpilot), content authority (blog posts, case studies), brand mentions on authoritative sites, and consistent business information (NAP data). Our GEO Audit tool analyzes your page-level optimization.' },
                       { q: 'How is AI ranking different from Google ranking?', a: 'Google ranks web pages based on links and keywords. AI platforms like ChatGPT synthesize information from multiple sources to create a recommendation. Being mentioned positively across many sources matters more than having one well-optimized page.' },
                     ] : [
-                      { q: 'Wat is een AI Rank Tracker?', a: 'Een AI Rank Tracker checkt waar jouw bedrijf verschijnt in AI-gegenereerde antwoorden op platformen zoals ChatGPT en Perplexity. Anders dan traditionele SEO-rankings, zijn AI-rankings gebaseerd op hoe AI-modellen je merkautoriteit, reviews en online aanwezigheid interpreteren.' },
+                      { q: 'Wat is een AI Rank Tracker?', a: 'Een AI Rank Tracker checkt waar jouw bedrijf verschijnt in AI-gegenereerde antwoorden op platformen zoals ChatGPT, Perplexity en Google AI Mode. Anders dan traditionele SEO-rankings, zijn AI-rankings gebaseerd op hoe AI-modellen je merkautoriteit, reviews en online aanwezigheid interpreteren.' },
                       { q: 'Is dit een gratis rank tracking tool?', a: 'Ja, je kunt 3 keer per dag gratis je ranking checken zonder account. Met een gratis account krijg je meer dagelijkse checks en kun je je positie over tijd volgen.' },
-                      { q: 'Welke AI-platformen worden getrackt?', a: 'We tracken momenteel rankings op ChatGPT en Perplexity — de twee meestgebruikte AI-zoekplatformen. Beide worden live bevraagd met je zoekwoord en locatiecontext.' },
+                      { q: 'Welke AI-platformen worden getrackt?', a: 'We tracken rankings op ChatGPT, Perplexity én Google AI Mode — de drie belangrijkste AI-zoekplatformen. Alle drie worden live bevraagd met je zoekwoord en locatiecontext.' },
                       { q: 'Hoe verbeter ik mijn AI-ranking?', a: 'AI-rankings worden beïnvloed door je online reputatie (Google Reviews, Trustpilot), content-autoriteit (blogposts, case studies), merkvermeldingen op gezaghebbende sites, en consistente bedrijfsgegevens (NAP-data). Onze GEO Audit tool analyseert je optimalisatie op paginaniveau.' },
                       { q: 'Hoe verschilt AI-ranking van Google-ranking?', a: 'Google rangschikt webpagina\'s op basis van links en zoekwoorden. AI-platformen zoals ChatGPT combineren informatie uit meerdere bronnen tot een aanbeveling. Positief vermeld worden op veel bronnen is belangrijker dan één goed geoptimaliseerde pagina.' },
                     ]).map((item, i) => (

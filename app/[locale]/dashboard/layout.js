@@ -1,5 +1,6 @@
 // app/[locale]/dashboard/layout.js
 import { getTranslations } from 'next-intl/server';
+import './dashboard.css';
 
 export async function generateMetadata({ params }) {
   const { locale } = await params;

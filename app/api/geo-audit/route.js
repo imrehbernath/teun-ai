@@ -9,6 +9,12 @@ export const maxDuration = 120
 
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+)
 
 const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY
@@ -457,6 +463,26 @@ export async function POST(request) {
       (aiAnalysis.contentScore * 0.30) + (technicalChecks.score * 0.25) +
       (aiAnalysis.citationScore * 0.20) + (aiAnalysis.eatScore * 0.10) + (liveTestScore * 0.15)
     )
+
+    // ✅ Track anonymous scan with website + company_name for admin leads
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+               request.headers.get('x-real-ip') || 'unknown'
+    if (ip !== 'unknown') {
+      try {
+        await supabaseAdmin
+          .from('anonymous_scans')
+          .upsert({
+            ip_address: ip,
+            tool_name: 'geo-audit',
+            scans_made: 1,
+            last_scan_at: new Date().toISOString(),
+            website: normalizedUrl || null,
+            company_name: aiAnalysis.companyName || resolvedHostname || null
+          }, { onConflict: 'ip_address,tool_name' })
+      } catch (e) {
+        console.error('[GEO Audit] Anonymous scan tracking error:', e.message)
+      }
+    }
 
     sendSlackLeadNotification({ url: normalizedUrl, companyName: aiAnalysis.companyName || resolvedHostname, score: overallScore, mentioned: liveTest?.mentioned || false }).catch(() => {})
 

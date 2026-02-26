@@ -1,0 +1,473 @@
+import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
+
+// ══════════════════════════════════════════════════════════
+// ACTUAL JSONB field names in tool_integrations.results:
+//
+//   results.chatgpt[]:
+//     - platform: "chatgpt"
+//     - ai_prompt: "Welke advocaat..."
+//     - company_mentioned: true/false
+//     - mentions_count: 0/1/2...
+//     - competitors_mentioned: ["Name1", "Name2"]
+//     - simulated_ai_response_snippet: "..."
+//
+//   results.perplexity[]:
+//     - platform: "perplexity"
+//     - ai_prompt: "Welke advocaat..."
+//     - company_mentioned: true/false
+//     - mentions_count: 0/1/2...
+//     - competitors_mentioned: ["Name1", "Name2"]
+//     - simulated_ai_response_snippet: "..."
+// ══════════════════════════════════════════════════════════
+
+// —— Helper: extract prompt text from commercial_prompts (string or object) ——
+function getPromptText(item) {
+  if (!item) return ''
+  if (typeof item === 'string') return item
+  return item.prompt || item.text || item.query || item.ai_prompt || item.title || ''
+}
+
+// —— Helper: calculate visibility from scan results ——
+function calcVisibility(results) {
+  const empty = { chatgpt: 0, perplexity: 0, total: 0, found: 0, totalPrompts: 0, chatgptFound: 0, perplexityFound: 0, chatgptTotal: 0, perplexityTotal: 0 }
+  if (!results) return empty
+
+  const chatgptResults = results.chatgpt || []
+  const perplexityResults = results.perplexity || []
+  if (chatgptResults.length === 0 && perplexityResults.length === 0) return empty
+
+  const chatgptFound = chatgptResults.filter(r => r.company_mentioned).length
+  const perplexityFound = perplexityResults.filter(r => r.company_mentioned).length
+  const totalPrompts = Math.max(chatgptResults.length, perplexityResults.length)
+
+  let totalFound = 0
+  for (let i = 0; i < totalPrompts; i++) {
+    if (chatgptResults[i]?.company_mentioned || perplexityResults[i]?.company_mentioned) totalFound++
+  }
+
+  return {
+    chatgpt: chatgptResults.length ? Math.round((chatgptFound / chatgptResults.length) * 100) : 0,
+    perplexity: perplexityResults.length ? Math.round((perplexityFound / perplexityResults.length) * 100) : 0,
+    total: totalPrompts ? Math.round((totalFound / totalPrompts) * 100) : 0,
+    found: totalFound,
+    totalPrompts,
+    chatgptFound,
+    perplexityFound,
+    chatgptTotal: chatgptResults.length,
+    perplexityTotal: perplexityResults.length,
+  }
+}
+
+// —— Helper: extract competitors from scan results ——
+function extractCompetitors(results) {
+  if (!results) return []
+  const counts = {}
+  for (const platform of ['chatgpt', 'perplexity']) {
+    for (const r of (results[platform] || [])) {
+      for (const name of (r.competitors_mentioned || [])) {
+        if (!name || typeof name !== 'string') continue
+        const cleaned = name.trim()
+        if (cleaned.length >= 2 && cleaned.length <= 80) {
+          counts[cleaned] = (counts[cleaned] || 0) + 1
+        }
+      }
+    }
+  }
+  return Object.entries(counts)
+    .map(([name, mentions]) => ({ name, mentions }))
+    .sort((a, b) => b.mentions - a.mentions)
+    .slice(0, 20)
+}
+
+// —— Helper: build prompt details — INDEX-BASED ——
+function buildPromptDetails(results, commercialPrompts) {
+  const chatgptResults = results?.chatgpt || []
+  const perplexityResults = results?.perplexity || []
+
+  if (chatgptResults.length === 0 && perplexityResults.length === 0 && (!commercialPrompts || commercialPrompts.length === 0)) {
+    return []
+  }
+
+  const promptCount = Math.max(commercialPrompts?.length || 0, chatgptResults.length, perplexityResults.length)
+  const details = []
+
+  for (let i = 0; i < promptCount; i++) {
+    const promptText = commercialPrompts?.[i]
+      ? getPromptText(commercialPrompts[i])
+      : (chatgptResults[i]?.ai_prompt || perplexityResults[i]?.ai_prompt || `Prompt ${i + 1}`)
+
+    const chatgpt = chatgptResults[i] || null
+    const perplexity = perplexityResults[i] || null
+
+    details.push({
+      id: i + 1,
+      text: promptText,
+      chatgpt: {
+        found: chatgpt?.company_mentioned || false,
+        mentionCount: chatgpt?.mentions_count || 0,
+        snippet: chatgpt?.simulated_ai_response_snippet || null,
+        competitors: chatgpt?.competitors_mentioned || [],
+        sources: chatgpt?.sources || chatgpt?.references || chatgpt?.cited_sources || [],
+        fromExtension: chatgpt?._fromExtension || false,
+      },
+      perplexity: {
+        found: perplexity?.company_mentioned || false,
+        mentionCount: perplexity?.mentions_count || 0,
+        snippet: perplexity?.simulated_ai_response_snippet || null,
+        competitors: perplexity?.competitors_mentioned || [],
+        sources: perplexity?.sources || perplexity?.references || perplexity?.cited_sources || [],
+      },
+    })
+  }
+
+  return details
+}
+
+// —— Helper: avg mention count ——
+function calcAvgMentions(promptDetails) {
+  const mentions = promptDetails.flatMap(p =>
+    [p.chatgpt.mentionCount, p.perplexity.mentionCount].filter(m => m > 0)
+  )
+  if (mentions.length === 0) return null
+  return (mentions.reduce((a, b) => a + b, 0) / mentions.length).toFixed(1)
+}
+
+// —— Helper: process Google AI scan results ——
+// FIXED: Checks BOTH camelCase (companyMentioned, query) AND snake_case (company_mentioned, ai_prompt)
+function processGoogleAiResults(scans) {
+  if (!scans || scans.length === 0) return { found: 0, total: 0, pct: 0, prompts: [] }
+
+  const latest = scans[0]
+  const scanResults = latest.results || []
+  const scanPrompts = latest.prompts || []
+
+  // Normalize results to array
+  let resultArr = []
+  if (Array.isArray(scanResults)) {
+    resultArr = scanResults
+  } else if (typeof scanResults === 'object') {
+    if (Array.isArray(scanResults.results)) {
+      resultArr = scanResults.results
+    } else {
+      for (const val of Object.values(scanResults)) {
+        if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'object') {
+          resultArr = val
+          break
+        }
+      }
+    }
+  }
+
+  // Debug logging
+  console.log('[processGoogleAiResults] scan id:', latest.id, '| results count:', resultArr.length, '| prompts count:', scanPrompts.length)
+  if (resultArr[0]) console.log('[processGoogleAiResults] first result keys:', Object.keys(resultArr[0]))
+
+  // Check BOTH camelCase (new scans) AND snake_case (legacy)
+  const found = resultArr.filter(r => r.companyMentioned === true || r.company_mentioned === true).length
+  const total = Math.max(resultArr.length, scanPrompts.length) || 0
+
+  return {
+    found,
+    total,
+    pct: total > 0 ? Math.round((found / total) * 100) : 0,
+    prompts: resultArr.map((r, i) => ({
+      text: r.query || r.ai_prompt || r.prompt || r.searchQuery || getPromptText(scanPrompts[i]) || `Prompt ${i + 1}`,
+      found: r.companyMentioned === true || r.company_mentioned === true,
+      mentionCount: r.mentionCount || r.mentions_count || 0,
+      snippet: r.textContent || r.aiResponse || r.simulated_ai_response_snippet || r.snippet || null,
+      competitors: r.competitorsInSources || r.competitorsMentioned || r.competitors_mentioned || [],
+      sources: r.sources || r.references || r.citedSources || r.cited_sources || [],
+    })),
+    lastScan: latest.created_at,
+  }
+}
+
+export async function GET(request) {
+  try {
+    const supabase = await createClient()
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Niet ingelogd' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const companyName = searchParams.get('company')
+    const period = searchParams.get('period') || '30d'
+
+    const now = new Date()
+    const daysBack = period === '7d' ? 7 : period === '90d' ? 90 : 30
+    const sinceDate = new Date(now - daysBack * 24 * 60 * 60 * 1000).toISOString()
+
+    // ——— Queries ———
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, company_name, email')
+      .eq('id', user.id)
+      .single()
+
+    const { data: allIntegrations, error: intError } = await supabase
+      .from('tool_integrations')
+      .select('id, company_name, website, company_category, commercial_prompts, results, total_company_mentions, prompts_count, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    if (intError) console.error('Error fetching integrations:', intError)
+
+    // Deduplicate companies
+    const uniqueCompanies = []
+    const seenCompanies = new Set()
+    for (const c of (allIntegrations || [])) {
+      const key = c.company_name?.toLowerCase()
+      if (key && !seenCompanies.has(key)) {
+        seenCompanies.add(key)
+        uniqueCompanies.push({ company_name: c.company_name, website: c.website, company_category: c.company_category })
+      }
+    }
+
+    const activeCompanyName = companyName || uniqueCompanies[0]?.company_name || null
+    const integrations = activeCompanyName
+      ? (allIntegrations || []).filter(s => s.company_name === activeCompanyName)
+      : (allIntegrations || [])
+
+    const latestScan = integrations[0] || null
+    const results = latestScan?.results || null
+    const commercialPrompts = latestScan?.commercial_prompts || []
+    const activeWebsite = latestScan?.website || uniqueCompanies.find(c => c.company_name === activeCompanyName)?.website || null
+
+    // Rank checks
+    let rankQ = supabase
+      .from('rank_checks')
+      .select('id, domain, brand_name, keyword, service_area, chatgpt_position, perplexity_position, results, created_at')
+      .eq('user_id', user.id)
+      .gte('created_at', sinceDate)
+      .order('created_at', { ascending: false })
+
+    if (activeWebsite) {
+      try {
+        const activeDomain = new URL(activeWebsite.startsWith('http') ? activeWebsite : `https://${activeWebsite}`).hostname.replace(/^www\./, '')
+        rankQ = rankQ.or(`domain.ilike.%${activeDomain}%,brand_name.ilike.%${activeCompanyName}%`)
+      } catch (e) {}
+    }
+    const { data: rankChecks } = await rankQ
+
+    // Google AI Mode
+    let gaiQ = supabase.from('google_ai_scans').select('id, company_name, website, prompts, results, scan_type, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10)
+    if (activeCompanyName) gaiQ = gaiQ.eq('company_name', activeCompanyName)
+    const { data: googleAiScans } = await gaiQ
+
+    // Google AI Overviews
+    let gaioQ = supabase.from('google_ai_overview_scans').select('id, company_name, website, prompts, results, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10)
+    if (activeCompanyName) gaioQ = gaioQ.eq('company_name', activeCompanyName)
+    const { data: googleAioScans } = await gaioQ
+
+    // Chrome Extension ChatGPT scans
+    let extQ = supabase.from('chatgpt_scans').select('*, chatgpt_query_results (*)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10)
+    if (activeCompanyName) extQ = extQ.ilike('company_name', activeCompanyName)
+    const { data: extensionScans } = await extQ
+
+    // ——— Merge extension results into main results ———
+    // Extension ChatGPT results override API ChatGPT results (more accurate)
+    let mergedResults = results ? { ...results } : null
+    let hasExtensionData = false
+
+    if (extensionScans && extensionScans.length > 0) {
+      const latestExtScan = extensionScans[0]
+      const extQueryResults = latestExtScan.chatgpt_query_results || []
+
+      if (extQueryResults.length > 0) {
+        hasExtensionData = true
+
+        // Map extension results to same format as API chatgpt results
+        const extChatgptResults = extQueryResults.map(qr => ({
+          platform: 'chatgpt',
+          ai_prompt: qr.query || qr.prompt || '',
+          company_mentioned: qr.company_mentioned || false,
+          mentions_count: qr.mentions_count || (qr.company_mentioned ? 1 : 0),
+          competitors_mentioned: qr.competitors_mentioned || [],
+          simulated_ai_response_snippet: qr.ai_response || qr.response || qr.snippet || '',
+          sources: qr.sources || qr.citations || [],
+          _fromExtension: true,
+        }))
+
+        if (!mergedResults) {
+          mergedResults = { chatgpt: extChatgptResults, perplexity: [] }
+        } else {
+          mergedResults = { ...mergedResults, chatgpt: extChatgptResults }
+        }
+      }
+    }
+
+    // ——— Process (using merged results with extension priority) ———
+    const promptDetails = buildPromptDetails(mergedResults, commercialPrompts)
+    const visibility = calcVisibility(mergedResults)
+    const competitors = extractCompetitors(mergedResults)
+    const avgMentions = calcAvgMentions(promptDetails)
+    const topCompetitor = competitors[0] || null
+    const googleAiMode = processGoogleAiResults(googleAiScans)
+    const googleAiOverview = processGoogleAiResults(googleAioScans)
+
+    const promptCount = promptDetails.length || visibility.totalPrompts
+    const foundCount = promptDetails.filter(p => p.chatgpt.found || p.perplexity.found).length
+    const adjustedVisibility = {
+      ...visibility,
+      totalPrompts: promptCount,
+      found: foundCount,
+      total: promptCount > 0 ? Math.round((foundCount / promptCount) * 100) : 0,
+    }
+
+    // Visibility trend
+    const companyScans = integrations.filter(s => new Date(s.created_at) >= new Date(sinceDate)).reverse()
+    const visibilityTrend = companyScans.map(scan => {
+      const v = calcVisibility(scan.results)
+      return {
+        date: new Date(scan.created_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }),
+        fullDate: scan.created_at,
+        chatgpt: v.chatgpt, perplexity: v.perplexity, total: v.total,
+      }
+    })
+
+    return NextResponse.json({
+      user: { id: user.id, email: user.email, fullName: profile?.full_name || null, companyName: profile?.company_name || null },
+      companies: uniqueCompanies,
+      activeCompany: activeCompanyName ? { name: activeCompanyName, website: activeWebsite, category: latestScan?.company_category || null } : null,
+      visibility: adjustedVisibility,
+      avgMentions,
+      topCompetitor,
+      lastScan: latestScan?.created_at || null,
+      prompts: promptDetails,
+      competitors,
+      visibilityTrend,
+      rankChecks: (rankChecks || []).map(rc => {
+        const chatgptResult = rc.results?.chatgpt || {}
+        const perplexityResult = rc.results?.perplexity || {}
+        const chatgptMentioned = chatgptResult.mentioned_companies || chatgptResult.competitors || []
+        const perplexityMentioned = perplexityResult.mentioned_companies || perplexityResult.competitors || []
+        return {
+          id: rc.id, keyword: rc.keyword, brandName: rc.brand_name, domain: rc.domain,
+          serviceArea: rc.service_area, date: rc.created_at,
+          chatgpt: {
+            position: rc.chatgpt_position,
+            found: rc.chatgpt_position != null && rc.chatgpt_position > 0,
+            snippet: chatgptResult.snippet || chatgptResult.response || null,
+            mentioned: chatgptMentioned,
+          },
+          perplexity: {
+            position: rc.perplexity_position,
+            found: rc.perplexity_position != null && rc.perplexity_position > 0,
+            snippet: perplexityResult.snippet || perplexityResult.response || null,
+            mentioned: perplexityMentioned,
+          },
+        }
+      }),
+      googleAiMode,
+      googleAiOverview,
+      hasExtensionData,
+      extensionScanDate: hasExtensionData ? extensionScans[0].created_at : null,
+      period,
+      totalScans: integrations.length,
+    })
+
+  } catch (err) {
+    console.error('Dashboard API error:', err)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// DELETE — Remove a company and all related data
+// ═══════════════════════════════════════════════════
+export async function DELETE(request) {
+  try {
+    const supabase = await createClient()
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Niet ingelogd' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const company = body.company
+    if (!company) {
+      return NextResponse.json({ error: 'Company name required' }, { status: 400 })
+    }
+
+    console.log(`[Dashboard DELETE] Deleting company "${company}" for user ${user.id}`)
+
+    const deleted = {}
+
+    const { data: d1, error: e1 } = await supabase
+      .from('tool_integrations')
+      .delete()
+      .eq('user_id', user.id)
+      .ilike('company_name', company)
+      .select('id')
+    deleted.tool_integrations = d1?.length || 0
+    if (e1) console.error('Delete tool_integrations error:', e1)
+
+    const { data: d2, error: e2 } = await supabase
+      .from('scan_history')
+      .delete()
+      .eq('user_id', user.id)
+      .filter('input_data->>company_name', 'ilike', company)
+      .select('id')
+    deleted.scan_history = d2?.length || 0
+    if (e2) console.error('Delete scan_history error:', e2)
+
+    const { data: d3, error: e3 } = await supabase
+      .from('rank_checks')
+      .delete()
+      .eq('user_id', user.id)
+      .ilike('brand_name', company)
+      .select('id')
+    deleted.rank_checks = d3?.length || 0
+    if (e3) console.error('Delete rank_checks error:', e3)
+
+    const { data: d4, error: e4 } = await supabase
+      .from('google_ai_scans')
+      .delete()
+      .eq('user_id', user.id)
+      .ilike('company_name', company)
+      .select('id')
+    deleted.google_ai_scans = d4?.length || 0
+    if (e4) console.error('Delete google_ai_scans error:', e4)
+
+    const { data: d5, error: e5 } = await supabase
+      .from('google_ai_overview_scans')
+      .delete()
+      .eq('user_id', user.id)
+      .ilike('company_name', company)
+      .select('id')
+    deleted.google_ai_overview_scans = d5?.length || 0
+    if (e5) console.error('Delete google_ai_overview_scans error:', e5)
+
+    try {
+      const { data: d6 } = await supabase
+        .from('chatgpt_scans')
+        .delete()
+        .eq('user_id', user.id)
+        .ilike('company_name', company)
+        .select('id')
+      deleted.chatgpt_scans = d6?.length || 0
+    } catch (e) {}
+
+    try {
+      const { data: d7 } = await supabase
+        .from('chatgpt_live_scans')
+        .delete()
+        .eq('user_id', user.id)
+        .ilike('company_name', company)
+        .select('id')
+      deleted.chatgpt_live_scans = d7?.length || 0
+    } catch (e) {}
+
+    console.log(`[Dashboard DELETE] Deleted:`, deleted)
+
+    return NextResponse.json({ success: true, deleted })
+
+  } catch (err) {
+    console.error('Dashboard DELETE error:', err)
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  }
+}

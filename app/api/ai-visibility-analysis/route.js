@@ -756,6 +756,21 @@ export async function POST(request) {
       totalMentions: totalCompanyMentions
     }).catch(err => console.error('Slack notificatie fout:', err));
 
+    // ✅ Save website + company_name for anonymous scans (for admin leads overview)
+    if (!userId && ip !== 'unknown') {
+      const { error: anonUpdateError } = await supabase
+        .from('anonymous_scans')
+        .update({ website: websiteUrl, company_name: companyName })
+        .eq('ip_address', ip)
+        .eq('tool_name', 'ai-visibility')
+
+      if (anonUpdateError) {
+        console.error('⚠️ Anonymous scan update error:', anonUpdateError.message)
+      } else {
+        console.log('✅ Anonymous scan updated with website + company_name')
+      }
+    }
+
     const updatedCheck = await canUserScan(supabase, userId, 'ai-visibility', ip)
 
     return NextResponse.json({
@@ -1314,7 +1329,7 @@ async function analyzeWithChatGPT(prompt, companyName, serviceArea = null, isNL 
         body: JSON.stringify({
           model: 'gpt-4o-search-preview',
           web_search_options: {
-            search_context_size: 'low',
+            search_context_size: 'medium',
             user_location: userLocation
           },
           messages: [

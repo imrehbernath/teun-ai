@@ -43,7 +43,7 @@ async function analyzeWithChatGPT(prompt, companyName, serviceArea = null) {
       body: JSON.stringify({
         model: 'gpt-4o-search-preview',
         web_search_options: { 
-          search_context_size: 'low',
+          search_context_size: 'medium',
           user_location: userLocation
         },
         messages: [
@@ -58,7 +58,7 @@ Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.
           },
           { role: 'user', content: prompt }
         ],
-        max_tokens: 250
+        max_tokens: 500
       })
     })
 
