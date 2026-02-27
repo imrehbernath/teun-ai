@@ -584,7 +584,7 @@ export default function PromptExplorer() {
         ? { url: websiteUrl.trim(), brandName: bedrijfsnaam.trim() || null, location: place.trim() || null, industry: branche.trim() || null }
         : { keyword: keyword.trim(), brandName: bedrijfsnaam.trim() || null, location: place.trim() || null, industry: branche.trim() || null };
 
-      const res = await fetch("/api/prompt-explorer", {
+      const res = await fetch("/api/prompt-discovery", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
