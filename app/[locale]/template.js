@@ -42,6 +42,13 @@ function useTools() {
       description: t('brandCheck.description'),
     },
     {
+      name: t('promptExplorer.name'),
+      href: '/tools/ai-prompt-explorer',
+      badge: t('promptExplorer.badge'),
+      badgeColor: 'bg-amber-500/20 text-amber-300',
+      description: t('promptExplorer.description'),
+    },
+    {
       name: t('geoAnalysis.name'),
       href: '/dashboard',
       description: t('geoAnalysis.description'),
@@ -389,6 +396,11 @@ function Footer() {
               <li>
                 <Link href="/tools/ai-rank-tracker" className="text-white/70 hover:text-white text-sm transition-colors">
                   {t('aiRankTracker')}
+                </Link>
+              </li>
+              <li>
+                <Link href="/tools/ai-prompt-explorer" className="text-white/70 hover:text-white text-sm transition-colors">
+                  {t('promptExplorer')}
                 </Link>
               </li>
               <li>

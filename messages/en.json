@@ -25,8 +25,8 @@
     },
     "geoAudit": {
       "name": "GEO Audit",
-      "description": "Free AI visibility page scan",
-      "badge": "NEW"
+      "description": "Test how well your page scores for AI search engines",
+      "badge": "FREE"
     },
     "geoAnalysis": {
       "name": "GEO Analysis",
@@ -36,6 +36,11 @@
       "name": "AI Brand Check",
       "description": "Check what AI says about your brand",
       "badge": "NEW"
+    },
+    "promptExplorer": {
+      "name": "AI Prompt Explorer",
+      "description": "See which prompts your customers use",
+      "badge": "BETA"
     }
   },
   "footer": {
@@ -49,6 +54,7 @@
     "completeAnalysis": "Full GEO Analysis",
     "aiVisibility": "AI Visibility",
     "aiRankTracker": "AI Rank Tracker",
+    "promptExplorer": "AI Prompt Explorer",
     "contentOptimizer": "AI Content Optimizer",
     "schemaGenerator": "AI-Ready Schema Generator",
     "competitorRadar": "Competitor Radar",

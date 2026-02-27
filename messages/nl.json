@@ -25,8 +25,8 @@
     },
     "geoAudit": {
       "name": "GEO Audit",
-      "description": "Gratis AI-zichtbaarheid audit aanvragen",
-      "badge": "NIEUW"
+      "description": "Test hoe goed je pagina scoort voor AI-zoekmachines",
+      "badge": "GRATIS"
     },
     "geoAnalysis": {
       "name": "GEO Analyse",
@@ -36,6 +36,11 @@
       "name": "AI Brand Check",
       "description": "Check wat AI over jouw merk zegt",
       "badge": "NIEUW"
+    },
+    "promptExplorer": {
+      "name": "AI Prompt Explorer",
+      "description": "Bekijk welke prompts jouw klanten gebruiken",
+      "badge": "BETA"
     }
   },
   "footer": {
@@ -49,6 +54,7 @@
     "completeAnalysis": "Complete GEO Analyse",
     "aiVisibility": "AI Zichtbaarheid",
     "aiRankTracker": "AI Rank Tracker",
+    "promptExplorer": "AI Prompt Explorer",
     "contentOptimizer": "AI Content Optimizer",
     "schemaGenerator": "AI-Ready Schema Generator",
     "competitorRadar": "Concurrentie Radar",
