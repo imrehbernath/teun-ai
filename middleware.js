@@ -15,6 +15,7 @@ const knownEnglishPaths = [
   '/en/tools/ai-rank-tracker',
   '/en/tools/geo-audit',
   '/en/tools/brand-check',
+  '/en/tools/ai-prompt-explorer',
   '/en/login',
   '/en/signup',
   '/en/privacy',
@@ -104,6 +105,6 @@ export default function middleware(request) {
 export const config = {
   matcher: [
     '/',
-    '/((?!api|_next|.*\\..*).*)',
+    '/((?!api|auth|_next|.*\\..*).*)',
   ],
 };
