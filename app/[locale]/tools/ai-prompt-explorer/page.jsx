@@ -194,7 +194,7 @@ function Methodology({ t }) {
       <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-6 py-5 hover:bg-slate-50 transition cursor-pointer">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center"><InfoIcon className="w-5 h-5" /></div>
-          <div className="text-left"><h3 className="font-semibold text-slate-900">{t.methTitle}</h3><p className="text-sm text-slate-500">{t.methSub}</p></div>
+          <div className="text-left"><p className="font-semibold text-slate-900">{t.methTitle}</p><p className="text-sm text-slate-500">{t.methSub}</p></div>
         </div>
         <ChevronDownIcon className={`w-5 h-5 text-slate-400 transition-transform flex-shrink-0 ${open ? "rotate-180" : ""}`} />
       </button>
@@ -205,7 +205,7 @@ function Methodology({ t }) {
             {t.methSteps.map(([n, title, desc]) => (
               <div key={n} className="flex gap-4">
                 <div className="w-8 h-8 rounded-full bg-[#292956] text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{n}</div>
-                <div><h4 className="font-semibold text-slate-900 text-sm mb-1">{title}</h4><p className="text-sm text-slate-600 leading-relaxed">{desc}</p></div>
+                <div><p className="font-semibold text-slate-900 text-sm mb-1">{title}</p><p className="text-sm text-slate-600 leading-relaxed">{desc}</p></div>
               </div>
             ))}
           </div>
@@ -229,7 +229,7 @@ function ClusterCard({ cluster, isOpen, onToggle, maxClusterVol, globalMaxVol, m
         <ChevronRightIcon className={`w-4 h-4 text-slate-400 transition-transform flex-shrink-0 ${isOpen ? "rotate-90" : ""}`} />
         <div className="flex-1 min-w-0 text-left">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-semibold text-slate-900 text-sm">{c.name}</h3>
+            <p className="font-semibold text-slate-900 text-sm">{c.name}</p>
             <span className="text-[10px] text-slate-400 bg-slate-100 rounded px-1.5 py-0.5">{c.prompts.length} {t?.prompts_label || 'prompts'}</span>
             <TrendBadge trend={c.dominantTrend} />
           </div>
@@ -819,7 +819,7 @@ export default function PromptExplorer() {
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center"><TargetIcon className="w-4 h-4" /></div>
-                <h3 className="font-semibold text-slate-900">{T.qwTitle}</h3>
+                <p className="font-semibold text-slate-900">{T.qwTitle}</p>
               </div>
               <div className="space-y-2">
                 {opportunities.map((p, i) => (
@@ -879,7 +879,7 @@ export default function PromptExplorer() {
 
           {/* CTA — BETA: gratis account */}
           <div className="bg-slate-50 rounded-2xl p-8 text-center">
-            <h3 className="text-lg font-bold text-slate-900">{T.ctaBoxTitle}</h3>
+            <p className="text-lg font-bold text-slate-900">{T.ctaBoxTitle}</p>
             <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto">{T.ctaBoxDesc}</p>
             <a href="/register" className="inline-flex items-center gap-2 mt-5 px-6 py-3 bg-[#292956] text-white rounded-xl text-sm font-semibold hover:bg-[#1e1e45] transition">
               {T.ctaBoxBtn} <ArrowRightIcon className="w-4 h-4" />
@@ -891,7 +891,7 @@ export default function PromptExplorer() {
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center"><BarChartIcon className="w-4 h-4" /></div>
-                <h3 className="font-semibold text-slate-900">{T.compTitle}</h3>
+                <p className="font-semibold text-slate-900">{T.compTitle}</p>
               </div>
               <div className="flex gap-3 flex-wrap">
                 {topCompetitors.map(([name, count], i) => (
@@ -965,7 +965,7 @@ export default function PromptExplorer() {
                 </div>
                 <div className="hidden lg:flex justify-center items-end relative">
                   <div className="translate-y-22">
-                    <Image src="/teun-ai-mascotte.png" alt="Teun.ai mascotte" width={420} height={520} className="w-[420px] h-auto mb-12" />
+                    <Image src="/teun-ai-mascotte.png" alt="Teun.ai mascotte" width={420} height={520} className="w-[420px] h-auto mb-2" />
                   </div>
                 </div>
               </div>
