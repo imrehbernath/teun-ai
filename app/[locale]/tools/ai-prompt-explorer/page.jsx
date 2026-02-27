@@ -345,7 +345,7 @@ export default function PromptExplorer() {
     ],
     methDisclaimer: 'These are estimates, not exact data. Real AI search volumes are not publicly available. Our methodology gives a reliable indication of relative demand.',
     // SEO sections
-    seo1Title: <>Which AI prompts does<br /><span className="text-violet-600">your target audience actually use?</span></>,
+    seo1Title: <>Which AI prompts does <br /><span className="text-violet-600">your target audience actually use?</span></>,
     seo1P1: 'More and more consumers skip Google and ask ChatGPT, Perplexity or Google AI Mode directly for recommendations. "What is the best accountant in Amsterdam?" or "Compare CRM systems for SMEs". These are the new search queries determining your visibility.',
     seo1P2: 'The AI Prompt Explorer shows exactly which prompts are relevant for your industry. Not generic keywords, but real questions people ask AI. With estimated volumes so you know where the opportunities lie.',
     seo2Title: 'How does the AI Prompt Explorer work?',
@@ -355,7 +355,7 @@ export default function PromptExplorer() {
       { title: 'AI generates 50+ prompts', desc: 'Our AI analyses the Dutch market, identifies commercial and informational search intents, and generates 50+ relevant prompts people ask ChatGPT, Perplexity and Google AI Mode.' },
       { title: 'Volume, trends & opportunities', desc: 'Each prompt gets an estimated AI search volume, trend signal and difficulty score. Grouped in intent clusters you immediately see where the biggest opportunities lie.' },
     ],
-    seo3Title: <>From prompts to<br /><span className="text-violet-600">AI visibility</span></>,
+    seo3Title: <>From prompts to <br /><span className="text-violet-600">AI visibility</span></>,
     seo3P: 'Knowing which prompts your target audience uses is step one. The next step is ensuring your business actually appears in those AI answers. With the free GEO Audit from Teun.ai you scan your page for AI visibility, test live on Perplexity whether you\'re found, and get concrete recommendations.',
     seo3Cta: 'Start free GEO Audit',
     // Features
@@ -433,7 +433,7 @@ export default function PromptExplorer() {
       ['4', 'Trendcorrectie', 'Groeiende onderwerpen krijgen een hogere weging, dalende een lagere. Op basis van 12-maanden trenddata.'],
     ],
     methDisclaimer: 'Dit zijn schattingen, geen exacte data. Echte AI-zoekvolumes zijn niet openbaar beschikbaar. Onze methodologie geeft een betrouwbare indicatie van de relatieve vraag.',
-    seo1Title: <>Welke AI-prompts gebruikt<br /><span className="text-violet-600">jouw doelgroep werkelijk?</span></>,
+    seo1Title: <>Welke AI-prompts gebruikt <br /><span className="text-violet-600">jouw doelgroep werkelijk?</span></>,
     seo1P1: 'Steeds meer consumenten slaan Google over en vragen ChatGPT, Perplexity of Google AI Mode rechtstreeks om aanbevelingen. "Wat is de beste accountant in Amsterdam?" of "Vergelijk CRM-systemen voor het MKB". Dit zijn de nieuwe zoekopdrachten die je zichtbaarheid bepalen.',
     seo1P2: 'De AI Prompt Explorer toont precies welke prompts relevant zijn voor jouw branche. Geen generieke zoekwoorden, maar echte vragen die mensen aan AI stellen. Met geschatte volumes zodat je weet waar de kansen liggen.',
     seo2Title: 'Hoe werkt de AI Prompt Explorer?',
@@ -443,7 +443,7 @@ export default function PromptExplorer() {
       { title: 'AI genereert 50+ prompts', desc: 'Onze AI analyseert de Nederlandse markt, identificeert commerciële en informationele zoekintents, en genereert 50+ relevante prompts die mensen stellen aan ChatGPT, Perplexity en Google AI Mode.' },
       { title: 'Volume, trends & kansen', desc: 'Elke prompt krijgt een geschat AI-zoekvolume, trendsignaal en moeilijkheidsscore. Gegroepeerd in intent clusters zie je meteen waar de grootste kansen liggen.' },
     ],
-    seo3Title: <>Van prompts naar<br /><span className="text-violet-600">AI-zichtbaarheid</span></>,
+    seo3Title: <>Van prompts naar <br /><span className="text-violet-600">AI-zichtbaarheid</span></>,
     seo3P: 'Weten welke prompts je doelgroep gebruikt is stap één. De volgende stap is zorgen dat jouw bedrijf ook daadwerkelijk verschijnt in die AI-antwoorden. Met de gratis GEO Audit van Teun.ai scan je je pagina op AI-zichtbaarheid, test je live op Perplexity of je gevonden wordt, en krijg je concrete aanbevelingen.',
     seo3Cta: 'Gratis GEO Audit starten',
     feat1: 'Intent Clusters', feat1d: 'Prompts die hetzelfde bedoelen worden gegroepeerd. Zo zie je de werkelijke marktvraag, niet losse fragmenten.',
@@ -964,7 +964,7 @@ export default function PromptExplorer() {
                   <FAQ items={T.faqs} />
                 </div>
                 <div className="hidden lg:flex justify-center items-end relative">
-                  <div className="translate-y-32">
+                  <div className="translate-y-22">
                     <Image src="/teun-ai-mascotte.png" alt="Teun.ai mascotte" width={420} height={520} className="w-[420px] h-auto mb-12" />
                   </div>
                 </div>

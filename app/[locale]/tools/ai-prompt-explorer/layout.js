@@ -8,8 +8,8 @@ export async function generateMetadata() {
     ? 'AI Prompt Explorer – Free AI Search Volume Tool'
     : 'AI Prompt Explorer – Gratis AI-zoekvolume Tool';
   const description = isEn
-    ? 'Discover which prompts your potential customers use on ChatGPT, Perplexity & Google AI Mode. 50+ prompts with estimated AI search volumes, trends and competitor data. Free tool by Teun.ai.'
-    : 'Welke prompts gebruiken jouw potentiële klanten op ChatGPT, Perplexity & Google AI Mode? 50+ prompts met geschatte AI-zoekvolumes, trends en concurrentie-inzicht. Gratis tool van Teun.ai.';
+    ? 'Which prompts do your customers use on ChatGPT, Perplexity & Google AI Mode? 50+ prompts with AI search volumes and competitor insights. Free.'
+    : 'Welke prompts gebruiken jouw klanten op ChatGPT, Perplexity & Google AI Mode? 50+ prompts met AI-zoekvolumes en concurrentie-inzicht. Gratis.';
   const url = isEn
     ? 'https://teun.ai/en/tools/ai-prompt-explorer'
     : 'https://teun.ai/tools/ai-prompt-explorer';
@@ -31,7 +31,7 @@ export async function generateMetadata() {
           width: 1200,
           height: 630,
           alt: isEn
-            ? 'AI Prompt Explorer – Discover what your customers ask AI'
+            ? 'AI Prompt Explorer – What do your customers ask AI?'
             : 'AI Prompt Explorer – Welke prompts gebruiken jouw klanten?',
         }
       ],
