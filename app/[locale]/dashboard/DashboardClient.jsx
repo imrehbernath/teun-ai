@@ -333,6 +333,19 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
 
   useEffect(() => { document.body.classList.add('dashboard-active'); return () => document.body.classList.remove('dashboard-active') }, [])
 
+  // ✨ Claim anonieme scan data bij eerste dashboard load
+  useEffect(() => {
+    fetch('/api/auth/claim-session', { method: 'POST', credentials: 'include' })
+      .then(r => r.json())
+      .then(data => {
+        if (data.claimed?.total > 0) {
+          console.log(`✅ ${data.claimed.total} eerdere scan(s) gekoppeld aan account`)
+          window.location.reload()
+        }
+      })
+      .catch(err => console.error('Session claim error:', err))
+  }, [])
+
   // Detect Chrome extension AND push auth token
   useEffect(() => {
     const supabase = createBrowserClient(

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { getSessionToken } from '@/lib/session-token'
 
 // ══════════════════════════════════════════════════════════
 // ACTUAL JSONB field names in tool_integrations.results:
@@ -302,11 +303,39 @@ export async function GET(request) {
       .eq('id', user.id)
       .single()
 
-    const { data: allIntegrations, error: intError } = await supabase
-      .from('tool_integrations')
-      .select('id, company_name, website, company_category, commercial_prompts, results, total_company_mentions, prompts_count, created_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+    const { data: allIntegrations, error: intError } = await (async () => {
+      const sessionToken = await getSessionToken()
+
+      let query = supabase
+        .from('tool_integrations')
+        .select('id, company_name, website, company_category, commercial_prompts, results, total_company_mentions, prompts_count, created_at')
+        .order('created_at', { ascending: false })
+
+      if (sessionToken) {
+        // Haal zowel user's scans als unclaimed session scans op
+        query = query.or(`user_id.eq.${user.id},and(session_token.eq.${sessionToken},user_id.is.null)`)
+      } else {
+        query = query.eq('user_id', user.id)
+      }
+
+      const result = await query
+
+      // Auto-claim: als er unclaimed records zijn, koppel ze meteen (fire and forget)
+      if (sessionToken && result.data?.some(i => !i.user_id)) {
+        console.log('🔗 Auto-claiming unclaimed session data in dashboard...')
+        supabase
+          .from('tool_integrations')
+          .update({ user_id: user.id, claimed_at: new Date().toISOString() })
+          .eq('session_token', sessionToken)
+          .is('user_id', null)
+          .then(({ error }) => {
+            if (error) console.error('⚠️ Auto-claim error:', error.message)
+            else console.log('✅ Auto-claimed session data')
+          })
+      }
+
+      return result
+    })()
 
     if (intError) console.error('Error fetching integrations:', intError)
 

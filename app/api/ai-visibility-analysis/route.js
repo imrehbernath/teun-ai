@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { canUserScan, trackScan, BETA_CONFIG } from '@/lib/beta-config'
+import { getOrCreateSessionToken } from '@/lib/session-token'
 
 // Vercel function timeout — 10 prompts × 2s delay = needs 300s
 export const maxDuration = 300
@@ -519,6 +520,7 @@ export async function POST(request) {
                'unknown'
 
     const supabase = await createServiceClient()
+    const { sessionToken } = await getOrCreateSessionToken()
 
     const scanCheck = await canUserScan(
       supabase,
@@ -709,11 +711,11 @@ export async function POST(request) {
       scanDuration
     )
 
-    // ✅ ALSO save to tool_integrations for WOW Dashboard
-    if (userId) {
-      console.log('📊 Attempting to save to tool_integrations...')
-      console.log('Data to insert:', {
-        user_id: userId,
+    // ✅ Save to tool_integrations — voor ALLE gebruikers (ook anoniem via session_token)
+    {
+      console.log('📊 Saving to tool_integrations...', {
+        user_id: userId || '(anonymous)',
+        session_token: sessionToken,
         tool_name: 'ai-visibility',
         company_name: companyName,
         prompts_count: generatedPrompts.length,
@@ -723,7 +725,8 @@ export async function POST(request) {
       const { data: integrationData, error: integrationError } = await supabase
         .from('tool_integrations')
         .insert({
-          user_id: userId,
+          user_id: userId || null,
+          session_token: sessionToken,
           tool_name: 'ai-visibility',
           company_name: companyName,
           company_category: companyCategory,
@@ -743,7 +746,7 @@ export async function POST(request) {
         console.error('Error details:', integrationError.details)
         console.error('Error hint:', integrationError.hint)
       } else {
-        console.log('✅ Successfully saved to tool_integrations!')
+        console.log('✅ Successfully saved to tool_integrations!', userId ? '(authenticated)' : '(anonymous, session_token)')
         console.log('Inserted data:', integrationData)
       }
     }
@@ -787,6 +790,7 @@ export async function POST(request) {
         analysisLimit: analysisLimit,
         scanDurationMs: scanDuration,
         platforms: ['perplexity', 'chatgpt'],
+        sessionToken: sessionToken,
         websiteAnalysis: websiteAnalysis?.success ? {
           url: websiteUrl,
           extractedKeywords: websiteAnalysis.keywords,

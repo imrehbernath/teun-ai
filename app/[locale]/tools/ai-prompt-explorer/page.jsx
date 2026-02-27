@@ -249,7 +249,7 @@ function ClusterCard({ cluster, isOpen, onToggle, maxClusterVol, globalMaxVol, m
             {c.prompts.length} {t?.variations || 'variaties'} · {t?.avgDiff || 'gem. moeilijkheid'}: <span className="font-semibold">{c.avgDifficulty}/100</span>
           </div>
           {c.prompts.map((p, i) => (
-            <div key={p.id} className="grid grid-cols-[1fr_36px_28px_120px_90px] gap-2 px-5 py-2.5 border-t border-slate-50 items-center hover:bg-slate-50/50 transition text-sm">
+            <div key={p.id} className="grid grid-cols-[1fr_36px_28px_120px_90px_80px] gap-2 px-5 py-2.5 border-t border-slate-50 items-center hover:bg-slate-50/50 transition text-sm">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-[10px] text-slate-300 w-4 text-right">{i + 1}.</span>
                 <p className="text-slate-700 text-xs leading-snug truncate">{p.text}</p>
@@ -258,6 +258,7 @@ function ClusterCard({ cluster, isOpen, onToggle, maxClusterVol, globalMaxVol, m
               <div className="flex justify-center"><StatusDot s={p.yourStatus} /></div>
               <div><VolBar vol={p.estimatedAiVolume} maxVol={globalMaxVol} blurred={false} /></div>
               <div><DiffBadge d={p.difficulty} labels={diffLabels} /></div>
+              <div className="flex justify-center"><span className="inline-flex items-center gap-1 text-[9px] font-semibold text-slate-400 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5"><LockIcon className="w-2.5 h-2.5" />—</span></div>
             </div>
           ))}
         </div>
@@ -335,6 +336,9 @@ export default function PromptExplorer() {
     ctaBoxTitle: 'Want a complete AI visibility analysis?',
     ctaBoxDesc: 'Create an account and get started with GEO optimisation right away. Combine brand perception with page-level GEO analysis. Match AI prompts to your best pages with targeted optimisation per page.',
     ctaBoxBtn: 'Create free account',
+    // Position column
+    posCol: 'Your position',
+    posLocked: 'Log in to see',
     // Methodology
     methTitle: 'How do we estimate AI search volumes?', methSub: 'Our methodology, transparent and honest',
     methSteps: [
@@ -425,6 +429,9 @@ export default function PromptExplorer() {
     ctaBoxTitle: 'Wil je een complete AI-zichtbaarheidsanalyse?',
     ctaBoxDesc: 'Account aanmaken en je kan direct aan de slag met GEO optimalisatie. Combineer merkperceptie met pagina-niveau GEO analyse. Match AI-prompts aan je beste pagina\'s met gerichte optimalisatie per pagina.',
     ctaBoxBtn: 'Gratis account aanmaken',
+    // Positie kolom
+    posCol: 'Jouw positie',
+    posLocked: 'Log in om te zien',
     methTitle: 'Hoe schatten we AI-zoekvolumes?', methSub: 'Onze methodologie, transparant en eerlijk',
     methSteps: [
       ['1', 'Google-zoekvolume als basis', 'Elke AI-prompt heeft een equivalent Google-zoekwoord. We gebruiken het Google-volume als startwaarde.'],
@@ -504,6 +511,7 @@ export default function PromptExplorer() {
   const [userTier, setUserTier] = useState("anonymous");
   const [user, setUser] = useState(null);
   const resultsRef = useRef(null);
+  const [showStickyBar, setShowStickyBar] = useState(false);
 
   // Auth check
   useEffect(() => {
@@ -528,6 +536,16 @@ export default function PromptExplorer() {
 
   // BETA: All features free — no tier limits
   const TIER = { anonymous: { maxPrompts: 999, maxVolumes: 999 }, free: { maxPrompts: 999, maxVolumes: 999 }, pro: { maxPrompts: 999, maxVolumes: 999 } };
+
+  // Sticky bar: show when scrolled into results
+  useEffect(() => {
+    if (!prompts.length) { setShowStickyBar(false); return; }
+    const el = resultsRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => setShowStickyBar(entry.isIntersecting), { threshold: 0.05 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [prompts]);
   const tier = TIER[userTier];
   const TOTAL = 50;
 
@@ -540,6 +558,8 @@ export default function PromptExplorer() {
 
   // Rate limit check
   const checkRateLimit = () => {
+    // 🔓 Localhost bypass
+    if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].some(h => window.location.hostname.includes(h))) return true;
     // Admin/Pro: unlimited scans
     if (userTier === 'pro') return true;
     try {
@@ -751,7 +771,7 @@ export default function PromptExplorer() {
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
             <p className="text-sm text-amber-800 font-medium">{rateLimitMsg}</p>
             {userTier === 'anonymous' && (
-              <a href="/register" className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-[#292956] text-white rounded-xl text-sm font-semibold hover:bg-[#1e1e45] transition">
+              <a href="/signup" className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-[#292956] text-white rounded-xl text-sm font-semibold hover:bg-[#1e1e45] transition">
                 {T.freeAccount} <ArrowRightIcon className="w-4 h-4" />
               </a>
             )}
@@ -862,28 +882,43 @@ export default function PromptExplorer() {
           {/* List view */}
           {viewMode === "list" && (
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-              <div className="grid grid-cols-[1fr_28px_28px_130px_90px] gap-2 px-5 py-3 bg-slate-50 border-b border-slate-200 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
-                <span>AI-prompt</span><span className="text-center">Tr</span><span className="text-center">St</span><span>AI vol.</span><span>{isEn ? 'Chance' : 'Kans'}</span>
+              <div className="grid grid-cols-[1fr_28px_28px_130px_90px_80px] gap-2 px-5 py-3 bg-slate-50 border-b border-slate-200 text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+                <span>AI-prompt</span><span className="text-center">Tr</span><span className="text-center">St</span><span>AI vol.</span><span>{isEn ? 'Chance' : 'Kans'}</span><span className="text-center">{T.posCol}</span>
               </div>
               {prompts.filter(p => (intentF === "all" || p.intent === intentF) && (trendF === "all" || p.trendSignal === trendF)).map((p, i) => (
-                <div key={p.id} className="grid grid-cols-[1fr_28px_28px_130px_90px] gap-2 px-5 py-2.5 border-b border-slate-50 items-center hover:bg-slate-50/50 transition">
+                <div key={p.id} className="grid grid-cols-[1fr_28px_28px_130px_90px_80px] gap-2 px-5 py-2.5 border-b border-slate-50 items-center hover:bg-slate-50/50 transition">
                   <div className="min-w-0"><p className="text-xs text-slate-700 truncate">{p.text}</p><p className="text-[9px] text-slate-400 mt-0.5">{p.intentCluster}</p></div>
                   <div className="flex justify-center"><MiniTrend trend={p.trendSignal} /></div>
                   <div className="flex justify-center"><StatusDot s={p.yourStatus} /></div>
                   <div><VolBar vol={p.estimatedAiVolume} maxVol={maxVol} blurred={false} /></div>
                   <div><DiffBadge d={p.difficulty} labels={{ easy: T.diffEasy, medium: T.diffMedium, hard: T.diffHard }} /></div>
+                  <div className="flex justify-center"><span className="inline-flex items-center gap-1 text-[9px] font-semibold text-slate-400 bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5"><LockIcon className="w-2.5 h-2.5" />—</span></div>
                 </div>
               ))}
             </div>
           )}
 
-          {/* CTA — BETA: gratis account */}
-          <div className="bg-slate-50 rounded-2xl p-8 text-center">
-            <p className="text-lg font-bold text-slate-900">{T.ctaBoxTitle}</p>
-            <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto">{T.ctaBoxDesc}</p>
-            <a href="/register" className="inline-flex items-center gap-2 mt-5 px-6 py-3 bg-[#292956] text-white rounded-xl text-sm font-semibold hover:bg-[#1e1e45] transition">
-              {T.ctaBoxBtn} <ArrowRightIcon className="w-4 h-4" />
-            </a>
+          {/* CTA — Vriendelijke uitnodiging met mascotte */}
+          <div className="relative bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="flex flex-col sm:flex-row items-center gap-6 p-6 sm:p-8">
+              <div className="flex-shrink-0">
+                <Image src="/teun-ai-mascotte.png" alt="Teun.ai mascotte" width={120} height={150} className="w-[100px] sm:w-[120px] h-auto" />
+              </div>
+              <div className="text-center sm:text-left flex-1">
+                <p className="text-lg sm:text-xl font-bold text-slate-900 mb-2">
+                  {isEn ? `Nice! ${stats?.total || 0} prompts your customers are asking AI` : `Mooi! ${stats?.total || 0} prompts die jouw klanten aan AI stellen`}
+                </p>
+                <p className="text-sm text-slate-500 mb-5 max-w-md">
+                  {isEn 
+                    ? 'Curious whether AI actually recommends you? Create a free account and check your position in ChatGPT, Perplexity and Google AI.' 
+                    : 'Benieuwd of AI jou ook daadwerkelijk aanbeveelt? Maak een gratis account aan en check je positie in ChatGPT, Perplexity en Google AI.'}
+                </p>
+                <a href="/signup" className="inline-flex items-center gap-2 px-6 py-3 bg-[#292956] text-white rounded-xl text-sm font-semibold hover:bg-[#1e1e45] transition">
+                  {isEn ? 'Check my AI positions' : 'Check mijn AI-posities'} <ArrowRightIcon className="w-4 h-4" />
+                </a>
+                <p className="text-[11px] text-slate-400 mt-3">{isEn ? 'Free · No credit card · Takes 2 minutes' : 'Gratis · Geen creditcard · Duurt 2 minuten'}</p>
+              </div>
+            </div>
           </div>
 
           {/* Competitors */}
@@ -906,6 +941,23 @@ export default function PromptExplorer() {
           )}
 
           <Methodology t={T} />
+        </div>
+      )}
+
+      {/* ── STICKY BAR — zacht en uitnodigend ── */}
+      {showStickyBar && !user && prompts.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-lg">
+          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <Image src="/teun-ai-mascotte.png" alt="Teun" width={32} height={40} className="w-8 h-auto flex-shrink-0" />
+              <p className="text-sm text-slate-600 truncate">
+                {isEn ? `Curious if AI recommends you for these ${prompts.length} prompts?` : `Benieuwd of AI jou aanbeveelt bij deze ${prompts.length} prompts?`}
+              </p>
+            </div>
+            <a href="/signup" className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-[#292956] text-white rounded-lg text-sm font-semibold hover:bg-[#1e1e45] transition">
+              {isEn ? 'Free check' : 'Gratis checken'} <ArrowRightIcon className="w-3.5 h-3.5" />
+            </a>
+          </div>
         </div>
       )}
 

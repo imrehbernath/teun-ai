@@ -8,6 +8,8 @@
 
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { createServiceClient } from '@/lib/supabase/server'
+import { getOrCreateSessionToken } from '@/lib/session-token'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
@@ -424,6 +426,9 @@ export async function POST(request) {
     const serviceArea = body.location || body.serviceArea || ''
     const brandName = body.brandName || ''
 
+    const { sessionToken } = await getOrCreateSessionToken()
+    const supabase = await createServiceClient()
+
     if (!url && !keyword)
       return NextResponse.json({ error: 'Vul een URL of zoekwoord in' }, { status: 400, headers: CORS })
 
@@ -489,10 +494,45 @@ export async function POST(request) {
       promptCount: limited.length, clusterCount: clusters.length, source,
     })
 
+    // ✨ Save resultaten in Supabase (ook voor anonieme gebruikers)
+    try {
+      const { error: saveError } = await supabase
+        .from('prompt_discovery_results')
+        .insert({
+          session_token: sessionToken,
+          user_id: null,
+          website: url || null,
+          keywords: keyword || null,
+          brand_name: extracted?.companyName || brandName || null,
+          branche: branche || null,
+          location: serviceArea || null,
+          prompts: limited,
+          clusters: clusters,
+          extracted_keywords: extracted?.keywords || [],
+          top_competitors: topCompetitors,
+          source: source || null,
+          meta: {
+            totalGenerated: scanned.length,
+            totalVisible: limited.length,
+            tier,
+            scannedOnGoogleAi: scanCompetitors && tier === 'pro',
+          }
+        })
+
+      if (saveError) {
+        console.error('⚠️ Error saving prompt discovery results:', saveError.message)
+      } else {
+        console.log(`✅ Prompt discovery results saved (session: ${sessionToken.slice(0, 8)}...)`)
+      }
+    } catch (saveErr) {
+      console.error('⚠️ Prompt discovery save error:', saveErr.message)
+    }
+
     return NextResponse.json({
       success: true, prompts: limited, clusters, topCompetitors,
       extractedKeywords: extracted?.keywords || [],
       companyName: extracted?.companyName || brandName || '',
+      sessionToken,
       meta: { totalGenerated: scanned.length, totalVisible: limited.length, hiddenCount: Math.max(0, scanned.length - limited.length), maxVolumes: lim.maxVolumes, tier, scannedOnGoogleAi: scanCompetitors && tier === 'pro' },
       extracted: extracted ? { keywords: extracted.keywords, companyName: extracted.companyName, category: extracted.category, location: extracted.location, services: extracted.services } : null,
       source,
