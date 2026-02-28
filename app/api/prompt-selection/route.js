@@ -59,6 +59,7 @@ export async function POST(request) {
       .from('tool_integrations')
       .insert({
         user_id: user.id,
+        keyword: brandName || website,
         company_name: brandName || (() => {
           try { return new URL(website.startsWith('http') ? website : `https://${website}`).hostname.replace('www.', '') }
           catch { return website }
