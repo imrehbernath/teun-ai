@@ -586,6 +586,70 @@ function PromptSelectionFlow({ discovery, locale, onScanTriggered }) {
 }
 
 // ═══════════════════════════════════════════════
+// ── Scan In Progress (after prompt selection) ──
+// ═══════════════════════════════════════════════
+function ScanInProgress({ locale, company, onRefresh }) {
+  const [dots, setDots] = useState('')
+  const [elapsed, setElapsed] = useState(0)
+
+  // Animate dots
+  useEffect(() => {
+    const i = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 500)
+    return () => clearInterval(i)
+  }, [])
+
+  // Track elapsed time + auto-refresh every 20s
+  useEffect(() => {
+    const timer = setInterval(() => setElapsed(e => e + 1), 1000)
+    const refresher = setInterval(() => onRefresh?.(), 20000)
+    return () => { clearInterval(timer); clearInterval(refresher) }
+  }, [onRefresh])
+
+  const T = {
+    title: locale === 'nl' ? 'AI Visibility scan loopt' : 'AI Visibility scan running',
+    desc: locale === 'nl'
+      ? `We scannen ${company || 'je bedrijf'} op ChatGPT en Perplexity. Dit duurt 1-2 minuten.`
+      : `Scanning ${company || 'your company'} on ChatGPT and Perplexity. This takes 1-2 minutes.`,
+    platforms: locale === 'nl' ? 'Actieve platforms' : 'Active platforms',
+    patience: locale === 'nl' ? 'Even geduld — resultaten verschijnen automatisch' : 'Please wait — results will appear automatically',
+    elapsed: locale === 'nl' ? 'Verstreken' : 'Elapsed',
+  }
+
+  const mins = Math.floor(elapsed / 60)
+  const secs = elapsed % 60
+  const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`
+
+  return (
+    <div className="max-w-lg mx-auto text-center py-20">
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 border border-indigo-200 flex items-center justify-center mx-auto mb-6">
+        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+      </div>
+      <h2 className="text-xl font-bold text-slate-800 mb-2">{T.title}{dots}</h2>
+      <p className="text-sm text-slate-500 mb-8">{T.desc}</p>
+
+      <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6 text-left">
+        <div className="text-[11px] text-slate-400 uppercase tracking-wider font-medium mb-3">{T.platforms}</div>
+        <div className="space-y-3">
+          {['ChatGPT', 'Perplexity'].map(name => (
+            <div key={name} className="flex items-center gap-3">
+              <Loader2 className="w-4 h-4 text-indigo-400 animate-spin shrink-0" />
+              <span className="text-[13px] text-slate-700 font-medium">{name}</span>
+              <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-full bg-indigo-400 rounded-full animate-pulse" style={{ width: `${Math.min(elapsed * 1.5, 90)}%`, transition: 'width 1s ease' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="text-[12px] text-slate-400">
+        {T.patience} · {T.elapsed}: {timeStr}
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════
 // ── Main Dashboard ──
 // ═══════════════════════════════════════════════
 
@@ -932,10 +996,27 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
 
           {loading && !data && <div className="flex flex-col items-center justify-center py-32"><Loader2 className="w-8 h-8 text-slate-300 animate-spin mb-4" /><span className="text-sm text-slate-400">{t.loading}</span></div>}
           {error && !loading && <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center"><p className="text-sm text-red-600 mb-3">{error}</p><button onClick={fetchData} className="text-sm text-red-700 underline cursor-pointer bg-transparent border-none">{t.rescan}</button></div>}
-          {!loading && data && totalPrompts === 0 && activeTab === 'overview' && promptDiscovery.length > 0 && (
-            <PromptSelectionFlow discovery={promptDiscovery} locale={locale} onScanTriggered={() => { fetchData() }} />
-          )}
-          {!loading && data && totalPrompts === 0 && activeTab === 'overview' && promptDiscovery.length === 0 && <EmptyState t={t} locale={locale} />}
+          {!loading && data && totalPrompts === 0 && activeTab === 'overview' && (() => {
+            // Check if there's a pending scan (integration exists but no results yet)
+            const hasPendingIntegration = companies.length > 0
+            // Only show selection flow for discoveries that haven't been successfully scanned
+            const unselectedDiscovery = promptDiscovery.filter(d =>
+              (d.status === 'completed' || (d.status === 'selected' && !d.scanIntegrationId))
+            )
+
+            if (hasPendingIntegration) {
+              // Scan is running or just created — show progress
+              return (
+                <ScanInProgress locale={locale} company={activeCompany?.name || companies[0]?.company_name} onRefresh={fetchData} />
+              )
+            }
+            if (unselectedDiscovery.length > 0) {
+              return (
+                <PromptSelectionFlow discovery={unselectedDiscovery} locale={locale} onScanTriggered={() => { fetchData() }} />
+              )
+            }
+            return <EmptyState t={t} locale={locale} />
+          })()}
 
           {/* ════════════ OVERVIEW ════════════ */}
           {activeTab === 'overview' && data && totalPrompts > 0 && (
