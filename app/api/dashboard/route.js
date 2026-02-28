@@ -304,7 +304,11 @@ export async function GET(request) {
       .single()
 
     const { data: allIntegrations, error: intError } = await (async () => {
-      const sessionToken = await getSessionToken()
+      // Try cookie first, then fall back to user_metadata
+      let sessionToken = await getSessionToken()
+      if (!sessionToken) {
+        sessionToken = user?.user_metadata?.session_token || null
+      }
 
       let query = supabase
         .from('tool_integrations')
@@ -342,37 +346,40 @@ export async function GET(request) {
     // ── Prompt Explorer results (prompt_discovery_results) ──
     // Needed for selection flow when user has Prompt Explorer data but no scans yet
     const { data: promptDiscoveryRows } = await (async () => {
-  const sessionToken = await getSessionToken()
+      // Try cookie first, then fall back to user_metadata
+      let sessionToken = await getSessionToken()
+      if (!sessionToken) {
+        sessionToken = user?.user_metadata?.session_token || null
+      }
 
-  let q = supabase
-    .from('prompt_discovery_results')
-    .select('id, website, brand_name, branche, location, prompts, clusters, selected_prompts, selected_count, status, scan_integration_id, created_at')
-    .order('created_at', { ascending: false })
-    .limit(5)
+      let q = supabase
+        .from('prompt_discovery_results')
+        .select('id, website, brand_name, branche, location, prompts, clusters, selected_prompts, selected_count, status, scan_integration_id, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5)
 
-  if (sessionToken) {
-    q = q.or(`user_id.eq.${user.id},and(session_token.eq.${sessionToken},user_id.is.null)`)
-  } else {
-    q = q.eq('user_id', user.id)
-  }
+      if (sessionToken) {
+        q = q.or(`user_id.eq.${user.id},and(session_token.eq.${sessionToken},user_id.is.null)`)
+      } else {
+        q = q.eq('user_id', user.id)
+      }
 
-  const result = await q
+      const result = await q
 
-  // Auto-claim unclaimed rows
-  if (sessionToken && result.data?.some(r => !r.user_id)) {
-    supabase
-      .from('prompt_discovery_results')
-      .update({ user_id: user.id })
-      .eq('session_token', sessionToken)
-      .is('user_id', null)
-      .then(({ error }) => {
-        if (error) console.error('⚠️ Auto-claim prompt_discovery error:', error.message)
-        else console.log('✅ Auto-claimed prompt_discovery_results')
-      })
-  }
+      // Auto-claim unclaimed rows via SECURITY DEFINER function (bypasses RLS)
+      if (sessionToken && result.data?.some(r => !r.user_id)) {
+        console.log('🔗 Auto-claiming prompt_discovery_results via session token...')
+        supabase.rpc('claim_anonymous_sessions', {
+          p_session_token: sessionToken,
+          p_user_id: user.id
+        }).then(({ data, error }) => {
+          if (error) console.error('⚠️ Claim error:', error.message)
+          else console.log(`✅ Claimed ${data} rows`)
+        })
+      }
 
-  return result
-})()
+      return result
+    })()
 
     // Deduplicate companies
     const uniqueCompanies = []
