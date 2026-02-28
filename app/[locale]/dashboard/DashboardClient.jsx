@@ -11,6 +11,9 @@ import {
 import AuditTab from './AuditTab'
 import { createBrowserClient } from '@supabase/ssr'
 
+// Locale-aware path: NL = root, EN = /en/
+const lp = (locale, path) => locale === 'nl' ? path : `/en${path}`
+
 // Chrome Extension ID (from Chrome Web Store)
 const EXTENSION_ID = 'jjhjnmkanlmjhmobcgemjakkjdbkkfmk'
 
@@ -291,7 +294,7 @@ function EmptyState({ t, locale }) {
       <div className="w-20 h-20 rounded-2xl bg-slate-100 flex items-center justify-center mb-6"><BarChart3 className="w-10 h-10 text-slate-300" /></div>
       <h2 className="text-lg font-semibold text-slate-800 mb-2">{t.noData}</h2>
       <p className="text-sm text-slate-500 mb-6 text-center max-w-sm">{t.noDataDesc}</p>
-      <Link href={`/${locale}/tools/ai-visibility`} className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-white text-sm font-semibold no-underline hover:opacity-90 transition-opacity" style={{ background: '#292956' }}>
+      <Link href={lp(locale, '/tools/ai-visibility')} className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-white text-sm font-semibold no-underline hover:opacity-90 transition-opacity" style={{ background: '#292956' }}>
         {t.startScan} <ArrowRight className="w-4 h-4" />
       </Link>
     </div>
@@ -939,9 +942,9 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
     { id: 'audit', label: t.tabs.audit, Icon: ShieldCheck },
   ]
   const toolLinks = [
-    { label: t.sidebar.brandCheck, href: `/${locale}/tools/brand-check`, tag: t.sidebar.free },
-    { label: t.sidebar.rankTracker, href: `/${locale}/tools/ai-rank-tracker`, tag: t.sidebar.free },
-    { label: t.sidebar.geoAnalyse, href: `/${locale}/dashboard/geo-analyse`, tag: null },
+    { label: t.sidebar.brandCheck, href: lp(locale, '/tools/brand-check'), tag: t.sidebar.free },
+    { label: t.sidebar.rankTracker, href: lp(locale, '/tools/ai-rank-tracker'), tag: t.sidebar.free },
+    { label: t.sidebar.geoAnalyse, href: lp(locale, '/dashboard/geo-analyse'), tag: null },
     { label: t.sidebar.contentOptimizer, href: null, tag: t.sidebar.soon },
   ]
 
@@ -967,7 +970,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
         {/* ── SIDEBAR ── */}
         <aside className="fixed left-0 top-0 bottom-0 w-[240px] flex flex-col z-[100]" style={{ background: '#1a1a3e' }}>
           <div className="px-5 pt-6 pb-5 border-b border-white/[0.06]">
-            <Link href={`/${locale}`} className="block no-underline">
+            <Link href={lp(locale, '/')} className="block no-underline">
               <div className="text-[22px] font-bold text-white tracking-tight">TEUN.AI</div>
               <div className="text-[11px] text-white/40 mt-0.5">{t.sidebar.platform}</div>
             </Link>
@@ -1622,7 +1625,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                                   ? 'Niet gevonden in deze prompt? Optimaliseer je zichtbaarheid.'
                                   : 'Not found in this prompt? Optimize your visibility.'}
                               </div>
-                              <Link href={`/${locale}/dashboard/geo-analyse`} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-indigo-700 bg-white border border-indigo-200 rounded-lg px-3 py-1.5 hover:bg-indigo-50 transition no-underline">
+                              <Link href={lp(locale, '/dashboard/geo-analyse')} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-indigo-700 bg-white border border-indigo-200 rounded-lg px-3 py-1.5 hover:bg-indigo-50 transition no-underline">
                                 <Zap className="w-3 h-3" />
                                 GEO Analyse
                               </Link>
@@ -1878,7 +1881,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                                           <ExternalLink className="w-3 h-3 shrink-0 text-indigo-400 group-hover/src:text-indigo-600" />
                                           <span className="truncate">{src.replace(/^https?:\/\/(www\.)?/, '').slice(0, 70)}</span>
                                         </a>
-                                        <Link href={`/${locale}/tools/geo-audit?url=${encodeURIComponent(src)}`}
+                                        <Link href={lp(locale, `/tools/geo-audit?url=${encodeURIComponent(src)}`)}
                                           className="opacity-0 group-hover/src:opacity-100 transition-opacity inline-flex items-center gap-1 text-[9px] font-semibold text-violet-600 bg-violet-50 border border-violet-200 rounded px-2 py-0.5 hover:bg-violet-100 no-underline whitespace-nowrap shrink-0"
                                         >
                                           <ShieldCheck className="w-2.5 h-2.5" />
@@ -1901,7 +1904,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                               ? `Wil je ${c.name} inhalen? Analyseer en optimaliseer je zichtbaarheid.`
                               : `Want to outrank ${c.name}? Analyze and optimize your visibility.`}
                           </div>
-                          <Link href={`/${locale}/dashboard/geo-analyse`} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-indigo-700 bg-white border border-indigo-200 rounded-lg px-3 py-1.5 hover:bg-indigo-50 transition no-underline">
+                          <Link href={lp(locale, '/dashboard/geo-analyse')} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-indigo-700 bg-white border border-indigo-200 rounded-lg px-3 py-1.5 hover:bg-indigo-50 transition no-underline">
                             <Zap className="w-3 h-3" />
                             GEO Analyse
                           </Link>

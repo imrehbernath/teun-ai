@@ -168,7 +168,7 @@ export default async function DashboardPage({ params }) {
   }
 
   if (!user) {
-    redirect(`/${locale}/login?redirect=dashboard`)
+    redirect(locale === 'nl' ? '/login?redirect=dashboard' : `/en/login?redirect=dashboard`)
   }
 
   return <DashboardClient locale={locale} t={t} userId={user.id} userEmail={user.email} />
