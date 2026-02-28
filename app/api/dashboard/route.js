@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 // ══════════════════════════════════════════════════════════
@@ -291,18 +291,21 @@ export async function GET(request) {
     const companyName = searchParams.get('company')
     const period = searchParams.get('period') || '30d'
 
+    // Service client for data queries (bypasses RLS — auth already verified above)
+    const db = await createServiceClient()
+
     const now = new Date()
     const daysBack = period === '7d' ? 7 : period === '90d' ? 90 : 30
     const sinceDate = new Date(now - daysBack * 24 * 60 * 60 * 1000).toISOString()
 
     // ——— Queries ———
-    const { data: profile } = await supabase
+    const { data: profile } = await db
       .from('profiles')
       .select('full_name, company_name, email')
       .eq('id', user.id)
       .single()
 
-    const { data: allIntegrations, error: intError } = await supabase
+    const { data: allIntegrations, error: intError } = await db
       .from('tool_integrations')
       .select('id, company_name, website, company_category, commercial_prompts, results, total_company_mentions, prompts_count, created_at')
       .eq('user_id', user.id)
@@ -311,7 +314,7 @@ export async function GET(request) {
     if (intError) console.error('Error fetching integrations:', intError)
 
     // ── Prompt Explorer results (prompt_discovery_results) ──
-    const { data: promptDiscoveryRows } = await supabase
+    const { data: promptDiscoveryRows } = await db
       .from('prompt_discovery_results')
       .select('id, website, brand_name, branche, location, prompts, clusters, selected_prompts, selected_count, status, scan_integration_id, created_at')
       .eq('user_id', user.id)
@@ -340,7 +343,7 @@ export async function GET(request) {
     const activeWebsite = latestScan?.website || uniqueCompanies.find(c => c.company_name === activeCompanyName)?.website || null
 
     // Rank checks
-    let rankQ = supabase
+    let rankQ = db
       .from('rank_checks')
       .select('id, domain, brand_name, keyword, service_area, chatgpt_position, perplexity_position, results, created_at')
       .eq('user_id', user.id)
@@ -356,17 +359,17 @@ export async function GET(request) {
     const { data: rankChecks } = await rankQ
 
     // Google AI Mode
-    let gaiQ = supabase.from('google_ai_scans').select('id, company_name, website, prompts, results, scan_type, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10)
+    let gaiQ = db.from('google_ai_scans').select('id, company_name, website, prompts, results, scan_type, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10)
     if (activeCompanyName) gaiQ = gaiQ.eq('company_name', activeCompanyName)
     const { data: googleAiScans } = await gaiQ
 
     // Google AI Overviews
-    let gaioQ = supabase.from('google_ai_overview_scans').select('id, company_name, website, prompts, results, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10)
+    let gaioQ = db.from('google_ai_overview_scans').select('id, company_name, website, prompts, results, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10)
     if (activeCompanyName) gaioQ = gaioQ.eq('company_name', activeCompanyName)
     const { data: googleAioScans } = await gaioQ
 
     // Chrome Extension ChatGPT scans
-    let extQ = supabase.from('chatgpt_scans').select('*, chatgpt_query_results (*)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10)
+    let extQ = db.from('chatgpt_scans').select('*, chatgpt_query_results (*)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(10)
     if (activeCompanyName) extQ = extQ.ilike('company_name', activeCompanyName)
     const { data: extensionScans } = await extQ
 
@@ -669,11 +672,13 @@ export async function DELETE(request) {
       return NextResponse.json({ error: 'Company name required' }, { status: 400 })
     }
 
+    const db = await createServiceClient()
+
     console.log(`[Dashboard DELETE] Deleting company "${company}" for user ${user.id}`)
 
     const deleted = {}
 
-    const { data: d1, error: e1 } = await supabase
+    const { data: d1, error: e1 } = await db
       .from('tool_integrations')
       .delete()
       .eq('user_id', user.id)
@@ -682,7 +687,7 @@ export async function DELETE(request) {
     deleted.tool_integrations = d1?.length || 0
     if (e1) console.error('Delete tool_integrations error:', e1)
 
-    const { data: d2, error: e2 } = await supabase
+    const { data: d2, error: e2 } = await db
       .from('scan_history')
       .delete()
       .eq('user_id', user.id)
@@ -691,7 +696,7 @@ export async function DELETE(request) {
     deleted.scan_history = d2?.length || 0
     if (e2) console.error('Delete scan_history error:', e2)
 
-    const { data: d3, error: e3 } = await supabase
+    const { data: d3, error: e3 } = await db
       .from('rank_checks')
       .delete()
       .eq('user_id', user.id)
@@ -700,7 +705,7 @@ export async function DELETE(request) {
     deleted.rank_checks = d3?.length || 0
     if (e3) console.error('Delete rank_checks error:', e3)
 
-    const { data: d4, error: e4 } = await supabase
+    const { data: d4, error: e4 } = await db
       .from('google_ai_scans')
       .delete()
       .eq('user_id', user.id)
@@ -709,7 +714,7 @@ export async function DELETE(request) {
     deleted.google_ai_scans = d4?.length || 0
     if (e4) console.error('Delete google_ai_scans error:', e4)
 
-    const { data: d5, error: e5 } = await supabase
+    const { data: d5, error: e5 } = await db
       .from('google_ai_overview_scans')
       .delete()
       .eq('user_id', user.id)
@@ -719,7 +724,7 @@ export async function DELETE(request) {
     if (e5) console.error('Delete google_ai_overview_scans error:', e5)
 
     try {
-      const { data: d6 } = await supabase
+      const { data: d6 } = await db
         .from('chatgpt_scans')
         .delete()
         .eq('user_id', user.id)
@@ -729,7 +734,7 @@ export async function DELETE(request) {
     } catch (e) {}
 
     try {
-      const { data: d7 } = await supabase
+      const { data: d7 } = await db
         .from('chatgpt_live_scans')
         .delete()
         .eq('user_id', user.id)
