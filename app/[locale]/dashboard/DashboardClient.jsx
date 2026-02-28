@@ -589,61 +589,129 @@ function PromptSelectionFlow({ discovery, locale, onScanTriggered }) {
 // ── Scan In Progress (after prompt selection) ──
 // ═══════════════════════════════════════════════
 function ScanInProgress({ locale, company, onRefresh }) {
-  const [dots, setDots] = useState('')
-  const [elapsed, setElapsed] = useState(0)
+  const [progress, setProgress] = useState(0)
+  const [currentStep, setCurrentStep] = useState('')
+  const [phase, setPhase] = useState('starting') // starting, chatgpt, perplexity, analyzing, done
 
-  // Animate dots
+  // Smooth progress (same curve as AI visibility tool)
   useEffect(() => {
-    const i = setInterval(() => setDots(d => d.length >= 3 ? '' : d + '.'), 500)
-    return () => clearInterval(i)
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        const rounded = Math.floor(prev)
+        if (rounded >= 97) return rounded
+        if (rounded < 10) return prev + 2
+        if (rounded < 25) return prev + 1
+        if (rounded < 50) return prev + 0.6
+        if (rounded < 70) return prev + 0.4
+        if (rounded < 85) return prev + 0.25
+        if (rounded < 92) return prev + 0.15
+        return prev + 0.08
+      })
+    }, 1000)
+    return () => clearInterval(progressInterval)
   }, [])
 
-  // Track elapsed time + auto-refresh every 20s
+  // Step messages
   useEffect(() => {
-    const timer = setInterval(() => setElapsed(e => e + 1), 1000)
-    const refresher = setInterval(() => onRefresh?.(), 20000)
-    return () => { clearInterval(timer); clearInterval(refresher) }
+    const stepInterval = setInterval(() => {
+      setProgress(current => {
+        const rounded = Math.floor(current)
+        if (rounded < 5) {
+          setPhase('starting')
+          setCurrentStep(locale === 'nl' ? 'Prompts voorbereiden...' : 'Preparing prompts...')
+        } else if (rounded < 15) {
+          setPhase('chatgpt')
+          setCurrentStep(locale === 'nl' ? 'ChatGPT scannen...' : 'Scanning ChatGPT...')
+        } else if (rounded < 50) {
+          setPhase('chatgpt')
+          const p = Math.min(Math.floor((rounded - 15) / 3.5) + 1, 10)
+          setCurrentStep(locale === 'nl' ? `ChatGPT: prompt ${p}/10 analyseren...` : `ChatGPT: analyzing prompt ${p}/10...`)
+        } else if (rounded < 55) {
+          setPhase('perplexity')
+          setCurrentStep(locale === 'nl' ? 'Perplexity scannen...' : 'Scanning Perplexity...')
+        } else if (rounded < 90) {
+          setPhase('perplexity')
+          const p = Math.min(Math.floor((rounded - 55) / 3.5) + 1, 10)
+          setCurrentStep(locale === 'nl' ? `Perplexity: prompt ${p}/10 analyseren...` : `Perplexity: analyzing prompt ${p}/10...`)
+        } else {
+          setPhase('analyzing')
+          setCurrentStep(locale === 'nl' ? 'Resultaten verwerken en concurrenten analyseren...' : 'Processing results and analyzing competitors...')
+        }
+        return current
+      })
+    }, 800)
+    return () => clearInterval(stepInterval)
+  }, [locale])
+
+  // Auto-refresh every 15s to check if scan is done
+  useEffect(() => {
+    const refresher = setInterval(() => onRefresh?.(), 15000)
+    // Max 3 min timeout
+    const timeout = setTimeout(() => onRefresh?.(), 180000)
+    return () => { clearInterval(refresher); clearTimeout(timeout) }
   }, [onRefresh])
 
-  const T = {
-    title: locale === 'nl' ? 'AI Visibility scan loopt' : 'AI Visibility scan running',
-    desc: locale === 'nl'
-      ? `We scannen ${company || 'je bedrijf'} op ChatGPT en Perplexity. Dit duurt 1-2 minuten.`
-      : `Scanning ${company || 'your company'} on ChatGPT and Perplexity. This takes 1-2 minutes.`,
-    platforms: locale === 'nl' ? 'Actieve platforms' : 'Active platforms',
-    patience: locale === 'nl' ? 'Even geduld — resultaten verschijnen automatisch' : 'Please wait — results will appear automatically',
-    elapsed: locale === 'nl' ? 'Verstreken' : 'Elapsed',
+  const T = locale === 'nl' ? {
+    title: 'We analyseren je AI-zichtbaarheid',
+    hint: 'Dit duurt 1-2 minuten. We scannen 10 prompts op 2 AI-platforms.',
+    step1: 'Prompts klaarzetten',
+    step2: 'Scannen op ChatGPT en Perplexity',
+    step3: 'Resultaten analyseren',
+    cta: 'Wist je dat 67% van de consumenten AI gebruikt voor aankoopbeslissingen?',
+  } : {
+    title: 'Analyzing your AI visibility',
+    hint: 'This takes 1-2 minutes. We scan 10 prompts across 2 AI platforms.',
+    step1: 'Preparing prompts',
+    step2: 'Scanning ChatGPT and Perplexity',
+    step3: 'Analyzing results',
+    cta: 'Did you know 67% of consumers use AI for purchase decisions?',
   }
 
-  const mins = Math.floor(elapsed / 60)
-  const secs = elapsed % 60
-  const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`
+  const rounded = Math.floor(progress)
 
   return (
-    <div className="max-w-lg mx-auto text-center py-20">
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 border border-indigo-200 flex items-center justify-center mx-auto mb-6">
-        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-      </div>
-      <h2 className="text-xl font-bold text-slate-800 mb-2">{T.title}{dots}</h2>
-      <p className="text-sm text-slate-500 mb-8">{T.desc}</p>
+    <div className="max-w-xl mx-auto py-12">
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-8 text-center mb-6">
+        <Loader2 className="w-12 h-12 text-blue-500 mx-auto mb-4 animate-spin" />
+        <p className="text-xl font-bold text-slate-900 mb-2">{T.title}</p>
+        <p className="text-slate-600 mb-6">{currentStep}</p>
 
-      <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6 text-left">
-        <div className="text-[11px] text-slate-400 uppercase tracking-wider font-medium mb-3">{T.platforms}</div>
-        <div className="space-y-3">
-          {['ChatGPT', 'Perplexity'].map(name => (
-            <div key={name} className="flex items-center gap-3">
-              <Loader2 className="w-4 h-4 text-indigo-400 animate-spin shrink-0" />
-              <span className="text-[13px] text-slate-700 font-medium">{name}</span>
-              <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-400 rounded-full animate-pulse" style={{ width: `${Math.min(elapsed * 1.5, 90)}%`, transition: 'width 1s ease' }} />
-              </div>
-            </div>
-          ))}
+        {/* Progress bar */}
+        <div className="w-full bg-slate-200 rounded-full h-4 overflow-hidden mb-2">
+          <div
+            className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all duration-300 flex items-center justify-end pr-2"
+            style={{ width: `${Math.max(rounded, 2)}%` }}
+          >
+            {rounded > 5 && (
+              <span className="text-xs font-bold text-white drop-shadow-lg">{rounded}%</span>
+            )}
+          </div>
+        </div>
+        <p className="text-xs text-slate-400">{T.hint}</p>
+      </div>
+
+      {/* Step indicators */}
+      <div className="space-y-3 text-sm mb-8">
+        <div className={`flex items-center gap-3 transition-colors duration-300 ${rounded >= 15 ? 'text-green-600' : rounded > 2 ? 'text-blue-600' : 'text-slate-400'}`}>
+          {rounded >= 15 ? <CheckCircle2 className="w-5 h-5" /> : rounded > 2 ? <Loader2 className="w-5 h-5 animate-spin" /> : <div className="w-5 h-5 rounded-full border-2 border-current" />}
+          <span className="font-medium">{T.step1}</span>
+        </div>
+        <div className={`flex items-center gap-3 transition-colors duration-300 ${rounded >= 90 ? 'text-green-600' : rounded > 15 ? 'text-blue-600' : 'text-slate-400'}`}>
+          {rounded >= 90 ? <CheckCircle2 className="w-5 h-5" /> : rounded > 15 ? <Loader2 className="w-5 h-5 animate-spin" /> : <div className="w-5 h-5 rounded-full border-2 border-current" />}
+          <span className="font-medium">{T.step2}</span>
+          {rounded > 15 && rounded < 90 && (
+            <span className="text-xs text-slate-400 ml-auto">{phase === 'chatgpt' ? 'ChatGPT' : 'Perplexity'}</span>
+          )}
+        </div>
+        <div className={`flex items-center gap-3 transition-colors duration-300 ${rounded >= 97 ? 'text-green-600' : rounded > 90 ? 'text-blue-600' : 'text-slate-400'}`}>
+          {rounded >= 97 ? <CheckCircle2 className="w-5 h-5" /> : rounded > 90 ? <Loader2 className="w-5 h-5 animate-spin" /> : <div className="w-5 h-5 rounded-full border-2 border-current" />}
+          <span className="font-medium">{T.step3}</span>
         </div>
       </div>
 
-      <div className="text-[12px] text-slate-400">
-        {T.patience} · {T.elapsed}: {timeStr}
+      {/* FOMO fact */}
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+        <p className="text-sm text-amber-800 font-medium">💡 {T.cta}</p>
       </div>
     </div>
   )

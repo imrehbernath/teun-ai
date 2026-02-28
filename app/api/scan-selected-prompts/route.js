@@ -218,22 +218,21 @@ export async function POST(request) {
     console.log(`[ScanSelected] Starting dual-platform scan: ${prompts.length} prompts for ${companyName} (integration: ${integrationId})`)
     const startTime = Date.now()
 
-    // Run all prompts on ChatGPT + Perplexity in parallel
-    // Each prompt scans both platforms simultaneously
-    const scanPromises = prompts.map(async (prompt) => {
-      const [chatgpt, perplexity] = await Promise.all([
-        scanChatGPT(prompt, companyName, website, location),
-        scanPerplexity(prompt, companyName, website, location),
-      ])
-      return { chatgpt, perplexity }
-    })
-
-    // Run max 3 prompts concurrently to avoid rate limits
+    // Run prompts in batches of 3 to avoid rate limits
     const results = { chatgpt: [], perplexity: [] }
     const batchSize = 3
-    for (let i = 0; i < scanPromises.length; i += batchSize) {
-      const batch = scanPromises.slice(i, i + batchSize)
-      const batchResults = await Promise.all(batch)
+    for (let i = 0; i < prompts.length; i += batchSize) {
+      const batch = prompts.slice(i, i + batchSize)
+      console.log(`[ScanSelected] Batch ${Math.floor(i / batchSize) + 1}: prompts ${i + 1}-${Math.min(i + batchSize, prompts.length)}`)
+      const batchResults = await Promise.all(
+        batch.map(async (prompt) => {
+          const [chatgpt, perplexity] = await Promise.all([
+            scanChatGPT(prompt, companyName, website, location),
+            scanPerplexity(prompt, companyName, website, location),
+          ])
+          return { chatgpt, perplexity }
+        })
+      )
       for (const r of batchResults) {
         results.chatgpt.push(r.chatgpt)
         results.perplexity.push(r.perplexity)
@@ -256,7 +255,6 @@ export async function POST(request) {
         total_company_mentions: totalMentions,
       })
       .eq('id', integrationId)
-      .eq('user_id', user.id)
 
     if (updateError) {
       console.error('[ScanSelected] Update error:', updateError)
@@ -268,7 +266,6 @@ export async function POST(request) {
       .from('prompt_discovery_results')
       .update({ status: 'scanned' })
       .eq('scan_integration_id', integrationId)
-      .eq('user_id', user.id)
 
     // Slack notification (fire-and-forget)
     if (process.env.SLACK_WEBHOOK_URL) {
