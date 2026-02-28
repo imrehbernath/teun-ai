@@ -339,6 +339,15 @@ export async function GET(request) {
 
     if (intError) console.error('Error fetching integrations:', intError)
 
+    // ── Prompt Explorer results (prompt_discovery_results) ──
+    // Needed for selection flow when user has Prompt Explorer data but no scans yet
+    const { data: promptDiscoveryRows } = await supabase
+      .from('prompt_discovery_results')
+      .select('id, website, brand_name, branche, location, prompts, clusters, selected_prompts, selected_count, status, scan_integration_id, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(5)
+
     // Deduplicate companies
     const uniqueCompanies = []
     const seenCompanies = new Set()
@@ -649,6 +658,21 @@ export async function GET(request) {
       extensionScanDate: hasExtensionData ? extensionScans[0].created_at : null,
       period,
       totalScans: integrations.length,
+      // Prompt Explorer data for selection flow (when no scans yet)
+      promptDiscovery: (promptDiscoveryRows || []).map(pd => ({
+        id: pd.id,
+        website: pd.website,
+        brandName: pd.brand_name,
+        branche: pd.branche,
+        location: pd.location,
+        prompts: pd.prompts || [],
+        clusters: pd.clusters || [],
+        selectedPrompts: pd.selected_prompts || [],
+        selectedCount: pd.selected_count || 0,
+        status: pd.status,
+        scanIntegrationId: pd.scan_integration_id,
+        createdAt: pd.created_at,
+      })),
     })
 
   } catch (err) {

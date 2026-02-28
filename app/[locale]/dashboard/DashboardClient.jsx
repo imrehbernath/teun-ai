@@ -299,6 +299,282 @@ function EmptyState({ t, locale }) {
 }
 
 // ═══════════════════════════════════════════════
+// ── Prompt Selection Flow (Prompt Explorer → Dashboard) ──
+// ═══════════════════════════════════════════════
+function PromptSelectionFlow({ discovery, locale, onScanTriggered }) {
+  const MAX_SELECT = 10
+  const [selected, setSelected] = useState(new Set())
+  const [scanning, setScanning] = useState(false)
+  const [scanProgress, setScanProgress] = useState('')
+  const [scanError, setScanError] = useState(null)
+  const [expandedCluster, setExpandedCluster] = useState(null)
+
+  // Use most recent discovery result
+  const disc = discovery[0]
+  if (!disc) return null
+
+  const allPrompts = (disc.prompts || []).map((p, i) => ({
+    idx: i,
+    text: p.prompt || p.text || p.query || '',
+    volume: p.volume || p.searchVolume || 0,
+    trend: p.trend || null,
+    competition: p.competition || p.competitionScore || null,
+    cluster: p.cluster || p.category || null,
+  })).filter(p => p.text.length > 0)
+
+  // Group by cluster
+  const clusters = {}
+  for (const p of allPrompts) {
+    const key = p.cluster || (locale === 'nl' ? 'Overig' : 'Other')
+    if (!clusters[key]) clusters[key] = []
+    clusters[key].push(p)
+  }
+  // Sort clusters by total volume
+  const sortedClusters = Object.entries(clusters).sort((a, b) => {
+    const volA = a[1].reduce((s, p) => s + p.volume, 0)
+    const volB = b[1].reduce((s, p) => s + p.volume, 0)
+    return volB - volA
+  })
+
+  const toggle = (idx) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(idx)) { next.delete(idx) }
+      else if (next.size < MAX_SELECT) { next.add(idx) }
+      return next
+    })
+  }
+
+  const autoSelect = () => {
+    // Pick top 10 by volume
+    const sorted = [...allPrompts].sort((a, b) => b.volume - a.volume)
+    setSelected(new Set(sorted.slice(0, MAX_SELECT).map(p => p.idx)))
+  }
+
+  const startScan = async () => {
+    if (selected.size === 0) return
+    setScanning(true)
+    setScanError(null)
+    setScanProgress(locale === 'nl' ? 'Selectie opslaan...' : 'Saving selection...')
+
+    try {
+      const selectedPrompts = allPrompts.filter(p => selected.has(p.idx)).map(p => p.text)
+
+      // Save selection + trigger scan
+      const res = await fetch('/api/prompt-selection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          discoveryId: disc.id,
+          selectedPrompts,
+          website: disc.website,
+          brandName: disc.brandName,
+          branche: disc.branche,
+          location: disc.location,
+        })
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Scan failed')
+
+      setScanProgress(locale === 'nl' ? 'Scan gestart! Even geduld...' : 'Scan started! Please wait...')
+
+      // Poll for completion or just reload
+      if (data.integrationId) {
+        // Scan is running, poll dashboard
+        let attempts = 0
+        const poll = setInterval(async () => {
+          attempts++
+          setScanProgress(locale === 'nl'
+            ? `Scannen op 4 platforms... (${Math.min(attempts * 10, 95)}%)`
+            : `Scanning 4 platforms... (${Math.min(attempts * 10, 95)}%)`)
+          if (attempts >= 12) { // ~2 min timeout
+            clearInterval(poll)
+            onScanTriggered?.()
+          }
+        }, 10000)
+
+        // Also check periodically if scan is done
+        const checkDone = setInterval(async () => {
+          try {
+            const checkRes = await fetch(`/api/dashboard?_t=${Date.now()}`)
+            const checkData = await checkRes.json()
+            if (checkData.prompts?.length > 0) {
+              clearInterval(poll)
+              clearInterval(checkDone)
+              onScanTriggered?.()
+            }
+          } catch {}
+        }, 15000)
+
+        // Cleanup after 3 min max
+        setTimeout(() => { clearInterval(poll); clearInterval(checkDone); onScanTriggered?.() }, 180000)
+      } else {
+        // Immediate completion
+        onScanTriggered?.()
+      }
+    } catch (err) {
+      console.error('Prompt selection/scan error:', err)
+      setScanError(err.message)
+      setScanning(false)
+    }
+  }
+
+  const T = {
+    title: locale === 'nl' ? 'Kies je prompts' : 'Choose your prompts',
+    subtitle: locale === 'nl'
+      ? `De Prompt Explorer heeft ${allPrompts.length} prompts gevonden voor ${disc.brandName || disc.website}. Selecteer er ${MAX_SELECT} om te scannen op alle AI-platforms.`
+      : `The Prompt Explorer found ${allPrompts.length} prompts for ${disc.brandName || disc.website}. Select ${MAX_SELECT} to scan across all AI platforms.`,
+    autoSelect: locale === 'nl' ? 'Top 10 op zoekvolume' : 'Top 10 by search volume',
+    selected: locale === 'nl' ? 'geselecteerd' : 'selected',
+    startScan: locale === 'nl' ? 'Start AI Visibility scan' : 'Start AI Visibility scan',
+    scanning: locale === 'nl' ? 'Bezig met scannen...' : 'Scanning...',
+    volume: locale === 'nl' ? 'vol.' : 'vol.',
+    perMonth: locale === 'nl' ? '/mnd' : '/mo',
+    maxReached: locale === 'nl' ? `Maximum ${MAX_SELECT} bereikt` : `Maximum ${MAX_SELECT} reached`,
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto">
+      {/* Header */}
+      <div className="text-center mb-8">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-100 to-indigo-100 border border-violet-200 flex items-center justify-center mx-auto mb-4">
+          <Sparkles className="w-8 h-8 text-violet-500" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-800 mb-2">{T.title}</h2>
+        <p className="text-sm text-slate-500 max-w-lg mx-auto">{T.subtitle}</p>
+      </div>
+
+      {/* Auto-select + counter */}
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={autoSelect} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-200 text-sm font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50 transition-all cursor-pointer">
+          <Zap className="w-3.5 h-3.5 text-amber-500" /> {T.autoSelect}
+        </button>
+        <div className="flex items-center gap-2">
+          <span className={`text-sm font-semibold ${selected.size === MAX_SELECT ? 'text-emerald-600' : 'text-slate-600'}`}>
+            {selected.size}/{MAX_SELECT}
+          </span>
+          <span className="text-sm text-slate-400">{T.selected}</span>
+        </div>
+      </div>
+
+      {/* Cluster groups */}
+      <div className="space-y-3 mb-8">
+        {sortedClusters.map(([clusterName, clusterPrompts]) => {
+          const isExpanded = expandedCluster === clusterName || sortedClusters.length <= 3
+          const selectedInCluster = clusterPrompts.filter(p => selected.has(p.idx)).length
+          const clusterVol = clusterPrompts.reduce((s, p) => s + p.volume, 0)
+
+          return (
+            <div key={clusterName} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+              {/* Cluster header */}
+              <button
+                onClick={() => setExpandedCluster(expandedCluster === clusterName ? null : clusterName)}
+                className="w-full flex items-center justify-between px-5 py-3.5 bg-transparent border-none cursor-pointer hover:bg-slate-50 transition-colors text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-[14px] font-semibold text-slate-800">{clusterName}</span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                    {clusterPrompts.length} prompts
+                  </span>
+                  {selectedInCluster > 0 && (
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-semibold">
+                      {selectedInCluster} ✓
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] text-slate-400">{clusterVol.toLocaleString()} {T.volume}</span>
+                  {sortedClusters.length > 3 && (
+                    isExpanded ? <ChevronUp className="w-4 h-4 text-slate-300" /> : <ChevronDown className="w-4 h-4 text-slate-300" />
+                  )}
+                </div>
+              </button>
+
+              {/* Prompt list */}
+              {isExpanded && (
+                <div className="border-t border-slate-100 divide-y divide-slate-50">
+                  {clusterPrompts.sort((a, b) => b.volume - a.volume).map(p => {
+                    const isSelected = selected.has(p.idx)
+                    const isDisabled = !isSelected && selected.size >= MAX_SELECT
+
+                    return (
+                      <label
+                        key={p.idx}
+                        className={`flex items-center gap-3 px-5 py-3 cursor-pointer transition-colors ${isSelected ? 'bg-emerald-50/50' : isDisabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-50'}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          disabled={isDisabled}
+                          onChange={() => !isDisabled && toggle(p.idx)}
+                          className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-600"
+                        />
+                        <span className={`flex-1 text-[13px] ${isSelected ? 'text-slate-800 font-medium' : 'text-slate-600'}`}>
+                          {p.text}
+                        </span>
+                        {p.volume > 0 && (
+                          <span className="text-[11px] text-slate-400 tabular-nums shrink-0">
+                            {p.volume.toLocaleString()}{T.perMonth}
+                          </span>
+                        )}
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Max reached notice */}
+      {selected.size >= MAX_SELECT && (
+        <div className="text-center text-[12px] text-amber-600 mb-3">
+          {T.maxReached}
+        </div>
+      )}
+
+      {/* Scan error */}
+      {scanError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 text-center">
+          <p className="text-sm text-red-600">{scanError}</p>
+        </div>
+      )}
+
+      {/* CTA Button */}
+      <div className="text-center">
+        <button
+          onClick={startScan}
+          disabled={selected.size === 0 || scanning}
+          className="inline-flex items-center gap-2.5 px-8 py-4 rounded-xl text-white text-[15px] font-semibold border-none cursor-pointer hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg"
+          style={{ background: 'linear-gradient(135deg, #292956, #1a1a4e)' }}
+        >
+          {scanning ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              {scanProgress || T.scanning}
+            </>
+          ) : (
+            <>
+              <Play className="w-5 h-5" />
+              {T.startScan} ({selected.size} prompts)
+            </>
+          )}
+        </button>
+        {!scanning && selected.size > 0 && (
+          <div className="text-[11px] text-slate-400 mt-3">
+            {locale === 'nl'
+              ? 'Scant op ChatGPT, Perplexity, Google AI Mode en AI Overviews'
+              : 'Scans ChatGPT, Perplexity, Google AI Mode and AI Overviews'}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════
 // ── Main Dashboard ──
 // ═══════════════════════════════════════════════
 
@@ -479,6 +755,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   const googleAiOverview = data?.googleAiOverview || { found: 0, total: 0, pct: 0 }
   const activeCompany = data?.activeCompany
   const companies = data?.companies || []
+  const promptDiscovery = data?.promptDiscovery || []
 
   const totalFound = visibility.found || 0
   const totalPrompts = visibility.totalPrompts || 0
@@ -644,7 +921,10 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
 
           {loading && !data && <div className="flex flex-col items-center justify-center py-32"><Loader2 className="w-8 h-8 text-slate-300 animate-spin mb-4" /><span className="text-sm text-slate-400">{t.loading}</span></div>}
           {error && !loading && <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center"><p className="text-sm text-red-600 mb-3">{error}</p><button onClick={fetchData} className="text-sm text-red-700 underline cursor-pointer bg-transparent border-none">{t.rescan}</button></div>}
-          {!loading && data && totalPrompts === 0 && activeTab === 'overview' && <EmptyState t={t} locale={locale} />}
+          {!loading && data && totalPrompts === 0 && activeTab === 'overview' && promptDiscovery.length > 0 && (
+            <PromptSelectionFlow discovery={promptDiscovery} locale={locale} onScanTriggered={() => { fetchData() }} />
+          )}
+          {!loading && data && totalPrompts === 0 && activeTab === 'overview' && promptDiscovery.length === 0 && <EmptyState t={t} locale={locale} />}
 
           {/* ════════════ OVERVIEW ════════════ */}
           {activeTab === 'overview' && data && totalPrompts > 0 && (
