@@ -341,12 +341,38 @@ export async function GET(request) {
 
     // ── Prompt Explorer results (prompt_discovery_results) ──
     // Needed for selection flow when user has Prompt Explorer data but no scans yet
-    const { data: promptDiscoveryRows } = await supabase
+    const { data: promptDiscoveryRows } = await (async () => {
+  const sessionToken = await getSessionToken()
+
+  let q = supabase
+    .from('prompt_discovery_results')
+    .select('id, website, brand_name, branche, location, prompts, clusters, selected_prompts, selected_count, status, scan_integration_id, created_at')
+    .order('created_at', { ascending: false })
+    .limit(5)
+
+  if (sessionToken) {
+    q = q.or(`user_id.eq.${user.id},and(session_token.eq.${sessionToken},user_id.is.null)`)
+  } else {
+    q = q.eq('user_id', user.id)
+  }
+
+  const result = await q
+
+  // Auto-claim unclaimed rows
+  if (sessionToken && result.data?.some(r => !r.user_id)) {
+    supabase
       .from('prompt_discovery_results')
-      .select('id, website, brand_name, branche, location, prompts, clusters, selected_prompts, selected_count, status, scan_integration_id, created_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(5)
+      .update({ user_id: user.id })
+      .eq('session_token', sessionToken)
+      .is('user_id', null)
+      .then(({ error }) => {
+        if (error) console.error('⚠️ Auto-claim prompt_discovery error:', error.message)
+        else console.log('✅ Auto-claimed prompt_discovery_results')
+      })
+  }
+
+  return result
+})()
 
     // Deduplicate companies
     const uniqueCompanies = []
