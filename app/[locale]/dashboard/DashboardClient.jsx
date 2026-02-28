@@ -315,26 +315,38 @@ function PromptSelectionFlow({ discovery, locale, onScanTriggered }) {
 
   const allPrompts = (disc.prompts || []).map((p, i) => ({
     idx: i,
-    text: p.prompt || p.text || p.query || '',
-    volume: p.volume || p.searchVolume || 0,
-    trend: p.trend || null,
-    competition: p.competition || p.competitionScore || null,
-    cluster: p.cluster || p.category || null,
+    text: p.text || p.prompt || p.query || '',
+    volume: p.estimatedGoogleVolume || p.estimatedAiVolume || p.volume || 0,
+    aiVolume: p.estimatedAiVolume || 0,
+    trend: p.trendSignal || p.trend || null,
+    difficulty: p.difficultyScore || p.difficulty || null,
+    cluster: p.intentCluster || p.cluster || p.category || null,
   })).filter(p => p.text.length > 0)
 
-  // Group by cluster
-  const clusters = {}
-  for (const p of allPrompts) {
-    const key = p.cluster || (locale === 'nl' ? 'Overig' : 'Other')
-    if (!clusters[key]) clusters[key] = []
-    clusters[key].push(p)
+  // Use pre-built clusters from database, fall back to manual grouping
+  const discClusters = disc.clusters || []
+  let sortedClusters
+  if (discClusters.length > 0) {
+    // Map cluster data, reference allPrompts by index for consistent selection
+    sortedClusters = discClusters.map(c => {
+      const clusterPromptIds = (c.prompts || []).map(cp => cp.id)
+      const mapped = clusterPromptIds
+        .map(id => allPrompts.find(p => p.idx === id))
+        .filter(Boolean)
+      return [c.name, mapped, c.totalVolume || 0]
+    }).sort((a, b) => b[2] - a[2])
+  } else {
+    // Fallback: group by intentCluster field
+    const grouped = {}
+    for (const p of allPrompts) {
+      const key = p.cluster || (locale === 'nl' ? 'Overig' : 'Other')
+      if (!grouped[key]) grouped[key] = []
+      grouped[key].push(p)
+    }
+    sortedClusters = Object.entries(grouped)
+      .map(([name, prompts]) => [name, prompts, prompts.reduce((s, p) => s + p.volume, 0)])
+      .sort((a, b) => b[2] - a[2])
   }
-  // Sort clusters by total volume
-  const sortedClusters = Object.entries(clusters).sort((a, b) => {
-    const volA = a[1].reduce((s, p) => s + p.volume, 0)
-    const volB = b[1].reduce((s, p) => s + p.volume, 0)
-    return volB - volA
-  })
 
   const toggle = (idx) => {
     setSelected(prev => {
@@ -460,10 +472,9 @@ function PromptSelectionFlow({ discovery, locale, onScanTriggered }) {
 
       {/* Cluster groups */}
       <div className="space-y-3 mb-8">
-        {sortedClusters.map(([clusterName, clusterPrompts]) => {
+        {sortedClusters.map(([clusterName, clusterPrompts, clusterVol]) => {
           const isExpanded = expandedCluster === clusterName || sortedClusters.length <= 3
           const selectedInCluster = clusterPrompts.filter(p => selected.has(p.idx)).length
-          const clusterVol = clusterPrompts.reduce((s, p) => s + p.volume, 0)
 
           return (
             <div key={clusterName} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
