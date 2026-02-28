@@ -12,7 +12,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Niet ingelogd' }, { status: 401 })
     }
 
-    // Service client for DB operations (bypasses RLS, same as ai-visibility-analysis)
+    // Service client for DB operations (bypasses RLS)
     const supabase = await createServiceClient()
 
     const body = await request.json()
@@ -29,41 +29,34 @@ export async function POST(request) {
     console.log(`[PromptSelection] User ${user.id} selected ${selectedPrompts.length} prompts for ${brandName}`)
 
     // 1. Update prompt_discovery_results with selection
-    //    user_id might still be NULL if claim hasn't run — also claim here
-    const sessionToken = user.user_metadata?.session_token || null
-
-    let updateQuery = supabase
+    //    Service client + unique ID = no user_id filter needed
+    const { error: updateError } = await supabase
       .from('prompt_discovery_results')
       .update({
         selected_prompts: selectedPrompts,
         selected_count: selectedPrompts.length,
         status: 'selected',
-        user_id: user.id, // Claim ownership during selection
+        user_id: user.id, // Claim ownership
       })
       .eq('id', discoveryId)
 
-    if (sessionToken) {
-      updateQuery = updateQuery.or(`user_id.eq.${user.id},session_token.eq.${sessionToken}`)
-    } else {
-      updateQuery = updateQuery.eq('user_id', user.id)
-    }
-
-    const { error: updateError } = await updateQuery
     if (updateError) {
       console.error('[PromptSelection] Update error:', updateError)
-      // Non-blocking: continue to create integration even if discovery update fails
+      // Non-blocking: continue to create integration
     }
 
-    // 2. Create tool_integrations entry with commercial_prompts
+    // 2. Create tool_integrations entry
+    const companyName = brandName || (() => {
+      try { return new URL(website.startsWith('http') ? website : `https://${website}`).hostname.replace('www.', '') }
+      catch { return website }
+    })()
+
     const { data: integration, error: insertError } = await supabase
       .from('tool_integrations')
       .insert({
         user_id: user.id,
-        keyword: brandName || website,
-        company_name: brandName || (() => {
-          try { return new URL(website.startsWith('http') ? website : `https://${website}`).hostname.replace('www.', '') }
-          catch { return website }
-        })(),
+        keyword: companyName, // NOT NULL column
+        company_name: companyName,
         website: website,
         company_category: branche || null,
         commercial_prompts: selectedPrompts,
@@ -79,29 +72,28 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Failed to create integration' }, { status: 500 })
     }
 
-    // 3. Link back: store integration ID in prompt_discovery_results
-    if (sessionToken) {
-      await supabase
-        .from('prompt_discovery_results')
-        .update({ scan_integration_id: integration.id })
-        .eq('id', discoveryId)
-        .or(`user_id.eq.${user.id},session_token.eq.${sessionToken}`)
+    // 3. Link back: store integration ID in discovery
+    const { error: linkError } = await supabase
+      .from('prompt_discovery_results')
+      .update({ scan_integration_id: integration.id })
+      .eq('id', discoveryId)
+
+    if (linkError) {
+      console.error('[PromptSelection] Link error:', linkError)
     }
 
-    console.log(`[PromptSelection] Created integration ${integration.id} for ${brandName} with ${selectedPrompts.length} prompts`)
+    console.log(`[PromptSelection] Created integration ${integration.id} for ${companyName}`)
 
     // 4. Trigger scan in background (fire-and-forget)
+    //    No cookies needed — scan endpoint uses service client only
     const scanUrl = new URL('/api/scan-selected-prompts', request.url)
     fetch(scanUrl.toString(), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': request.headers.get('cookie') || '',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         integrationId: integration.id,
         prompts: selectedPrompts,
-        companyName: brandName,
+        companyName: companyName,
         website: website,
         branche: branche,
         location: location,

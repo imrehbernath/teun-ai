@@ -391,35 +391,49 @@ function PromptSelectionFlow({ discovery, locale, onScanTriggered }) {
 
       setScanProgress(locale === 'nl' ? 'Scan gestart! Even geduld...' : 'Scan started! Please wait...')
 
-      // Poll for completion or just reload
+      // Poll for completion
       if (data.integrationId) {
-        // Scan is running, poll dashboard
         let attempts = 0
         const poll = setInterval(async () => {
           attempts++
-          setScanProgress(locale === 'nl'
-            ? `Scannen op 4 platforms... (${Math.min(attempts * 10, 95)}%)`
-            : `Scanning 4 platforms... (${Math.min(attempts * 10, 95)}%)`)
-          if (attempts >= 12) { // ~2 min timeout
+          const pct = Math.min(5 + attempts * 8, 95)
+          const promptNum = Math.min(Math.floor(pct / 10) + 1, 10)
+          if (pct < 50) {
+            setScanProgress(locale === 'nl'
+              ? `ChatGPT: prompt ${promptNum}/10 analyseren... (${pct}%)`
+              : `ChatGPT: analyzing prompt ${promptNum}/10... (${pct}%)`)
+          } else if (pct < 90) {
+            setScanProgress(locale === 'nl'
+              ? `Perplexity: prompt ${Math.min(promptNum - 5, 10)}/10 analyseren... (${pct}%)`
+              : `Perplexity: analyzing prompt ${Math.min(promptNum - 5, 10)}/10... (${pct}%)`)
+          } else {
+            setScanProgress(locale === 'nl'
+              ? `Resultaten verwerken... (${pct}%)`
+              : `Processing results... (${pct}%)`)
+          }
+          if (attempts >= 20) { // ~2 min timeout
             clearInterval(poll)
+            clearInterval(checkDone)
             onScanTriggered?.()
           }
-        }, 10000)
+        }, 6000)
 
-        // Also check periodically if scan is done
+        // Check if scan is done every 12s
         const checkDone = setInterval(async () => {
           try {
-            const checkRes = await fetch(`/api/dashboard?_t=${Date.now()}`)
+            const checkRes = await fetch(`/api/dashboard?period=90d&_t=${Date.now()}`)
             const checkData = await checkRes.json()
-            if (checkData.prompts?.length > 0) {
+            // Scan is done when visibility data has actual prompts
+            if (checkData.visibility?.totalPrompts > 0) {
               clearInterval(poll)
               clearInterval(checkDone)
-              onScanTriggered?.()
+              setScanProgress(locale === 'nl' ? 'Klaar! Dashboard laden...' : 'Done! Loading dashboard...')
+              setTimeout(() => onScanTriggered?.(), 1000)
             }
           } catch {}
-        }, 15000)
+        }, 12000)
 
-        // Cleanup after 3 min max
+        // Hard timeout 3 min
         setTimeout(() => { clearInterval(poll); clearInterval(checkDone); onScanTriggered?.() }, 180000)
       } else {
         // Immediate completion

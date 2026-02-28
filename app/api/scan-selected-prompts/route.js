@@ -3,7 +3,7 @@
 // Lightweight endpoint: takes pre-selected prompts, runs dual-platform scan,
 // updates tool_integrations with results in the same format as GEO Analyse.
 // Does NOT touch /api/ai-visibility-analysis (that's the full wizard pipeline).
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 
@@ -199,14 +199,8 @@ async function scanPerplexity(prompt, companyName, website, location) {
 
 export async function POST(request) {
   try {
-    // Auth check via regular client
-    const authClient = await createClient()
-    const { data: { user }, error: authError } = await authClient.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Niet ingelogd' }, { status: 401 })
-    }
-
-    // Service client for DB operations (bypasses RLS)
+    // Internal endpoint — called by prompt-selection (which handles auth)
+    // Uses service client for all DB operations
     const supabase = await createServiceClient()
 
     const { integrationId, prompts, companyName, website, branche, location } = await request.json()
