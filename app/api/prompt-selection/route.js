@@ -13,7 +13,7 @@ export async function POST(request) {
     }
 
     // Service client for DB operations (bypasses RLS, same as ai-visibility-analysis)
-    const supabase = createServiceClient()
+    const supabase = await createServiceClient()
 
     const body = await request.json()
     const { discoveryId, selectedPrompts, website, brandName, branche, location } = body

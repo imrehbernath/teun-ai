@@ -207,7 +207,7 @@ export async function POST(request) {
     }
 
     // Service client for DB operations (bypasses RLS)
-    const supabase = createServiceClient()
+    const supabase = await createServiceClient()
 
     const { integrationId, prompts, companyName, website, branche, location } = await request.json()
 
