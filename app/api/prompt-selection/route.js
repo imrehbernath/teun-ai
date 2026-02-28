@@ -29,34 +29,45 @@ export async function POST(request) {
     console.log(`[PromptSelection] User ${user.id} selected ${selectedPrompts.length} prompts for ${brandName}`)
 
     // 1. Update prompt_discovery_results with selection
-    const { error: updateError } = await supabase
+    //    user_id might still be NULL if claim hasn't run — also claim here
+    const sessionToken = user.user_metadata?.session_token || null
+
+    let updateQuery = supabase
       .from('prompt_discovery_results')
       .update({
         selected_prompts: selectedPrompts,
         selected_count: selectedPrompts.length,
         status: 'selected',
+        user_id: user.id, // Claim ownership during selection
       })
       .eq('id', discoveryId)
-      .eq('user_id', user.id)
 
+    if (sessionToken) {
+      updateQuery = updateQuery.or(`user_id.eq.${user.id},session_token.eq.${sessionToken}`)
+    } else {
+      updateQuery = updateQuery.eq('user_id', user.id)
+    }
+
+    const { error: updateError } = await updateQuery
     if (updateError) {
       console.error('[PromptSelection] Update error:', updateError)
-      return NextResponse.json({ error: 'Failed to save selection' }, { status: 500 })
+      // Non-blocking: continue to create integration even if discovery update fails
     }
 
     // 2. Create tool_integrations entry with commercial_prompts
-    //    This seeds the dashboard with the company + prompts
-    //    The actual scan (ChatGPT + Perplexity) is triggered separately
     const { data: integration, error: insertError } = await supabase
       .from('tool_integrations')
       .insert({
         user_id: user.id,
-        company_name: brandName || new URL(website.startsWith('http') ? website : `https://${website}`).hostname.replace('www.', ''),
+        company_name: brandName || (() => {
+          try { return new URL(website.startsWith('http') ? website : `https://${website}`).hostname.replace('www.', '') }
+          catch { return website }
+        })(),
         website: website,
         company_category: branche || null,
         commercial_prompts: selectedPrompts,
         prompts_count: selectedPrompts.length,
-        results: { chatgpt: [], perplexity: [] }, // Empty — will be filled by scan
+        results: { chatgpt: [], perplexity: [] },
         total_company_mentions: 0,
       })
       .select('id')
@@ -68,17 +79,17 @@ export async function POST(request) {
     }
 
     // 3. Link back: store integration ID in prompt_discovery_results
-    await supabase
-      .from('prompt_discovery_results')
-      .update({ scan_integration_id: integration.id })
-      .eq('id', discoveryId)
-      .eq('user_id', user.id)
+    if (sessionToken) {
+      await supabase
+        .from('prompt_discovery_results')
+        .update({ scan_integration_id: integration.id })
+        .eq('id', discoveryId)
+        .or(`user_id.eq.${user.id},session_token.eq.${sessionToken}`)
+    }
 
     console.log(`[PromptSelection] Created integration ${integration.id} for ${brandName} with ${selectedPrompts.length} prompts`)
 
-    // 4. Trigger scan in background
-    //    Call the internal scan endpoint (fire-and-forget)
-    //    This runs ChatGPT + Perplexity scans on the selected prompts
+    // 4. Trigger scan in background (fire-and-forget)
     const scanUrl = new URL('/api/scan-selected-prompts', request.url)
     fetch(scanUrl.toString(), {
       method: 'POST',
