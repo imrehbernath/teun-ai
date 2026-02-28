@@ -1,16 +1,19 @@
 // app/api/prompt-selection/route.js
 // ── Save selected prompts from Prompt Explorer → trigger AI visibility scan ──
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 export async function POST(request) {
   try {
-    const supabase = await createClient()
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // Auth check via regular client
+    const authClient = await createClient()
+    const { data: { user }, error: authError } = await authClient.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Niet ingelogd' }, { status: 401 })
     }
+
+    // Service client for DB operations (bypasses RLS, same as ai-visibility-analysis)
+    const supabase = createServiceClient()
 
     const body = await request.json()
     const { discoveryId, selectedPrompts, website, brandName, branche, location } = body
