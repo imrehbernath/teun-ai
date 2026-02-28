@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, Link } from '@/i18n/navigation';
 import Image from 'next/image';
@@ -16,6 +16,18 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [sessionToken, setSessionToken] = useState(null);
+
+  // ── NEW: Fetch session token on mount ──
+  // Cookie is httpOnly, so we read it via a tiny API endpoint
+  useEffect(() => {
+    fetch('/api/session-token')
+      .then(res => res.json())
+      .then(data => {
+        if (data.sessionToken) setSessionToken(data.sessionToken);
+      })
+      .catch(() => {}); // Non-critical — signup still works without it
+  }, []);
 
   const handleSignup = async (e) => {
     e.preventDefault();
@@ -35,7 +47,12 @@ export default function SignupPage() {
       options: {
         // Auth callback is outside next-intl, so construct locale-aware path manually
         emailRedirectTo: `${window.location.origin}/auth/callback?next=${locale === 'nl' ? '/dashboard' : '/en/dashboard'}`,
-        data: { locale }
+        data: {
+          locale,
+          // ── NEW: Pass session token so confirm route can claim anonymous data ──
+          // This persists in Supabase user_metadata, available regardless of browser context
+          ...(sessionToken ? { session_token: sessionToken } : {})
+        }
       },
     });
 

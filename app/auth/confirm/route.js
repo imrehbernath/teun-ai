@@ -1,7 +1,6 @@
 // app/auth/confirm/route.js
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { claimSessionData } from '@/lib/session-token'
 
 export async function GET(request) {
   const requestUrl = new URL(request.url)
@@ -21,7 +20,17 @@ export async function GET(request) {
       // Koppel anonieme scan data aan de nieuwe user
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        await claimSessionData(supabase, user.id)
+        // ── FIX: Read session_token from user_metadata instead of cookie ──
+        // Cookie is not available here (user clicked confirm link in email,
+        // possibly different browser/device). But the session_token was saved
+        // in user_metadata during signUp(), so it's always accessible.
+        const sessionToken = user.user_metadata?.session_token
+        if (sessionToken) {
+          await supabase.rpc('claim_anonymous_sessions', {
+            p_session_token: sessionToken,
+            p_user_id: user.id
+          })
+        }
       }
 
       return NextResponse.redirect(`${requestUrl.origin}${next}`)
