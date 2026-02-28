@@ -655,7 +655,7 @@ function ScanInProgress({ locale, company, onRefresh }) {
 
 export default function DashboardClient({ locale, t, userId, userEmail }) {
   const [activeTab, setActiveTab] = useState('overview')
-  const [period, setPeriod] = useState('30d')
+  const period = '90d' // Always show all data — period tabs removed
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -779,7 +779,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
       if (!companyExists && json.activeCompany?.name) setSelectedCompany(json.activeCompany.name)
     } catch (err) { console.error('Dashboard fetch error:', err); setError(err.message) }
     finally { setLoading(false) }
-  }, [period, selectedCompany])
+  }, [selectedCompany])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -988,9 +988,6 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
               <p className="text-[13px] text-slate-400 mt-1 m-0">{subtitle}</p>
             </div>
             <div className="flex gap-2 items-center shrink-0">
-              {['7d', '30d', '90d'].map(p => (
-                <button key={p} onClick={() => setPeriod(p)} className={`px-3.5 py-1.5 rounded-lg border text-[12px] font-medium cursor-pointer transition-all ${period === p ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}>{p}</button>
-              ))}
             </div>
           </div>
 
