@@ -60,13 +60,38 @@ async function scanChatGPT(prompt, companyName, website, location) {
       if (mentionCount === 0) mentionCount = 1
     }
 
-    // Extract competitors (basic: numbered list items that aren't the company)
+    // Extract competitors (handles multiple ChatGPT response formats)
     const competitors = []
     const lines = text.split('\n')
     for (const line of lines) {
-      const match = line.trim().match(/^(?:[•📌🔹\d]+[.)]*\s*)\*?\*?([\p{L}\p{N}][\p{L}\p{N}\s&'.-]+?)\*?\*?\s*[–—\-:]/u)
-      if (match) {
-        let name = match[1].trim().replace(/\*\*/g, '')
+      const trimmed = line.trim()
+      let name = null
+
+      // Format 1: **[Name](url)** or [Name](url)
+      const linkMatch = trimmed.match(/\*?\*?\[([^\]]{2,60})\]\([^)]+\)\*?\*?/)
+      if (linkMatch) name = linkMatch[1]
+
+      // Format 2: **Name** at start of line (bold heading)
+      if (!name) {
+        const boldMatch = trimmed.match(/^(?:[•📌🔹\-\d]+[.)]*\s*)?\*\*([^*]{2,60})\*\*/)
+        if (boldMatch) name = boldMatch[1]
+      }
+
+      // Format 3: Numbered list: 1. Name – description
+      if (!name) {
+        const listMatch = trimmed.match(/^(?:[•📌🔹\d]+[.)]*\s*)\*?\*?([\p{L}\p{N}][\p{L}\p{N}\s&'.-]+?)\*?\*?\s*[–—\-:]/u)
+        if (listMatch) name = listMatch[1]
+      }
+
+      // Format 4: ### Name (markdown heading)
+      if (!name) {
+        const headingMatch = trimmed.match(/^#{1,4}\s+(.{2,60})/)
+        if (headingMatch) name = headingMatch[1].replace(/\*\*/g, '').trim()
+      }
+
+      if (name) {
+        name = name.replace(/\*\*/g, '').replace(/\[.*?\]\(.*?\)/g, '').trim()
+        // Skip if it's the company itself or too short/long
         if (name.length >= 2 && name.length <= 60 && !variants.some(v => name.toLowerCase().includes(v))) {
           competitors.push(name)
         }
@@ -154,13 +179,37 @@ async function scanPerplexity(prompt, companyName, website, location) {
       if (mentionCount === 0) mentionCount = 1
     }
 
-    // Extract competitors
+    // Extract competitors (handles multiple response formats)
     const competitors = []
-    const lines = text.split('\n')
-    for (const line of lines) {
-      const match = line.trim().match(/^(?:[•📌🔹\d]+[.)]*\s*)\*?\*?([\p{L}\p{N}][\p{L}\p{N}\s&'.-]+?)\*?\*?\s*[–—\-:]/u)
-      if (match) {
-        let name = match[1].trim().replace(/\*\*/g, '')
+    const pLines = text.split('\n')
+    for (const line of pLines) {
+      const trimmed = line.trim()
+      let name = null
+
+      // Format 1: ### Name or ### Name (address)
+      const headingMatch = trimmed.match(/^#{1,4}\s+([^(]{2,60})/)
+      if (headingMatch) name = headingMatch[1].replace(/\*\*/g, '').trim()
+
+      // Format 2: **Name** at start of line
+      if (!name) {
+        const boldMatch = trimmed.match(/^(?:[•📌🔹\-\d]+[.)]*\s*)?\*\*([^*]{2,60})\*\*/)
+        if (boldMatch) name = boldMatch[1]
+      }
+
+      // Format 3: **[Name](url)**
+      if (!name) {
+        const linkMatch = trimmed.match(/\*?\*?\[([^\]]{2,60})\]\([^)]+\)\*?\*?/)
+        if (linkMatch) name = linkMatch[1]
+      }
+
+      // Format 4: Numbered list: 1. Name – description
+      if (!name) {
+        const listMatch = trimmed.match(/^(?:[•📌🔹\d]+[.)]*\s*)\*?\*?([\p{L}\p{N}][\p{L}\p{N}\s&'.-]+?)\*?\*?\s*[–—\-:]/u)
+        if (listMatch) name = listMatch[1]
+      }
+
+      if (name) {
+        name = name.replace(/\*\*/g, '').replace(/\[.*?\]\(.*?\)/g, '').trim()
         if (name.length >= 2 && name.length <= 60 && !variants.some(v => name.toLowerCase().includes(v))) {
           competitors.push(name)
         }

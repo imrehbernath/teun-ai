@@ -108,7 +108,7 @@ function buildPromptDetails(results, commercialPrompts) {
         mentionCount: chatgpt?.mentions_count || 0,
         snippet: chatgpt?.simulated_ai_response_snippet || null,
         competitors: chatgpt?.competitors_mentioned || [],
-        sources: chatgpt?.sources || chatgpt?.references || chatgpt?.cited_sources || [],
+        sources: (chatgpt?.sources || chatgpt?.references || chatgpt?.cited_sources || []).map(s => typeof s === 'string' ? s : (s?.link || s?.url || '')).filter(Boolean),
         fromExtension: chatgpt?._fromExtension || false,
       },
       perplexity: {
@@ -116,7 +116,7 @@ function buildPromptDetails(results, commercialPrompts) {
         mentionCount: perplexity?.mentions_count || 0,
         snippet: perplexity?.simulated_ai_response_snippet || null,
         competitors: perplexity?.competitors_mentioned || [],
-        sources: perplexity?.sources || perplexity?.references || perplexity?.cited_sources || [],
+        sources: (perplexity?.sources || perplexity?.references || perplexity?.cited_sources || []).map(s => typeof s === 'string' ? s : (s?.link || s?.url || '')).filter(Boolean),
       },
     })
   }
