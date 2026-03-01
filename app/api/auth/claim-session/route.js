@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { getSessionToken, claimSessionData } from '@/lib/session-token'
+import { claimSessionData } from '@/lib/session-token'
 
 export async function POST() {
   try {
@@ -12,16 +12,9 @@ export async function POST() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    // Session token uit cookie
-    const sessionToken = await getSessionToken()
-
-    if (!sessionToken) {
-      return NextResponse.json({ claimed: { total: 0 }, message: 'No session token' })
-    }
-
     // Claim via service role (bypasses RLS)
     const supabaseAdmin = await createServiceClient()
-    const result = await claimSessionData(supabaseAdmin, user.id, sessionToken)
+    const result = await claimSessionData(supabaseAdmin, user.id)
 
     const total = (result.tool_integrations || 0) + (result.prompt_discovery_results || 0)
 
