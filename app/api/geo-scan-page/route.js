@@ -109,6 +109,33 @@ const MESSAGES = {
 function getMsg(locale) { return MESSAGES[locale] || MESSAGES['nl'] }
 
 
+// ============================================
+// LANGUAGE DETECTION
+// ============================================
+function detectPageLanguage(html, url) {
+  const langMatch = html.match(/<html[^>]*\slang=["']([a-z]{2})/i)
+  if (langMatch) {
+    const lang = langMatch[1].toLowerCase()
+    if (lang === 'en') return 'en'
+    if (lang === 'nl') return 'nl'
+  }
+  if (url) {
+    const urlLower = url.toLowerCase()
+    if (/\/(en|eng)(\/|$)/.test(urlLower)) return 'en'
+    if (/\/(nl|ned)(\/|$)/.test(urlLower)) return 'nl'
+  }
+  const bodyText = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').toLowerCase().slice(0, 5000)
+  const nlWords = ['het', 'een', 'van', 'voor', 'met', 'zijn', 'naar', 'ook', 'meer', 'niet', 'onze', 'wij', 'deze', 'waar', 'welke', 'bij', 'maar', 'wordt', 'alle', 'over', 'nog', 'wat', 'uit', 'veel', 'door', 'kan', 'ons', 'heeft']
+  const enWords = ['the', 'and', 'for', 'with', 'our', 'your', 'this', 'that', 'from', 'are', 'was', 'been', 'have', 'has', 'will', 'can', 'you', 'they', 'which', 'about', 'more', 'their', 'also', 'would', 'into', 'than', 'these', 'when', 'where', 'how']
+  let nlScore = 0, enScore = 0
+  nlWords.forEach(w => { nlScore += (bodyText.match(new RegExp(`\\b${w}\\b`, 'g')) || []).length })
+  enWords.forEach(w => { enScore += (bodyText.match(new RegExp(`\\b${w}\\b`, 'g')) || []).length })
+  if (enScore > nlScore * 1.5) return 'en'
+  if (nlScore > enScore * 1.5) return 'nl'
+  return 'nl'
+}
+
+
 async function scrapeWebsite(url) {
   try {
     let normalizedUrl = url.trim()
@@ -260,7 +287,7 @@ function analyzeHtml(html, url, coreWebVitals = null, locale = 'nl') {
   if (checks.indexable) techScore += 2
   else issues.push(msg.noindex)
   
-  scores.technisch = { score: techScore, max: techMax, percentage: Math.round((techScore / techMax) * 100) }
+  scores.technical = { score: techScore, max: techMax, percentage: Math.round((techScore / techMax) * 100) }
 
   // ============================================
   // CONTENT KWALITEIT (Max 25 punten)
@@ -471,12 +498,14 @@ function analyzeHtml(html, url, coreWebVitals = null, locale = 'nl') {
 
   // ============================================
   // AI/GEO SIGNALEN (Max 25 punten)
+  // Bilingual: patterns detect both NL and EN signals
   // ============================================
   let geoScore = 0
   const geoMax = 25
+  const isEn = locale === 'en'
   
   // FAQ content aanwezig (5 punten)
-  const hasFaqSection = hasMatch(/veelgestelde vragen|faq|vraag en antwoord|frequently asked/i)
+  const hasFaqSection = hasMatch(/veelgestelde vragen|faq|vraag en antwoord|frequently asked|common questions|q\s*&\s*a/i)
   const questionCount = (textContent.match(/\?/g) || []).length
   checks.has_faq_content = hasFaqSection || questionCount >= 5
   
@@ -485,48 +514,71 @@ function analyzeHtml(html, url, coreWebVitals = null, locale = 'nl') {
   else if (questionCount >= 2) geoScore += 1
   else issues.push(msg.noFaqContent)
   
-  // Directe antwoorden (5 punten)
-  const hasDirectAnswer = hasMatch(/<(p|div|span)[^>]*>[^<]{0,50}(ja|nee|dit is|het antwoord|kort gezegd|samengevat)/i)
-  const hasHowTo = hasMatch(/stap\s*\d|stap-voor-stap|zo werkt|hoe.*:/i)
-  const hasDefinition = hasMatch(/(is een|betekent|wordt gedefinieerd als|houdt in dat)/i)
+  // Directe antwoorden (5 punten) — bilingual patterns
+  const hasDirectAnswerNl = hasMatch(/<(p|div|span)[^>]*>[^<]{0,50}(ja|nee|dit is|het antwoord|kort gezegd|samengevat)/i)
+  const hasDirectAnswerEn = hasMatch(/<(p|div|span)[^>]*>[^<]{0,50}(yes|no|this is|the answer|in short|in summary|simply put|basically)/i)
+  const hasHowToNl = hasMatch(/stap\s*\d|stap-voor-stap|zo werkt|hoe.*:/i)
+  const hasHowToEn = hasMatch(/step\s*\d|step-by-step|how it works|how to/i)
+  const hasDefinitionNl = hasMatch(/(is een|betekent|wordt gedefinieerd als|houdt in dat)/i)
+  const hasDefinitionEn = hasMatch(/(is a|means|is defined as|refers to|consists of)/i)
+  
+  const hasDirectAnswer = hasDirectAnswerNl || hasDirectAnswerEn
+  const hasHowTo = hasHowToNl || hasHowToEn
+  const hasDefinition = hasDefinitionNl || hasDefinitionEn
   checks.has_direct_answers = hasDirectAnswer || hasHowTo || hasDefinition
   
   if (hasDirectAnswer && hasHowTo) geoScore += 5
   else if (hasDirectAnswer || hasHowTo || hasDefinition) geoScore += 3
   else issues.push(msg.noDirectAnswers)
   
-  // Lokale informatie (4 punten)
-  const dutchCities = /amsterdam|rotterdam|den haag|utrecht|eindhoven|groningen|tilburg|almere|breda|nijmegen/i
+  // Lokale informatie (4 punten) — bilingual city/region detection
+  const dutchCities = /amsterdam|rotterdam|den haag|the hague|utrecht|eindhoven|groningen|tilburg|almere|breda|nijmegen|haarlem|arnhem|delft|leiden/i
   const hasCity = dutchCities.test(textContent)
-  const hasPostcode = /\b\d{4}\s*[A-Z]{2}\b/.test(textContent)
-  const hasRegion = /nederland|noord-holland|zuid-holland|brabant|gelderland|limburg|regio/i.test(textContent)
-  checks.has_local_info = hasCity || hasPostcode || hasRegion
+  const hasPostcode = /\b\d{4}\s*[A-Z]{2}\b/.test(textContent) // NL format
+  const hasRegionNl = /nederland|netherlands|noord-holland|zuid-holland|brabant|gelderland|limburg|regio|region/i.test(textContent)
+  const hasAddress = /street|straat|avenue|laan|weg|plein|square|road/i.test(textContent)
+  checks.has_local_info = hasCity || hasPostcode || hasRegionNl || hasAddress
   
-  if (hasCity && (hasPostcode || hasRegion)) geoScore += 4
-  else if (hasCity || hasPostcode) geoScore += 2
+  if (hasCity && (hasPostcode || hasRegionNl)) geoScore += 4
+  else if (hasCity || hasPostcode || hasAddress) geoScore += 2
   else issues.push(msg.noLocalInfo)
   
-  // Auteur/expertise (4 punten)
-  const hasAuthor = hasMatch(/geschreven door|auteur|door\s+[A-Z][a-z]+\s+[A-Z]/i)
-  const hasCredentials = hasMatch(/jaar ervaring|gecertificeerd|specialist|expert|diploma|bevoegd/i)
-  const hasAboutAuthor = hasMatch(/over de auteur|author|written by/i)
+  // Auteur/expertise (4 punten) — bilingual
+  const hasAuthorNl = hasMatch(/geschreven door|auteur|door\s+[A-Z][a-z]+\s+[A-Z]/i)
+  const hasAuthorEn = hasMatch(/written by|author|by\s+[A-Z][a-z]+\s+[A-Z]/i)
+  const hasCredentialsNl = hasMatch(/jaar ervaring|gecertificeerd|specialist|expert|diploma|bevoegd/i)
+  const hasCredentialsEn = hasMatch(/years?.?\s*(of\s+)?experience|certified|specialist|expert|diploma|qualified|accredited/i)
+  const hasAboutAuthor = hasMatch(/over de auteur|about the author|author bio|written by/i)
+  
+  const hasAuthor = hasAuthorNl || hasAuthorEn
+  const hasCredentials = hasCredentialsNl || hasCredentialsEn
   checks.has_expertise_signals = hasAuthor || hasCredentials
   
   if (hasAuthor && hasCredentials) geoScore += 4
   else if (hasAuthor || hasCredentials || hasAboutAuthor) geoScore += 2
   else issues.push(msg.noExpertise)
   
-  // Datum/actualiteit (3 punten)
-  const hasDate = hasMatch(/\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}|\d{1,2}\s+(januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december)\s+\d{4}/i)
-  const hasUpdated = hasMatch(/bijgewerkt|updated|laatst gewijzigd|gepubliceerd/i)
+  // Datum/actualiteit (3 punten) — bilingual month names + patterns
+  const hasDateNl = hasMatch(/\d{1,2}\s+(januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december)\s+\d{4}/i)
+  const hasDateEn = hasMatch(/\d{1,2}\s+(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{4}/i)
+  const hasDateEnAlt = hasMatch(/(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2},?\s+\d{4}/i)
+  const hasDateIso = hasMatch(/\d{4}-\d{2}-\d{2}/)
+  const hasDateSlash = hasMatch(/\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}/)
+  const hasUpdatedNl = hasMatch(/bijgewerkt|laatst gewijzigd|gepubliceerd/i)
+  const hasUpdatedEn = hasMatch(/updated|last modified|published|posted on/i)
+  
+  const hasDate = hasDateNl || hasDateEn || hasDateEnAlt || hasDateIso || hasDateSlash
+  const hasUpdated = hasUpdatedNl || hasUpdatedEn
   checks.has_date = hasDate || hasUpdated
   
   if (hasDate && hasUpdated) geoScore += 3
   else if (hasDate || hasUpdated) geoScore += 2
   else issues.push(msg.noDate)
   
-  // Conversationele stijl (4 punten)
-  const hasConversational = hasMatch(/(wij|we|ons|onze|u |je |jouw )/i)
+  // Conversationele stijl (4 punten) — bilingual
+  const hasConversationalNl = hasMatch(/(wij|we|ons|onze|u |je |jouw )/i)
+  const hasConversationalEn = hasMatch(/\b(we|us|our|you|your|you're|we're)\b/i)
+  const hasConversational = hasConversationalNl || hasConversationalEn
   const hasQuestions = questionCount >= 3
   const hasLists = countMatches(/<(ul|ol)[^>]*>/gi) >= 2
   checks.conversational_style = hasConversational && (hasQuestions || hasLists)
@@ -602,11 +654,16 @@ export async function POST(request) {
       })
     }
     
-    // Analyze with Core Web Vitals data
-    const results = analyzeHtml(html, url, coreWebVitals, locale)
+    // Detect page language — use for analysis (not UI locale)
+    const pageLang = detectPageLanguage(html, url)
+    console.log(`[GEO Scan] Page language: ${pageLang} (UI: ${locale}) — ${url}`)
+    
+    // Analyze with Core Web Vitals data — use PAGE language for patterns + messages
+    const results = analyzeHtml(html, url, coreWebVitals, pageLang)
     
     return NextResponse.json({
       ...results,
+      detectedLanguage: pageLang,
       scanned: true
     })
     

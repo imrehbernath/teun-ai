@@ -481,7 +481,7 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
 
     // Build category cards with checks
     const cats = categoryDefs.map(cat => {
-      const catScore = scores[cat.key]
+      const catScore = scores[cat.key] || (cat.key === 'technical' ? scores['technisch'] : null)
       const checks = cat.items
         .filter(item => checklist[item.key] !== undefined)
         .map(item => ({
