@@ -147,7 +147,7 @@ function parseHtml(html) {
     const href = (link.match(/href=["']([^"']+)["']/) || [])[1] || ''
     const text = link.replace(/<[^>]+>/g, '').trim()
     if (href && text.length > 2 && text.length < 80 &&
-      /dienst|service|product|oploss|behandel|specialist|aanbod|werkgebied|wat-we|over-ons/i.test(href + text))
+      /dienst|service|product|oploss|behandel|specialist|aanbod|werkgebied|wat-we|over-ons|about|pricing|solutions|offerings|portfolio|what-we/i.test(href + text))
       serviceLinks.push(`${text} (${href})`)
   })
 
@@ -527,10 +527,12 @@ ONLY the JSON array, no extra text.`
 // GOOGLE AI MODE SCAN (SerpAPI — Pro only)
 // ═══════════════════════════════════════════════
 
-async function scanGoogleAiMode(prompt, companyName) {
+async function scanGoogleAiMode(prompt, companyName, lang = 'nl') {
   if (!SERPAPI_KEY) return { competitors: [], mentioned: false, snippet: null }
   try {
-    const params = new URLSearchParams({ engine: 'google_ai_mode', q: prompt, hl: 'nl', gl: 'nl', api_key: SERPAPI_KEY })
+    const hl = lang === 'en' ? 'en' : 'nl'
+    const gl = lang === 'en' ? 'nl' : 'nl' // Always NL geo since targeting Dutch market
+    const params = new URLSearchParams({ engine: 'google_ai_mode', q: prompt, hl, gl, api_key: SERPAPI_KEY })
     const r = await fetch(`https://serpapi.com/search.json?${params}`, { signal: AbortSignal.timeout(20000) })
     if (!r.ok) return { competitors: [], mentioned: false, snippet: null }
     const data = await r.json()
@@ -549,7 +551,7 @@ async function scanGoogleAiMode(prompt, companyName) {
   }
 }
 
-async function scanTopPrompts(prompts, companyName, max = 10) {
+async function scanTopPrompts(prompts, companyName, max = 10, lang = 'nl') {
   const seen = new Set(), toScan = []
   const sorted = [...prompts].sort((a, b) => b.estimatedAiVolume - a.estimatedAiVolume)
   for (const p of sorted) { if (toScan.length >= max) break; if (!seen.has(p.intentCluster)) { seen.add(p.intentCluster); toScan.push(p) } }
@@ -558,7 +560,7 @@ async function scanTopPrompts(prompts, companyName, max = 10) {
   const results = new Map()
   for (let i = 0; i < toScan.length; i += 3) {
     const batch = toScan.slice(i, i + 3)
-    const br = await Promise.all(batch.map(p => scanGoogleAiMode(p.text, companyName)))
+    const br = await Promise.all(batch.map(p => scanGoogleAiMode(p.text, companyName, lang)))
     batch.forEach((p, j) => results.set(p.id, br[j]))
     if (i + 3 < toScan.length) await new Promise(r => setTimeout(r, 1000))
   }
@@ -661,8 +663,8 @@ export async function POST(request) {
     // Step 3: Google AI Mode (Pro)
     let scanned = all
     if (scanCompetitors && tier === 'pro' && SERPAPI_KEY) {
-      console.log(`🔍 Google AI Mode scan...`)
-      scanned = await scanTopPrompts(all, extracted?.companyName || brandName || '', 10)
+      console.log(`🔍 Google AI Mode scan (${detectedLang})...`)
+      scanned = await scanTopPrompts(all, extracted?.companyName || brandName || '', 10, detectedLang)
     }
 
     // Step 4: Limit & respond

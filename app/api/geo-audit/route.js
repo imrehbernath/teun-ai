@@ -345,6 +345,46 @@ function analyzeRichSnippets(structuredData, structuredDataTypes) {
 }
 
 
+// ━━━ LANGUAGE DETECTION ━━━
+// Detect page language from: HTML lang attr → URL path → content analysis
+function detectPageLanguage(html, url) {
+  // 1. HTML lang attribute (most reliable)
+  const langMatch = html.match(/<html[^>]*\slang=["']([a-z]{2})/i)
+  if (langMatch) {
+    const lang = langMatch[1].toLowerCase()
+    if (lang === 'en') return 'en'
+    if (lang === 'nl') return 'nl'
+  }
+
+  // 2. URL path signals
+  if (url) {
+    const urlLower = url.toLowerCase()
+    if (/\/(en|eng)(\/|$)/.test(urlLower)) return 'en'
+    if (/\/(nl|ned)(\/|$)/.test(urlLower)) return 'nl'
+  }
+
+  // 3. Content-based detection
+  const bodyText = html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .toLowerCase()
+    .slice(0, 5000)
+
+  const nlWords = ['het', 'een', 'van', 'voor', 'met', 'zijn', 'naar', 'ook', 'meer', 'niet', 'onze', 'wij', 'dit', 'deze', 'waar', 'hoe', 'welke', 'jouw', 'bij', 'maar', 'wordt', 'alle', 'over', 'nog', 'als', 'wat', 'uit', 'veel', 'door', 'bent', 'kan', 'ons', 'heeft']
+  const enWords = ['the', 'and', 'for', 'with', 'our', 'your', 'this', 'that', 'from', 'are', 'was', 'been', 'have', 'has', 'will', 'can', 'you', 'they', 'which', 'about', 'more', 'their', 'also', 'would', 'into', 'just', 'than', 'each', 'any', 'these', 'when', 'where', 'how']
+
+  let nlScore = 0, enScore = 0
+  nlWords.forEach(w => { nlScore += (bodyText.match(new RegExp(`\\b${w}\\b`, 'g')) || []).length })
+  enWords.forEach(w => { enScore += (bodyText.match(new RegExp(`\\b${w}\\b`, 'g')) || []).length })
+
+  if (enScore > nlScore * 1.5) return 'en'
+  if (nlScore > enScore * 1.5) return 'nl'
+
+  return 'nl' // default Dutch
+}
+
+
 // ━━━ MAIN HANDLER ━━━
 export async function POST(request) {
   let locale = 'nl'
@@ -400,22 +440,10 @@ export async function POST(request) {
       return NextResponse.json({ error: m.pageLoadFailed }, { status: 400 })
     }
 
-    // LANGUAGE CHECK — only for NL locale, skip for EN
-    if (locale === 'nl') {
-      const isDutchTLD = hostname.endsWith('.nl') || hostname.endsWith('.be')
-      const htmlLangMatch = html.match(/<html[^>]*\slang=["']([^"']+)["']/i)
-      const htmlLang = htmlLangMatch ? htmlLangMatch[1].toLowerCase().substring(0, 2) : null
-      const isDutchLang = htmlLang === 'nl'
-      
-      const lowerHtml = html.substring(0, 5000).toLowerCase()
-      const dutchSignals = ['welkom', 'onze', 'diensten', 'contact', 'meer informatie', 'over ons', 'lees meer', 'uw ', 'wij ', 'voor uw', 'nederland']
-      const dutchWordCount = dutchSignals.filter(w => lowerHtml.includes(w)).length
-      const isDutchContent = dutchWordCount >= 2
-
-      if (!isDutchTLD && !isDutchLang && !isDutchContent) {
-        return NextResponse.json({ error: m.languageError, errorType: 'language' }, { status: 400 })
-      }
-    }
+    // DETECT PAGE LANGUAGE — use for analysis, not UI locale
+    const pageLang = detectPageLanguage(html, normalizedUrl)
+    const pageMsg = getMsg(pageLang) // messages in page language for analysis output
+    console.log(`[GEO Audit] Detected page language: ${pageLang} (UI locale: ${locale})`)
 
     // Canonical check
     const canonicalMatch = html.match(/<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["']/i)
@@ -446,15 +474,15 @@ export async function POST(request) {
     const richSnippets = analyzeRichSnippets(extracted.structuredData, extracted.structuredDataTypes)
 
     // STEP 4: TECHNICAL CHECKS
-    const technicalChecks = analyzeTechnical(extracted, robotsTxt, llmsTxt, coreWebVitals, richSnippets, m)
+    const technicalChecks = analyzeTechnical(extracted, robotsTxt, llmsTxt, coreWebVitals, richSnippets, pageMsg)
 
-    // STEP 5: AI CONTENT ANALYSIS (Claude)
-    const aiAnalysis = await analyzeContentWithClaude(extracted, resolvedHostname, normalizedUrl, locale, m)
+    // STEP 5: AI CONTENT ANALYSIS (Claude) — uses PAGE language
+    const aiAnalysis = await analyzeContentWithClaude(extracted, resolvedHostname, normalizedUrl, pageLang, pageMsg)
 
-    // STEP 6: LIVE PERPLEXITY TEST
+    // STEP 6: LIVE PERPLEXITY TEST — uses PAGE language
     let liveTest = null
     if (aiAnalysis?.generatedPrompt) {
-      liveTest = await testPromptOnPerplexity(aiAnalysis.generatedPrompt, aiAnalysis.companyName || resolvedHostname, resolvedHostname, locale)
+      liveTest = await testPromptOnPerplexity(aiAnalysis.generatedPrompt, aiAnalysis.companyName || resolvedHostname, resolvedHostname, pageLang)
     }
 
     // COMBINE SCORES
@@ -501,11 +529,12 @@ export async function POST(request) {
       },
       analysis: {
         overallScore,
+        detectedLanguage: pageLang,
         categories: [
-          { name: m.catContent, slug: 'content', score: aiAnalysis.contentScore, icon: '📝', summary: aiAnalysis.contentSummary, checks: aiAnalysis.contentChecks || [] },
-          { name: m.catTechnical, slug: 'technical', score: technicalChecks.score, icon: '⚙️', summary: technicalChecks.summary, checks: technicalChecks.checks },
-          { name: m.catCitation, slug: 'citation', score: aiAnalysis.citationScore, icon: '🎯', summary: aiAnalysis.citationSummary, checks: aiAnalysis.citationChecks || [] },
-          { name: m.catEeat, slug: 'eeat', score: aiAnalysis.eatScore, icon: '🏆', summary: aiAnalysis.eatSummary, checks: aiAnalysis.eatChecks || [] }
+          { name: pageMsg.catContent, slug: 'content', score: aiAnalysis.contentScore, icon: '📝', summary: aiAnalysis.contentSummary, checks: aiAnalysis.contentChecks || [] },
+          { name: pageMsg.catTechnical, slug: 'technical', score: technicalChecks.score, icon: '⚙️', summary: technicalChecks.summary, checks: technicalChecks.checks },
+          { name: pageMsg.catCitation, slug: 'citation', score: aiAnalysis.citationScore, icon: '🎯', summary: aiAnalysis.citationSummary, checks: aiAnalysis.citationChecks || [] },
+          { name: pageMsg.catEeat, slug: 'eeat', score: aiAnalysis.eatScore, icon: '🏆', summary: aiAnalysis.eatSummary, checks: aiAnalysis.eatChecks || [] }
         ],
         topRecommendations: aiAnalysis.topRecommendations || [],
         generatedPrompt: aiAnalysis.generatedPrompt || null,
@@ -576,8 +605,8 @@ function extractContent(html) {
   }
 
   const hasFAQ = structuredDataTypes.includes('FAQPage')
-    || /faq|veelgestelde vragen|veel gestelde vragen|frequently asked/i.test(html)
-    || headings.some(h => /faq|vraag|vragen|questions/i.test(h.text))
+    || /faq|veelgestelde vragen|veel gestelde vragen|frequently asked|common questions/i.test(html)
+    || headings.some(h => /faq|vraag|vragen|questions|q\s*&\s*a/i.test(h.text))
 
   const imgRegex = /<img[^>]*>/gi
   const images = []
