@@ -939,7 +939,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
     { id: 'overview', label: t.tabs.overview, Icon: LayoutDashboard },
     { id: 'prompts', label: t.tabs.prompts, Icon: Search },
     { id: 'competitors', label: t.tabs.competitors, Icon: Swords },
-    { id: 'audit', label: t.tabs.audit, Icon: ShieldCheck },
+    { id: 'audit', label: t.tabs.audit, Icon: Sparkles },
   ]
   const toolLinks = [
     { label: t.sidebar.brandCheck, href: lp(locale, '/tools/brand-check'), tag: t.sidebar.free },

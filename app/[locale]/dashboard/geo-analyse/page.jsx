@@ -1390,6 +1390,7 @@ function GEOAnalyseContent() {
     setCurrentCheckItem(null)
     
     calculateOverallScore(results)
+    savePageScoresToDB(results)
   }
 
   const calculateOverallScore = (geoResults) => {
@@ -1413,6 +1414,37 @@ function GEOAnalyseContent() {
       geo: geoScore,
       overall
     })
+  }
+
+  // Save page scores to Supabase for GEO Optimalisatie DIY tab
+  const savePageScoresToDB = async (results) => {
+    try {
+      const entries = Object.entries(results).filter(([, r]) => r.scanned)
+      for (const [pageUrl, result] of entries) {
+        let domain = ''
+        try { domain = new URL(pageUrl).hostname.replace(/^www\./, '') } catch {}
+        await fetch('/api/geo-audit-results', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: pageUrl,
+            domain,
+            score: result.score || 0,
+            mentioned: false,
+            companyName: companyName || domain,
+            data: {
+              checklist: result.checklist || {},
+              issues: result.issues || [],
+              score: result.score || 0,
+              source: 'geo-analyse',
+            },
+          }),
+        })
+      }
+      console.log(`✅ Saved ${entries.length} page scores to DB`)
+    } catch (e) {
+      console.error('Failed to save page scores:', e)
+    }
   }
 
   // ============================================

@@ -6,13 +6,13 @@ const translations = {
   nl: {
     title: 'Dashboard',
     subtitle: 'AI-zichtbaarheid op een plek',
-    tabs: { overview: 'Overzicht', prompts: 'Prompts', competitors: 'Concurrenten', audit: 'GEO Audit' },
-    headers: { overview: 'Dashboard', prompts: 'Prompt Tracker', competitors: 'Concurrenten', audit: 'GEO Audit' },
+    tabs: { overview: 'Overzicht', prompts: 'Prompts', competitors: 'Concurrenten', audit: 'GEO Optimalisatie' },
+    headers: { overview: 'Dashboard', prompts: 'Prompt Tracker', competitors: 'Concurrenten', audit: 'GEO Optimalisatie DIY' },
     subtitles: {
       overview: 'AI-zichtbaarheid van {company} op een plek',
       prompts: 'Per prompt je positie op ChatGPT en Perplexity',
       competitors: 'Wie wordt vaker genoemd dan jij',
-      audit: 'Technische en content optimalisatie',
+      audit: 'Optimaliseer je pagina\'s voor AI-zichtbaarheid',
     },
     stats: {
       visibility: 'Zichtbaarheid',
@@ -80,13 +80,13 @@ const translations = {
   en: {
     title: 'Dashboard',
     subtitle: 'AI visibility in one place',
-    tabs: { overview: 'Overview', prompts: 'Prompts', competitors: 'Competitors', audit: 'GEO Audit' },
-    headers: { overview: 'Dashboard', prompts: 'Prompt Tracker', competitors: 'Competitors', audit: 'GEO Audit' },
+    tabs: { overview: 'Overview', prompts: 'Prompts', competitors: 'Competitors', audit: 'GEO Optimization' },
+    headers: { overview: 'Dashboard', prompts: 'Prompt Tracker', competitors: 'Competitors', audit: 'GEO Optimization DIY' },
     subtitles: {
       overview: 'AI visibility of {company} in one place',
       prompts: 'Your position per prompt on ChatGPT and Perplexity',
       competitors: 'Who gets mentioned more than you',
-      audit: 'Technical and content optimization',
+      audit: 'Optimize your pages for AI visibility',
     },
     stats: {
       visibility: 'Visibility', avgPosition: 'Avg. position', topCompetitor: 'Top competitor',

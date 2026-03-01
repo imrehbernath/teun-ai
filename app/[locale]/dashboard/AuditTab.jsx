@@ -78,23 +78,63 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
   // Daily scan limit (BETA) — admins bypass
   const scannedToday = !isAdmin && history.length > 0 && new Date(history[0].timestamp).toDateString() === new Date().toDateString()
 
-  // Load history from localStorage
-  useEffect(() => {
+  // Load history from Supabase
+  const loadHistory = useCallback(async () => {
     try {
-      const stored = localStorage.getItem('teun_audit_history')
-      if (stored) setHistory(JSON.parse(stored))
-    } catch (e) {}
-  }, [])
+      const params = new URLSearchParams()
+      if (activeCompany?.name) params.set('company', activeCompany.name)
+      const res = await fetch(`/api/geo-audit-results?${params}`)
+      const json = await res.json()
+      if (json.success && json.results) {
+        setHistory(json.results.map(r => ({
+          id: r.id,
+          url: r.url,
+          domain: r.domain,
+          score: r.score,
+          mentioned: r.mentioned,
+          companyName: r.company_name,
+          timestamp: r.created_at,
+          data: r.data,
+        })))
+      }
+    } catch (e) {
+      console.error('Failed to load audit history:', e)
+    }
+  }, [activeCompany?.name])
 
-  // Save history to localStorage
-  const saveHistory = (newHistory) => {
-    setHistory(newHistory)
-    try { localStorage.setItem('teun_audit_history', JSON.stringify(newHistory.slice(0, 20))) } catch (e) {}
+  useEffect(() => { loadHistory() }, [loadHistory])
+
+  // Save audit result to Supabase
+  const saveAuditResult = async (entry) => {
+    try {
+      await fetch('/api/geo-audit-results', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: entry.url,
+          domain: entry.domain,
+          score: entry.score,
+          mentioned: entry.mentioned,
+          companyName: entry.companyName,
+          data: entry.data,
+        }),
+      })
+      // Reload history from DB
+      await loadHistory()
+    } catch (e) {
+      console.error('Failed to save audit result:', e)
+    }
   }
 
-  const deleteHistoryItem = (idx) => {
-    const newHistory = history.filter((_, i) => i !== idx)
-    saveHistory(newHistory)
+  const deleteHistoryItem = async (idx) => {
+    const item = history[idx]
+    if (!item?.id) return
+    try {
+      await fetch(`/api/geo-audit-results?id=${item.id}`, { method: 'DELETE' })
+      setHistory(prev => prev.filter((_, i) => i !== idx))
+    } catch (e) {
+      console.error('Failed to delete audit result:', e)
+    }
   }
 
   // Pre-fill URL from company
@@ -144,25 +184,23 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
       if (!res.ok || !json.success) throw new Error(json.error || 'Scan failed')
       setResult(json)
       setView('result')
-      // Save to history
+      // Save to Supabase
       const entry = {
         url: json.url,
         domain: json.domain,
         score: json.analysis?.overallScore || 0,
         mentioned: json.liveTest?.mentioned || false,
         companyName: json.analysis?.companyName || json.domain,
-        timestamp: new Date().toISOString(),
         data: json,
       }
-      const newHistory = [entry, ...history.filter(h => h.url !== json.url)].slice(0, 20)
-      saveHistory(newHistory)
+      await saveAuditResult(entry)
     } catch (err) {
       setError(err.message)
       setView('input')
     } finally {
       setLoading(false)
     }
-  }, [url, locale, history])
+  }, [url, locale])
 
   // ═══════════════════════════════════════════════
   // RENDER
