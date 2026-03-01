@@ -41,10 +41,9 @@ const nextConfig = {
   },
 
   // Modern JavaScript output - remove polyfills
- compiler: {
-  removeConsole: false,
+  compiler: {
+  removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
 },
-
   // Redirect www to non-www
   async redirects() {
     return [

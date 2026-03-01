@@ -899,6 +899,7 @@ export default function PromptExplorer() {
           )}
 
           {/* CTA — Vriendelijke uitnodiging met mascotte */}
+          {!user ? (
           <div className="relative bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="flex flex-col sm:flex-row items-center gap-6 p-6 sm:p-8">
               <div className="flex-shrink-0">
@@ -920,6 +921,28 @@ export default function PromptExplorer() {
               </div>
             </div>
           </div>
+          ) : (
+          <div className="relative bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="flex flex-col sm:flex-row items-center gap-6 p-6 sm:p-8">
+              <div className="flex-shrink-0">
+                <Image src="/teun-ai-mascotte.png" alt="Teun.ai mascotte" width={120} height={150} className="w-[100px] sm:w-[120px] h-auto" />
+              </div>
+              <div className="text-center sm:text-left flex-1">
+                <p className="text-lg sm:text-xl font-bold text-slate-900 mb-2">
+                  {isEn ? `Nice! ${stats?.total || 0} prompts your customers are asking AI` : `Mooi! ${stats?.total || 0} prompts die jouw klanten aan AI stellen`}
+                </p>
+                <p className="text-sm text-slate-500 mb-5 max-w-md">
+                  {isEn 
+                    ? 'Go to your dashboard to select prompts and scan your AI visibility on ChatGPT, Perplexity and Google AI.' 
+                    : 'Ga naar je dashboard om prompts te selecteren en je AI-zichtbaarheid te scannen op ChatGPT, Perplexity en Google AI.'}
+                </p>
+                <a href={isEn ? '/en/dashboard' : '/dashboard'} className="inline-flex items-center gap-2 px-6 py-3 bg-[#292956] text-white rounded-xl text-sm font-semibold hover:bg-[#1e1e45] transition">
+                  {isEn ? 'Go to dashboard' : 'Ga naar dashboard'} <ArrowRightIcon className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+          </div>
+          )}
 
           {/* Competitors */}
           {topCompetitors.length > 0 && (
