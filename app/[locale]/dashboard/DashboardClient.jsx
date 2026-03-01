@@ -881,6 +881,8 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
       setConfirmDelete(null)
       // If we deleted the active company, reset selection
       if (selectedCompany === companyName) setSelectedCompany(null)
+      // Clear audit history from localStorage
+      try { localStorage.removeItem('teun_audit_history') } catch {}
       fetchData()
     } catch (err) {
       console.error('Delete error:', err)

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
@@ -678,6 +680,43 @@ export async function DELETE(request) {
 
     const deleted = {}
 
+    // 1. First get chatgpt_scans IDs (needed for FK chatgpt_query_results)
+    const { data: chatgptScanRows } = await db
+      .from('chatgpt_scans')
+      .select('id')
+      .eq('user_id', user.id)
+      .ilike('company_name', company)
+
+    // 2. Delete chatgpt_query_results FIRST (FK constraint to chatgpt_scans)
+    if (chatgptScanRows && chatgptScanRows.length > 0) {
+      const scanIds = chatgptScanRows.map(r => r.id)
+      const { data: dqr, error: eqr } = await db
+        .from('chatgpt_query_results')
+        .delete()
+        .in('scan_id', scanIds)
+        .select('id')
+      deleted.chatgpt_query_results = dqr?.length || 0
+      if (eqr) console.error('Delete chatgpt_query_results error:', eqr)
+    }
+
+    // 3. Now safe to delete chatgpt_scans
+    try {
+      const { data: d6 } = await db
+        .from('chatgpt_scans')
+        .delete()
+        .eq('user_id', user.id)
+        .ilike('company_name', company)
+        .select('id')
+      deleted.chatgpt_scans = d6?.length || 0
+    } catch (e) {
+      console.error('Delete chatgpt_scans error:', e)
+    }
+
+    // 4. Delete chatgpt_live_scans (no company_name column — only query)
+    // These are per-query results, skip if user has multiple companies
+    // to avoid deleting data from other companies
+    deleted.chatgpt_live_scans = 0
+
     const { data: d1, error: e1 } = await db
       .from('tool_integrations')
       .delete()
@@ -723,25 +762,32 @@ export async function DELETE(request) {
     deleted.google_ai_overview_scans = d5?.length || 0
     if (e5) console.error('Delete google_ai_overview_scans error:', e5)
 
-    try {
-      const { data: d6 } = await db
-        .from('chatgpt_scans')
-        .delete()
-        .eq('user_id', user.id)
-        .ilike('company_name', company)
-        .select('id')
-      deleted.chatgpt_scans = d6?.length || 0
-    } catch (e) {}
+    // 5. Delete prompt_discovery_results
+    const { data: d8, error: e8 } = await db
+      .from('prompt_discovery_results')
+      .delete()
+      .eq('user_id', user.id)
+      .ilike('brand_name', company)
+      .select('id')
+    deleted.prompt_discovery_results = d8?.length || 0
+    if (e8) console.error('Delete prompt_discovery_results error:', e8)
 
+    // 6. Delete geo_audit_results (try company_name first, then domain)
     try {
-      const { data: d7 } = await db
-        .from('chatgpt_live_scans')
+      const { data: d9 } = await db
+        .from('geo_audit_results')
         .delete()
         .eq('user_id', user.id)
         .ilike('company_name', company)
         .select('id')
-      deleted.chatgpt_live_scans = d7?.length || 0
-    } catch (e) {}
+      deleted.geo_audit_results = d9?.length || 0
+    } catch (e) {
+      // Fallback: column might not exist, try without filter
+      console.error('Delete geo_audit_results error:', e)
+    }
+
+    // 7. Also clear localStorage hint for audit history
+    // (handled client-side in DashboardClient)
 
     console.log(`[Dashboard DELETE] Deleted:`, deleted)
 
