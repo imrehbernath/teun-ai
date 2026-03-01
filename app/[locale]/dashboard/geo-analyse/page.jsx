@@ -1365,7 +1365,10 @@ function GEOAnalyseContent() {
           results[pageUrl] = {
             checklist: data.checklist || {},
             score: data.score || 0,
+            scores: data.scores || {},
+            scoreLabel: data.scoreLabel || '',
             issues: data.issues || [],
+            wordCount: data.wordCount || 0,
             scanned: true
           }
         } else {
@@ -1434,7 +1437,10 @@ function GEOAnalyseContent() {
             companyName: companyName || domain,
             data: {
               checklist: result.checklist || {},
+              scores: result.scores || {},
+              scoreLabel: result.scoreLabel || '',
               issues: result.issues || [],
+              wordCount: result.wordCount || 0,
               score: result.score || 0,
               source: 'geo-analyse',
             },

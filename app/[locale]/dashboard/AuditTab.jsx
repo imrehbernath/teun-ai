@@ -78,6 +78,7 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
   // GEO Analyse page scores from DB
   const [geoAnalysePages, setGeoAnalysePages] = useState([])
   const [geoAnalyseLoading, setGeoAnalyseLoading] = useState(true)
+  const [expandedPage, setExpandedPage] = useState(null)
 
   // Daily scan limit (BETA) — admins bypass
   const scannedToday = !isAdmin && history.length > 0 && new Date(history[0].timestamp).toDateString() === new Date().toDateString()
@@ -230,58 +231,127 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
                 const sc = scoreColor(page.score)
                 const path = page.url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
                 const issues = page.data?.issues || []
-                const criticalCount = issues.filter(iss => typeof iss === 'object' ? iss.type === 'critical' : false).length
-                const warningCount = issues.filter(iss => typeof iss === 'object' ? iss.type === 'warning' : false).length
+                const scores = page.data?.scores || {}
+                const isExpanded = expandedPage === (page.id || i)
                 const statusLabel = page.score >= 70
                   ? (nl ? 'Goed' : 'Good')
                   : page.score >= 40
                     ? (nl ? 'Gemiddeld' : 'Average')
                     : (nl ? 'Slecht' : 'Poor')
                 return (
-                  <div key={page.id || i} className="flex items-center gap-4 px-6 py-3.5 hover:bg-slate-50 transition-colors">
-                    {/* Score circle */}
-                    <div className="relative w-10 h-10 shrink-0">
-                      <svg viewBox="0 0 40 40" className="w-10 h-10">
-                        <circle cx="20" cy="20" r="16" fill="none" stroke="#f1f5f9" strokeWidth="3" />
-                        <circle cx="20" cy="20" r="16" fill="none" stroke={sc} strokeWidth="3"
-                          strokeDasharray={`${(page.score / 100) * 100.5} 100.5`} strokeLinecap="round"
-                          style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }} />
-                      </svg>
-                      <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-slate-800">{page.score}</span>
-                    </div>
-                    {/* URL */}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-medium text-slate-800 truncate">{path}</div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        {criticalCount > 0 && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 text-red-600 font-medium">
-                            {criticalCount} {nl ? 'kritiek' : 'critical'}
-                          </span>
-                        )}
-                        {warningCount > 0 && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 font-medium">
-                            {warningCount} {nl ? 'waarschuwingen' : 'warnings'}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {/* Status badge */}
-                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium shrink-0 ${
-                      page.score >= 70 ? 'bg-emerald-50 text-emerald-600' : 
-                      page.score >= 40 ? 'bg-amber-50 text-amber-600' : 
-                      'bg-red-50 text-red-500'
-                    }`}>
-                      {statusLabel}
-                    </span>
-                    {/* Deep scan button */}
+                  <div key={page.id || i}>
                     <button
-                      onClick={() => { setUrl(page.url); runAudit(page.url) }}
-                      className="text-[11px] text-violet-600 hover:text-violet-800 font-medium cursor-pointer bg-transparent border-none shrink-0 flex items-center gap-1"
-                      title={nl ? 'Diepte-scan uitvoeren' : 'Run deep scan'}
+                      onClick={() => setExpandedPage(isExpanded ? null : (page.id || i))}
+                      className="w-full flex items-center gap-4 px-6 py-3.5 hover:bg-slate-50 transition-colors cursor-pointer bg-transparent border-none text-left"
                     >
-                      <Zap className="w-3 h-3" />
-                      {nl ? 'Scan' : 'Scan'}
+                      {/* Score circle */}
+                      <div className="relative w-10 h-10 shrink-0">
+                        <svg viewBox="0 0 40 40" className="w-10 h-10">
+                          <circle cx="20" cy="20" r="16" fill="none" stroke="#f1f5f9" strokeWidth="3" />
+                          <circle cx="20" cy="20" r="16" fill="none" stroke={sc} strokeWidth="3"
+                            strokeDasharray={`${(page.score / 100) * 100.5} 100.5`} strokeLinecap="round"
+                            style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }} />
+                        </svg>
+                        <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-slate-800">{page.score}</span>
+                      </div>
+                      {/* URL */}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-medium text-slate-800 truncate">{path}</div>
+                        <div className="text-[11px] text-slate-400 mt-0.5">
+                          {issues.length > 0
+                            ? `${issues.length} ${nl ? 'verbeterpunten' : 'improvements'}`
+                            : (nl ? 'Geen issues gevonden' : 'No issues found')
+                          }
+                        </div>
+                      </div>
+                      {/* Status badge */}
+                      <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium shrink-0 ${
+                        page.score >= 70 ? 'bg-emerald-50 text-emerald-600' : 
+                        page.score >= 40 ? 'bg-amber-50 text-amber-600' : 
+                        'bg-red-50 text-red-500'
+                      }`}>
+                        {statusLabel}
+                      </span>
+                      {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-400 shrink-0" /> : <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />}
                     </button>
+
+                    {/* Expanded detail panel */}
+                    {isExpanded && (
+                      <div className="px-6 pb-5 border-t border-slate-100 bg-slate-50/50">
+                        {/* Category score bars */}
+                        {Object.keys(scores).length > 0 && (
+                          <div className="pt-4 pb-3">
+                            <div className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-3">
+                              {nl ? 'Score per categorie' : 'Score per category'}
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                              {[
+                                { key: 'technical', label: nl ? 'Technisch' : 'Technical', icon: '⚙️' },
+                                { key: 'content', label: 'Content', icon: '📝' },
+                                { key: 'structured', label: 'Structured Data', icon: '🏷️' },
+                                { key: 'social', label: 'Social/OG', icon: '📣' },
+                                { key: 'geo', label: 'AI/GEO', icon: '🤖' },
+                              ].filter(cat => scores[cat.key]).map(cat => {
+                                const catData = scores[cat.key]
+                                const pct = catData.percentage || 0
+                                return (
+                                  <div key={cat.key} className="bg-white rounded-lg p-3 border border-slate-200">
+                                    <div className="text-[10px] text-slate-400 mb-1">{cat.icon} {cat.label}</div>
+                                    <div className="text-[16px] font-bold" style={{ color: scoreColor(pct) }}>{pct}%</div>
+                                    <div className="h-1.5 bg-slate-100 rounded-full mt-1.5 overflow-hidden">
+                                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: scoreColor(pct) }} />
+                                    </div>
+                                    <div className="text-[9px] text-slate-300 mt-1">{catData.score}/{catData.max}</div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Issues list */}
+                        {issues.length > 0 && (
+                          <div className="pt-3">
+                            <div className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-2">
+                              ⚠️ {nl ? 'Verbeterpunten' : 'Improvements needed'}
+                            </div>
+                            <div className="space-y-1.5">
+                              {issues.map((issue, ii) => (
+                                <div key={ii} className="flex items-start gap-2 bg-white rounded-lg px-3 py-2.5 border border-slate-200"
+                                  style={{ borderLeft: '3px solid #f59e0b' }}>
+                                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                                  <span className="text-[12px] text-slate-700 leading-relaxed">{typeof issue === 'string' ? issue : issue.message || JSON.stringify(issue)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* No issues */}
+                        {issues.length === 0 && (
+                          <div className="pt-4 flex items-center gap-2 text-[13px] text-emerald-600">
+                            <CheckCircle2 className="w-4 h-4" />
+                            {nl ? 'Geen problemen gevonden — goed bezig!' : 'No issues found — looking good!'}
+                          </div>
+                        )}
+
+                        {/* Action: deep scan */}
+                        <div className="pt-4 flex items-center gap-3">
+                          <button
+                            onClick={() => { setUrl(page.url); runAudit(page.url) }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 cursor-pointer border-none transition-colors"
+                          >
+                            <Zap className="w-3 h-3" />
+                            {nl ? 'Diepte-scan uitvoeren' : 'Run deep scan'}
+                          </button>
+                          <a href={page.url} target="_blank" rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-slate-500 bg-slate-100 hover:bg-slate-200 no-underline transition-colors">
+                            <ExternalLink className="w-3 h-3" />
+                            {nl ? 'Pagina bekijken' : 'View page'}
+                          </a>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })}
