@@ -392,56 +392,9 @@ function PromptSelectionFlow({ discovery, locale, onScanTriggered }) {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Scan failed')
 
-      setScanProgress(locale === 'nl' ? 'Scan gestart! Even geduld...' : 'Scan started! Please wait...')
-
-      // Poll for completion
-      if (data.integrationId) {
-        let attempts = 0
-        const poll = setInterval(async () => {
-          attempts++
-          const pct = Math.min(5 + attempts * 8, 95)
-          const promptNum = Math.min(Math.floor(pct / 10) + 1, 10)
-          if (pct < 50) {
-            setScanProgress(locale === 'nl'
-              ? `ChatGPT: prompt ${promptNum}/10 analyseren... (${pct}%)`
-              : `ChatGPT: analyzing prompt ${promptNum}/10... (${pct}%)`)
-          } else if (pct < 90) {
-            setScanProgress(locale === 'nl'
-              ? `Perplexity: prompt ${Math.min(promptNum - 5, 10)}/10 analyseren... (${pct}%)`
-              : `Perplexity: analyzing prompt ${Math.min(promptNum - 5, 10)}/10... (${pct}%)`)
-          } else {
-            setScanProgress(locale === 'nl'
-              ? `Resultaten verwerken... (${pct}%)`
-              : `Processing results... (${pct}%)`)
-          }
-          if (attempts >= 20) { // ~2 min timeout
-            clearInterval(poll)
-            clearInterval(checkDone)
-            onScanTriggered?.()
-          }
-        }, 6000)
-
-        // Check if scan is done every 12s
-        const checkDone = setInterval(async () => {
-          try {
-            const checkRes = await fetch(`/api/dashboard?period=90d&_t=${Date.now()}`)
-            const checkData = await checkRes.json()
-            // Scan is done when visibility data has actual prompts
-            if (checkData.visibility?.totalPrompts > 0) {
-              clearInterval(poll)
-              clearInterval(checkDone)
-              setScanProgress(locale === 'nl' ? 'Klaar! Dashboard laden...' : 'Done! Loading dashboard...')
-              setTimeout(() => onScanTriggered?.(), 1000)
-            }
-          } catch {}
-        }, 12000)
-
-        // Hard timeout 3 min
-        setTimeout(() => { clearInterval(poll); clearInterval(checkDone); onScanTriggered?.() }, 180000)
-      } else {
-        // Immediate completion
-        onScanTriggered?.()
-      }
+      // Immediately reload dashboard → shows ScanInProgress animation
+      // ScanInProgress has its own 15s polling to detect completion
+      onScanTriggered?.()
     } catch (err) {
       console.error('Prompt selection/scan error:', err)
       setScanError(err.message)
@@ -849,12 +802,12 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
     document.addEventListener('click', h); return () => document.removeEventListener('click', h)
   }, [showCompanyDropdown])
 
-  const fetchData = useCallback(async () => {
-    setLoading(true); setError(null)
+  const fetchData = useCallback(async (retryCount = 0) => {
+    setLoading(true); if (retryCount === 0) setError(null)
     try {
       const params = new URLSearchParams({ period })
       if (selectedCompany) params.set('company', selectedCompany)
-      const res = await fetch(`/api/dashboard?${params}`)
+      const res = await fetch(`/api/dashboard?${params}&_t=${Date.now()}`)
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed to fetch')
       const json = await res.json()
       setData(json)
@@ -862,7 +815,11 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
       const companies = json.companies || []
       const companyExists = selectedCompany && companies.some(c => c.company_name === selectedCompany)
       if (!companyExists && json.activeCompany?.name) setSelectedCompany(json.activeCompany.name)
-    } catch (err) { console.error('Dashboard fetch error:', err); setError(err.message) }
+    } catch (err) {
+      console.error('Dashboard fetch error:', err)
+      if (retryCount < 1) { setTimeout(() => fetchData(retryCount + 1), 1500); return }
+      setError(err.message)
+    }
     finally { setLoading(false) }
   }, [selectedCompany])
 
@@ -1080,30 +1037,43 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
 
           {loading && !data && <div className="flex flex-col items-center justify-center py-32"><Loader2 className="w-8 h-8 text-slate-300 animate-spin mb-4" /><span className="text-sm text-slate-400">{t.loading}</span></div>}
           {error && !loading && <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center"><p className="text-sm text-red-600 mb-3">{error}</p><button onClick={fetchData} className="text-sm text-red-700 underline cursor-pointer bg-transparent border-none">{t.rescan}</button></div>}
-          {!loading && data && totalPrompts === 0 && activeTab === 'overview' && (() => {
-            // Check if there's a pending scan (integration exists but no results yet)
+          {!loading && data && activeTab === 'overview' && (() => {
+            // Detect scan-in-progress: prompts are set (from commercial_prompts) but actual scan results haven't arrived yet
+            const scanResultsEmpty = (visibility.chatgptTotal || 0) === 0 && (visibility.perplexityTotal || 0) === 0
             const hasPendingIntegration = companies.length > 0
-            // Only show selection flow for discoveries that haven't been successfully scanned
-            const unselectedDiscovery = promptDiscovery.filter(d =>
-              (d.status === 'completed' || (d.status === 'selected' && !d.scanIntegrationId))
-            )
 
-            if (hasPendingIntegration) {
-              // Scan is running or just created — show progress
+            // Case 1: Scan is running (integration exists, prompts set, but no results yet)
+            if (hasPendingIntegration && scanResultsEmpty) {
+              // Check if user still needs to select prompts
+              const unselectedDiscovery = promptDiscovery.filter(d =>
+                (d.status === 'completed' || (d.status === 'selected' && !d.scanIntegrationId))
+              )
+              if (unselectedDiscovery.length > 0 && totalPrompts === 0) {
+                return <PromptSelectionFlow discovery={unselectedDiscovery} locale={locale} onScanTriggered={() => { fetchData() }} />
+              }
+              // Scan is running — show progress animation
               return (
                 <ScanInProgress locale={locale} company={activeCompany?.name || companies[0]?.company_name} onRefresh={fetchData} />
               )
             }
-            if (unselectedDiscovery.length > 0) {
-              return (
-                <PromptSelectionFlow discovery={unselectedDiscovery} locale={locale} onScanTriggered={() => { fetchData() }} />
+
+            // Case 2: No data at all
+            if (totalPrompts === 0 && !hasPendingIntegration) {
+              const unselectedDiscovery = promptDiscovery.filter(d =>
+                (d.status === 'completed' || (d.status === 'selected' && !d.scanIntegrationId))
               )
+              if (unselectedDiscovery.length > 0) {
+                return <PromptSelectionFlow discovery={unselectedDiscovery} locale={locale} onScanTriggered={() => { fetchData() }} />
+              }
+              return <EmptyState t={t} locale={locale} />
             }
-            return <EmptyState t={t} locale={locale} />
+
+            // Case 3: Results exist — don't render anything here, fall through to results view
+            return null
           })()}
 
           {/* ════════════ OVERVIEW ════════════ */}
-          {activeTab === 'overview' && data && totalPrompts > 0 && (
+          {activeTab === 'overview' && data && totalPrompts > 0 && ((visibility.chatgptTotal || 0) > 0 || (visibility.perplexityTotal || 0) > 0) && (
             <>
               <div className="flex gap-4 mb-6">
                 <StatCard label={t.stats.visibility} value={`${visibilityPct}%`} sub={`${totalFound}/${totalPrompts} ${t.stats.promptsFound}`} accent="#059669" />
