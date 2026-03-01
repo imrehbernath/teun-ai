@@ -18,7 +18,7 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
 })
 
-const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY || '0f2289b685e1cf063f5c6572e2dcef83'
+const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY
 
 // ============================================================
 // GARBAGE PAGE DETECTION

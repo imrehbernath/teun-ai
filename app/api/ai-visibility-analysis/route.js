@@ -93,7 +93,7 @@ const anthropic = new Anthropic({
 
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
-const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY || '0f2289b685e1cf063f5c6572e2dcef83'
+const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY
 
 // ============================================
 // ✨ WEBSITE SCRAPING - Direct fetch first, ScraperAPI fallback

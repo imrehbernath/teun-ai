@@ -25,7 +25,7 @@ export async function OPTIONS() {
 }
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY || '0f2289b685e1cf063f5c6572e2dcef83'
+const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY
 const SERPAPI_KEY = process.env.SERPAPI_KEY
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL
 
