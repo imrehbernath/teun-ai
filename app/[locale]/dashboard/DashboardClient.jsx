@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import {
   LayoutDashboard, Search, Swords, ShieldCheck, ArrowRight, ChevronDown, ChevronUp, ChevronRight,
@@ -569,13 +569,13 @@ function ScanInProgress({ locale, company, onRefresh }) {
       setProgress(prev => {
         const rounded = Math.floor(prev)
         if (rounded >= 97) return rounded
-        // Slow curve matching ~90s total scan time
-        if (rounded < 5) return prev + 1.2    // 0-5%: ~4s (preparing)
-        if (rounded < 45) return prev + 0.45  // 5-45%: ~89s (ChatGPT 10 prompts)
-        if (rounded < 50) return prev + 0.8   // 45-50%: ~6s (switching)
-        if (rounded < 90) return prev + 0.45  // 50-90%: ~89s (Perplexity 10 prompts)
-        if (rounded < 95) return prev + 0.1   // 90-95%: ~50s (analyzing)
-        return prev + 0.04                    // 95-97%: slow crawl
+        // Matches ~45-60s total scan (10 prompts × 2 platforms in parallel batches)
+        if (rounded < 5) return prev + 2.5    // 0-5%: ~2s
+        if (rounded < 45) return prev + 1.8   // 5-45%: ~22s (ChatGPT)
+        if (rounded < 50) return prev + 2.5   // 45-50%: ~2s (switch)
+        if (rounded < 90) return prev + 1.8   // 50-90%: ~22s (Perplexity)
+        if (rounded < 95) return prev + 0.5   // 90-95%: ~10s (analyzing)
+        return prev + 0.15                    // 95-97%: slow crawl
       })
     }, 1000)
     return () => clearInterval(progressInterval)
@@ -703,6 +703,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   const period = '90d' // Always show all data — period tabs removed
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const initialLoadDone = useRef(false)
   const [error, setError] = useState(null)
   const [selectedCompany, setSelectedCompany] = useState(null)
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false)
@@ -813,7 +814,8 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   }, [showCompanyDropdown])
 
   const fetchData = useCallback(async (retryCount = 0) => {
-    setLoading(true); if (retryCount === 0) setError(null)
+    if (!initialLoadDone.current) setLoading(true)
+    if (retryCount === 0) setError(null)
     try {
       const params = new URLSearchParams({ period })
       if (selectedCompany) params.set('company', selectedCompany)
@@ -821,6 +823,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed to fetch')
       const json = await res.json()
       setData(json)
+      initialLoadDone.current = true
       // Auto-select: if no company selected, or selected company no longer exists, pick the active one
       const companies = json.companies || []
       const companyExists = selectedCompany && companies.some(c => c.company_name === selectedCompany)
