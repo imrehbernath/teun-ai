@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useTranslations } from 'next-intl'
 import {
   Search, Globe, RefreshCw, Loader2, Check, X, AlertTriangle,
   CheckCircle2, ChevronDown, ChevronUp, Zap, Clock, ArrowRight,
@@ -10,47 +11,16 @@ import {
 // ═══════════════════════════════════════════════
 // SCAN STEPS
 // ═══════════════════════════════════════════════
-const STEPS_NL = [
-  { id: 'fetch', label: 'Pagina ophalen & analyseren' },
-  { id: 'meta', label: 'Meta tags controleren' },
-  { id: 'headings', label: 'Heading structuur analyseren' },
-  { id: 'schema', label: 'Structured data scannen' },
-  { id: 'faq', label: 'FAQ content zoeken' },
-  { id: 'images', label: 'Afbeeldingen & alt-tekst checken' },
-  { id: 'robots', label: 'robots.txt & llms.txt controleren' },
-  { id: 'cwv', label: 'Core Web Vitals meten' },
-  { id: 'ai_content', label: 'AI content analyse' },
-  { id: 'ai_citation', label: 'Citatie-potentieel beoordelen' },
-  { id: 'ai_eeat', label: 'E-E-A-T signalen analyseren' },
-  { id: 'prompt', label: 'Commerciële prompt genereren' },
-  { id: 'perplexity', label: 'Live Perplexity test uitvoeren' },
-  { id: 'score', label: 'Eindscores berekenen' },
-]
-const STEPS_EN = [
-  { id: 'fetch', label: 'Fetching & analyzing page' },
-  { id: 'meta', label: 'Checking meta tags' },
-  { id: 'headings', label: 'Analyzing heading structure' },
-  { id: 'schema', label: 'Scanning structured data' },
-  { id: 'faq', label: 'Finding FAQ content' },
-  { id: 'images', label: 'Checking images & alt text' },
-  { id: 'robots', label: 'Checking robots.txt & llms.txt' },
-  { id: 'cwv', label: 'Measuring Core Web Vitals' },
-  { id: 'ai_content', label: 'AI content analysis' },
-  { id: 'ai_citation', label: 'Citation potential assessment' },
-  { id: 'ai_eeat', label: 'Analyzing E-E-A-T signals' },
-  { id: 'prompt', label: 'Generating commercial prompt' },
-  { id: 'perplexity', label: 'Running live Perplexity test' },
-  { id: 'score', label: 'Calculating final scores' },
-]
+const STEP_IDS = ['fetch', 'meta', 'headings', 'schema', 'faq', 'images', 'robots', 'cwv', 'ai_content', 'ai_citation', 'ai_eeat', 'prompt', 'perplexity', 'score']
 const INTERVALS = [1200, 600, 600, 700, 500, 600, 700, 4000, 5000, 3500, 3500, 2500, 10000, 800]
 
 // Score helpers
 function scoreColor(s) { return s >= 70 ? '#059669' : s >= 40 ? '#f59e0b' : '#ef4444' }
-function scoreLabel(s, nl) {
-  if (s >= 80) return nl ? 'Goed voorbereid op AI' : 'Well prepared for AI'
-  if (s >= 60) return nl ? 'Redelijk — er zijn verbeterpunten' : 'Fair — there are improvements'
-  if (s >= 40) return nl ? 'Verbeterbaar — belangrijke punten missen' : 'Needs work — key items missing'
-  return nl ? 'Onvoldoende — directe actie nodig' : 'Poor — immediate action needed'
+function getScoreLabel(s, t) {
+  if (s >= 80) return t('scoreLabels.good')
+  if (s >= 60) return t('scoreLabels.fair')
+  if (s >= 40) return t('scoreLabels.needsWork')
+  return t('scoreLabels.poor')
 }
 
 // ═══════════════════════════════════════════════
@@ -58,7 +28,8 @@ function scoreLabel(s, nl) {
 // ═══════════════════════════════════════════════
 export default function AuditTab({ locale, activeCompany, userEmail }) {
   const nl = locale === 'nl'
-  const STEPS = nl ? STEPS_NL : STEPS_EN
+  const t = useTranslations('dashboard.audit')
+  const STEPS = STEP_IDS.map(id => ({ id, label: t(`steps.${id}`) }))
   const ADMIN_EMAILS = ['imre@onlinelabs.nl']
   const isAdmin = ADMIN_EMAILS.includes(userEmail?.toLowerCase())
 
@@ -210,15 +181,15 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-[15px] font-semibold text-slate-800">
-                  {nl ? 'Pagina Optimalisatie' : 'Page Optimization'}
+                  {t('pageOptimization')}
                 </h3>
                 <p className="text-[12px] text-slate-400">
-                  {nl ? `${geoPages.length} pagina's uit je GEO Analyse` : `${geoPages.length} pages from your GEO Analysis`}
+                  {t('pagesFromGeoAnalysis', { count: geoPages.length })}
                 </p>
               </div>
               <div className="text-right">
                 <div className="text-[22px] font-bold" style={{ color: scoreColor(avgScore) }}>{avgScore}<span className="text-[13px] text-slate-300">/100</span></div>
-                <div className="text-[10px] text-slate-400">{nl ? 'gemiddeld' : 'average'}</div>
+                <div className="text-[10px] text-slate-400">{t('average')}</div>
               </div>
             </div>
 
@@ -250,8 +221,8 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
                     <div className="text-[13px] font-medium text-slate-800 truncate">{path}</div>
                     <div className="text-[11px] text-slate-400 mt-0.5">
                       {issues.length > 0
-                        ? `${issues.length} ${nl ? 'verbeterpunten' : 'improvements'}`
-                        : (nl ? 'Geen problemen' : 'No issues')
+                        ? `${issues.length} ${t('improvements')}`
+                        : (t('noIssues'))
                       }
                     </div>
                   </div>
@@ -261,7 +232,7 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
                     page.score >= 40 ? 'bg-amber-50 text-amber-600' :
                     'bg-red-50 text-red-500'
                   }`}>
-                    {page.score >= 70 ? (nl ? 'Goed' : 'Good') : page.score >= 40 ? (nl ? 'Gemiddeld' : 'Average') : (nl ? 'Slecht' : 'Poor')}
+                    {page.score >= 70 ? (t('good')) : page.score >= 40 ? (t('moderate')) : (t('bad'))}
                   </span>
                   <ArrowRight className="w-4 h-4 text-slate-300 shrink-0" />
                 </button>
@@ -269,10 +240,10 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
             })}
 
             {/* Link to run new GEO Analyse */}
-            <a href={nl ? '/dashboard/geo-analyse' : '/en/dashboard/geo-analyse'}
+            <a href={t('geoAnalysePath')}
               className="flex items-center gap-2 text-[12px] text-violet-600 hover:text-violet-800 font-medium no-underline px-1">
               <RefreshCw className="w-3.5 h-3.5" />
-              {nl ? 'Nieuwe GEO Analyse draaien' : 'Run new GEO Analysis'}
+              {t('newGeoAnalysis')}
             </a>
           </div>
         )}
@@ -286,19 +257,16 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
               </div>
               <div>
                 <div className="text-[14px] font-semibold text-slate-800">
-                  {nl ? 'Start met een GEO Analyse' : 'Start with a GEO Analysis'}
+                  {t('startWithGeoAnalysis')}
                 </div>
                 <p className="text-[12px] text-slate-500 mt-1 mb-3 leading-relaxed">
-                  {nl
-                    ? 'De GEO Analyse koppelt je prompts aan pagina\'s via Search Console en scant ze op optimalisatiepunten. Resultaten verschijnen hier.'
-                    : 'GEO Analysis matches your prompts to pages via Search Console and scans them for optimization points. Results appear here.'
-                  }
+                  {t('geoAnalyseExplanation')}
                 </p>
-                <a href={nl ? '/dashboard/geo-analyse' : '/en/dashboard/geo-analyse'}
+                <a href={t('geoAnalysePath')}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white text-[13px] font-medium no-underline hover:opacity-90 transition-opacity"
                   style={{ background: '#292956' }}>
                   <Zap className="w-3.5 h-3.5" />
-                  {nl ? 'GEO Analyse starten' : 'Start GEO Analysis'}
+                  {t('startGeoAnalysis')}
                 </a>
               </div>
             </div>
@@ -309,7 +277,7 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
         <div className="flex items-center gap-3 pt-2">
           <div className="h-px bg-slate-200 flex-1" />
           <span className="text-[11px] text-slate-400 font-medium uppercase tracking-wider">
-            {nl ? 'Pagina scanner' : 'Page scanner'}
+            {t('pageScanner')}
           </span>
           <div className="h-px bg-slate-200 flex-1" />
         </div>
@@ -323,7 +291,7 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
                 type="url" value={url}
                 onChange={e => setUrl(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !loading && runAudit()}
-                placeholder={nl ? 'https://jouwwebsite.nl/pagina' : 'https://yoursite.com/page'}
+                placeholder={t('urlPlaceholder')}
                 className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-200 text-[14px] text-slate-800 placeholder:text-slate-300 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/10 transition-all"
               />
             </div>
@@ -331,13 +299,13 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
               className="px-7 py-3 rounded-lg text-white text-[14px] font-semibold cursor-pointer hover:opacity-90 transition-opacity border-none disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2.5 shrink-0"
               style={{ background: '#292956' }}>
               <Search className="w-4 h-4" />
-              {nl ? 'Analyseer' : 'Analyze'}
+              {t('analyze')}
             </button>
           </div>
           <p className="text-[11px] text-slate-400 mt-2.5">
             {scannedToday
-              ? (nl ? '✓ Vandaag al gescand. Kom morgen terug voor een nieuwe scan (BETA).' : '✓ Already scanned today. Come back tomorrow for a new scan (BETA).')
-              : (nl ? 'Scan duurt ±1 minuut · Inclusief Core Web Vitals meting en live Perplexity test' : 'Scan takes ~1 minute · Includes Core Web Vitals and live Perplexity test')
+              ? (t('alreadyScanned'))
+              : (t('scanDuration'))
             }
           </p>
           {error && (
@@ -350,9 +318,9 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <div className="text-[14px] font-semibold text-slate-800">
-                {nl ? 'Gescande pagina\'s' : 'Scanned pages'}
+                {t('scannedPages')}
               </div>
-              <span className="text-[11px] text-slate-400">{history.length} {nl ? 'scans' : 'scans'}</span>
+              <span className="text-[11px] text-slate-400">{history.length} {t('scans')}</span>
             </div>
             <div className="divide-y divide-slate-100">
               {history.map((h, i) => {
@@ -380,18 +348,18 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
                     </div>
                     {/* Perplexity badge */}
                     <span className={`text-[10px] px-2 py-1 rounded-full font-medium shrink-0 ${h.mentioned ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
-                      {h.mentioned ? (nl ? 'Gevonden' : 'Found') : (nl ? 'Niet gevonden' : 'Not found')}
+                      {h.mentioned ? (t('found')) : (t('notFound'))}
                     </span>
                     {/* Time */}
                     <span className="text-[10px] text-slate-300 shrink-0 w-16 text-right">
-                      {new Date(h.timestamp).toLocaleDateString(nl ? 'nl-NL' : 'en-US', { day: 'numeric', month: 'short' })}
+                      {new Date(h.timestamp).toLocaleDateString(t('dateLocale'), { day: 'numeric', month: 'short' })}
                     </span>
                     <ArrowRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); deleteHistoryItem(i) }}
                     className="opacity-0 group-hover:opacity-100 transition-opacity p-2 mr-3 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-500 cursor-pointer bg-transparent border-none shrink-0"
-                    title={nl ? 'Verwijderen' : 'Delete'}
+                    title={t('delete')}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -409,10 +377,10 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
               <Search className="w-7 h-7 text-slate-300" />
             </div>
             <p className="text-[14px] text-slate-500 font-medium mb-1">
-              {nl ? 'Analyseer je eerste pagina' : 'Analyze your first page'}
+              {t('analyzeFirstPage')}
             </p>
             <p className="text-[12px] text-slate-400 max-w-xs mx-auto">
-              {nl ? 'Voer een URL in om een complete GEO audit te starten met AI-analyse en live Perplexity test.' : 'Enter a URL to start a complete GEO audit with AI analysis and live Perplexity test.'}
+              {t('enterUrlForAudit')}
             </p>
           </div>
         )}
@@ -433,49 +401,49 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
 
     // Transform checklist + scores into category cards matching GEO Audit style
     const categoryDefs = [
-      { key: 'technical', name: nl ? 'Technisch' : 'Technical', icon: '⚙️', slug: 'technical',
+      { key: 'technical', name: t('categories.technical'), icon: '⚙️', slug: 'technical',
         items: [
-          { key: 'has_https', name: 'HTTPS', detail: nl ? 'Beveiligde verbinding actief' : 'Secure connection active' },
-          { key: 'has_viewport', name: 'Mobile Viewport', detail: nl ? 'Responsive weergave ingesteld' : 'Responsive display configured' },
-          { key: 'has_lazy_load', name: 'Lazy Loading', detail: nl ? 'Afbeeldingen laden on-demand' : 'Images load on-demand' },
-          { key: 'has_defer_async', name: 'Deferred Scripts', detail: nl ? 'JavaScript niet-blokkerend geladen' : 'JavaScript loaded non-blocking' },
-          { key: 'has_canonical', name: 'Canonical Tag', detail: nl ? 'Voorkeursversie van de pagina aangegeven' : 'Preferred page version indicated' },
-          { key: 'not_noindex', name: nl ? 'Indexeerbaar' : 'Indexable', detail: nl ? 'Pagina is zichtbaar voor zoekmachines' : 'Page is visible to search engines' },
+          { key: 'has_https', name: 'HTTPS', detail: t('checks.httpsDetail') },
+          { key: 'has_viewport', name: 'Mobile Viewport', detail: t('checks.viewportDetail') },
+          { key: 'has_lazy_load', name: 'Lazy Loading', detail: t('checks.lazyLoadDetail') },
+          { key: 'has_defer_async', name: 'Deferred Scripts', detail: t('checks.deferAsyncDetail') },
+          { key: 'has_canonical', name: 'Canonical Tag', detail: t('checks.canonicalDetail') },
+          { key: 'not_noindex', name: t('checks.indexableName'), detail: t('checks.indexableDetail') },
         ]},
-      { key: 'content', name: nl ? 'Content Kwaliteit' : 'Content Quality', icon: '📝', slug: 'content',
+      { key: 'content', name: t('categories.contentQuality'), icon: '📝', slug: 'content',
         items: [
-          { key: 'has_title', name: 'Title Tag', detail: nl ? 'Paginatitel aanwezig en geoptimaliseerd' : 'Page title present and optimized' },
-          { key: 'has_meta_description', name: 'Meta Description', detail: nl ? 'Samenvatting voor zoekmachines' : 'Summary for search engines' },
-          { key: 'has_h1', name: 'H1 Heading', detail: nl ? 'Hoofdkop op de pagina' : 'Main heading on page' },
-          { key: 'has_good_heading_structure', name: nl ? 'Heading Structuur' : 'Heading Structure', detail: nl ? 'Logische koppenstructuur (H1-H6)' : 'Logical heading structure (H1-H6)' },
-          { key: 'has_sufficient_content', name: nl ? 'Voldoende Content' : 'Sufficient Content', detail: nl ? 'Genoeg woorden voor zoekmachines' : 'Enough words for search engines' },
-          { key: 'has_images', name: nl ? 'Afbeeldingen' : 'Images', detail: nl ? 'Visuele content aanwezig' : 'Visual content present' },
-          { key: 'has_image_alt', name: 'Alt-tekst', detail: nl ? 'Beschrijvingen op afbeeldingen' : 'Descriptions on images' },
+          { key: 'has_title', name: 'Title Tag', detail: t('checks.titleDetail') },
+          { key: 'has_meta_description', name: 'Meta Description', detail: t('checks.metaDescDetail') },
+          { key: 'has_h1', name: 'H1 Heading', detail: t('checks.h1Detail') },
+          { key: 'has_good_heading_structure', name: t('checks.headingStructureName'), detail: t('checks.headingStructureDetail') },
+          { key: 'has_sufficient_content', name: t('checks.sufficientContentName'), detail: t('checks.sufficientContentDetail') },
+          { key: 'has_images', name: t('checks.imagesName'), detail: t('checks.imagesDetail') },
+          { key: 'has_image_alt', name: 'Alt-tekst', detail: t('checks.imageAltDetail') },
         ]},
       { key: 'structured', name: 'Structured Data', icon: '🏷️', slug: 'structured',
         items: [
-          { key: 'has_json_ld', name: 'JSON-LD', detail: nl ? 'Gestructureerde data voor zoekmachines' : 'Structured data for search engines' },
-          { key: 'has_local_business', name: 'LocalBusiness', detail: nl ? 'Bedrijfsinformatie schema' : 'Business information schema' },
-          { key: 'has_faq_schema', name: 'FAQ Schema', detail: nl ? 'Veelgestelde vragen gemarkeerd' : 'FAQ markup present' },
-          { key: 'has_product_schema', name: 'Product/Service', detail: nl ? 'Product of dienst schema' : 'Product or service schema' },
-          { key: 'has_breadcrumb', name: 'Breadcrumb', detail: nl ? 'Navigatiepad gemarkeerd' : 'Navigation path marked' },
-          { key: 'has_article_schema', name: 'Article/WebPage', detail: nl ? 'Pagina-type gemarkeerd' : 'Page type marked' },
+          { key: 'has_json_ld', name: 'JSON-LD', detail: t('checks.jsonLdDetail') },
+          { key: 'has_local_business', name: 'LocalBusiness', detail: t('checks.localBusinessDetail') },
+          { key: 'has_faq_schema', name: 'FAQ Schema', detail: t('checks.faqSchemaDetail') },
+          { key: 'has_product_schema', name: 'Product/Service', detail: t('checks.productSchemaDetail') },
+          { key: 'has_breadcrumb', name: 'Breadcrumb', detail: t('checks.breadcrumbDetail') },
+          { key: 'has_article_schema', name: 'Article/WebPage', detail: t('checks.articleSchemaDetail') },
         ]},
       { key: 'social', name: 'Social / OG Tags', icon: '📣', slug: 'social',
         items: [
-          { key: 'og_title', name: 'Open Graph Title', detail: nl ? 'Titel voor social media delen' : 'Title for social media sharing' },
-          { key: 'og_description', name: 'OG Description', detail: nl ? 'Beschrijving voor social media' : 'Description for social media' },
-          { key: 'og_image', name: 'OG Image', detail: nl ? 'Afbeelding voor social media' : 'Image for social media' },
-          { key: 'twitter_card', name: 'Twitter Card', detail: nl ? 'Twitter deelkaart ingesteld' : 'Twitter sharing card configured' },
+          { key: 'og_title', name: 'Open Graph Title', detail: t('checks.ogTitleDetail') },
+          { key: 'og_description', name: 'OG Description', detail: t('checks.ogDescDetail') },
+          { key: 'og_image', name: 'OG Image', detail: t('checks.ogImageDetail') },
+          { key: 'twitter_card', name: 'Twitter Card', detail: t('checks.twitterCardDetail') },
         ]},
-      { key: 'geo', name: nl ? 'AI / GEO Signalen' : 'AI / GEO Signals', icon: '🤖', slug: 'geo',
+      { key: 'geo', name: t('categories.geoSignals'), icon: '🤖', slug: 'geo',
         items: [
-          { key: 'has_faq_content', name: nl ? 'FAQ Content' : 'FAQ Content', detail: nl ? 'Vraag-en-antwoord content aanwezig' : 'Question-and-answer content present' },
-          { key: 'has_direct_answers', name: nl ? 'Directe Antwoorden' : 'Direct Answers', detail: nl ? 'Content die AI direct kan citeren' : 'Content AI can directly cite' },
-          { key: 'has_local_info', name: nl ? 'Lokale Informatie' : 'Local Information', detail: nl ? 'Plaatsnamen, postcodes, regio\'s' : 'City names, postal codes, regions' },
-          { key: 'has_expertise_signals', name: 'E-E-A-T', detail: nl ? 'Expertise en auteursinformatie' : 'Expertise and author information' },
-          { key: 'has_date', name: nl ? 'Datum/Actualiteit' : 'Date/Freshness', detail: nl ? 'Publicatie- of update-datum zichtbaar' : 'Publication or update date visible' },
-          { key: 'conversational_style', name: nl ? 'Conversationele Stijl' : 'Conversational Style', detail: nl ? 'Schrijfstijl geschikt voor AI antwoorden' : 'Writing style suitable for AI responses' },
+          { key: 'has_faq_content', name: t('checks.faqContentName'), detail: t('checks.faqContentDetail') },
+          { key: 'has_direct_answers', name: t('checks.directAnswersName'), detail: t('checks.directAnswersDetail') },
+          { key: 'has_local_info', name: t('checks.localInfoName'), detail: t('checks.localInfoDetail') },
+          { key: 'has_expertise_signals', name: 'E-E-A-T', detail: t('checks.eeatDetail') },
+          { key: 'has_date', name: t('checks.dateName'), detail: t('checks.dateDetail') },
+          { key: 'conversational_style', name: t('checks.conversationalName'), detail: t('checks.conversationalDetail') },
         ]},
     ]
 
@@ -492,7 +460,7 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
       return {
         ...cat,
         score: catScore?.percentage || 0,
-        summary: catScore ? `${catScore.score}/${catScore.max} ${nl ? 'punten' : 'points'}` : '',
+        summary: catScore ? `${catScore.score}/${catScore.max} ${t('points')}` : '',
         checks,
       }
     }).filter(cat => cat.checks.length > 0)
@@ -504,13 +472,13 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
         <div className="flex items-center justify-between">
           <button onClick={() => { setView('input'); setGeoDetailPage(null); setExpandedCat(null) }}
             className="text-[13px] text-slate-500 hover:text-slate-800 cursor-pointer bg-transparent border-none flex items-center gap-1">
-            ← {nl ? 'Alle pagina\'s' : 'All pages'}
+            ← {t('allPages')}
           </button>
           <div className="flex items-center gap-3">
             <span className="text-[12px] text-slate-400 truncate max-w-[300px]">{pg.url}</span>
             <button onClick={() => { setUrl(pg.url); runAudit(pg.url) }}
               className="text-[12px] text-[#4F46E5] hover:underline cursor-pointer bg-transparent border-none flex items-center gap-1">
-              <RefreshCw className="w-3 h-3" /> {nl ? 'Diepte-scan' : 'Deep scan'}
+              <RefreshCw className="w-3 h-3" /> {t('deepScan')}
             </button>
           </div>
         </div>
@@ -535,7 +503,7 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[16px] font-bold text-slate-800">GEO Score</div>
-              <div className="text-[12px] text-slate-500 mb-4">{domain} · {scoreLabel(pg.score, nl)}</div>
+              <div className="text-[12px] text-slate-500 mb-4">{domain} · {getScoreLabel(pg.score, t)}</div>
               <div className="space-y-3">
                 {cats.map((cat, i) => (
                   <div key={i}>
@@ -557,7 +525,7 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
         {issues.length > 0 && (
           <div className="rounded-xl p-5" style={{ background: 'linear-gradient(135deg, #FEF3C7, #FDE68A20)', border: '1px solid #F59E0B30' }}>
             <div className="text-[10px] uppercase tracking-wider font-bold mb-3" style={{ color: '#B45309' }}>
-              ⚡ {nl ? 'Top aanbevelingen' : 'Top recommendations'}
+              ⚡ {t('topRecommendations')}
             </div>
             {issues.slice(0, 5).map((issue, i) => (
               <div key={i} className="flex items-start gap-3 mb-3 last:mb-0">
@@ -625,13 +593,13 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
         </div>
 
         {/* ── Page Stats ── */}
-        <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold px-1">{nl ? 'Gevonden op pagina' : 'Found on page'}</div>
+        <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold px-1">{t('foundOnPage')}</div>
         <div className="grid grid-cols-4 gap-3">
           {[
-            { label: nl ? 'Woorden' : 'Words', value: d.wordCount || '—' },
-            { label: nl ? 'Checklist items' : 'Checklist items', value: Object.keys(checklist).length },
-            { label: nl ? 'Geslaagd' : 'Passed', value: Object.values(checklist).filter(v => v === true).length },
-            { label: nl ? 'Te verbeteren' : 'To improve', value: Object.values(checklist).filter(v => v === false).length },
+            { label: t('words'), value: d.wordCount || '—' },
+            { label: t('checklistItems'), value: Object.keys(checklist).length },
+            { label: t('passed'), value: Object.values(checklist).filter(v => v === true).length },
+            { label: t('toImprove'), value: Object.values(checklist).filter(v => v === false).length },
           ].map((s, i) => (
             <div key={i} className="bg-white rounded-xl border border-slate-200 p-4 text-center">
               <div className="text-[22px] font-bold text-slate-800">{s.value}</div>
@@ -664,17 +632,17 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-[14px] font-semibold text-slate-800">
-                {nl ? 'Wil je Core Web Vitals + Perplexity test?' : 'Want Core Web Vitals + Perplexity test?'}
+                {t('cwvPerplexityQuestion')}
               </div>
               <p className="text-[12px] text-slate-500 mt-0.5">
-                {nl ? 'Draai een diepte-scan voor CWV metingen en een live Perplexity test.' : 'Run a deep scan for CWV measurements and a live Perplexity test.'}
+                {t('cwvPerplexityDesc')}
               </p>
             </div>
             <button onClick={() => { setUrl(pg.url); runAudit(pg.url) }}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-[13px] font-medium cursor-pointer border-none hover:opacity-90 transition-opacity shrink-0"
               style={{ background: '#292956' }}>
               <Zap className="w-3.5 h-3.5" />
-              {nl ? 'Diepte-scan' : 'Deep scan'}
+              {t('deepScan')}
             </button>
           </div>
         </div>
@@ -691,18 +659,18 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
 
     // Context messages for slow steps
     const slowStepHints = {
-      cwv: nl ? 'Google PageSpeed API wordt bevraagd — dit kan tot 60 seconden duren' : 'Querying Google PageSpeed API — this can take up to 60 seconds',
-      ai_content: nl ? 'AI analyseert je content op citatie-potentieel' : 'AI is analyzing your content for citation potential',
-      ai_citation: nl ? 'Citatie-kwaliteit wordt beoordeeld op basis van je content' : 'Citation quality is being assessed based on your content',
-      ai_eeat: nl ? 'E-E-A-T signalen worden geëvalueerd' : 'E-E-A-T signals are being evaluated',
-      perplexity: nl ? 'Live test op Perplexity — we checken of je daadwerkelijk gevonden wordt' : 'Live Perplexity test — checking if you are actually found',
+      cwv: t('loading.cwv'),
+      ai_content: t('loading.aiContent'),
+      ai_citation: t('loading.aiCitation'),
+      ai_eeat: t('loading.aiEeat'),
+      perplexity: t('loading.perplexity'),
     }
     const hint = slowStepHints[currentStepId] || null
 
     // Finalizing message adapts based on elapsed time
     const finalizingMsg = elapsed > 60
-      ? (nl ? 'Core Web Vitals meting loopt nog — Google PageSpeed reageert soms traag. Even geduld.' : 'Core Web Vitals measurement still running — Google PageSpeed can be slow. Please wait.')
-      : (nl ? 'Bijna klaar — Core Web Vitals worden gemeten via Google PageSpeed. Dit kan tot een minuut duren.' : 'Almost done — measuring Core Web Vitals via Google PageSpeed. This can take up to a minute.')
+      ? (t('loading.cwvStillRunning'))
+      : (t('loading.cwvAlmostDone'))
 
     return (
       <div className="space-y-5">
@@ -716,7 +684,7 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
               <div>
                 <div className="text-[15px] font-semibold text-slate-800">
                   {allStepsDone
-                    ? (nl ? 'Core Web Vitals meten...' : 'Measuring Core Web Vitals...')
+                    ? (t('loading.measuringCwv'))
                     : (STEPS[stepIdx]?.label || '...')}
                 </div>
                 <div className="text-[12px] text-slate-400 mt-0.5">{url}</div>
@@ -781,13 +749,13 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
         <div className="flex items-center justify-between">
           <button onClick={() => { setView('input'); setResult(null); setExpandedCat(null) }}
             className="text-[13px] text-slate-500 hover:text-slate-800 cursor-pointer bg-transparent border-none flex items-center gap-1">
-            ← {nl ? 'Alle scans' : 'All scans'}
+            ← {t('allScans')}
           </button>
           <div className="flex items-center gap-3">
             <span className="text-[12px] text-slate-400 truncate max-w-[300px]">{result.url}</span>
             <button onClick={() => runAudit(result.url)}
               className="text-[12px] text-[#4F46E5] hover:underline cursor-pointer bg-transparent border-none flex items-center gap-1">
-              <RefreshCw className="w-3 h-3" /> {nl ? 'Opnieuw scannen' : 'Rescan'}
+              <RefreshCw className="w-3 h-3" /> {t('rescan')}
             </button>
           </div>
         </div>
@@ -804,12 +772,12 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
                 <div>
                   <div className={`text-[16px] font-bold ${live.mentioned ? 'text-emerald-800' : 'text-red-800'}`}>
                     {live.mentioned
-                      ? `${a.companyName || result.domain} ${nl ? 'wordt gevonden!' : 'found!'}`
-                      : nl ? 'Niet gevonden door Perplexity' : 'Not found by Perplexity'}
+                      ? `${a.companyName || result.domain} ${t('isFound')}`
+                      : t('notFoundByPerplexity')}
                   </div>
                   <div className={`text-[12px] ${live.mentioned ? 'text-emerald-600' : 'text-red-500'}`}>
-                    {nl ? 'Live getest op' : 'Live tested on'} <strong>Perplexity</strong>
-                    {live.mentioned && live.mentionCount > 0 ? ` — ${live.mentionCount}× ${nl ? 'genoemd' : 'mentioned'}` : ''}
+                    {t('liveTestedOn')} <strong>Perplexity</strong>
+                    {live.mentioned && live.mentionCount > 0 ? ` — ${live.mentionCount}× ${t('mentioned')}` : ''}
                   </div>
                 </div>
               </div>
@@ -817,7 +785,7 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
               {/* Prompt */}
               {a.generatedPrompt && (
                 <div className="mt-4 bg-white/70 rounded-lg p-3.5 border border-white">
-                  <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-1">✦ {nl ? 'Geteste prompt' : 'Tested prompt'}</div>
+                  <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-1">✦ {t('testedPrompt')}</div>
                   <div className="text-[13px] text-slate-700 italic leading-relaxed">"{a.generatedPrompt}"</div>
                 </div>
               )}
@@ -825,14 +793,14 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
               {/* Snippet */}
               {live.snippet && (
                 <div className="mt-3 bg-white/70 rounded-lg p-3.5 border border-white">
-                  <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-1">● {nl ? 'Perplexity antwoord' : 'Perplexity response'}</div>
+                  <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-1">● {t('perplexityResponse')}</div>
                   <div className="text-[12px] text-slate-600 leading-relaxed">
                     {showSnippet ? live.snippet : live.snippet.slice(0, 300) + (live.snippet.length > 300 ? '...' : '')}
                   </div>
                   {live.snippet.length > 300 && (
                     <button onClick={() => setShowSnippet(!showSnippet)}
                       className="text-[11px] text-[#4F46E5] mt-2 cursor-pointer bg-transparent border-none hover:underline font-medium">
-                      {showSnippet ? (nl ? 'Minder tonen' : 'Show less') : (nl ? 'Volledig antwoord tonen' : 'Show full response')}
+                      {showSnippet ? (t('showLess')) : (t('showFullResponse'))}
                     </button>
                   )}
                 </div>
@@ -841,7 +809,7 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
               {/* Competitors */}
               {live.competitors?.length > 0 && (
                 <div className="mt-3">
-                  <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-2">⚡ {nl ? 'Concurrenten in dit antwoord' : 'Competitors in this response'}</div>
+                  <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-2">⚡ {t('competitorsInResponse')}</div>
                   <div className="flex flex-wrap gap-1.5">
                     {live.competitors.map((c, i) => (
                       <span key={i} className="text-[11px] px-2.5 py-1 rounded-full bg-white border border-slate-200 text-slate-700 font-medium">{c}</span>
@@ -873,7 +841,7 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-[16px] font-bold text-slate-800">GEO Score</div>
-              <div className="text-[12px] text-slate-500 mb-4">{result.domain} · {scoreLabel(a.overallScore || 0, nl)}</div>
+              <div className="text-[12px] text-slate-500 mb-4">{result.domain} · {getScoreLabel(a.overallScore || 0, t)}</div>
               <div className="space-y-3">
                 {cats.map((cat, i) => (
                   <div key={i}>
@@ -895,7 +863,7 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
         {(a.topRecommendations || []).length > 0 && (
           <div className="rounded-xl p-5" style={{ background: 'linear-gradient(135deg, #FEF3C7, #FDE68A20)', border: '1px solid #F59E0B30' }}>
             <div className="text-[10px] uppercase tracking-wider font-bold mb-3" style={{ color: '#B45309' }}>
-              ⚡ {nl ? 'Top aanbevelingen' : 'Top recommendations'}
+              ⚡ {t('topRecommendations')}
             </div>
             {a.topRecommendations.map((rec, i) => (
               <div key={i} className="flex items-start gap-3 mb-3 last:mb-0">
@@ -969,12 +937,12 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
         </div>
 
         {/* ── Page Stats ── */}
-        <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold px-1">{nl ? 'Gevonden op pagina' : 'Found on page'}</div>
+        <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold px-1">{t('foundOnPage')}</div>
         <div className="grid grid-cols-4 gap-3">
           {[
-            { label: nl ? 'Woorden' : 'Words', value: ext.wordCount || 0 },
+            { label: t('words'), value: ext.wordCount || 0 },
             { label: 'Headings', value: ext.headingCount || 0 },
-            { label: nl ? 'Afbeeldingen' : 'Images', value: ext.imageCount || 0 },
+            { label: t('checks.imagesName'), value: ext.imageCount || 0 },
             { label: 'Schema types', value: (ext.structuredDataTypes || []).length },
           ].map((s, i) => (
             <div key={i} className="bg-white rounded-xl border border-slate-200 p-4 text-center">
@@ -1022,7 +990,7 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
                 ))}
               </div>
             ) : (
-              <div className="text-[12px] text-slate-300 text-center py-1">{nl ? 'Niet beschikbaar' : 'Not available'}</div>
+              <div className="text-[12px] text-slate-300 text-center py-1">{t('notAvailable')}</div>
             )}
           </div>
         </div>
