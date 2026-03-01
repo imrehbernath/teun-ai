@@ -78,7 +78,7 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
   // GEO Analyse results from DB
   const [geoPages, setGeoPages] = useState([])
   const [geoPagesLoading, setGeoPagesLoading] = useState(true)
-  const [expandedPage, setExpandedPage] = useState(null)
+  const [geoDetailPage, setGeoDetailPage] = useState(null) // selected page for detail view
 
   // Daily scan limit (BETA) — admins bypass
   const scannedToday = !isAdmin && history.length > 0 && new Date(history[0].timestamp).toDateString() === new Date().toDateString()
@@ -190,55 +190,6 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
     }
   }, [url, locale, history])
 
-  // Checklist labels for display
-  const CHECKLIST_LABELS = nl ? {
-    // Technical
-    has_https: 'HTTPS actief', has_viewport: 'Mobile viewport', has_lazy_load: 'Lazy loading afbeeldingen',
-    has_defer_async: 'Deferred/async scripts', has_canonical: 'Canonical tag', not_noindex: 'Indexeerbaar (geen noindex)',
-    // Content
-    has_title: 'Title tag aanwezig', has_meta_description: 'Meta description', has_h1: 'H1 heading',
-    has_good_heading_structure: 'Goede heading structuur', has_sufficient_content: 'Voldoende content',
-    has_images: 'Afbeeldingen aanwezig', has_image_alt: 'Alt-tekst op afbeeldingen',
-    // Structured Data
-    has_json_ld: 'JSON-LD structured data', has_local_business: 'LocalBusiness schema',
-    has_faq_schema: 'FAQ schema', has_product_schema: 'Product/Service schema',
-    has_breadcrumb: 'Breadcrumb schema', has_article_schema: 'Article/WebPage schema',
-    // Social
-    og_title: 'Open Graph title', og_description: 'Open Graph description',
-    og_image: 'Open Graph image', twitter_card: 'Twitter Card',
-    // AI/GEO
-    has_faq_content: 'FAQ content aanwezig', has_direct_answers: 'Directe antwoorden',
-    has_local_info: 'Lokale informatie', has_expertise_signals: 'Expertise/E-E-A-T signalen',
-    has_date: 'Datum/actualiteit', conversational_style: 'Conversationele schrijfstijl',
-  } : {
-    has_https: 'HTTPS active', has_viewport: 'Mobile viewport', has_lazy_load: 'Lazy loading images',
-    has_defer_async: 'Deferred/async scripts', has_canonical: 'Canonical tag', not_noindex: 'Indexable (no noindex)',
-    has_title: 'Title tag present', has_meta_description: 'Meta description', has_h1: 'H1 heading',
-    has_good_heading_structure: 'Good heading structure', has_sufficient_content: 'Sufficient content',
-    has_images: 'Images present', has_image_alt: 'Alt text on images',
-    has_json_ld: 'JSON-LD structured data', has_local_business: 'LocalBusiness schema',
-    has_faq_schema: 'FAQ schema', has_product_schema: 'Product/Service schema',
-    has_breadcrumb: 'Breadcrumb schema', has_article_schema: 'Article/WebPage schema',
-    og_title: 'Open Graph title', og_description: 'Open Graph description',
-    og_image: 'Open Graph image', twitter_card: 'Twitter Card',
-    has_faq_content: 'FAQ content present', has_direct_answers: 'Direct answers',
-    has_local_info: 'Local information', has_expertise_signals: 'Expertise/E-E-A-T signals',
-    has_date: 'Date/freshness', conversational_style: 'Conversational writing style',
-  }
-
-  const CHECKLIST_GROUPS = [
-    { key: 'technical', label: nl ? 'Technisch' : 'Technical', icon: '⚙️',
-      items: ['has_https', 'has_viewport', 'has_lazy_load', 'has_defer_async', 'has_canonical', 'not_noindex'] },
-    { key: 'content', label: 'Content', icon: '📝',
-      items: ['has_title', 'has_meta_description', 'has_h1', 'has_good_heading_structure', 'has_sufficient_content', 'has_images', 'has_image_alt'] },
-    { key: 'structured', label: 'Structured Data', icon: '🏷️',
-      items: ['has_json_ld', 'has_local_business', 'has_faq_schema', 'has_product_schema', 'has_breadcrumb', 'has_article_schema'] },
-    { key: 'social', label: 'Social / OG', icon: '📣',
-      items: ['og_title', 'og_description', 'og_image', 'twitter_card'] },
-    { key: 'geo', label: 'AI / GEO', icon: '🤖',
-      items: ['has_faq_content', 'has_direct_answers', 'has_local_info', 'has_expertise_signals', 'has_date', 'conversational_style'] },
-  ]
-
   // ═══════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════
@@ -271,155 +222,49 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
               </div>
             </div>
 
-            {/* Page cards */}
+            {/* Page cards — click to view details */}
             {geoPages.map((page, i) => {
               const sc = scoreColor(page.score)
               const path = page.url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
-              const isOpen = expandedPage === (page.id || i)
               const issues = page.data?.issues || []
-              const scores = page.data?.scores || {}
-              const checklist = page.data?.checklist || {}
 
               return (
-                <div key={page.id || i} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                  {/* Row header — clickable */}
-                  <button
-                    onClick={() => setExpandedPage(isOpen ? null : (page.id || i))}
-                    className="w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-50/50 transition-colors cursor-pointer bg-transparent border-none text-left"
-                  >
-                    {/* Score circle */}
-                    <div className="relative w-11 h-11 shrink-0">
-                      <svg viewBox="0 0 44 44" className="w-11 h-11">
-                        <circle cx="22" cy="22" r="18" fill="none" stroke="#f1f5f9" strokeWidth="3" />
-                        <circle cx="22" cy="22" r="18" fill="none" stroke={sc} strokeWidth="3"
-                          strokeDasharray={`${(page.score / 100) * 113.1} 113.1`} strokeLinecap="round"
-                          style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }} />
-                      </svg>
-                      <span className="absolute inset-0 flex items-center justify-center text-[12px] font-bold text-slate-800">{page.score}</span>
+                <button
+                  key={page.id || i}
+                  onClick={() => { setGeoDetailPage(page); setView('geo-detail'); setExpandedCat(null) }}
+                  className="w-full bg-white rounded-xl border border-slate-200 overflow-hidden flex items-center gap-4 px-5 py-4 hover:bg-slate-50/50 hover:border-slate-300 transition-all cursor-pointer border-none text-left"
+                  style={{ border: '1px solid #e2e8f0' }}
+                >
+                  {/* Score circle */}
+                  <div className="relative w-11 h-11 shrink-0">
+                    <svg viewBox="0 0 44 44" className="w-11 h-11">
+                      <circle cx="22" cy="22" r="18" fill="none" stroke="#f1f5f9" strokeWidth="3" />
+                      <circle cx="22" cy="22" r="18" fill="none" stroke={sc} strokeWidth="3"
+                        strokeDasharray={`${(page.score / 100) * 113.1} 113.1`} strokeLinecap="round"
+                        style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }} />
+                    </svg>
+                    <span className="absolute inset-0 flex items-center justify-center text-[12px] font-bold text-slate-800">{page.score}</span>
+                  </div>
+                  {/* URL + issue count */}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-medium text-slate-800 truncate">{path}</div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">
+                      {issues.length > 0
+                        ? `${issues.length} ${nl ? 'verbeterpunten' : 'improvements'}`
+                        : (nl ? 'Geen problemen' : 'No issues')
+                      }
                     </div>
-                    {/* URL + issue count */}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-medium text-slate-800 truncate">{path}</div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">
-                        {issues.length > 0
-                          ? `${issues.length} ${nl ? 'verbeterpunten gevonden' : 'improvements found'}`
-                          : (nl ? 'Geen problemen' : 'No issues')
-                        }
-                      </div>
-                    </div>
-                    {/* Status */}
-                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium shrink-0 ${
-                      page.score >= 70 ? 'bg-emerald-50 text-emerald-600' :
-                      page.score >= 40 ? 'bg-amber-50 text-amber-600' :
-                      'bg-red-50 text-red-500'
-                    }`}>
-                      {page.score >= 70 ? (nl ? 'Goed' : 'Good') : page.score >= 40 ? (nl ? 'Gemiddeld' : 'Average') : (nl ? 'Slecht' : 'Poor')}
-                    </span>
-                    {isOpen ? <ChevronUp className="w-4 h-4 text-slate-400 shrink-0" /> : <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />}
-                  </button>
-
-                  {/* ── Expanded detail panel ── */}
-                  {isOpen && (
-                    <div className="border-t border-slate-100">
-
-                      {/* Category score bars */}
-                      {Object.keys(scores).length > 0 && (
-                        <div className="px-5 pt-4 pb-3">
-                          <div className="grid grid-cols-5 gap-2">
-                            {[
-                              { key: 'technical', label: nl ? 'Technisch' : 'Technical', icon: '⚙️' },
-                              { key: 'content', label: 'Content', icon: '📝' },
-                              { key: 'structured', label: 'Schema', icon: '🏷️' },
-                              { key: 'social', label: 'Social', icon: '📣' },
-                              { key: 'geo', label: 'AI/GEO', icon: '🤖' },
-                            ].filter(c => scores[c.key]).map(c => {
-                              const pct = scores[c.key]?.percentage || 0
-                              return (
-                                <div key={c.key} className="text-center">
-                                  <div className="text-[9px] text-slate-400 mb-1">{c.icon} {c.label}</div>
-                                  <div className="text-[15px] font-bold" style={{ color: scoreColor(pct) }}>{pct}%</div>
-                                  <div className="h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
-                                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: scoreColor(pct) }} />
-                                  </div>
-                                  <div className="text-[9px] text-slate-300 mt-0.5">{scores[c.key]?.score}/{scores[c.key]?.max}</div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Issues */}
-                      {issues.length > 0 && (
-                        <div className="px-5 py-3 border-t border-slate-50">
-                          <div className="text-[10px] uppercase tracking-wider font-bold text-amber-600 mb-2">
-                            ⚠️ {nl ? `${issues.length} verbeterpunten` : `${issues.length} improvements`}
-                          </div>
-                          <div className="space-y-1">
-                            {issues.map((issue, ii) => (
-                              <div key={ii} className="flex items-start gap-2 py-1.5">
-                                <X className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-                                <span className="text-[12px] text-slate-600 leading-relaxed">
-                                  {typeof issue === 'string' ? issue : issue.message || ''}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Checklist per category */}
-                      {Object.keys(checklist).length > 0 && (
-                        <div className="px-5 py-3 border-t border-slate-50">
-                          <div className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-3">
-                            {nl ? 'Checklist' : 'Checklist'}
-                          </div>
-                          {CHECKLIST_GROUPS.map(group => {
-                            const groupItems = group.items.filter(k => checklist[k] !== undefined)
-                            if (groupItems.length === 0) return null
-                            const passCount = groupItems.filter(k => checklist[k]).length
-                            return (
-                              <div key={group.key} className="mb-3 last:mb-0">
-                                <div className="text-[11px] font-semibold text-slate-500 mb-1.5">
-                                  {group.icon} {group.label} <span className="text-slate-300 font-normal">({passCount}/{groupItems.length})</span>
-                                </div>
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                                  {groupItems.map(k => (
-                                    <div key={k} className="flex items-center gap-1.5 py-0.5">
-                                      {checklist[k]
-                                        ? <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                                        : <X className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                                      }
-                                      <span className={`text-[11px] ${checklist[k] ? 'text-slate-500' : 'text-slate-700 font-medium'}`}>
-                                        {CHECKLIST_LABELS[k] || k}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-
-                      {/* Actions */}
-                      <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center gap-3">
-                        <button
-                          onClick={() => { setUrl(page.url); runAudit(page.url) }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 cursor-pointer border-none transition-colors"
-                        >
-                          <Zap className="w-3 h-3" />
-                          {nl ? 'Diepte-scan (CWV + Perplexity)' : 'Deep scan (CWV + Perplexity)'}
-                        </button>
-                        <a href={page.url} target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-slate-500 hover:text-slate-700 no-underline transition-colors">
-                          <ExternalLink className="w-3 h-3" />
-                          {nl ? 'Bekijk pagina' : 'View page'}
-                        </a>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                  {/* Status badge */}
+                  <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium shrink-0 ${
+                    page.score >= 70 ? 'bg-emerald-50 text-emerald-600' :
+                    page.score >= 40 ? 'bg-amber-50 text-amber-600' :
+                    'bg-red-50 text-red-500'
+                  }`}>
+                    {page.score >= 70 ? (nl ? 'Goed' : 'Good') : page.score >= 40 ? (nl ? 'Gemiddeld' : 'Average') : (nl ? 'Slecht' : 'Poor')}
+                  </span>
+                  <ArrowRight className="w-4 h-4 text-slate-300 shrink-0" />
+                </button>
               )
             })}
 
@@ -571,6 +416,269 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
             </p>
           </div>
         )}
+      </div>
+    )
+  }
+
+  // ── GEO ANALYSE DETAIL VIEW ──
+  // Shows page data from GEO Analyse in the same visual style as GEO Audit result
+  if (view === 'geo-detail' && geoDetailPage) {
+    const pg = geoDetailPage
+    const d = pg.data || {}
+    const scores = d.scores || {}
+    const checklist = d.checklist || {}
+    const issues = d.issues || []
+    const sc = scoreColor(pg.score)
+    const domain = pg.domain || pg.url?.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] || ''
+
+    // Transform checklist + scores into category cards matching GEO Audit style
+    const categoryDefs = [
+      { key: 'technical', name: nl ? 'Technisch' : 'Technical', icon: '⚙️', slug: 'technical',
+        items: [
+          { key: 'has_https', name: 'HTTPS', detail: nl ? 'Beveiligde verbinding actief' : 'Secure connection active' },
+          { key: 'has_viewport', name: 'Mobile Viewport', detail: nl ? 'Responsive weergave ingesteld' : 'Responsive display configured' },
+          { key: 'has_lazy_load', name: 'Lazy Loading', detail: nl ? 'Afbeeldingen laden on-demand' : 'Images load on-demand' },
+          { key: 'has_defer_async', name: 'Deferred Scripts', detail: nl ? 'JavaScript niet-blokkerend geladen' : 'JavaScript loaded non-blocking' },
+          { key: 'has_canonical', name: 'Canonical Tag', detail: nl ? 'Voorkeursversie van de pagina aangegeven' : 'Preferred page version indicated' },
+          { key: 'not_noindex', name: nl ? 'Indexeerbaar' : 'Indexable', detail: nl ? 'Pagina is zichtbaar voor zoekmachines' : 'Page is visible to search engines' },
+        ]},
+      { key: 'content', name: nl ? 'Content Kwaliteit' : 'Content Quality', icon: '📝', slug: 'content',
+        items: [
+          { key: 'has_title', name: 'Title Tag', detail: nl ? 'Paginatitel aanwezig en geoptimaliseerd' : 'Page title present and optimized' },
+          { key: 'has_meta_description', name: 'Meta Description', detail: nl ? 'Samenvatting voor zoekmachines' : 'Summary for search engines' },
+          { key: 'has_h1', name: 'H1 Heading', detail: nl ? 'Hoofdkop op de pagina' : 'Main heading on page' },
+          { key: 'has_good_heading_structure', name: nl ? 'Heading Structuur' : 'Heading Structure', detail: nl ? 'Logische koppenstructuur (H1-H6)' : 'Logical heading structure (H1-H6)' },
+          { key: 'has_sufficient_content', name: nl ? 'Voldoende Content' : 'Sufficient Content', detail: nl ? 'Genoeg woorden voor zoekmachines' : 'Enough words for search engines' },
+          { key: 'has_images', name: nl ? 'Afbeeldingen' : 'Images', detail: nl ? 'Visuele content aanwezig' : 'Visual content present' },
+          { key: 'has_image_alt', name: 'Alt-tekst', detail: nl ? 'Beschrijvingen op afbeeldingen' : 'Descriptions on images' },
+        ]},
+      { key: 'structured', name: 'Structured Data', icon: '🏷️', slug: 'structured',
+        items: [
+          { key: 'has_json_ld', name: 'JSON-LD', detail: nl ? 'Gestructureerde data voor zoekmachines' : 'Structured data for search engines' },
+          { key: 'has_local_business', name: 'LocalBusiness', detail: nl ? 'Bedrijfsinformatie schema' : 'Business information schema' },
+          { key: 'has_faq_schema', name: 'FAQ Schema', detail: nl ? 'Veelgestelde vragen gemarkeerd' : 'FAQ markup present' },
+          { key: 'has_product_schema', name: 'Product/Service', detail: nl ? 'Product of dienst schema' : 'Product or service schema' },
+          { key: 'has_breadcrumb', name: 'Breadcrumb', detail: nl ? 'Navigatiepad gemarkeerd' : 'Navigation path marked' },
+          { key: 'has_article_schema', name: 'Article/WebPage', detail: nl ? 'Pagina-type gemarkeerd' : 'Page type marked' },
+        ]},
+      { key: 'social', name: 'Social / OG Tags', icon: '📣', slug: 'social',
+        items: [
+          { key: 'og_title', name: 'Open Graph Title', detail: nl ? 'Titel voor social media delen' : 'Title for social media sharing' },
+          { key: 'og_description', name: 'OG Description', detail: nl ? 'Beschrijving voor social media' : 'Description for social media' },
+          { key: 'og_image', name: 'OG Image', detail: nl ? 'Afbeelding voor social media' : 'Image for social media' },
+          { key: 'twitter_card', name: 'Twitter Card', detail: nl ? 'Twitter deelkaart ingesteld' : 'Twitter sharing card configured' },
+        ]},
+      { key: 'geo', name: nl ? 'AI / GEO Signalen' : 'AI / GEO Signals', icon: '🤖', slug: 'geo',
+        items: [
+          { key: 'has_faq_content', name: nl ? 'FAQ Content' : 'FAQ Content', detail: nl ? 'Vraag-en-antwoord content aanwezig' : 'Question-and-answer content present' },
+          { key: 'has_direct_answers', name: nl ? 'Directe Antwoorden' : 'Direct Answers', detail: nl ? 'Content die AI direct kan citeren' : 'Content AI can directly cite' },
+          { key: 'has_local_info', name: nl ? 'Lokale Informatie' : 'Local Information', detail: nl ? 'Plaatsnamen, postcodes, regio\'s' : 'City names, postal codes, regions' },
+          { key: 'has_expertise_signals', name: 'E-E-A-T', detail: nl ? 'Expertise en auteursinformatie' : 'Expertise and author information' },
+          { key: 'has_date', name: nl ? 'Datum/Actualiteit' : 'Date/Freshness', detail: nl ? 'Publicatie- of update-datum zichtbaar' : 'Publication or update date visible' },
+          { key: 'conversational_style', name: nl ? 'Conversationele Stijl' : 'Conversational Style', detail: nl ? 'Schrijfstijl geschikt voor AI antwoorden' : 'Writing style suitable for AI responses' },
+        ]},
+    ]
+
+    // Build category cards with checks
+    const cats = categoryDefs.map(cat => {
+      const catScore = scores[cat.key]
+      const checks = cat.items
+        .filter(item => checklist[item.key] !== undefined)
+        .map(item => ({
+          name: item.name,
+          status: checklist[item.key] ? 'good' : 'error',
+          detail: item.detail,
+        }))
+      return {
+        ...cat,
+        score: catScore?.percentage || 0,
+        summary: catScore ? `${catScore.score}/${catScore.max} ${nl ? 'punten' : 'points'}` : '',
+        checks,
+      }
+    }).filter(cat => cat.checks.length > 0)
+
+    return (
+      <div className="space-y-4">
+
+        {/* Back + URL bar */}
+        <div className="flex items-center justify-between">
+          <button onClick={() => { setView('input'); setGeoDetailPage(null); setExpandedCat(null) }}
+            className="text-[13px] text-slate-500 hover:text-slate-800 cursor-pointer bg-transparent border-none flex items-center gap-1">
+            ← {nl ? 'Alle pagina\'s' : 'All pages'}
+          </button>
+          <div className="flex items-center gap-3">
+            <span className="text-[12px] text-slate-400 truncate max-w-[300px]">{pg.url}</span>
+            <button onClick={() => { setUrl(pg.url); runAudit(pg.url) }}
+              className="text-[12px] text-[#4F46E5] hover:underline cursor-pointer bg-transparent border-none flex items-center gap-1">
+              <RefreshCw className="w-3 h-3" /> {nl ? 'Diepte-scan' : 'Deep scan'}
+            </button>
+          </div>
+        </div>
+
+        {/* ── GEO Score + Category bars ── */}
+        <div className="bg-white rounded-xl border border-slate-200 p-6">
+          <div className="flex items-start gap-6">
+            <div className="shrink-0 flex flex-col items-center">
+              <div className="relative w-24 h-24">
+                <svg viewBox="0 0 100 100" className="w-24 h-24">
+                  <circle cx="50" cy="50" r="42" fill="none" stroke="#f1f5f9" strokeWidth="8" />
+                  <circle cx="50" cy="50" r="42" fill="none" stroke={sc} strokeWidth="8"
+                    strokeDasharray={`${(pg.score / 100) * 264} 264`} strokeLinecap="round"
+                    style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }}
+                    className="transition-all duration-1000" />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-[22px] font-bold text-slate-800">{pg.score}</span>
+                  <span className="text-[9px] text-slate-400">/ 100</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[16px] font-bold text-slate-800">GEO Score</div>
+              <div className="text-[12px] text-slate-500 mb-4">{domain} · {scoreLabel(pg.score, nl)}</div>
+              <div className="space-y-3">
+                {cats.map((cat, i) => (
+                  <div key={i}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[12px] text-slate-600">{cat.icon} {cat.name}</span>
+                      <span className="text-[13px] font-bold" style={{ color: scoreColor(cat.score) }}>{cat.score}</span>
+                    </div>
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${cat.score}%`, background: scoreColor(cat.score) }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Top Aanbevelingen ── */}
+        {issues.length > 0 && (
+          <div className="rounded-xl p-5" style={{ background: 'linear-gradient(135deg, #FEF3C7, #FDE68A20)', border: '1px solid #F59E0B30' }}>
+            <div className="text-[10px] uppercase tracking-wider font-bold mb-3" style={{ color: '#B45309' }}>
+              ⚡ {nl ? 'Top aanbevelingen' : 'Top recommendations'}
+            </div>
+            {issues.slice(0, 5).map((issue, i) => (
+              <div key={i} className="flex items-start gap-3 mb-3 last:mb-0">
+                <span className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0 mt-0.5"
+                  style={{ background: '#D97706' }}>{i + 1}</span>
+                <span className="text-[13px] text-slate-800 leading-relaxed">{typeof issue === 'string' ? issue : issue.message || ''}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── Category Cards (accordion) ── */}
+        <div className="space-y-2">
+          {cats.map((cat, ci) => {
+            const good = cat.checks.filter(c => c.status === 'good').length
+            const errs = cat.checks.filter(c => c.status === 'error').length
+            const isOpen = expandedCat === cat.slug
+            return (
+              <div key={ci} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <button onClick={() => setExpandedCat(isOpen ? null : cat.slug)}
+                  className="w-full flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-slate-50/50 transition-colors bg-transparent border-none text-left">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-[20px]">{cat.icon}</span>
+                    <div className="min-w-0">
+                      <div className="text-[14px] font-semibold text-slate-800">{cat.name}</div>
+                      <div className="text-[12px] text-slate-500 truncate max-w-[350px]">{cat.summary}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0 ml-4">
+                    <div className="flex items-center gap-2 text-[11px]">
+                      {good > 0 && <span className="text-emerald-600 font-medium">{good} ✓</span>}
+                      {errs > 0 && <span className="text-red-500 font-medium">{errs} ✕</span>}
+                    </div>
+                    <span className="text-[16px] font-bold min-w-[28px] text-right" style={{ color: scoreColor(cat.score) }}>{cat.score}</span>
+                    {isOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                  </div>
+                </button>
+                {isOpen && (
+                  <div className="px-5 pb-5 border-t border-slate-100 pt-3">
+                    {cat.checks
+                      .sort((a, b) => {
+                        const order = { error: 0, warning: 1, good: 2 }
+                        return (order[a.status] ?? 1) - (order[b.status] ?? 1)
+                      })
+                      .map((check, ci2) => {
+                        const isGood = check.status === 'good'
+                        const borderColor = isGood ? '#059669' : '#ef4444'
+                        const Icon = isGood ? Check : X
+                        const iconColor = isGood ? 'text-emerald-500' : 'text-red-500'
+                        return (
+                          <div key={ci2} className="p-3.5 bg-slate-50 rounded-lg mb-2 last:mb-0" style={{ borderLeft: `3px solid ${borderColor}` }}>
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <Icon className={`w-4 h-4 ${iconColor} shrink-0`} />
+                              <span className="text-[13px] font-semibold text-slate-800">{check.name}</span>
+                            </div>
+                            {check.detail && <div className="text-[12px] text-slate-500 ml-6 leading-relaxed">{check.detail}</div>}
+                          </div>
+                        )
+                      })}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* ── Page Stats ── */}
+        <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold px-1">{nl ? 'Gevonden op pagina' : 'Found on page'}</div>
+        <div className="grid grid-cols-4 gap-3">
+          {[
+            { label: nl ? 'Woorden' : 'Words', value: d.wordCount || '—' },
+            { label: nl ? 'Checklist items' : 'Checklist items', value: Object.keys(checklist).length },
+            { label: nl ? 'Geslaagd' : 'Passed', value: Object.values(checklist).filter(v => v === true).length },
+            { label: nl ? 'Te verbeteren' : 'To improve', value: Object.values(checklist).filter(v => v === false).length },
+          ].map((s, i) => (
+            <div key={i} className="bg-white rounded-xl border border-slate-200 p-4 text-center">
+              <div className="text-[22px] font-bold text-slate-800">{s.value}</div>
+              <div className="text-[11px] text-slate-400">{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Tech badges */}
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: 'JSON-LD', ok: checklist.has_json_ld },
+              { label: 'LocalBusiness', ok: checklist.has_local_business },
+              { label: 'FAQ Schema', ok: checklist.has_faq_schema },
+              { label: 'Breadcrumb', ok: checklist.has_breadcrumb },
+              { label: 'Article Schema', ok: checklist.has_article_schema },
+              { label: 'OG Tags', ok: checklist.og_title && checklist.og_image },
+              { label: 'Twitter Card', ok: checklist.twitter_card },
+            ].filter(b => b.ok !== undefined).map((b, i) => (
+              <span key={i} className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-medium ${b.ok ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
+                {b.ok ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />} {b.label}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Deep scan CTA */}
+        <div className="rounded-xl p-5" style={{ background: 'linear-gradient(135deg, #EDE9FE, #F5F3FF)', border: '1px solid #C4B5FD40' }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[14px] font-semibold text-slate-800">
+                {nl ? 'Wil je Core Web Vitals + Perplexity test?' : 'Want Core Web Vitals + Perplexity test?'}
+              </div>
+              <p className="text-[12px] text-slate-500 mt-0.5">
+                {nl ? 'Draai een diepte-scan voor CWV metingen en een live Perplexity test.' : 'Run a deep scan for CWV measurements and a live Perplexity test.'}
+              </p>
+            </div>
+            <button onClick={() => { setUrl(pg.url); runAudit(pg.url) }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-[13px] font-medium cursor-pointer border-none hover:opacity-90 transition-opacity shrink-0"
+              style={{ background: '#292956' }}>
+              <Zap className="w-3.5 h-3.5" />
+              {nl ? 'Diepte-scan' : 'Deep scan'}
+            </button>
+          </div>
+        </div>
+
       </div>
     )
   }
