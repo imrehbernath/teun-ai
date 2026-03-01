@@ -569,13 +569,13 @@ function ScanInProgress({ locale, company, onRefresh }) {
       setProgress(prev => {
         const rounded = Math.floor(prev)
         if (rounded >= 97) return rounded
-        if (rounded < 10) return prev + 2
-        if (rounded < 25) return prev + 1
-        if (rounded < 50) return prev + 0.6
-        if (rounded < 70) return prev + 0.4
-        if (rounded < 85) return prev + 0.25
-        if (rounded < 92) return prev + 0.15
-        return prev + 0.08
+        // Slow curve matching ~90s total scan time
+        if (rounded < 5) return prev + 1.2    // 0-5%: ~4s (preparing)
+        if (rounded < 45) return prev + 0.45  // 5-45%: ~89s (ChatGPT 10 prompts)
+        if (rounded < 50) return prev + 0.8   // 45-50%: ~6s (switching)
+        if (rounded < 90) return prev + 0.45  // 50-90%: ~89s (Perplexity 10 prompts)
+        if (rounded < 95) return prev + 0.1   // 90-95%: ~50s (analyzing)
+        return prev + 0.04                    // 95-97%: slow crawl
       })
     }, 1000)
     return () => clearInterval(progressInterval)
@@ -589,19 +589,16 @@ function ScanInProgress({ locale, company, onRefresh }) {
         if (rounded < 5) {
           setPhase('starting')
           setCurrentStep(locale === 'nl' ? 'Prompts voorbereiden...' : 'Preparing prompts...')
-        } else if (rounded < 15) {
+        } else if (rounded < 45) {
           setPhase('chatgpt')
-          setCurrentStep(locale === 'nl' ? 'ChatGPT scannen...' : 'Scanning ChatGPT...')
-        } else if (rounded < 50) {
-          setPhase('chatgpt')
-          const p = Math.min(Math.floor((rounded - 15) / 3.5) + 1, 10)
+          const p = Math.min(Math.floor((rounded - 5) / 4) + 1, 10)
           setCurrentStep(locale === 'nl' ? `ChatGPT: prompt ${p}/10 analyseren...` : `ChatGPT: analyzing prompt ${p}/10...`)
-        } else if (rounded < 55) {
+        } else if (rounded < 50) {
           setPhase('perplexity')
-          setCurrentStep(locale === 'nl' ? 'Perplexity scannen...' : 'Scanning Perplexity...')
+          setCurrentStep(locale === 'nl' ? 'Perplexity voorbereiden...' : 'Preparing Perplexity...')
         } else if (rounded < 90) {
           setPhase('perplexity')
-          const p = Math.min(Math.floor((rounded - 55) / 3.5) + 1, 10)
+          const p = Math.min(Math.floor((rounded - 50) / 4) + 1, 10)
           setCurrentStep(locale === 'nl' ? `Perplexity: prompt ${p}/10 analyseren...` : `Perplexity: analyzing prompt ${p}/10...`)
         } else {
           setPhase('analyzing')
@@ -1064,10 +1061,8 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
               if (unselectedDiscovery.length > 0 && totalPrompts === 0) {
                 return <PromptSelectionFlow discovery={unselectedDiscovery} locale={locale} onScanTriggered={() => { fetchData() }} />
               }
-              // Scan is running — show progress animation
-              return (
-                <ScanInProgress locale={locale} company={activeCompany?.name || companies[0]?.company_name} onRefresh={fetchData} />
-              )
+              // Scan is running — show progress animation (also during background refresh)
+              return null
             }
 
             // Case 2: No data at all
@@ -1082,6 +1077,16 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
             }
 
             // Case 3: Results exist — don't render anything here, fall through to results view
+            return null
+          })()}
+
+          {/* ScanInProgress — rendered outside loading check to prevent flicker */}
+          {data && activeTab === 'overview' && (() => {
+            const scanResultsEmpty = (visibility.chatgptTotal || 0) === 0 && (visibility.perplexityTotal || 0) === 0
+            const hasPendingIntegration = companies.length > 0
+            if (hasPendingIntegration && scanResultsEmpty && totalPrompts > 0) {
+              return <ScanInProgress locale={locale} company={activeCompany?.name || companies[0]?.company_name} onRefresh={fetchData} />
+            }
             return null
           })()}
 
