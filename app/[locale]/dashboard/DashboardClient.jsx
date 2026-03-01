@@ -613,10 +613,20 @@ function ScanInProgress({ locale, company, onRefresh }) {
     return () => clearInterval(stepInterval)
   }, [locale])
 
-  // Auto-refresh every 15s to check if scan is done
+  // Auto-refresh: background check without affecting loading state
   useEffect(() => {
-    const refresher = setInterval(() => onRefresh?.(), 15000)
-    // Max 3 min timeout
+    const checkScanDone = async () => {
+      try {
+        const res = await fetch(`/api/dashboard?period=90d&_t=${Date.now()}`)
+        const data = await res.json()
+        // Scan is done when actual platform results exist
+        if ((data.visibility?.chatgptTotal || 0) > 0 || (data.visibility?.perplexityTotal || 0) > 0) {
+          onRefresh?.() // Only reload dashboard when scan is actually done
+        }
+      } catch {}
+    }
+    const refresher = setInterval(checkScanDone, 15000)
+    // Max 3 min timeout — force refresh
     const timeout = setTimeout(() => onRefresh?.(), 180000)
     return () => { clearInterval(refresher); clearTimeout(timeout) }
   }, [onRefresh])
@@ -724,12 +734,15 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
 
   // ✨ Claim anonieme scan data bij eerste dashboard load
   useEffect(() => {
+    // Only run claim once per session, not on every mount
+    if (typeof window !== 'undefined' && window.__claimSessionDone) return
     fetch('/api/auth/claim-session', { method: 'POST', credentials: 'include' })
       .then(r => r.json())
       .then(data => {
+        if (typeof window !== 'undefined') window.__claimSessionDone = true
         if (data.claimed?.total > 0) {
           console.log(`✅ ${data.claimed.total} eerdere scan(s) gekoppeld aan account`)
-          window.location.reload()
+          fetchData()
         }
       })
       .catch(err => console.error('Session claim error:', err))
