@@ -75,9 +75,9 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
   const [view, setView] = useState('input') // 'input' | 'scanning' | 'result' | 'history'
   const timerRef = useRef(null)
 
-  // GEO Analyse page scores from DB
-  const [geoAnalysePages, setGeoAnalysePages] = useState([])
-  const [geoAnalyseLoading, setGeoAnalyseLoading] = useState(true)
+  // GEO Analyse results from DB
+  const [geoPages, setGeoPages] = useState([])
+  const [geoPagesLoading, setGeoPagesLoading] = useState(true)
   const [expandedPage, setExpandedPage] = useState(null)
 
   // Daily scan limit (BETA) — admins bypass
@@ -93,23 +93,23 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
 
   // Load GEO Analyse page scores from Supabase
   useEffect(() => {
-    const loadGeoAnalysePages = async () => {
+    const load = async () => {
       try {
-        setGeoAnalyseLoading(true)
+        setGeoPagesLoading(true)
         const params = new URLSearchParams()
         if (activeCompany?.name) params.set('company', activeCompany.name)
         const res = await fetch(`/api/geo-audit-results?${params}`)
         const json = await res.json()
         if (json.success && json.results) {
-          setGeoAnalysePages(json.results.filter(r => r.data?.source === 'geo-analyse'))
+          setGeoPages(json.results.filter(r => r.data?.source === 'geo-analyse'))
         }
       } catch (e) {
-        console.error('Failed to load GEO Analyse pages:', e)
+        console.error('Failed to load GEO pages:', e)
       } finally {
-        setGeoAnalyseLoading(false)
+        setGeoPagesLoading(false)
       }
     }
-    loadGeoAnalysePages()
+    load()
   }, [activeCompany?.name])
 
   // Save history to localStorage
@@ -190,186 +190,251 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
     }
   }, [url, locale, history])
 
+  // Checklist labels for display
+  const CHECKLIST_LABELS = nl ? {
+    // Technical
+    has_https: 'HTTPS actief', has_viewport: 'Mobile viewport', has_lazy_load: 'Lazy loading afbeeldingen',
+    has_defer_async: 'Deferred/async scripts', has_canonical: 'Canonical tag', not_noindex: 'Indexeerbaar (geen noindex)',
+    // Content
+    has_title: 'Title tag aanwezig', has_meta_description: 'Meta description', has_h1: 'H1 heading',
+    has_good_heading_structure: 'Goede heading structuur', has_sufficient_content: 'Voldoende content',
+    has_images: 'Afbeeldingen aanwezig', has_image_alt: 'Alt-tekst op afbeeldingen',
+    // Structured Data
+    has_json_ld: 'JSON-LD structured data', has_local_business: 'LocalBusiness schema',
+    has_faq_schema: 'FAQ schema', has_product_schema: 'Product/Service schema',
+    has_breadcrumb: 'Breadcrumb schema', has_article_schema: 'Article/WebPage schema',
+    // Social
+    og_title: 'Open Graph title', og_description: 'Open Graph description',
+    og_image: 'Open Graph image', twitter_card: 'Twitter Card',
+    // AI/GEO
+    has_faq_content: 'FAQ content aanwezig', has_direct_answers: 'Directe antwoorden',
+    has_local_info: 'Lokale informatie', has_expertise_signals: 'Expertise/E-E-A-T signalen',
+    has_date: 'Datum/actualiteit', conversational_style: 'Conversationele schrijfstijl',
+  } : {
+    has_https: 'HTTPS active', has_viewport: 'Mobile viewport', has_lazy_load: 'Lazy loading images',
+    has_defer_async: 'Deferred/async scripts', has_canonical: 'Canonical tag', not_noindex: 'Indexable (no noindex)',
+    has_title: 'Title tag present', has_meta_description: 'Meta description', has_h1: 'H1 heading',
+    has_good_heading_structure: 'Good heading structure', has_sufficient_content: 'Sufficient content',
+    has_images: 'Images present', has_image_alt: 'Alt text on images',
+    has_json_ld: 'JSON-LD structured data', has_local_business: 'LocalBusiness schema',
+    has_faq_schema: 'FAQ schema', has_product_schema: 'Product/Service schema',
+    has_breadcrumb: 'Breadcrumb schema', has_article_schema: 'Article/WebPage schema',
+    og_title: 'Open Graph title', og_description: 'Open Graph description',
+    og_image: 'Open Graph image', twitter_card: 'Twitter Card',
+    has_faq_content: 'FAQ content present', has_direct_answers: 'Direct answers',
+    has_local_info: 'Local information', has_expertise_signals: 'Expertise/E-E-A-T signals',
+    has_date: 'Date/freshness', conversational_style: 'Conversational writing style',
+  }
+
+  const CHECKLIST_GROUPS = [
+    { key: 'technical', label: nl ? 'Technisch' : 'Technical', icon: '⚙️',
+      items: ['has_https', 'has_viewport', 'has_lazy_load', 'has_defer_async', 'has_canonical', 'not_noindex'] },
+    { key: 'content', label: 'Content', icon: '📝',
+      items: ['has_title', 'has_meta_description', 'has_h1', 'has_good_heading_structure', 'has_sufficient_content', 'has_images', 'has_image_alt'] },
+    { key: 'structured', label: 'Structured Data', icon: '🏷️',
+      items: ['has_json_ld', 'has_local_business', 'has_faq_schema', 'has_product_schema', 'has_breadcrumb', 'has_article_schema'] },
+    { key: 'social', label: 'Social / OG', icon: '📣',
+      items: ['og_title', 'og_description', 'og_image', 'twitter_card'] },
+    { key: 'geo', label: 'AI / GEO', icon: '🤖',
+      items: ['has_faq_content', 'has_direct_answers', 'has_local_info', 'has_expertise_signals', 'has_date', 'conversational_style'] },
+  ]
+
   // ═══════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════
 
-  // ── INPUT VIEW: URL bar + scan history ──
+  // ── INPUT VIEW: GEO Analyse results + URL scanner ──
   if (view === 'input' || (view === 'input' && !loading)) {
+    const avgScore = geoPages.length > 0
+      ? Math.round(geoPages.reduce((sum, p) => sum + (p.score || 0), 0) / geoPages.length)
+      : 0
+
     return (
       <div className="space-y-5">
 
-        {/* ── GEO Analyse Pagina Scores ── */}
-        {geoAnalysePages.length > 0 && (
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-[14px] font-semibold text-slate-800 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-violet-500" />
-                    {nl ? 'GEO Optimalisatie — Pagina Scores' : 'GEO Optimization — Page Scores'}
-                  </div>
-                  <div className="text-[12px] text-slate-400 mt-0.5">
-                    {nl ? `${geoAnalysePages.length} pagina's geanalyseerd via GEO Analyse` : `${geoAnalysePages.length} pages analyzed via GEO Analysis`}
-                  </div>
-                </div>
-                {(() => {
-                  const avgScore = geoAnalysePages.length > 0
-                    ? Math.round(geoAnalysePages.reduce((sum, p) => sum + (p.score || 0), 0) / geoAnalysePages.length)
-                    : 0
-                  return (
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-slate-400">{nl ? 'Gemiddeld' : 'Average'}</span>
-                      <span className="text-[18px] font-bold" style={{ color: scoreColor(avgScore) }}>{avgScore}/100</span>
-                    </div>
-                  )
-                })()}
+        {/* ═══ GEO ANALYSE PAGINA SCORES ═══ */}
+        {geoPages.length > 0 && (
+          <div className="space-y-3">
+            {/* Header with avg score */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-[15px] font-semibold text-slate-800">
+                  {nl ? 'Pagina Optimalisatie' : 'Page Optimization'}
+                </h3>
+                <p className="text-[12px] text-slate-400">
+                  {nl ? `${geoPages.length} pagina's uit je GEO Analyse` : `${geoPages.length} pages from your GEO Analysis`}
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-[22px] font-bold" style={{ color: scoreColor(avgScore) }}>{avgScore}<span className="text-[13px] text-slate-300">/100</span></div>
+                <div className="text-[10px] text-slate-400">{nl ? 'gemiddeld' : 'average'}</div>
               </div>
             </div>
-            <div className="divide-y divide-slate-100">
-              {geoAnalysePages.map((page, i) => {
-                const sc = scoreColor(page.score)
-                const path = page.url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
-                const issues = page.data?.issues || []
-                const scores = page.data?.scores || {}
-                const isExpanded = expandedPage === (page.id || i)
-                const statusLabel = page.score >= 70
-                  ? (nl ? 'Goed' : 'Good')
-                  : page.score >= 40
-                    ? (nl ? 'Gemiddeld' : 'Average')
-                    : (nl ? 'Slecht' : 'Poor')
-                return (
-                  <div key={page.id || i}>
-                    <button
-                      onClick={() => setExpandedPage(isExpanded ? null : (page.id || i))}
-                      className="w-full flex items-center gap-4 px-6 py-3.5 hover:bg-slate-50 transition-colors cursor-pointer bg-transparent border-none text-left"
-                    >
-                      {/* Score circle */}
-                      <div className="relative w-10 h-10 shrink-0">
-                        <svg viewBox="0 0 40 40" className="w-10 h-10">
-                          <circle cx="20" cy="20" r="16" fill="none" stroke="#f1f5f9" strokeWidth="3" />
-                          <circle cx="20" cy="20" r="16" fill="none" stroke={sc} strokeWidth="3"
-                            strokeDasharray={`${(page.score / 100) * 100.5} 100.5`} strokeLinecap="round"
-                            style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }} />
-                        </svg>
-                        <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-slate-800">{page.score}</span>
-                      </div>
-                      {/* URL */}
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-medium text-slate-800 truncate">{path}</div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">
-                          {issues.length > 0
-                            ? `${issues.length} ${nl ? 'verbeterpunten' : 'improvements'}`
-                            : (nl ? 'Geen issues gevonden' : 'No issues found')
-                          }
-                        </div>
-                      </div>
-                      {/* Status badge */}
-                      <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium shrink-0 ${
-                        page.score >= 70 ? 'bg-emerald-50 text-emerald-600' : 
-                        page.score >= 40 ? 'bg-amber-50 text-amber-600' : 
-                        'bg-red-50 text-red-500'
-                      }`}>
-                        {statusLabel}
-                      </span>
-                      {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-400 shrink-0" /> : <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />}
-                    </button>
 
-                    {/* Expanded detail panel */}
-                    {isExpanded && (
-                      <div className="px-6 pb-5 border-t border-slate-100 bg-slate-50/50">
-                        {/* Category score bars */}
-                        {Object.keys(scores).length > 0 && (
-                          <div className="pt-4 pb-3">
-                            <div className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-3">
-                              {nl ? 'Score per categorie' : 'Score per category'}
-                            </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                              {[
-                                { key: 'technical', label: nl ? 'Technisch' : 'Technical', icon: '⚙️' },
-                                { key: 'content', label: 'Content', icon: '📝' },
-                                { key: 'structured', label: 'Structured Data', icon: '🏷️' },
-                                { key: 'social', label: 'Social/OG', icon: '📣' },
-                                { key: 'geo', label: 'AI/GEO', icon: '🤖' },
-                              ].filter(cat => scores[cat.key]).map(cat => {
-                                const catData = scores[cat.key]
-                                const pct = catData.percentage || 0
-                                return (
-                                  <div key={cat.key} className="bg-white rounded-lg p-3 border border-slate-200">
-                                    <div className="text-[10px] text-slate-400 mb-1">{cat.icon} {cat.label}</div>
-                                    <div className="text-[16px] font-bold" style={{ color: scoreColor(pct) }}>{pct}%</div>
-                                    <div className="h-1.5 bg-slate-100 rounded-full mt-1.5 overflow-hidden">
-                                      <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: scoreColor(pct) }} />
-                                    </div>
-                                    <div className="text-[9px] text-slate-300 mt-1">{catData.score}/{catData.max}</div>
+            {/* Page cards */}
+            {geoPages.map((page, i) => {
+              const sc = scoreColor(page.score)
+              const path = page.url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
+              const isOpen = expandedPage === (page.id || i)
+              const issues = page.data?.issues || []
+              const scores = page.data?.scores || {}
+              const checklist = page.data?.checklist || {}
+
+              return (
+                <div key={page.id || i} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                  {/* Row header — clickable */}
+                  <button
+                    onClick={() => setExpandedPage(isOpen ? null : (page.id || i))}
+                    className="w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-50/50 transition-colors cursor-pointer bg-transparent border-none text-left"
+                  >
+                    {/* Score circle */}
+                    <div className="relative w-11 h-11 shrink-0">
+                      <svg viewBox="0 0 44 44" className="w-11 h-11">
+                        <circle cx="22" cy="22" r="18" fill="none" stroke="#f1f5f9" strokeWidth="3" />
+                        <circle cx="22" cy="22" r="18" fill="none" stroke={sc} strokeWidth="3"
+                          strokeDasharray={`${(page.score / 100) * 113.1} 113.1`} strokeLinecap="round"
+                          style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }} />
+                      </svg>
+                      <span className="absolute inset-0 flex items-center justify-center text-[12px] font-bold text-slate-800">{page.score}</span>
+                    </div>
+                    {/* URL + issue count */}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] font-medium text-slate-800 truncate">{path}</div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">
+                        {issues.length > 0
+                          ? `${issues.length} ${nl ? 'verbeterpunten gevonden' : 'improvements found'}`
+                          : (nl ? 'Geen problemen' : 'No issues')
+                        }
+                      </div>
+                    </div>
+                    {/* Status */}
+                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium shrink-0 ${
+                      page.score >= 70 ? 'bg-emerald-50 text-emerald-600' :
+                      page.score >= 40 ? 'bg-amber-50 text-amber-600' :
+                      'bg-red-50 text-red-500'
+                    }`}>
+                      {page.score >= 70 ? (nl ? 'Goed' : 'Good') : page.score >= 40 ? (nl ? 'Gemiddeld' : 'Average') : (nl ? 'Slecht' : 'Poor')}
+                    </span>
+                    {isOpen ? <ChevronUp className="w-4 h-4 text-slate-400 shrink-0" /> : <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />}
+                  </button>
+
+                  {/* ── Expanded detail panel ── */}
+                  {isOpen && (
+                    <div className="border-t border-slate-100">
+
+                      {/* Category score bars */}
+                      {Object.keys(scores).length > 0 && (
+                        <div className="px-5 pt-4 pb-3">
+                          <div className="grid grid-cols-5 gap-2">
+                            {[
+                              { key: 'technical', label: nl ? 'Technisch' : 'Technical', icon: '⚙️' },
+                              { key: 'content', label: 'Content', icon: '📝' },
+                              { key: 'structured', label: 'Schema', icon: '🏷️' },
+                              { key: 'social', label: 'Social', icon: '📣' },
+                              { key: 'geo', label: 'AI/GEO', icon: '🤖' },
+                            ].filter(c => scores[c.key]).map(c => {
+                              const pct = scores[c.key]?.percentage || 0
+                              return (
+                                <div key={c.key} className="text-center">
+                                  <div className="text-[9px] text-slate-400 mb-1">{c.icon} {c.label}</div>
+                                  <div className="text-[15px] font-bold" style={{ color: scoreColor(pct) }}>{pct}%</div>
+                                  <div className="h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: scoreColor(pct) }} />
                                   </div>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Issues list */}
-                        {issues.length > 0 && (
-                          <div className="pt-3">
-                            <div className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-2">
-                              ⚠️ {nl ? 'Verbeterpunten' : 'Improvements needed'}
-                            </div>
-                            <div className="space-y-1.5">
-                              {issues.map((issue, ii) => (
-                                <div key={ii} className="flex items-start gap-2 bg-white rounded-lg px-3 py-2.5 border border-slate-200"
-                                  style={{ borderLeft: '3px solid #f59e0b' }}>
-                                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-                                  <span className="text-[12px] text-slate-700 leading-relaxed">{typeof issue === 'string' ? issue : issue.message || JSON.stringify(issue)}</span>
+                                  <div className="text-[9px] text-slate-300 mt-0.5">{scores[c.key]?.score}/{scores[c.key]?.max}</div>
                                 </div>
-                              ))}
-                            </div>
+                              )
+                            })}
                           </div>
-                        )}
-
-                        {/* No issues */}
-                        {issues.length === 0 && (
-                          <div className="pt-4 flex items-center gap-2 text-[13px] text-emerald-600">
-                            <CheckCircle2 className="w-4 h-4" />
-                            {nl ? 'Geen problemen gevonden — goed bezig!' : 'No issues found — looking good!'}
-                          </div>
-                        )}
-
-                        {/* Action: deep scan */}
-                        <div className="pt-4 flex items-center gap-3">
-                          <button
-                            onClick={() => { setUrl(page.url); runAudit(page.url) }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 cursor-pointer border-none transition-colors"
-                          >
-                            <Zap className="w-3 h-3" />
-                            {nl ? 'Diepte-scan uitvoeren' : 'Run deep scan'}
-                          </button>
-                          <a href={page.url} target="_blank" rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-slate-500 bg-slate-100 hover:bg-slate-200 no-underline transition-colors">
-                            <ExternalLink className="w-3 h-3" />
-                            {nl ? 'Pagina bekijken' : 'View page'}
-                          </a>
                         </div>
+                      )}
+
+                      {/* Issues */}
+                      {issues.length > 0 && (
+                        <div className="px-5 py-3 border-t border-slate-50">
+                          <div className="text-[10px] uppercase tracking-wider font-bold text-amber-600 mb-2">
+                            ⚠️ {nl ? `${issues.length} verbeterpunten` : `${issues.length} improvements`}
+                          </div>
+                          <div className="space-y-1">
+                            {issues.map((issue, ii) => (
+                              <div key={ii} className="flex items-start gap-2 py-1.5">
+                                <X className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                                <span className="text-[12px] text-slate-600 leading-relaxed">
+                                  {typeof issue === 'string' ? issue : issue.message || ''}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Checklist per category */}
+                      {Object.keys(checklist).length > 0 && (
+                        <div className="px-5 py-3 border-t border-slate-50">
+                          <div className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-3">
+                            {nl ? 'Checklist' : 'Checklist'}
+                          </div>
+                          {CHECKLIST_GROUPS.map(group => {
+                            const groupItems = group.items.filter(k => checklist[k] !== undefined)
+                            if (groupItems.length === 0) return null
+                            const passCount = groupItems.filter(k => checklist[k]).length
+                            return (
+                              <div key={group.key} className="mb-3 last:mb-0">
+                                <div className="text-[11px] font-semibold text-slate-500 mb-1.5">
+                                  {group.icon} {group.label} <span className="text-slate-300 font-normal">({passCount}/{groupItems.length})</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                  {groupItems.map(k => (
+                                    <div key={k} className="flex items-center gap-1.5 py-0.5">
+                                      {checklist[k]
+                                        ? <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                        : <X className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                                      }
+                                      <span className={`text-[11px] ${checklist[k] ? 'text-slate-500' : 'text-slate-700 font-medium'}`}>
+                                        {CHECKLIST_LABELS[k] || k}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center gap-3">
+                        <button
+                          onClick={() => { setUrl(page.url); runAudit(page.url) }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-violet-600 bg-violet-50 hover:bg-violet-100 cursor-pointer border-none transition-colors"
+                        >
+                          <Zap className="w-3 h-3" />
+                          {nl ? 'Diepte-scan (CWV + Perplexity)' : 'Deep scan (CWV + Perplexity)'}
+                        </button>
+                        <a href={page.url} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-slate-500 hover:text-slate-700 no-underline transition-colors">
+                          <ExternalLink className="w-3 h-3" />
+                          {nl ? 'Bekijk pagina' : 'View page'}
+                        </a>
                       </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-            <div className="px-6 py-3 bg-slate-50 border-t border-slate-100">
-              <a href={nl ? '/dashboard/geo-analyse' : '/en/dashboard/geo-analyse'}
-                className="text-[12px] text-violet-600 hover:text-violet-800 font-medium flex items-center gap-1.5 no-underline">
-                <RefreshCw className="w-3 h-3" />
-                {nl ? 'Nieuwe GEO Analyse draaien' : 'Run new GEO Analysis'}
-                <ArrowRight className="w-3 h-3" />
-              </a>
-            </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+
+            {/* Link to run new GEO Analyse */}
+            <a href={nl ? '/dashboard/geo-analyse' : '/en/dashboard/geo-analyse'}
+              className="flex items-center gap-2 text-[12px] text-violet-600 hover:text-violet-800 font-medium no-underline px-1">
+              <RefreshCw className="w-3.5 h-3.5" />
+              {nl ? 'Nieuwe GEO Analyse draaien' : 'Run new GEO Analysis'}
+            </a>
           </div>
         )}
 
-        {/* Empty state when no GEO Analyse yet */}
-        {!geoAnalyseLoading && geoAnalysePages.length === 0 && (
-          <div className="rounded-xl p-5" style={{ background: 'linear-gradient(135deg, #EDE9FE, #F5F3FF)', border: '1px solid #C4B5FD40' }}>
+        {/* Empty state — no GEO Analyse yet */}
+        {!geoPagesLoading && geoPages.length === 0 && (
+          <div className="rounded-xl p-6" style={{ background: 'linear-gradient(135deg, #EDE9FE, #F5F3FF)', border: '1px solid #C4B5FD40' }}>
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
                 <FileText className="w-5 h-5 text-violet-500" />
@@ -380,8 +445,8 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
                 </div>
                 <p className="text-[12px] text-slate-500 mt-1 mb-3 leading-relaxed">
                   {nl
-                    ? 'Draai een GEO Analyse om je pagina scores te zien. De analyse koppelt je prompts aan pagina\'s via Search Console en scant ze op GEO-optimalisatie.'
-                    : 'Run a GEO Analysis to see your page scores. The analysis matches prompts to pages via Search Console and scans them for GEO optimization.'
+                    ? 'De GEO Analyse koppelt je prompts aan pagina\'s via Search Console en scant ze op optimalisatiepunten. Resultaten verschijnen hier.'
+                    : 'GEO Analysis matches your prompts to pages via Search Console and scans them for optimization points. Results appear here.'
                   }
                 </p>
                 <a href={nl ? '/dashboard/geo-analyse' : '/en/dashboard/geo-analyse'}
@@ -395,16 +460,16 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
           </div>
         )}
 
-        {/* ── Divider ── */}
-        <div className="flex items-center gap-3 pt-1">
+        {/* ═══ DIVIDER ═══ */}
+        <div className="flex items-center gap-3 pt-2">
           <div className="h-px bg-slate-200 flex-1" />
           <span className="text-[11px] text-slate-400 font-medium uppercase tracking-wider">
-            {nl ? 'Individuele pagina scanner' : 'Individual page scanner'}
+            {nl ? 'Pagina scanner' : 'Page scanner'}
           </span>
           <div className="h-px bg-slate-200 flex-1" />
         </div>
 
-        {/* URL Input */}
+        {/* ═══ URL INPUT (GEO Audit scanner) ═══ */}
         <div className="bg-white rounded-xl border border-slate-200 p-6">
           <div className="flex gap-3">
             <div className="flex-1 relative">
