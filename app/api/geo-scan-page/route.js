@@ -113,25 +113,52 @@ function getMsg(locale) { return MESSAGES[locale] || MESSAGES['nl'] }
 // LANGUAGE DETECTION
 // ============================================
 function detectPageLanguage(html, url) {
+  // 1. Content analysis FIRST — most reliable (Shopify/Wix often have wrong lang="en")
+  const bodyText = html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
+    .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .toLowerCase()
+    .slice(0, 8000)
+
+  const nlWords = ['het', 'een', 'van', 'voor', 'met', 'zijn', 'naar', 'ook', 'meer', 'niet', 'onze', 'wij', 'dit', 'deze', 'waar', 'hoe', 'welke', 'jouw', 'bij', 'maar', 'wordt', 'alle', 'over', 'nog', 'als', 'wat', 'uit', 'veel', 'door', 'bent', 'kan', 'ons', 'heeft', 'winkelwagen', 'bestellen', 'gratis', 'bezorging', 'producten', 'prijzen', 'zoeken', 'betalen', 'aanmelden', 'bekijk', 'korting', 'klantenservice', 'levertijd']
+  const enWords = ['the', 'and', 'for', 'with', 'our', 'your', 'this', 'that', 'from', 'are', 'was', 'been', 'have', 'has', 'will', 'can', 'you', 'they', 'which', 'about', 'more', 'their', 'also', 'would', 'into', 'than', 'these', 'when', 'where', 'how', 'shop', 'cart', 'checkout', 'shipping', 'products', 'pricing', 'search', 'subscribe', 'delivery']
+
+  let nlScore = 0, enScore = 0
+  nlWords.forEach(w => { nlScore += (bodyText.match(new RegExp(`\\b${w}\\b`, 'g')) || []).length })
+  enWords.forEach(w => { enScore += (bodyText.match(new RegExp(`\\b${w}\\b`, 'g')) || []).length })
+
+  // Strong content signal — trust regardless of HTML lang attribute
+  if (nlScore > enScore * 1.3) return 'nl'
+  if (enScore > nlScore * 1.3) return 'en'
+
+  // 2. Ambiguous content — check hreflang tags (canonical URL match)
+  const canonicalLang = html.match(/<link[^>]*hreflang=["']([a-z]{2})["'][^>]*href=["'][^"']*["']/gi)
+  if (canonicalLang && url) {
+    for (const tag of canonicalLang) {
+      const href = (tag.match(/href=["']([^"']+)["']/) || [])[1] || ''
+      const hl = (tag.match(/hreflang=["']([a-z]{2})["']/) || [])[1] || ''
+      if (href && url.includes(href.replace(/^https?:\/\/[^/]+/, ''))) return hl
+    }
+  }
+
+  // 3. HTML lang attribute as tiebreaker
   const langMatch = html.match(/<html[^>]*\slang=["']([a-z]{2})/i)
   if (langMatch) {
     const lang = langMatch[1].toLowerCase()
-    if (lang === 'en') return 'en'
-    if (lang === 'nl') return 'nl'
+    if (lang === 'en' || lang === 'nl') return lang
   }
+
+  // 4. URL path hint
   if (url) {
     const urlLower = url.toLowerCase()
     if (/\/(en|eng)(\/|$)/.test(urlLower)) return 'en'
     if (/\/(nl|ned)(\/|$)/.test(urlLower)) return 'nl'
   }
-  const bodyText = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').toLowerCase().slice(0, 5000)
-  const nlWords = ['het', 'een', 'van', 'voor', 'met', 'zijn', 'naar', 'ook', 'meer', 'niet', 'onze', 'wij', 'deze', 'waar', 'welke', 'bij', 'maar', 'wordt', 'alle', 'over', 'nog', 'wat', 'uit', 'veel', 'door', 'kan', 'ons', 'heeft']
-  const enWords = ['the', 'and', 'for', 'with', 'our', 'your', 'this', 'that', 'from', 'are', 'was', 'been', 'have', 'has', 'will', 'can', 'you', 'they', 'which', 'about', 'more', 'their', 'also', 'would', 'into', 'than', 'these', 'when', 'where', 'how']
-  let nlScore = 0, enScore = 0
-  nlWords.forEach(w => { nlScore += (bodyText.match(new RegExp(`\\b${w}\\b`, 'g')) || []).length })
-  enWords.forEach(w => { enScore += (bodyText.match(new RegExp(`\\b${w}\\b`, 'g')) || []).length })
-  if (enScore > nlScore * 1.5) return 'en'
-  if (nlScore > enScore * 1.5) return 'nl'
+
+  // 5. Default NL (Dutch market platform)
   return 'nl'
 }
 
