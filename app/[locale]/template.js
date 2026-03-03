@@ -179,6 +179,14 @@ function Header() {
                   {t('blog')}
                 </Link>
               )}
+
+              {/* WordPress Plugin */}
+              <Link
+                href="/wordpress-plugin"
+                className="text-white/90 hover:text-white font-medium text-[15px] transition-colors"
+              >
+                {t('wpPlugin')}
+              </Link>
               
               {user ? (
                 <div className="flex items-center gap-4">
@@ -274,6 +282,15 @@ function Header() {
                     {t('blog')}
                   </Link>
                 )}
+
+                {/* WordPress Plugin (mobile) */}
+                <Link
+                  href="/wordpress-plugin"
+                  className="block px-3 py-2 text-white/90 font-medium text-[15px] hover:text-white transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t('wpPlugin')}
+                </Link>
 
                 {user ? (
                   <>
@@ -401,6 +418,11 @@ function Footer() {
               <li>
                 <Link href="/tools/ai-prompt-explorer" className="text-white/70 hover:text-white text-sm transition-colors">
                   {t('promptExplorer')}
+                </Link>
+              </li>
+              <li>
+                <Link href="/wordpress-plugin" className="text-white/70 hover:text-white text-sm transition-colors">
+                  {t('wordpressPlugin')}
                 </Link>
               </li>
               <li>

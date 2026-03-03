@@ -20,6 +20,7 @@ const knownEnglishPaths = [
   '/en/signup',
   '/en/privacy',
   '/en/dashboard',
+  '/en/wordpress-plugin',
 ];
 
 export default function middleware(request) {

@@ -10,7 +10,8 @@
     "dashboard": "Dashboard",
     "login": "Inloggen",
     "logout": "Uitloggen",
-    "openMenu": "Open menu"
+    "openMenu": "Open menu",
+    "wpPlugin": "WordPress Plugin"
   },
   "tools": {
     "aiVisibility": {
@@ -60,7 +61,8 @@
     "competitorRadar": "Concurrentie Radar",
     "comingSoon": "binnenkort",
     "whatIsGeo": "Wat is Generative Engine Optimisation (GEO)?",
-    "poweredBy": "Powered by"
+    "poweredBy": "Powered by",
+    "wordpressPlugin": "WordPress Plugin"
   },
   "languageBanner": {
     "message": "🇬🇧 This page is also available in English",
