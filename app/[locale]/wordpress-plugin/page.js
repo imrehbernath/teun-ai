@@ -320,15 +320,15 @@ export default function WordPressPluginPage() {
 
           <p className="text-slate-500 text-sm mb-8 max-w-lg mx-auto">
             {locale === 'en'
-              ? 'Want to test whether you\'re actually being recommended in ChatGPT and Perplexity? You can do that with our online tools.'
-              : 'Wil je ook testen of je daadwerkelijk wordt aanbevolen in ChatGPT en Perplexity? Dat kan met onze online tools.'}
+              ? 'Want to test whether AI search engines actually recommend your business? Try our free AI Visibility tool.'
+              : 'Wil je testen of AI-zoekmachines jouw bedrijf daadwerkelijk aanbevelen? Probeer onze gratis AI Visibility tool.'}
           </p>
 
           <Link
             href="/tools/ai-visibility"
             className="inline-flex items-center gap-2 px-6 py-3.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-semibold hover:shadow-md hover:border-slate-300 transition-all"
           >
-            {locale === 'en' ? 'Explore all AI Visibility tools' : 'Bekijk alle AI Visibility tools'}
+            {locale === 'en' ? 'Test your AI visibility' : 'Test je AI-zichtbaarheid'}
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
