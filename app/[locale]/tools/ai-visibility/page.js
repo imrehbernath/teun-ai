@@ -415,6 +415,13 @@ function AIVisibilityToolContent() {
     if (company && category) {
       setStep(3);
       if (autostart === 'true') {
+        // Skip autostart als er al resultaten in sessionStorage staan (browser-back)
+        const hasSavedResults = (() => { try { return !!sessionStorage.getItem('teun_scan_results'); } catch (_) { return false; } })();
+        if (hasSavedResults) {
+          console.log('📋 Autostart overgeslagen — resultaten uit sessionStorage');
+          setInitializing(false);
+          return;
+        }
         setFromHomepage(true);
         setAnalyzing(true);
         setProgress(0);
