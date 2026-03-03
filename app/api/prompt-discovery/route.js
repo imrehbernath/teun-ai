@@ -1,10 +1,6 @@
 // app/api/prompt-discovery/route.js
-// ═══════════════════════════════════════════════════════════════
-// AI PROMPT EXPLORER — Full pipeline:
-//   1. URL scrape → keyword extraction (or manual keyword)
-//   2. Claude generates 50 clustered prompts with volume estimates
-//   3. Google AI Mode scans for real competitor data (Pro tier)
-// ═══════════════════════════════════════════════════════════════
+// Bilingual AI Prompt Explorer - output language follows frontend locale
+// Pipeline: 1. URL scrape -> keyword extraction  2. 50 clustered prompts  3. Google AI Mode (Pro)
 
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
@@ -29,22 +25,23 @@ const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY
 const SERPAPI_KEY = process.env.SERPAPI_KEY
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL
 
-// ═══════════════════════════════════════════════
-// SLACK NOTIFICATION
-// ═══════════════════════════════════════════════
 
-async function notifySlack({ url, keyword, brandName, branche, serviceArea, promptCount, clusterCount, source }) {
+// ===============================================
+// SLACK NOTIFICATION
+// ===============================================
+
+async function notifySlack({ url, keyword, brandName, branche, serviceArea, promptCount, clusterCount, source, lang }) {
   if (!SLACK_WEBHOOK_URL) return
   try {
-    const input = url ? `🌐 URL: ${url}` : `🔍 Keyword: ${keyword}`
-    const extra = [brandName && `🏢 ${brandName}`, branche && `📂 ${branche}`, serviceArea && `📍 ${serviceArea}`].filter(Boolean).join(' · ')
+    const input = url ? `URL: ${url}` : `Keyword: ${keyword}`
+    const extra = [brandName && brandName, branche && branche, serviceArea && serviceArea].filter(Boolean).join(' | ')
     const text = [
-      `🧩 *Prompt Explorer scan*`,
+      `Prompt Explorer scan (${lang})`,
       input,
       extra && extra,
-      `✅ ${promptCount} prompts in ${clusterCount} clusters`,
-      source?.title && `📄 ${source.title}`,
-      source?.method === 'failed' ? `⚠️ Scrape mislukt (firewall/bot protection)` : source?.method && `🔧 ${source.method}`,
+      `${promptCount} prompts in ${clusterCount} clusters`,
+      source?.title && source.title,
+      source?.method === 'failed' ? `Scrape failed (firewall/bot protection)` : source?.method && source.method,
     ].filter(Boolean).join('\n')
 
     await fetch(SLACK_WEBHOOK_URL, {
@@ -58,9 +55,9 @@ async function notifySlack({ url, keyword, brandName, branche, serviceArea, prom
 }
 
 
-// ═══════════════════════════════════════════════
+// ===============================================
 // SCRAPE HELPERS
-// ═══════════════════════════════════════════════
+// ===============================================
 
 function isGarbagePage(html) {
   const lower = html.toLowerCase()
@@ -105,6 +102,11 @@ async function scrapeWebsite(url) {
     } catch (_) {}
   }
 
+  if (!SCRAPER_API_KEY) {
+    console.log('SCRAPER_API_KEY not configured - skipping ScraperAPI')
+    return { success: false }
+  }
+
   for (const u of [norm, www]) {
     try {
       const r = await fetch(
@@ -147,7 +149,7 @@ function parseHtml(html) {
     const href = (link.match(/href=["']([^"']+)["']/) || [])[1] || ''
     const text = link.replace(/<[^>]+>/g, '').trim()
     if (href && text.length > 2 && text.length < 80 &&
-      /dienst|service|product|oploss|behandel|specialist|aanbod|werkgebied|wat-we|over-ons/i.test(href + text))
+      /dienst|service|product|oploss|behandel|specialist|aanbod|werkgebied|wat-we|over-ons|about|pricing|solutions|offerings|portfolio|what-we/i.test(href + text))
       serviceLinks.push(`${text} (${href})`)
   })
 
@@ -163,23 +165,37 @@ function parseHtml(html) {
 }
 
 
-// ═══════════════════════════════════════════════
-// KEYWORD EXTRACTION (Claude)
-// ═══════════════════════════════════════════════
+// ===============================================
+// KEYWORD EXTRACTION (Claude) - Bilingual
+// Output language follows frontend locale, NOT website language
+// ===============================================
 
-async function extractKeywords(parsed) {
+async function extractKeywords(parsed, lang = 'nl') {
+  const isNl = lang === 'nl'
   const msg = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 800,
-    system: `Je bent een expert in zoekwoord-extractie voor Nederlandse websites. Je taak is om de 10 belangrijkste zoekwoorden te identificeren waarmee KLANTEN naar dit bedrijf zouden zoeken.
+    system: isNl
+      ? `Je bent een expert in zoekwoord-extractie voor Nederlandse websites. Je taak is om de 10 belangrijkste zoekwoorden te identificeren waarmee KLANTEN naar dit bedrijf zouden zoeken.
 
 BELANGRIJK: Geef zoekwoorden die KLANTEN typen, niet interne/technische termen.
 - Goed: "advocaat arbeidsrecht amsterdam", "letselschade advocaat", "kosten advocaat"
 - Fout: "webdesign", "webhosting", "WordPress", "SEO" (tenzij dat de core dienst IS)
 
 Als de content vaag of technisch is, afleiden uit de context wat het bedrijf DOET en voor WIE.
-Geef ALLEEN JSON terug.`,
-    messages: [{ role: 'user', content: `Analyseer deze homepage en extraheer de 10 zoekwoorden die KLANTEN van dit bedrijf typen in Google of AI:
+ALLE zoekwoorden MOETEN in het NEDERLANDS zijn.
+Geef ALLEEN JSON terug.`
+      : `You are an expert in keyword extraction for websites. Your task is to identify the 10 most important keywords that CUSTOMERS would use to search for this business.
+
+IMPORTANT: Provide keywords that CUSTOMERS type, not internal/technical terms.
+- Good: "bike tours amsterdam", "cycling rental amsterdam", "guided bike tour"
+- Bad: "webdesign", "webhosting", "WordPress", "SEO" (unless that IS the core service)
+
+If the content is vague or technical, infer from context what the business DOES and for WHOM.
+ALL keywords MUST be in ENGLISH.
+Return ONLY JSON.`,
+    messages: [{ role: 'user', content: isNl
+      ? `Analyseer deze homepage en extraheer de 10 zoekwoorden die KLANTEN van dit bedrijf typen in Google of AI:
 
 TITEL: ${parsed.title}
 META: ${parsed.metaDesc}
@@ -193,25 +209,41 @@ CONTENT: ${parsed.body.slice(0, 2000)}
 Geef JSON:
 { "keywords": ["kw1",...,"kw10"], "companyName": "naam", "category": "branche", "location": "locatie of null", "services": ["d1","d2","d3"], "targetAudience": "doelgroep" }
 
-FOCUS op zoekwoorden die de KLANT typt, niet het bedrijf zelf. ALLEEN JSON.` }]
+FOCUS op zoekwoorden die de KLANT typt, niet het bedrijf zelf. ALLE zoekwoorden in het NEDERLANDS. ALLEEN JSON.`
+      : `Analyze this homepage and extract the 10 keywords that CUSTOMERS of this business type in Google or AI:
+
+TITLE: ${parsed.title}
+META: ${parsed.metaDesc}
+H1: ${parsed.h1s.join(' | ') || 'None'}
+H2: ${parsed.h2s.join(' | ') || 'None'}
+H3: ${parsed.h3s.join(' | ') || 'None'}
+NAV: ${parsed.navItems.join(' | ') || 'None'}
+SERVICES: ${parsed.serviceLinks.join(' | ') || 'None'}
+CONTENT: ${parsed.body.slice(0, 2000)}
+
+Return JSON:
+{ "keywords": ["kw1",...,"kw10"], "companyName": "name", "category": "industry", "location": "location or null", "services": ["s1","s2","s3"], "targetAudience": "target audience" }
+
+FOCUS on keywords the CUSTOMER types, not the business itself. ALL keywords in ENGLISH. ONLY JSON.` }]
   })
   const text = msg.content[0].text.trim().replace(/^```json?\n?/, '').replace(/\n?```$/, '')
   return JSON.parse(text)
 }
 
 
-// ═══════════════════════════════════════════════
-// PROMPT GENERATION (Claude — 50 prompts)
-// ═══════════════════════════════════════════════
+// ===============================================
+// PROMPT GENERATION (Claude - 50 prompts) - Bilingual
+// Output language follows frontend locale
+// ===============================================
 
-async function generatePrompts({ keywords, companyName, category, location, services, targetAudience, manualKeyword, branche, serviceArea }) {
-  
-  // Build rich context — same approach as AI visibility scan
+async function generatePrompts({ keywords, companyName, category, location, services, targetAudience, manualKeyword, branche, serviceArea, lang = 'nl' }) {
+  const isNl = lang === 'nl'
+
   const hasWebsiteData = keywords?.length > 0
-  
+
   let websiteContext = ''
   if (hasWebsiteData) {
-    websiteContext = `
+    websiteContext = isNl ? `
 **BEDRIJFSCONTEXT:**
 - Bedrijfsnaam: ${companyName || 'Onbekend'}
 - Branche: ${category || branche || 'Onbekend'}
@@ -219,42 +251,58 @@ async function generatePrompts({ keywords, companyName, category, location, serv
 - Diensten/producten: ${(services || []).join(', ') || 'Onbekend'}
 - Doelgroep: ${targetAudience || 'Onbekend'}
 
-**🚨 GEËXTRAHEERDE KEYWORDS — GEBRUIK EXACT DEZE TERMEN:**
+**GEEXTRAHEERDE KEYWORDS -- GEBRUIK EXACT DEZE TERMEN:**
 ${keywords.map((kw, i) => `${i + 1}. "${kw}"`).join('\n')}
 
-🎯 Gebruik deze keywords als BASIS. Elke vraag moet aansluiten bij wat het bedrijf daadwerkelijk aanbiedt.
-🚨 Verdeel de 50 vragen EERLIJK over alle keywords — elk keyword moet in minimaal 3-5 vragen terugkomen.
-⚠️ GEBRUIK DE EXACTE KEYWORDS — geen synoniemen die de betekenis veranderen.`
+Gebruik deze keywords als BASIS. Elke vraag moet aansluiten bij wat het bedrijf daadwerkelijk aanbiedt.
+Verdeel de 50 vragen EERLIJK over alle keywords -- elk keyword moet in minimaal 3-5 vragen terugkomen.
+GEBRUIK DE EXACTE KEYWORDS -- geen synoniemen die de betekenis veranderen.` : `
+**BUSINESS CONTEXT:**
+- Company name: ${companyName || 'Unknown'}
+- Industry: ${category || branche || 'Unknown'}
+- Location: ${location || serviceArea || 'Netherlands'}
+- Services/products: ${(services || []).join(', ') || 'Unknown'}
+- Target audience: ${targetAudience || 'Unknown'}
+
+**EXTRACTED KEYWORDS -- USE EXACTLY THESE TERMS:**
+${keywords.map((kw, i) => `${i + 1}. "${kw}"`).join('\n')}
+
+Use these keywords as your BASE. Every question must relate to what the business actually offers.
+Distribute the 50 questions EVENLY across all keywords -- each keyword must appear in at least 3-5 questions.
+USE THE EXACT KEYWORDS -- no synonyms that change the meaning.`
   } else {
-    websiteContext = `
+    websiteContext = isNl ? `
 **ZOEKWOORD:** "${manualKeyword}"
 **BRANCHE:** ${branche || 'Onbekend'}
 **SERVICEGEBIED:** ${serviceArea || 'Nederland'}
 
-🎯 Alle 50 vragen moeten "${manualKeyword}" of een directe variant bevatten.`
+Alle 50 vragen moeten "${manualKeyword}" of een directe variant bevatten.` : `
+**KEYWORD:** "${manualKeyword}"
+**INDUSTRY:** ${branche || 'Unknown'}
+**SERVICE AREA:** ${serviceArea || 'Netherlands'}
+
+All 50 questions must contain "${manualKeyword}" or a direct variant.`
   }
 
   const locationInstruction = (location || serviceArea)
-    ? `\n**📍 LOCATIE-VERDELING:**
-- ~25 vragen MET locatie "${location || serviceArea}" (bijv. "beste X in ${location || serviceArea}")
-- ~25 vragen ZONDER locatie (generieke vragen — test landelijke zichtbaarheid)`
+    ? (isNl
+      ? `\n**LOCATIE-VERDELING:**\n- ~25 vragen MET locatie "${location || serviceArea}" (bijv. "beste X in ${location || serviceArea}")\n- ~25 vragen ZONDER locatie (generieke vragen -- test landelijke zichtbaarheid)`
+      : `\n**LOCATION DISTRIBUTION:**\n- ~25 questions WITH location "${location || serviceArea}" (e.g. "best X in ${location || serviceArea}")\n- ~25 questions WITHOUT location (generic questions -- test national visibility)`)
     : ''
 
-  const msg = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 8000,
-    system: `Jij genereert commerciële, klantgerichte zoekvragen die echte mensen LETTERLIJK typen in ChatGPT, Perplexity of Google AI Mode.
+  const systemPrompt = isNl
+    ? `Jij genereert commerciele, klantgerichte zoekvragen die echte mensen LETTERLIJK typen in ChatGPT, Perplexity of Google AI Mode.
 
-Dit gaat over vragen die gericht zijn op het VINDEN van **specifieke bedrijven, dienstverleners of producten** — niet over content-creatie.
+Dit gaat over vragen die gericht zijn op het VINDEN van **specifieke bedrijven, dienstverleners of producten** -- niet over content-creatie.
 
 **ABSOLUTE PRIORITEITEN:**
 1. **NATUURLIJKHEID**: Vragen klinken als ECHTE MENSEN die advies vragen aan een slimme vriend
 2. **COMMERCIEEL**: 60%+ is gericht op het VINDEN van een bedrijf/dienst/product
-3. **BEDRIJFSNEUTRAAL**: Vermeld NOOIT de bedrijfsnaam — dit zijn vragen van mensen die het bedrijf nog niet kennen
+3. **BEDRIJFSNEUTRAAL**: Vermeld NOOIT de bedrijfsnaam -- dit zijn vragen van mensen die het bedrijf nog niet kennen
 4. **VARIATIE**: Veel verschillende vraagstructuren, startwoorden en invalshoeken
-5. **NEDERLANDS**: ALTIJD en UITSLUITEND Nederlands
+5. **NEDERLANDS**: ALTIJD en UITSLUITEND Nederlands -- GEEN Engelse woorden
 
-**ZO PRATEN ECHTE MENSEN TEGEN AI — kopieer deze STIJL en LENGTE:**
+**ZO PRATEN ECHTE MENSEN TEGEN AI -- kopieer deze STIJL en LENGTE:**
 - "Wat is de beste accountant in Amsterdam voor een klein bedrijf?"
 - "Hoeveel kost een gemiddelde keukenrenovatie in Nederland?"
 - "Kun je goede advocatenkantoren in Den Haag vergelijken voor arbeidsrecht?"
@@ -266,31 +314,71 @@ Dit gaat over vragen die gericht zijn op het VINDEN van **specifieke bedrijven, 
 - "Top 5 tandartsen in Rotterdam met goede reviews?"
 - "Waar moet ik op letten bij het kiezen van een financieel adviseur?"
 
-**VERBODEN — dit zijn CONTENT-OPDRACHTEN, geen zoekvragen:**
-❌ "Genereer een landingspagina over advocaten"
-❌ "Schrijf een artikel over letselschade"
-❌ "Maak content over hypotheekadvies"
-❌ "Creëer een overzicht van accountants"
-❌ "Lijst alle kantoren in Amsterdam op"
-❌ Korte fragmenten zonder context (bijv. alleen "advocaat amsterdam")
-❌ Vragen korter dan 8 woorden
+**VERBODEN -- dit zijn CONTENT-OPDRACHTEN, geen zoekvragen:**
+- "Genereer een landingspagina over advocaten"
+- "Schrijf een artikel over letselschade"
+- "Maak content over hypotheekadvies"
+- Korte fragmenten zonder context (bijv. alleen "advocaat amsterdam")
+- Vragen korter dan 8 woorden
+- Engelse woorden in Nederlandse zinnen
 
-**TAAL & GRAMMATICA — KRITISCH:**
-- Schrijf CORRECT Nederlands met alle voorzetsels: "in Amsterdam", "in Den Haag", "in Utrecht" — NOOIT voorzetsels weglaten
-  ❌ "Beste advocaat Den Haag" → ✅ "Beste advocaat in Den Haag"
-  ❌ "Loodgieter Rotterdam voor lekkage" → ✅ "Loodgieter in Rotterdam voor lekkage"
-- Plaatsnamen ALTIJD met hoofdletter: Amsterdam, Den Haag, Utrecht, Rotterdam — NOOIT "amsterdam", "den haag"
+**TAAL & GRAMMATICA -- KRITISCH:**
+- Schrijf CORRECT Nederlands met alle voorzetsels: "in Amsterdam", "in Den Haag", "in Utrecht" -- NOOIT voorzetsels weglaten
+- Plaatsnamen ALTIJD met hoofdletter: Amsterdam, Den Haag, Utrecht, Rotterdam
 - Volledige natuurlijke zinnen, geen telegramstijl
+- 100% Nederlands -- GEEN Engelse woorden mengen
 
 **LENGTE:** Vragen zijn typisch 8-18 woorden. Natuurlijke zinnen, geen losse keywords.
 
-Geef ALLEEN een JSON array terug.`,
-    messages: [{ role: 'user', content: `Genereer EXACT 50 natuurlijke zoekvragen die potentiële klanten LETTERLIJK typen in ChatGPT, Perplexity of Google AI Mode:
+Geef ALLEEN een JSON array terug.`
+    : `You generate commercial, customer-focused search queries that real people LITERALLY type into ChatGPT, Perplexity, or Google AI Mode.
+
+These are questions aimed at FINDING **specific businesses, service providers, or products** -- not content creation.
+
+**ABSOLUTE PRIORITIES:**
+1. **NATURAL**: Questions sound like REAL PEOPLE asking a smart friend for advice
+2. **COMMERCIAL**: 60%+ aimed at FINDING a business/service/product
+3. **BRAND-NEUTRAL**: NEVER mention the company name -- these are questions from people who don't know the business yet
+4. **VARIETY**: Many different question structures, opening words, and angles
+5. **ENGLISH**: ALWAYS and EXCLUSIVELY English -- NO Dutch words or phrases
+
+**HOW REAL PEOPLE TALK TO AI -- copy this STYLE and LENGTH:**
+- "What's the best bike tour in Amsterdam for tourists?"
+- "How much does a guided cycling tour cost in the Netherlands?"
+- "Can you compare good bike rental companies in Amsterdam?"
+- "I'm looking for a fun group activity in Amsterdam, what do you recommend?"
+- "Which tour companies in Amsterdam have the best reviews?"
+- "What are people's experiences with bike tours in Amsterdam?"
+- "Best way to explore Amsterdam by bike as a tourist?"
+- "What's the difference between a guided and self-guided bike tour?"
+- "Top 5 outdoor activities in Amsterdam for families?"
+- "Where should I look for a reliable bike rental in Amsterdam?"
+
+**FORBIDDEN -- these are CONTENT tasks, not search queries:**
+- "Generate a landing page about bike tours"
+- "Write an article about cycling in Amsterdam"
+- "Create content about tourism"
+- Short fragments without context (e.g. just "bike tour amsterdam")
+- Questions shorter than 8 words
+- Dutch words in English sentences
+
+**LANGUAGE -- CRITICAL:**
+- Write correct English with proper grammar
+- Place names ALWAYS capitalized: Amsterdam, The Hague, Utrecht, Rotterdam
+- Complete natural sentences, no telegram style
+- 100% English -- NO Dutch words mixed in
+
+**LENGTH:** Questions are typically 8-18 words. Natural sentences, not loose keywords.
+
+Return ONLY a JSON array.`
+
+  const userPrompt = isNl
+    ? `Genereer EXACT 50 natuurlijke zoekvragen die potentiele klanten LETTERLIJK typen in ChatGPT, Perplexity of Google AI Mode:
 
 ${websiteContext}
 ${locationInstruction}
 
-**OUTPUT — JSON array met 50 objecten:**
+**OUTPUT -- JSON array met 50 objecten:**
 [{
   "text": "de volledige vraag zoals een echt persoon die letterlijk typt in ChatGPT",
   "intent": "commercial|informational",
@@ -321,14 +409,64 @@ Voorbeelden van goede clusternamen:
 - easy = niche/long-tail (50-200/mnd), medium = gangbaar (200-1000/mnd), hard = concurrerend (1000+/mnd)
 - rising = onderwerp groeit, stable = evergreen, declining = verouderd
 
-**KWALITEITSCHECK — ELKE vraag moet:**
-✅ Klinken als iets dat een echt persoon typt in ChatGPT
-✅ Minimaal 8 woorden lang zijn, maximaal 18 woorden
-✅ Volledig uitgeschreven zijn, geen afkortingen met puntjes
-✅ Een duidelijke zoekintentie hebben
-✅ NIET beginnen met "Genereer", "Schrijf", "Maak", "Creëer", "Lijst", "Geef een overzicht"
+**KWALITEITSCHECK -- ELKE vraag moet:**
+- Klinken als iets dat een echt persoon typt in ChatGPT
+- Minimaal 8 woorden lang zijn, maximaal 18 woorden
+- Volledig uitgeschreven zijn, geen afkortingen met puntjes
+- Een duidelijke zoekintentie hebben
+- NIET beginnen met "Genereer", "Schrijf", "Maak", "Lijst", "Geef een overzicht"
 
-ALLEEN de JSON array, geen extra tekst.` }]
+ALLEEN de JSON array, geen extra tekst.`
+    : `Generate EXACTLY 50 natural search queries that potential customers LITERALLY type into ChatGPT, Perplexity, or Google AI Mode:
+
+${websiteContext}
+${locationInstruction}
+
+**OUTPUT -- JSON array with 50 objects:**
+[{
+  "text": "the full question as a real person literally types it into ChatGPT",
+  "intent": "commercial|informational",
+  "intentCluster": "thematic cluster name in English",
+  "coreKeyword": "the main keyword",
+  "trendSignal": "rising|stable|declining",
+  "estimatedGoogleVolume": number,
+  "difficulty": "easy|medium|hard"
+}]
+
+**CLUSTER DISTRIBUTION (10-15 clusters of 3-5 questions):**
+Examples of good cluster names:
+- "Best [service] in [area]" (top lists, recommendations)
+- "Costs & pricing" (how much does X cost, rates, price comparison)
+- "Comparison & choice" (A vs B, differences, what to look for)
+- "Reviews & experiences" (experiences with, reliability, complaints)
+- "Specializations" (niche expertise, specific services)
+- "When needed" (when to hire, DIY vs professional)
+- "Process & approach" (how does it work, what to expect, steps)
+- "Location-specific" (in [city], area [X], near me)
+- "Alternatives" (other options, cheaper alternative)
+
+**INTENT DISTRIBUTION:**
+- 60%+ commercial (questions aimed at FINDING or HIRING)
+- 40% informational (costs, process, comparisons, experiences, advice)
+
+**VOLUME ESTIMATE (Dutch market):**
+- easy = niche/long-tail (50-200/mo), medium = common (200-1000/mo), hard = competitive (1000+/mo)
+- rising = topic growing, stable = evergreen, declining = outdated
+
+**QUALITY CHECK -- EVERY question must:**
+- Sound like something a real person types into ChatGPT
+- Be at least 8 words long, maximum 18 words
+- Be fully written out, no abbreviations with dots
+- Have a clear search intent
+- NOT start with "Generate", "Write", "Create", "List", "Give an overview"
+
+ONLY the JSON array, no extra text.`
+
+  const msg = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 8000,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userPrompt }]
   })
 
   const text = msg.content[0].text.trim().replace(/^```json?\n?/, '').replace(/\n?```$/, '')
@@ -341,14 +479,15 @@ ALLEEN de JSON array, geen extra tekst.` }]
 }
 
 
-// ═══════════════════════════════════════════════
-// GOOGLE AI MODE SCAN (SerpAPI — Pro only)
-// ═══════════════════════════════════════════════
+// ===============================================
+// GOOGLE AI MODE SCAN (SerpAPI - Pro only) - Bilingual
+// ===============================================
 
-async function scanGoogleAiMode(prompt, companyName) {
+async function scanGoogleAiMode(prompt, companyName, lang = 'nl') {
   if (!SERPAPI_KEY) return { competitors: [], mentioned: false, snippet: null }
   try {
-    const params = new URLSearchParams({ engine: 'google_ai_mode', q: prompt, hl: 'nl', gl: 'nl', api_key: SERPAPI_KEY })
+    const hl = lang === 'nl' ? 'nl' : 'en'
+    const params = new URLSearchParams({ engine: 'google_ai_mode', q: prompt, hl, gl: 'nl', api_key: SERPAPI_KEY })
     const r = await fetch(`https://serpapi.com/search.json?${params}`, { signal: AbortSignal.timeout(20000) })
     if (!r.ok) return { competitors: [], mentioned: false, snippet: null }
     const data = await r.json()
@@ -357,7 +496,7 @@ async function scanGoogleAiMode(prompt, companyName) {
     const competitors = []
     ;(data.ai_mode_response?.citations || []).forEach(c => {
       if (c.title?.length > 2 && c.title.length < 80) {
-        const brand = c.title.split(' - ')[0].split(' | ')[0].split(' · ')[0].trim()
+        const brand = c.title.split(' - ')[0].split(' | ')[0].trim()
         if (brand.length > 1 && !competitors.includes(brand)) competitors.push(brand)
       }
     })
@@ -367,7 +506,7 @@ async function scanGoogleAiMode(prompt, companyName) {
   }
 }
 
-async function scanTopPrompts(prompts, companyName, max = 10) {
+async function scanTopPrompts(prompts, companyName, max = 10, lang = 'nl') {
   const seen = new Set(), toScan = []
   const sorted = [...prompts].sort((a, b) => b.estimatedAiVolume - a.estimatedAiVolume)
   for (const p of sorted) { if (toScan.length >= max) break; if (!seen.has(p.intentCluster)) { seen.add(p.intentCluster); toScan.push(p) } }
@@ -376,7 +515,7 @@ async function scanTopPrompts(prompts, companyName, max = 10) {
   const results = new Map()
   for (let i = 0; i < toScan.length; i += 3) {
     const batch = toScan.slice(i, i + 3)
-    const br = await Promise.all(batch.map(p => scanGoogleAiMode(p.text, companyName)))
+    const br = await Promise.all(batch.map(p => scanGoogleAiMode(p.text, companyName, lang)))
     batch.forEach((p, j) => results.set(p.id, br[j]))
     if (i + 3 < toScan.length) await new Promise(r => setTimeout(r, 1000))
   }
@@ -388,9 +527,9 @@ async function scanTopPrompts(prompts, companyName, max = 10) {
 }
 
 
-// ═══════════════════════════════════════════════
+// ===============================================
 // CLUSTER BUILDER
-// ═══════════════════════════════════════════════
+// ===============================================
 
 function buildClusters(prompts) {
   const map = {}
@@ -413,9 +552,9 @@ function buildClusters(prompts) {
 }
 
 
-// ═══════════════════════════════════════════════
+// ===============================================
 // POST HANDLER
-// ═══════════════════════════════════════════════
+// ===============================================
 
 export async function POST(request) {
   try {
@@ -426,13 +565,16 @@ export async function POST(request) {
     const serviceArea = body.location || body.serviceArea || ''
     const brandName = body.brandName || ''
 
+    // Frontend locale = output language. Always.
+    const lang = body.locale === 'en' ? 'en' : 'nl'
+
     const { sessionToken } = await getOrCreateSessionToken()
     const supabase = await createServiceClient()
 
     if (!url && !keyword)
-      return NextResponse.json({ error: 'Vul een URL of zoekwoord in' }, { status: 400, headers: CORS })
+      return NextResponse.json({ error: lang === 'nl' ? 'Vul een URL of zoekwoord in' : 'Enter a URL or keyword' }, { status: 400, headers: CORS })
 
-    // BETA: All features free — no tier limits
+    // BETA: All features free -- no tier limits
     const LIMITS = { anonymous: { maxPrompts: 999, maxVolumes: 999 }, free: { maxPrompts: 999, maxVolumes: 999 }, pro: { maxPrompts: 999, maxVolumes: 999 } }
     const lim = LIMITS[tier] || LIMITS.anonymous
 
@@ -440,44 +582,41 @@ export async function POST(request) {
 
     // Step 1: Keywords from URL
     if (url) {
-      console.log(`🌐 Scraping ${url}`)
+      console.log(`Scraping ${url} (output lang: ${lang})`)
       const scrape = await scrapeWebsite(url)
       if (scrape.success) {
         const parsed = parseHtml(scrape.html)
         source = { title: parsed.title, metaDesc: parsed.metaDesc, h1: parsed.h1s[0], method: scrape.method }
-        extracted = await extractKeywords(parsed)
-        console.log(`✅ Keywords: ${extracted.keywords?.join(', ')}`)
+        extracted = await extractKeywords(parsed, lang)
+        console.log(`Keywords (${lang}): ${extracted.keywords?.join(', ')}`)
       } else {
-        // Scrape failed (firewall, bot protection, etc.)
-        // Extract domain name as fallback keyword
-        console.log(`⚠️ Scrape failed for ${url} — using domain as fallback`)
+        console.log(`Scrape failed for ${url} -- using domain as fallback`)
         try {
           const domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname.replace(/^www\./, '')
           const domainParts = domain.split('.')[0].replace(/[-_]/g, ' ')
           source = { title: `${domain} (scrape failed)`, metaDesc: '', h1: '', method: 'failed' }
-          // If branche or brandName provided, use those instead of guessing from domain
           if (branche || brandName) {
-            console.log(`🔄 Using branche/brandName as keyword fallback: ${branche || brandName}`)
+            console.log(`Using branche/brandName as keyword fallback: ${branche || brandName}`)
           }
         } catch (_) {}
       }
     }
 
     // Step 2: Generate 50 prompts
-    console.log(`🧩 Generating prompts...`)
+    console.log(`Generating prompts (${lang})...`)
     const all = await generatePrompts({
       keywords: extracted?.keywords || [], companyName: extracted?.companyName || brandName || '',
       category: extracted?.category || branche || '', location: extracted?.location || serviceArea || '',
       services: extracted?.services || [], targetAudience: extracted?.targetAudience || '',
-      manualKeyword: keyword || '', branche, serviceArea,
+      manualKeyword: keyword || '', branche, serviceArea, lang,
     })
-    console.log(`✅ ${all.length} prompts`)
+    console.log(`${all.length} prompts generated`)
 
     // Step 3: Google AI Mode (Pro)
     let scanned = all
     if (scanCompetitors && tier === 'pro' && SERPAPI_KEY) {
-      console.log(`🔍 Google AI Mode scan...`)
-      scanned = await scanTopPrompts(all, extracted?.companyName || brandName || '', 10)
+      console.log(`Google AI Mode scan (${lang})...`)
+      scanned = await scanTopPrompts(all, extracted?.companyName || brandName || '', 10, lang)
     }
 
     // Step 4: Limit & respond
@@ -488,13 +627,13 @@ export async function POST(request) {
     scanned.forEach(p => (p.topCompetitors || []).forEach(c => { compCounts[c] = (compCounts[c] || 0) + 1 }))
     const topCompetitors = Object.entries(compCounts).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, count]) => ({ name, count }))
 
-    // Slack notification (fire and forget — don't block response)
+    // Slack notification (fire and forget)
     notifySlack({
       url, keyword, brandName, branche, serviceArea,
-      promptCount: limited.length, clusterCount: clusters.length, source,
+      promptCount: limited.length, clusterCount: clusters.length, source, lang,
     })
 
-    // ✨ Save resultaten in Supabase (ook voor anonieme gebruikers)
+    // Save resultaten in Supabase (ook voor anonieme gebruikers)
     try {
       const { error: saveError } = await supabase
         .from('prompt_discovery_results')
@@ -516,22 +655,24 @@ export async function POST(request) {
             totalVisible: limited.length,
             tier,
             scannedOnGoogleAi: scanCompetitors && tier === 'pro',
+            lang,
           }
         })
 
       if (saveError) {
-        console.error('⚠️ Error saving prompt discovery results:', saveError.message)
+        console.error('Error saving prompt discovery results:', saveError.message)
       } else {
-        console.log(`✅ Prompt discovery results saved (session: ${sessionToken.slice(0, 8)}...)`)
+        console.log(`Prompt discovery results saved (session: ${sessionToken.slice(0, 8)}...)`)
       }
     } catch (saveErr) {
-      console.error('⚠️ Prompt discovery save error:', saveErr.message)
+      console.error('Prompt discovery save error:', saveErr.message)
     }
 
     return NextResponse.json({
       success: true, prompts: limited, clusters, topCompetitors,
       extractedKeywords: extracted?.keywords || [],
       companyName: extracted?.companyName || brandName || '',
+      detectedLanguage: lang,
       sessionToken,
       meta: { totalGenerated: scanned.length, totalVisible: limited.length, hiddenCount: Math.max(0, scanned.length - limited.length), maxVolumes: lim.maxVolumes, tier, scannedOnGoogleAi: scanCompetitors && tier === 'pro' },
       extracted: extracted ? { keywords: extracted.keywords, companyName: extracted.companyName, category: extracted.category, location: extracted.location, services: extracted.services } : null,

@@ -601,8 +601,8 @@ export default function PromptExplorer() {
 
     try {
       const body = inputMode === "url"
-        ? { url: websiteUrl.trim(), brandName: bedrijfsnaam.trim() || null, location: place.trim() || null, industry: branche.trim() || null }
-        : { keyword: keyword.trim(), brandName: bedrijfsnaam.trim() || null, location: place.trim() || null, industry: branche.trim() || null };
+        ? { url: websiteUrl.trim(), brandName: bedrijfsnaam.trim() || null, location: place.trim() || null, industry: branche.trim() || null, locale }
+        : { keyword: keyword.trim(), brandName: bedrijfsnaam.trim() || null, location: place.trim() || null, industry: branche.trim() || null, locale };
 
       const res = await fetch("/api/prompt-discovery", {
         method: "POST",
