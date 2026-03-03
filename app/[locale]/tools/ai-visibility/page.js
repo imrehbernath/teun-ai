@@ -447,6 +447,23 @@ function AIVisibilityToolContent() {
 
   const [pendingAutoStart, setPendingAutoStart] = useState(false);
 
+  // Herstel resultaten uit sessionStorage (browser-back fix)
+  useEffect(() => {
+    if (results || analyzing) return; // Skip als er al resultaten zijn of scan loopt
+    try {
+      const saved = sessionStorage.getItem('teun_scan_results');
+      const savedForm = sessionStorage.getItem('teun_scan_formData');
+      if (saved && savedForm) {
+        const data = JSON.parse(saved);
+        const form = JSON.parse(savedForm);
+        setResults(data);
+        setFormData(form);
+        setStep(4);
+        console.log('📋 Scan resultaten hersteld uit sessionStorage');
+      }
+    } catch (_) {}
+  }, []);
+
   useEffect(() => {
     // Auto-start zodra alles klaar is: formData gevuld en auth geladen
     if (pendingAutoStart && !loading && formData.companyName && formData.companyCategory) {
@@ -645,6 +662,12 @@ function AIVisibilityToolContent() {
       setCurrentStep(t('step3.completed'));
       setResults(data);
       setCustomPrompts(null);
+
+      // Bewaar resultaten in sessionStorage zodat browser-back ze niet verliest
+      try {
+        sessionStorage.setItem('teun_scan_results', JSON.stringify(data));
+        sessionStorage.setItem('teun_scan_formData', JSON.stringify(formData));
+      } catch (_) {}
 
       // Check voor bedrijfsnaam mismatch in concurrenten
       const allResults = [...(data.analysis_results || []), ...(data.chatgpt_results || [])];
@@ -1609,44 +1632,18 @@ function AIVisibilityToolContent() {
                   </p>
                 </div>
 
-                {/* Unlock extra platforms for non-logged-in users */}
+                {/* Gratis Account CTA — newsletter style */}
                 {!user && (
-                  <div className="bg-gradient-to-r from-emerald-50 via-green-50 to-teal-50 border-2 border-emerald-200 rounded-xl p-4 sm:p-5 mb-4 sm:mb-6 relative overflow-hidden">
-                    <div className="absolute top-0 right-0">
-                      <div className="bg-gradient-to-r from-emerald-500 to-green-500 text-white text-[10px] sm:text-xs font-bold px-3 py-1 rounded-bl-lg">
-                        {t('unlock.free')}
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex -space-x-2">
-                          <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center border-2 border-white shadow-sm">
-                            <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                            </svg>
-                          </div>
-                        </div>
-                        <div className="flex-1">
-                          <span className="font-bold text-slate-800 text-sm sm:text-base block">{t('unlock.title')}</span>
-                          <span className="text-xs text-slate-500">{t('unlock.subtitle')}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-2 text-xs">
-                        <span className="px-2 py-1 bg-white/80 rounded-full text-slate-600 border border-slate-200">{t('unlock.aiModeScans')}</span>
-                        <span className="px-2 py-1 bg-white/80 rounded-full text-slate-600 border border-slate-200">{t('unlock.aiOverviewsScans')}</span>
-                        <span className="px-2 py-1 bg-white/80 rounded-full text-slate-600 border border-slate-200">{t('unlock.geoAnalysis')}</span>
-                        <span className="px-2 py-1 bg-white/80 rounded-full text-slate-600 border border-slate-200">{t('unlock.dashboard')}</span>
-                      </div>
-                      
-                      <Link 
-                        href="/signup" 
-                        className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-sm font-bold rounded-lg hover:from-emerald-600 hover:to-green-600 transition shadow-md text-center"
-                      >
-                        {t('unlock.createAccount')}
-                      </Link>
-                    </div>
+                  <div className="bg-white border-2 border-slate-200 rounded-xl p-5 sm:p-6 mb-4 sm:mb-6 text-center">
+                    <p className="text-lg sm:text-xl font-bold text-slate-900 mb-2">{t('accountCta.title')}</p>
+                    <p className="text-sm text-slate-500 mb-4 max-w-md mx-auto">{t('accountCta.description')}</p>
+                    <Link 
+                      href="/signup" 
+                      className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#292956] text-white font-bold rounded-lg hover:bg-[#1e1e45] transition-all shadow-md hover:shadow-lg"
+                    >
+                      {t('accountCta.button')} <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                    </Link>
+                    <p className="text-xs text-slate-400 mt-2">{t('accountCta.subtext')}</p>
                   </div>
                 )}
 
@@ -1759,24 +1756,6 @@ function AIVisibilityToolContent() {
                   );
                 })()}
 
-                {/* GEO DIY CTA - Only for non-logged in users */}
-                {!user && (
-                  <div id="geo-cta" className="mt-8 bg-slate-50 border border-slate-200 rounded-xl p-6 text-center">
-                    <p className="text-lg font-bold text-slate-900 mb-2">{t('geoCta.title')}</p>
-                    <p className="text-slate-600 text-sm max-w-md mx-auto mb-5">
-                      {t('geoCta.description')}
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                      <Link href="/signup" className="inline-flex items-center justify-center gap-2 bg-[#292956] text-white font-semibold px-6 py-3 rounded-lg hover:bg-[#1e1e45] transition-colors">
-                        {t('geoCta.createAccount')} <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-                      </Link>
-                      <Link href="/login" className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-100 transition-colors">
-                        {t('geoCta.login')}
-                      </Link>
-                    </div>
-                  </div>
-                )}
-
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
                   <button
@@ -1785,6 +1764,7 @@ function AIVisibilityToolContent() {
                       setFormData({ companyName: '', companyCategory: '', queries: '', website: '', serviceArea: '' });
                       setExcludeTermsInput(''); setIncludeTermsInput(''); setLocationTermsInput('');
                       setResults(null); setReferralSource(null); setFromHomepage(false); setNameMismatch(null); setBrancheSuggestion(null);
+                      try { sessionStorage.removeItem('teun_scan_results'); sessionStorage.removeItem('teun_scan_formData'); } catch (_) {}
                     }}
                     className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-100 border border-slate-200 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition cursor-pointer text-sm sm:text-base"
                   >
@@ -1906,18 +1886,9 @@ function AIVisibilityToolContent() {
 
         {!analyzing && (
           <div className="text-center">
-            <p className="text-slate-500 mb-2">
-              {user ? t('footer.loggedInAs', { email: user.email }) : t('footer.moreAnalyses')}
+            <p className="text-slate-500 mb-2 text-sm">
+              {user ? t('footer.loggedInAs', { email: user.email }) : ''}
             </p>
-            {!user && (
-              <>
-                <p className="text-slate-500 text-sm mb-4">{t('footer.freeAccountInfo')}</p>
-                <Link href="/signup"
-                  className="px-6 py-3 bg-[#292956] hover:bg-[#1e1e45] text-white rounded-lg font-semibold transition cursor-pointer inline-block">
-                  {t('footer.signUp')}
-                </Link>
-              </>
-            )}
           </div>
         )}
       </div>

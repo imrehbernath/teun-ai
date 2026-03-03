@@ -337,6 +337,12 @@
       "createAccount": "Gratis account aanmaken",
       "login": "Inloggen"
     },
+    "accountCta": {
+      "title": "Maak een gratis account aan",
+      "description": "Scan ook op AI Modus en AI Overviews, track je score over tijd en krijg een compleet GEO dashboard.",
+      "button": "Gratis account aanmaken",
+      "subtext": "Geheel gratis · Geen creditcard nodig"
+    },
     "scanCta": {
       "text": "Wij helpen bedrijven om beter gevonden te worden in AI-zoekmachines",
       "button": "GEO optimalisatie →",

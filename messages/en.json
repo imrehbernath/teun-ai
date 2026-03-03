@@ -337,6 +337,12 @@
       "createAccount": "Create free account",
       "login": "Log in"
     },
+    "accountCta": {
+      "title": "Create a free account",
+      "description": "Also scan AI Mode and AI Overviews, track your score over time and get a complete GEO dashboard.",
+      "button": "Create free account",
+      "subtext": "Completely free · No credit card required"
+    },
     "scanCta": {
       "text": "We help businesses get found in AI search engines",
       "button": "GEO optimization →",
