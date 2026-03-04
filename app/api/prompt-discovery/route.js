@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getOrCreateSessionToken } from '@/lib/session-token'
+import { isBlockedUrl, hasNonLatinText, getLanguageBlockError } from '@/lib/language-guard'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
@@ -573,6 +574,14 @@ export async function POST(request) {
 
     if (!url && !keyword)
       return NextResponse.json({ error: lang === 'nl' ? 'Vul een URL of zoekwoord in' : 'Enter a URL or keyword' }, { status: 400, headers: CORS })
+
+    // 🌐 Language guard: block non-NL/EN websites and non-Latin input
+    if (url && isBlockedUrl(url))
+      return NextResponse.json({ error: getLanguageBlockError(lang) }, { status: 400, headers: CORS })
+    if (keyword && hasNonLatinText(keyword))
+      return NextResponse.json({ error: getLanguageBlockError(lang) }, { status: 400, headers: CORS })
+    if (brandName && hasNonLatinText(brandName))
+      return NextResponse.json({ error: getLanguageBlockError(lang) }, { status: 400, headers: CORS })
 
     // BETA: All features free -- no tier limits
     const LIMITS = { anonymous: { maxPrompts: 999, maxVolumes: 999 }, free: { maxPrompts: 999, maxVolumes: 999 }, pro: { maxPrompts: 999, maxVolumes: 999 } }

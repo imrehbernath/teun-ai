@@ -9,6 +9,7 @@ export const maxDuration = 60
 
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import { hasNonLatinText, getLanguageBlockError } from '@/lib/language-guard'
 
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -203,6 +204,12 @@ export async function POST(request) {
     if (!category || category.trim().length < 2) {
       return NextResponse.json({ error: locale === 'nl' ? 'Branche is verplicht' : 'Industry is required' }, { status: 400 })
     }
+
+    // 🌐 Language guard: block non-Latin brand names and categories
+    if (hasNonLatinText(brandName) || hasNonLatinText(category)) {
+      return NextResponse.json({ error: getLanguageBlockError(locale) }, { status: 400 })
+    }
+
     if (!['experiences', 'reviews', 'service'].includes(queryType)) {
       return NextResponse.json({ error: 'Invalid queryType' }, { status: 400 })
     }

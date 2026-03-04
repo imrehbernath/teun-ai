@@ -1,6 +1,7 @@
 // app/api/extract-keywords/route.js
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { isBlockedUrl, getLanguageBlockError } from '@/lib/language-guard'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -340,6 +341,11 @@ export async function POST(request) {
     
     if (!url || !url.trim()) {
       return NextResponse.json({ error: 'URL is verplicht' }, { status: 400, headers: CORS_HEADERS })
+    }
+
+    // 🌐 Language guard: block non-NL/EN websites
+    if (isBlockedUrl(url)) {
+      return NextResponse.json({ error: getLanguageBlockError('nl') }, { status: 400, headers: CORS_HEADERS })
     }
 
     // Step 1: Scrape (direct fetch → ScraperAPI premium)

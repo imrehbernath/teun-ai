@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { canUserScan, trackScan, BETA_CONFIG } from '@/lib/beta-config'
 import { getOrCreateSessionToken } from '@/lib/session-token'
+import { isBlockedUrl, hasNonLatinText, getLanguageBlockError } from '@/lib/language-guard'
 
 // Vercel function timeout — 10 prompts × 2s delay = needs 300s
 export const maxDuration = 300
@@ -513,6 +514,14 @@ export async function POST(request) {
         { error: isNL ? 'Vul een geldige website URL in met een correcte domeinextensie (bijv. .nl of .com)' : 'Enter a valid website URL with a correct domain extension (e.g. .com or .co.uk)' },
         { status: 400 }
       )
+    }
+
+    // 🌐 Language guard: block non-NL/EN websites and non-Latin input
+    if (isBlockedUrl(websiteUrl)) {
+      return NextResponse.json({ error: getLanguageBlockError(locale) }, { status: 400 })
+    }
+    if (hasNonLatinText(companyName) || hasNonLatinText(companyCategory)) {
+      return NextResponse.json({ error: getLanguageBlockError(locale) }, { status: 400 })
     }
 
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 
