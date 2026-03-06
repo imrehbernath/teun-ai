@@ -1639,20 +1639,68 @@ function AIVisibilityToolContent() {
                   </p>
                 </div>
 
-                {/* Gratis Account CTA — newsletter style */}
-                {!user && (
-                  <div className="bg-white border-2 border-slate-200 rounded-xl p-5 sm:p-6 mb-4 sm:mb-6 text-center">
-                    <p className="text-lg sm:text-xl font-bold text-slate-900 mb-2">{t('accountCta.title')}</p>
-                    <p className="text-sm text-slate-500 mb-4 max-w-md mx-auto">{t('accountCta.description')}</p>
-                    <Link 
-                      href="/signup" 
-                      className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#292956] text-white font-bold rounded-lg hover:bg-[#1e1e45] transition-all shadow-md hover:shadow-lg"
-                    >
-                      {t('accountCta.button')} <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-                    </Link>
-                    <p className="text-xs text-slate-400 mt-2">{t('accountCta.subtext')}</p>
-                  </div>
-                )}
+          {/* Dynamische Account CTA — vervangt regels 1642-1655 */}
+                {!user && (() => {
+                  const totalMentions = (results.total_company_mentions || 0) + (results.chatgpt_company_mentions || 0);
+                  const totalPrompts = results.analysis_results?.length || 10;
+                  
+                  const competitorSet = new Set();
+                  [...(results.analysis_results || []), ...(results.chatgpt_results || [])].forEach(r => {
+                    (r.competitors_mentioned || []).forEach(c => {
+                      const clean = cleanDisplayName(c);
+                      if (clean && clean.length >= 3) competitorSet.add(clean);
+                    });
+                  });
+                  const competitorCount = competitorSet.size;
+
+                  const isInvisible = totalMentions === 0;
+                  const isWeak = totalMentions > 0 && totalMentions <= 3;
+
+                  // Dynamische titel
+                  const title = isInvisible
+                    ? (locale === 'nl' 
+                        ? 'AI beveelt jou niet aan — je concurrenten wel' 
+                        : 'AI doesn\'t recommend you — your competitors it does')
+                    : isWeak
+                      ? (locale === 'nl' 
+                          ? `Genoemd in ${totalMentions} van ${totalPrompts} prompts — dat kan beter` 
+                          : `Mentioned in ${totalMentions} of ${totalPrompts} prompts — room to grow`)
+                      : (locale === 'nl' 
+                          ? `Goed bezig — maar je mist nog ${totalPrompts - totalMentions} prompts` 
+                          : `Looking good — but you're missing ${totalPrompts - totalMentions} prompts`);
+
+                  // Dynamische beschrijving
+                  const description = isInvisible
+                    ? (locale === 'nl'
+                        ? `${competitorCount} concurrenten worden wél genoemd. Maak een gratis account aan en zie waarom jij niet zichtbaar bent.`
+                        : `${competitorCount} competitors are being mentioned. Create a free account and find out why you're not visible.`)
+                    : isWeak
+                      ? (locale === 'nl'
+                          ? `${competitorCount} concurrenten scoren beter. Maak een gratis account aan en track je positie over tijd.`
+                          : `${competitorCount} competitors are scoring higher. Create a free account and track your position over time.`)
+                      : (locale === 'nl'
+                          ? 'Maak een gratis account aan en gebruik al onze 6 AI-tools om je voorsprong te behouden.'
+                          : 'Create a free account and use all 6 of our AI tools to maintain your lead.');
+
+                  return (
+                    <div className="bg-white border-2 border-slate-200 rounded-xl p-5 sm:p-6 mb-4 sm:mb-6 text-center">
+                      <p className="text-lg sm:text-xl font-bold text-slate-900 mb-2">{title}</p>
+                      <p className="text-sm text-slate-500 mb-4 max-w-md mx-auto">{description}</p>
+                      <Link 
+                        href="/signup" 
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#292956] text-white font-bold rounded-lg hover:bg-[#1e1e45] transition-all shadow-md hover:shadow-lg"
+                      >
+                        {locale === 'nl' ? 'Gratis account aanmaken' : 'Create free account'} 
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                      </Link>
+                      <p className="text-xs text-slate-400 mt-2">
+                        {locale === 'nl' ? 'Geheel gratis · Geen creditcard nodig' : 'Completely free · No credit card needed'}
+                      </p>
+                    </div>
+                  );
+                })()}
 
                 {/* Website Analyzed Badge */}
                 {results.websiteAnalyzed && (
