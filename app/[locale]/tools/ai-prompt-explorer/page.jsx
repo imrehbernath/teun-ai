@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocale } from 'next-intl';
 import Image from 'next/image';
+import ToolsCrossSell from '@/app/components/ToolsCrossSell'
 
 // ═══════════════════════════════════════════════
 // DATA — all prompts come from /api/prompt-discovery
@@ -968,6 +969,9 @@ export default function PromptExplorer() {
           )}
 
           <Methodology t={T} />
+
+          {/* ━━━ Other Tools ━━━ */}
+          <ToolsCrossSell currentTool="ai-prompt-explorer" locale={locale} />
         </div>
       )}
 

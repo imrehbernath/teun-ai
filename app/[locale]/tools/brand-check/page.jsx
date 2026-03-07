@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { useTranslations, useLocale } from 'next-intl'
 import { ArrowRight, CheckCircle2, XCircle, Building2, MapPin, Briefcase, ChevronDown, ChevronUp, Sparkles, Loader2, ThumbsUp, ThumbsDown, Minus, Eye, Search, MessageSquare, Star, Shield, BarChart3 } from 'lucide-react'
+import ToolsCrossSell from '@/app/components/ToolsCrossSell'
 
 // ============================================
 // QUERY TYPES (match API)
@@ -537,6 +538,9 @@ export default function BrandCheckPage() {
           <div className="mt-6 text-center">
             <button onClick={() => { setResults(null); setScanPhase('idle'); setBrandName(''); setLocation(''); setCategory(''); window.scrollTo({ top: 0, behavior: 'smooth' }) }} className="text-sm text-slate-500 hover:text-slate-700 font-medium inline-flex items-center gap-1 cursor-pointer">← {locale === 'en' ? 'Check another brand' : 'Ander merk checken'}</button>
           </div>
+
+          {/* ━━━ Other Tools ━━━ */}
+          <ToolsCrossSell currentTool="brand-check" locale={locale} />
         </section>
       )}
 

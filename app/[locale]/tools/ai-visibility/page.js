@@ -10,6 +10,7 @@ import { Link } from '@/i18n/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import Image from 'next/image';
 import FeedbackWidget from '@/app/components/FeedbackWidget';
+import ToolsCrossSell from '@/app/components/ToolsCrossSell'
 
 // ====================================
 // BRANCHE TAALDETECTIE (EN → NL)
@@ -1924,6 +1925,9 @@ function AIVisibilityToolContent() {
 
               </div>
             </div>
+
+            {/* ━━━ Other Tools ━━━ */}
+            <ToolsCrossSell currentTool="ai-visibility" locale={locale} />
           </section>
         )}
 

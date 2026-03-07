@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Link } from '@/i18n/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import Image from 'next/image';
+import ToolsCrossSell from '@/app/components/ToolsCrossSell'
 
 // ====================================
 // PLATFORM CONFIGURATIE — 3 platforms
@@ -559,6 +560,9 @@ function RankTrackerContent() {
                 </div>
               );
             })()}
+
+            {/* ━━━ Other Tools ━━━ */}
+            <ToolsCrossSell currentTool="ai-rank-tracker" locale={locale} />
           </div>
         )}
         
