@@ -72,6 +72,15 @@ export default function GeoAuditPage() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const [completedSteps, setCompletedSteps] = useState([])
   const [scanUrl, setScanUrl] = useState('')
+  const [cwvElapsed, setCwvElapsed] = useState(0)
+
+  // CWV elapsed timer — starts when animation done but API still loading
+  useEffect(() => {
+    if (scanPhase !== 'done' || !loading) { setCwvElapsed(0); return }
+    const start = Date.now()
+    const timer = setInterval(() => setCwvElapsed(Math.floor((Date.now() - start) / 1000)), 1000)
+    return () => clearInterval(timer)
+  }, [scanPhase, loading])
 
   // ── FAQ Structured Data ──────────────────────
   const faqItems = locale === 'en' ? [
@@ -373,18 +382,26 @@ export default function GeoAuditPage() {
                 {scanPhase === 'fetching' && t('phaseFetching')}
                 {scanPhase === 'analyzing' && t('phaseAnalyzing')}
                 {scanPhase === 'testing' && `🔥 ${t('phaseTesting')}`}
-                {scanPhase === 'done' && t('phaseDone')}
+                {scanPhase === 'done' && (locale === 'en' ? 'Loading Core Web Vitals...' : 'Core Web Vitals laden...')}
               </span>
-              <span className="text-sm text-slate-400">{progress}%</span>
+              <span className="text-sm text-slate-400">
+                {scanPhase === 'done' 
+                  ? (cwvElapsed > 0 ? `${cwvElapsed}s` : '100%')
+                  : `${progress}%`}
+              </span>
             </div>
             <div className="bg-slate-100 rounded-full h-2.5 overflow-hidden">
               <div 
-                className="h-full bg-gradient-to-r from-violet-500 via-cyan-500 to-emerald-500 transition-all duration-700 ease-out"
+                className={`h-full bg-gradient-to-r from-violet-500 via-cyan-500 to-emerald-500 transition-all duration-700 ease-out ${scanPhase === 'done' ? 'animate-pulse' : ''}`}
                 style={{ width: `${progress}%` }}
               />
             </div>
             {scanPhase === 'done' && (
-              <p className="text-xs text-slate-400 mt-1.5 text-center">{t('cwvPatienceMsg')}</p>
+              <p className="text-xs text-slate-400 mt-1.5 text-center">
+                {locale === 'en' 
+                  ? 'Google PageSpeed API is being queried — this can take up to 45 seconds'
+                  : 'Google PageSpeed API wordt bevraagd — dit kan tot 45 seconden duren'}
+              </p>
             )}
           </div>
 
@@ -449,7 +466,9 @@ export default function GeoAuditPage() {
                     {scanPhase === 'fetching' && t('phaseScanning')}
                     {scanPhase === 'analyzing' && t('phaseAnalyzing')}
                     {scanPhase === 'testing' && t('phasePerplexity')}
-                    {scanPhase === 'done' && t('phaseCwv')}
+                    {scanPhase === 'done' && (locale === 'en' 
+                      ? `Core Web Vitals${cwvElapsed > 0 ? ` · ${cwvElapsed}s` : '...'}`
+                      : `Core Web Vitals${cwvElapsed > 0 ? ` · ${cwvElapsed}s` : '...'}`)}
                   </div>
                 </div>
               </div>
@@ -462,19 +481,34 @@ export default function GeoAuditPage() {
                   <circle cx="60" cy="60" r="52" fill="none" stroke="#e2e8f0" strokeWidth="6" />
                   <circle 
                     cx="60" cy="60" r="52" fill="none" 
-                    stroke={scanPhase === 'testing' ? '#f97316' : scanPhase === 'analyzing' ? '#8b5cf6' : '#06b6d4'} 
+                    stroke={scanPhase === 'done' ? '#06b6d4' : scanPhase === 'testing' ? '#f97316' : scanPhase === 'analyzing' ? '#8b5cf6' : '#06b6d4'} 
                     strokeWidth="6" strokeLinecap="round"
                     strokeDasharray={`${(progress / 100) * 327} 327`}
-                    className="transition-all duration-700 ease-out"
+                    className={`transition-all duration-700 ease-out ${scanPhase === 'done' ? 'animate-pulse' : ''}`}
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-bold text-slate-800">{progress}%</span>
-                  <span className="text-[10px] text-slate-400 font-medium">{completedSteps.length}/{SCAN_STEPS.length}</span>
+                  <span className="text-2xl font-bold text-slate-800">
+                    {scanPhase === 'done' && cwvElapsed > 0 ? `${cwvElapsed}s` : `${progress}%`}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {scanPhase === 'done' ? 'PageSpeed' : `${completedSteps.length}/${SCAN_STEPS.length}`}
+                  </span>
                 </div>
               </div>
 
-              {currentStepIndex < SCAN_STEPS.length && (
+              {scanPhase === 'done' ? (
+                <div className="w-full">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-1 text-cyan-500">
+                    Google PageSpeed
+                  </p>
+                  <p className="text-sm font-medium text-slate-700 leading-snug min-h-[40px] flex items-center justify-center">
+                    {locale === 'en' 
+                      ? 'Fetching performance data...' 
+                      : 'Prestatiedata ophalen...'}
+                  </p>
+                </div>
+              ) : currentStepIndex < SCAN_STEPS.length && (
                 <div className="w-full">
                   <p className={`text-[10px] font-semibold uppercase tracking-widest mb-1 transition-colors duration-500 ${
                     scanPhase === 'testing' ? 'text-orange-500' : scanPhase === 'analyzing' ? 'text-purple-500' : 'text-cyan-500'
