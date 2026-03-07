@@ -777,13 +777,85 @@ export default function GeoAuditPage() {
             )}
           </div>
 
-          {/* ━━━ CTA ━━━ */}
-          <div className="mt-8 bg-slate-50 border border-slate-200 rounded-xl p-6 text-center">
-            <p className="text-lg font-bold text-slate-900 mb-2">{t('ctaTitle')}</p>
-            <p className="text-slate-600 text-sm max-w-md mx-auto mb-5">{t('ctaDesc')}</p>
-            <Link href="/signup" className="inline-flex items-center gap-2 bg-[#292956] text-white font-semibold px-6 py-3 rounded-lg hover:bg-[#1e1e45] transition-colors">
-              {t('createFreeAccount')} <ArrowRight className="w-4 h-4" />
-            </Link>
+          {/* ━━━ CTA — Dynamisch op basis van audit resultaat ━━━ */}
+          <div className="mt-8 bg-white border border-slate-200 rounded-xl p-6 text-center">
+            {(() => {
+              const score = results.analysis?.overallScore || 0;
+              const mentioned = results.liveTest?.mentioned || false;
+              const competitors = results.liveTest?.competitors || [];
+              const companyName = results.analysis?.companyName || results.domain || '';
+              const topCompetitor = competitors.length > 0 ? competitors[0] : null;
+
+              const title = !mentioned
+                ? (locale === 'en'
+                    ? `${companyName} is invisible on Perplexity${topCompetitor ? ` — ${topCompetitor} is recommended` : ''}`
+                    : `${companyName} is onzichtbaar op Perplexity${topCompetitor ? ` — ${topCompetitor} wordt wél aanbevolen` : ''}`)
+                : score < 60
+                  ? (locale === 'en'
+                      ? `GEO Score ${score}/100 — AI finds your page hard to recommend`
+                      : `GEO Score ${score}/100 — AI vindt je pagina lastig om aan te bevelen`)
+                  : score < 80
+                    ? (locale === 'en'
+                        ? `GEO Score ${score}/100 — good, but ${competitors.length} competitors also appear`
+                        : `GEO Score ${score}/100 — goed, maar ${competitors.length} concurrenten staan er ook bij`)
+                    : (locale === 'en'
+                        ? `GEO Score ${score}/100 — strong! But this is just 1 page and 1 prompt`
+                        : `GEO Score ${score}/100 — sterk! Maar dit is slechts 1 pagina en 1 prompt`);
+
+              const description = !mentioned
+                ? (locale === 'en'
+                    ? `${competitors.length} competitors appear in the AI answer for your prompt. Create a free account and scan your visibility across 10 prompts on 4 AI platforms.`
+                    : `${competitors.length} concurrenten staan wél in het AI-antwoord op jouw prompt. Maak een gratis account aan en scan je zichtbaarheid op 10 prompts op 4 AI-platforms.`)
+                : (locale === 'en'
+                    ? 'This audit checked 1 page on 1 prompt. Create a free account and get a full analysis: 10 prompts, 4 platforms, all your important pages.'
+                    : 'Deze audit checkte 1 pagina op 1 prompt. Maak een gratis account aan en krijg een volledige analyse: 10 prompts, 4 platforms, al je belangrijke pagina\'s.');
+
+              return (
+                <>
+                  <p className="text-lg font-bold text-slate-900 mb-2">{title}</p>
+                  <p className="text-slate-600 text-sm max-w-md mx-auto mb-5">{description}</p>
+                  {!user ? (
+                    <Link href="/signup" className="inline-flex items-center gap-2 bg-[#292956] text-white font-semibold px-6 py-3 rounded-lg hover:bg-[#1e1e45] transition-colors cursor-pointer">
+                      {locale === 'en' ? 'Create free account' : 'Gratis account aanmaken'} <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  ) : (
+                    <Link href="/dashboard" className="inline-flex items-center gap-2 bg-[#292956] text-white font-semibold px-6 py-3 rounded-lg hover:bg-[#1e1e45] transition-colors cursor-pointer">
+                      {locale === 'en' ? 'Go to dashboard' : 'Ga naar dashboard'} <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+
+          {/* ━━━ WordPress Plugin CTA ━━━ */}
+          <div className="mt-4 bg-white border border-slate-200 rounded-xl p-6">
+            <div className="flex flex-col sm:flex-row items-center gap-5">
+              <div className="flex-shrink-0 w-14 h-14 bg-[#21759b]/10 rounded-xl flex items-center justify-center">
+                <Image src="/images/wordpress-icon.svg" alt="WordPress" width={32} height={32} />
+              </div>
+              <div className="flex-1 text-center sm:text-left">
+                <p className="font-bold text-slate-900 mb-1">
+                  {locale === 'en' 
+                    ? 'WordPress user? Scan all your pages for free' 
+                    : 'WordPress gebruiker? Scan al je pagina\'s gratis'}
+                </p>
+                <p className="text-sm text-slate-500">
+                  {locale === 'en'
+                    ? 'Install the free Teun.ai GEO plugin and get a GEO Score with recommendations for every page — directly in your WordPress editor. No account needed.'
+                    : 'Installeer de gratis Teun.ai GEO plugin en krijg een GEO Score met aanbevelingen per pagina — direct in je WordPress editor. Geen account nodig.'}
+                </p>
+              </div>
+              <a
+                href="https://wordpress.org/plugins/teunai-geo/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-colors text-sm cursor-pointer"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                {locale === 'en' ? 'Install plugin' : 'Plugin installeren'}
+              </a>
+            </div>
           </div>
 
           {/* Scan another */}
@@ -987,14 +1059,16 @@ export default function GeoAuditPage() {
 
           {/* CTA */}
           <section className="max-w-3xl mx-auto px-4 sm:px-6 pb-16">
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 sm:p-8 text-center">
+            <div className="bg-white border border-slate-200 rounded-xl p-6 sm:p-8 text-center">
               <p className="text-lg font-bold text-slate-900 mb-2">
-                {locale === 'en' ? 'Want to optimize more than one page?' : 'Wil je meer dan één pagina analyseren?'}
+                {locale === 'en' 
+                  ? 'This was 1 page, 1 prompt. How visible are you really?' 
+                  : 'Dit was 1 pagina, 1 prompt. Hoe zichtbaar ben je echt?'}
               </p>
               <p className="text-slate-600 text-sm max-w-md mx-auto mb-5">
                 {locale === 'en'
-                  ? 'In the dashboard you do a complete GEO Analyse: prompts matched to your pages, with targeted recommendations per page. Completely free.'
-                  : 'In het dashboard maak je een uitgebreide GEO Analyse: prompts gematcht aan jouw pagina\'s, met gerichte aanbevelingen per pagina. Helemaal gratis.'}
+                  ? 'Your customers ask dozens of different questions to AI. Create a free account and scan your visibility on 10 prompts across ChatGPT, Perplexity, Google AI Mode and Google AI Overviews.'
+                  : 'Jouw klanten stellen tientallen verschillende vragen aan AI. Maak een gratis account aan en scan je zichtbaarheid op 10 prompts op ChatGPT, Perplexity, Google AI Mode en Google AI Overviews.'}
               </p>
               <Link href="/signup" className="inline-flex items-center gap-2 bg-[#292956] text-white font-semibold px-6 py-3 rounded-lg hover:bg-[#1e1e45] transition-colors cursor-pointer">
                 {locale === 'en' ? 'Create free account' : 'Gratis account aanmaken'} <ArrowRight className="w-4 h-4" />

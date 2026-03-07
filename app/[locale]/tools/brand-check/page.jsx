@@ -481,10 +481,57 @@ export default function BrandCheckPage() {
             </div>
           </div>
 
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center">
-            <p className="text-lg font-bold text-slate-900 mb-2">{t('ctaTitle')}</p>
-            <p className="text-slate-600 text-sm max-w-md mx-auto mb-5">{t('ctaDesc')}</p>
-            <Link href="/signup" className="inline-flex items-center gap-2 bg-[#292956] text-white font-semibold px-6 py-3 rounded-lg hover:bg-[#1e1e45] transition-colors cursor-pointer">{t('createFreeAccount')} <ArrowRight className="w-4 h-4" /></Link>
+          <div className="bg-white border border-slate-200 rounded-xl p-6 text-center">
+            {(() => {
+              const score = results.overallScore || 50;
+              const hasNegSignals = (results.negSignals || []).length > 0;
+              const isNegative = results.overallSentiment === 'negative' || results.overallSentiment === 'mixed';
+              const notMentioned = !results.mentioned;
+
+              const title = notMentioned
+                ? (locale === 'en'
+                    ? `AI doesn't know ${results.brandName || 'your business'} — your competitors may already be visible`
+                    : `AI kent ${results.brandName || 'jouw bedrijf'} niet — je concurrenten mogelijk wel`)
+                : isNegative
+                  ? (locale === 'en'
+                      ? `AI warns customers about ${results.brandName || 'your business'}: ${(results.negSignals || []).slice(0, 3).join(', ')}`
+                      : `AI waarschuwt klanten over ${results.brandName || 'jouw bedrijf'}: ${(results.negSignals || []).slice(0, 3).join(', ')}`)
+                  : score < 70
+                    ? (locale === 'en'
+                        ? `Score ${score}/100 — AI sees room for improvement for ${results.brandName || 'your business'}`
+                        : `Score ${score}/100 — AI ziet verbeterpunten voor ${results.brandName || 'jouw bedrijf'}`)
+                    : (locale === 'en'
+                        ? `AI is positive about ${results.brandName || 'you'} — but does AI also recommend you?`
+                        : `AI is positief over ${results.brandName || 'jou'} — maar beveelt AI jou ook aan?`);
+
+              const description = notMentioned
+                ? (locale === 'en'
+                    ? 'AI doesn\'t mention your brand in any of the 6 checks. Create a free account and find out how visible you are across 10 prompts on 4 AI platforms.'
+                    : 'AI noemt jouw merk in geen van de 6 checks. Maak een gratis account aan en check hoe zichtbaar je bent op 10 prompts op 4 AI-platforms.')
+                : isNegative
+                  ? (locale === 'en'
+                      ? 'Customers see these signals when they ask AI about you. Create a free account, scan your full AI visibility and improve your position.'
+                      : 'Klanten zien deze signalen als ze AI naar jou vragen. Maak een gratis account aan, scan je volledige AI-zichtbaarheid en verbeter je positie.')
+                  : (locale === 'en'
+                      ? 'You now know what AI says. But does AI recommend you when customers search? Create a free account and scan your position on ChatGPT, Perplexity and Google AI.'
+                      : 'Je weet nu wat AI zegt. Maar beveelt AI jou ook aan als klanten zoeken? Maak een gratis account aan en scan je positie op ChatGPT, Perplexity en Google AI.');
+
+              return (
+                <>
+                  <p className="text-lg font-bold text-slate-900 mb-2">{title}</p>
+                  <p className="text-slate-600 text-sm max-w-md mx-auto mb-5">{description}</p>
+                  {!user ? (
+                    <Link href="/signup" className="inline-flex items-center gap-2 bg-[#292956] text-white font-semibold px-6 py-3 rounded-lg hover:bg-[#1e1e45] transition-colors cursor-pointer">
+                      {locale === 'en' ? 'Create free account' : 'Gratis account aanmaken'} <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  ) : (
+                    <Link href="/dashboard" className="inline-flex items-center gap-2 bg-[#292956] text-white font-semibold px-6 py-3 rounded-lg hover:bg-[#1e1e45] transition-colors cursor-pointer">
+                      {locale === 'en' ? 'Go to dashboard' : 'Ga naar dashboard'} <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  )}
+                </>
+              );
+            })()}
           </div>
 
           <div className="mt-6 text-center">
