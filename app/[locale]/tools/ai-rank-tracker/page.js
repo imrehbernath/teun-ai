@@ -467,40 +467,98 @@ function RankTrackerContent() {
               </p>
             )}
             
-            {/* CTA */}
-            <div className="bg-gradient-to-r from-[#1E1E3F] via-[#2D2D5F] to-[#1E1E3F] rounded-3xl overflow-hidden shadow-xl">
-              <div className="grid lg:grid-cols-4 gap-0">
-                <div className="lg:col-span-3 p-8 sm:p-10">
-                  <div className="max-w-2xl">
-                    <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
-                      {t('ctaTitle')}
-                    </h2>
-                    <p className="text-white/70 text-lg mb-8 leading-relaxed">
-                      {t('ctaDescription')}
+            {/* CTA — Dynamisch op basis van resultaat */}
+            {(() => {
+              const platforms = ['chatgpt', 'perplexity', 'google_ai'];
+              const foundOn = platforms.filter(p => results[p]?.found);
+              const notFoundOn = platforms.filter(p => results[p] && !results[p]?.found && !results[p]?.error);
+              const positions = foundOn.map(p => results[p].position).filter(Boolean);
+              const bestPosition = positions.length > 0 ? Math.min(...positions) : null;
+              
+              const topCompetitor = (() => {
+                for (const p of platforms) {
+                  const rankings = results[p]?.rankings || [];
+                  const first = rankings.find(r => !r.isTarget && r.position === 1);
+                  if (first) return first.name;
+                }
+                return null;
+              })();
+
+              const competitorSet = new Set();
+              platforms.forEach(p => {
+                (results[p]?.rankings || []).forEach(r => {
+                  if (!r.isTarget && r.name) competitorSet.add(r.name);
+                });
+              });
+
+              const isInvisible = foundOn.length === 0;
+              const isWeak = foundOn.length > 0 && bestPosition > 3;
+              const platformNames = { chatgpt: 'ChatGPT', perplexity: 'Perplexity', google_ai: 'Google AI Mode' };
+
+              return (
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 text-center">
+                  
+                  {generatedPrompt && (
+                    <p className="text-xs text-slate-400 mb-3 italic">
+                      {locale === 'en' ? 'Your customers ask AI:' : 'Jouw klanten vragen aan AI:'}
                     </p>
-                    
-                    <div className="flex flex-wrap gap-4">
-                      <a
-                        href="https://www.onlinelabs.nl/skills/geo-optimalisatie"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-xl font-semibold hover:shadow-xl hover:scale-105 transition-all cursor-pointer"
+                  )}
+
+                  <p className="text-lg sm:text-xl font-bold text-slate-900 mb-2">
+                    {isInvisible
+                      ? (locale === 'en'
+                          ? <>AI does not recommend {brandName || 'you'} for &ldquo;{keyword}&rdquo;{topCompetitor ? <> &mdash; {topCompetitor} is #1</> : null}</>
+                          : <>AI beveelt {brandName || 'jou'} niet aan voor &ldquo;{keyword}&rdquo;{topCompetitor ? <> &mdash; {topCompetitor} staat op #1</> : null}</>)
+                      : isWeak
+                        ? (locale === 'en'
+                            ? <>Position #{bestPosition} for &ldquo;{keyword}&rdquo;{topCompetitor ? <> &mdash; {topCompetitor} ranks above you</> : null}</>
+                            : <>Positie #{bestPosition} voor &ldquo;{keyword}&rdquo;{topCompetitor ? <> &mdash; {topCompetitor} staat boven je</> : null}</>)
+                        : (locale === 'en'
+                            ? <>Top {bestPosition} for &ldquo;{keyword}&rdquo;{notFoundOn.length > 0 ? <> &mdash; but missing on {notFoundOn.map(p => platformNames[p]).join(' & ')}</> : null}</>
+                            : <>Top {bestPosition} voor &ldquo;{keyword}&rdquo;{notFoundOn.length > 0 ? <> &mdash; maar niet zichtbaar op {notFoundOn.map(p => platformNames[p]).join(' & ')}</> : null}</>)
+                    }
+                  </p>
+
+                  <p className="text-sm text-slate-500 mb-6 max-w-lg mx-auto">
+                    {isInvisible
+                      ? (locale === 'en'
+                          ? `${competitorSet.size} competitors are being recommended. This is just 1 keyword — create a free account and scan your visibility across 10 prompts on 4 AI platforms.`
+                          : `${competitorSet.size} concurrenten worden wél aanbevolen. Dit is slechts 1 zoekwoord — maak een gratis account aan en scan je zichtbaarheid op 10 prompts op 4 AI-platforms.`)
+                      : isWeak
+                        ? (locale === 'en'
+                            ? `${competitorSet.size} competitors rank higher. This is just 1 keyword — create a free account, track your position over time and improve your AI visibility.`
+                            : `${competitorSet.size} concurrenten staan hoger. Dit is slechts 1 zoekwoord — maak een gratis account aan, track je positie over tijd en verbeter je AI-zichtbaarheid.`)
+                        : (locale === 'en'
+                            ? 'This is just 1 keyword. Create a free account and monitor all your important keywords across all AI platforms.'
+                            : 'Dit is slechts 1 zoekwoord. Maak een gratis account aan en monitor al je belangrijke zoekwoorden op alle AI-platforms.')
+                    }
+                  </p>
+
+                  {!user ? (
+                    <>
+                      <Link 
+                        href="/signup" 
+                        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#292956] text-white font-bold rounded-xl hover:bg-[#1e1e45] transition-all shadow-md hover:shadow-lg"
                       >
-                        {t('geoOptimization')}
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                      <Link
-                        href="/blog"
-                        className="inline-flex items-center gap-2 px-6 py-3.5 bg-white/10 border border-white/20 text-white rounded-xl font-semibold hover:bg-white/20 transition-all backdrop-blur-sm"
-                      >
-                        <BookOpen className="w-4 h-4" />
-                        {t('readKnowledgeBase')}
+                        {locale === 'en' ? 'Create free account' : 'Gratis account aanmaken'}
+                        <ArrowRight className="w-4 h-4" />
                       </Link>
-                    </div>
-                  </div>
+                      <p className="text-xs text-slate-400 mt-3">
+                        {locale === 'en' ? 'Free · No credit card · Scan 10 keywords' : 'Gratis · Geen creditcard · Scan 10 zoekwoorden'}
+                      </p>
+                    </>
+                  ) : (
+                    <Link 
+                      href="/dashboard"
+                      className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#292956] text-white font-bold rounded-xl hover:bg-[#1e1e45] transition-all shadow-md hover:shadow-lg"
+                    >
+                      {locale === 'en' ? 'Go to dashboard' : 'Ga naar dashboard'}
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  )}
                 </div>
-              </div>
-            </div>
+              );
+            })()}
           </div>
         )}
         
