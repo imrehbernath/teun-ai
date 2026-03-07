@@ -898,7 +898,7 @@ export default function PromptExplorer() {
             </div>
           )}
 
-          {/* CTA — Vriendelijke uitnodiging met mascotte */}
+          {/* CTA — Volume-driven FOMO */}
           {!user ? (
           <div className="relative bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="flex flex-col sm:flex-row items-center gap-6 p-6 sm:p-8">
@@ -907,12 +907,14 @@ export default function PromptExplorer() {
               </div>
               <div className="text-center sm:text-left flex-1">
                 <p className="text-lg sm:text-xl font-bold text-slate-900 mb-2">
-                  {isEn ? `Nice! ${stats?.total || 0} prompts your customers are asking AI` : `Mooi! ${stats?.total || 0} prompts die jouw klanten aan AI stellen`}
+                  {isEn 
+                    ? `~${fmtVol(stats?.totalVol || 0)} times a month, customers ask AI these questions. Are you in the answer?`
+                    : `~${fmtVol(stats?.totalVol || 0)} keer per maand stellen klanten deze vragen aan AI. Sta jij in het antwoord?`}
                 </p>
                 <p className="text-sm text-slate-500 mb-5 max-w-md">
                   {isEn 
-                    ? 'Curious whether AI actually recommends you? Create a free account and check your position in ChatGPT, Perplexity and Google AI.' 
-                    : 'Benieuwd of AI jou ook daadwerkelijk aanbeveelt? Maak een gratis account aan en check je positie in ChatGPT, Perplexity en Google AI.'}
+                    ? `You now know which ${stats?.total || 0} prompts your customers use. But does ChatGPT, Perplexity or Google AI actually recommend ${companyName || 'you'}? Create a free account and scan your position on all 4 platforms.`
+                    : `Je weet nu welke ${stats?.total || 0} prompts jouw klanten gebruiken. Maar beveelt ChatGPT, Perplexity of Google AI ook daadwerkelijk ${companyName || 'jou'} aan? Maak een gratis account aan en scan je positie op alle 4 platforms.`}
                 </p>
                 <a href="/signup" className="inline-flex items-center gap-2 px-6 py-3 bg-[#292956] text-white rounded-xl text-sm font-semibold hover:bg-[#1e1e45] transition">
                   {isEn ? 'Check my AI positions' : 'Check mijn AI-posities'} <ArrowRightIcon className="w-4 h-4" />
@@ -929,7 +931,9 @@ export default function PromptExplorer() {
               </div>
               <div className="text-center sm:text-left flex-1">
                 <p className="text-lg sm:text-xl font-bold text-slate-900 mb-2">
-                  {isEn ? `Nice! ${stats?.total || 0} prompts your customers are asking AI` : `Mooi! ${stats?.total || 0} prompts die jouw klanten aan AI stellen`}
+                  {isEn 
+                    ? `~${fmtVol(stats?.totalVol || 0)} times a month — does AI recommend ${companyName || 'you'}?`
+                    : `~${fmtVol(stats?.totalVol || 0)} keer per maand — beveelt AI ${companyName || 'jou'} aan?`}
                 </p>
                 <p className="text-sm text-slate-500 mb-5 max-w-md">
                   {isEn 
@@ -967,23 +971,24 @@ export default function PromptExplorer() {
         </div>
       )}
 
-      {/* ── STICKY BAR — zacht en uitnodigend ── */}
+      {/* ── STICKY BAR — volume FOMO ── */}
       {showStickyBar && !user && prompts.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-lg">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <Image src="/teun-ai-mascotte.png" alt="Teun" width={32} height={40} className="w-8 h-auto flex-shrink-0" />
               <p className="text-sm text-slate-600 truncate">
-                {isEn ? `Curious if AI recommends you for these ${prompts.length} prompts?` : `Benieuwd of AI jou aanbeveelt bij deze ${prompts.length} prompts?`}
+                {isEn 
+                  ? `~${fmtVol(stats?.totalVol || 0)}× per month — is ${companyName || 'your business'} in the AI answer?`
+                  : `~${fmtVol(stats?.totalVol || 0)}× per maand — staat ${companyName || 'jouw bedrijf'} in het AI-antwoord?`}
               </p>
             </div>
             <a href="/signup" className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-[#292956] text-white rounded-lg text-sm font-semibold hover:bg-[#1e1e45] transition">
-              {isEn ? 'Free check' : 'Gratis checken'} <ArrowRightIcon className="w-3.5 h-3.5" />
+              {isEn ? 'Check now' : 'Nu checken'} <ArrowRightIcon className="w-3.5 h-3.5" />
             </a>
           </div>
         </div>
       )}
-
       {/* ── SEO CONTENT (pre-search) ── */}
       {!hasSearched && !loading && (
         <>

@@ -391,11 +391,19 @@ ${locationInstruction}
 }]
 
 **CLUSTER-VERDELING (10-15 clusters van 3-5 vragen):**
-Voorbeelden van goede clusternamen:
+
+**VERPLICHT CLUSTER — "Reviews, ervaringen & vertrouwen" (minimaal 6 vragen):**
+Dit cluster moet ALTIJD aanwezig zijn met vragen over:
+- Reviews en ervaringen ("beste reviews", "ervaringen met")
+- Betrouwbaarheid ("betrouwbare", "meest ervaren", "meest gekozen")
+- Keurmerken en certificeringen ("aangesloten bij", "gecertificeerd", "keurmerk")
+- Aanbevelingen ("aanbevolen", "aanraden", "top beoordeeld")
+Dit cluster heeft PRIORITEIT — genereer hier minimaal 6 vragen voor.
+
+Voorbeelden van overige clusternamen:
 - "Beste [dienst] in [regio]" (top-lijsten, aanbevelingen)
 - "Kosten & prijzen" (wat kost X, tarieven, prijsvergelijking)
 - "Vergelijking & keuze" (A vs B, verschillen, waar op letten)
-- "Reviews & ervaringen" (ervaringen met, betrouwbaarheid, klachten)
 - "Specialisaties" (niche expertise, specifieke diensten)
 - "Wanneer nodig" (wanneer inschakelen, zelf doen vs professional)
 - "Proces & werkwijze" (hoe werkt het, wat te verwachten, stappen)
@@ -435,11 +443,19 @@ ${locationInstruction}
 }]
 
 **CLUSTER DISTRIBUTION (10-15 clusters of 3-5 questions):**
-Examples of good cluster names:
+
+**MANDATORY CLUSTER — "Reviews, experiences & trust" (minimum 6 questions):**
+This cluster must ALWAYS be present with questions about:
+- Reviews and experiences ("best reviews", "experiences with")
+- Reliability ("most reliable", "most experienced", "most trusted")
+- Certifications and credentials ("certified", "accredited", "member of")
+- Recommendations ("recommended", "top rated", "highest rated")
+This cluster has PRIORITY — generate at least 6 questions for it.
+
+Examples of other cluster names:
 - "Best [service] in [area]" (top lists, recommendations)
 - "Costs & pricing" (how much does X cost, rates, price comparison)
 - "Comparison & choice" (A vs B, differences, what to look for)
-- "Reviews & experiences" (experiences with, reliability, complaints)
 - "Specializations" (niche expertise, specific services)
 - "When needed" (when to hire, DIY vs professional)
 - "Process & approach" (how does it work, what to expect, steps)
