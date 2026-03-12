@@ -731,11 +731,12 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   useEffect(() => { document.body.classList.add('dashboard-active'); return () => document.body.classList.remove('dashboard-active') }, [])
 
  // ✨ Claim anonieme scan data bij eerste dashboard load
-  // Supports cross-browser: reads token from URL param, localStorage, or cookie
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.__claimSessionDone) return
+  // Runs BEFORE initial fetchData to prevent empty state flash
+  const claimDone = useRef(false)
 
-    // Collect fallback session token (cross-browser support)
+  useEffect(() => {
+    if (claimDone.current) return
+
     let claimToken = null
     try {
       const urlParams = new URLSearchParams(window.location.search)
@@ -743,13 +744,13 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
       if (urlToken) {
         claimToken = urlToken
         localStorage.setItem('teun_claim_token', urlToken)
-        // Clean URL without reload
-        const cleanUrl = window.location.pathname
-        window.history.replaceState({}, '', cleanUrl)
+        window.history.replaceState({}, '', window.location.pathname)
       } else {
         claimToken = localStorage.getItem('teun_claim_token')
       }
     } catch {}
+
+    claimDone.current = true
 
     fetch('/api/auth/claim-session', {
       method: 'POST',
@@ -759,14 +760,15 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
     })
       .then(r => r.json())
       .then(data => {
-        if (typeof window !== 'undefined') window.__claimSessionDone = true
         if (data.claimed?.total > 0) {
           console.log(`✅ ${data.claimed.total} eerdere scan(s) gekoppeld aan account`)
           try { localStorage.removeItem('teun_claim_token') } catch {}
-          fetchData()
         }
+        fetchData()
       })
-      .catch(err => console.error('Session claim error:', err))
+      .catch(() => {
+        fetchData()
+      })
   }, [])
 
   // Detect Chrome extension AND push auth token
@@ -859,7 +861,11 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
     finally { setLoading(false) }
   }, [selectedCompany])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  // Initial fetchData is triggered by claim useEffect above (after claim completes)
+  // Re-fetch when selectedCompany changes (after initial load)
+  useEffect(() => {
+    if (initialLoadDone.current) fetchData()
+  }, [selectedCompany])
 
   // Delete a company and all its data
   const deleteCompany = useCallback(async (companyName) => {
