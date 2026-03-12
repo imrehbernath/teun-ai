@@ -18,6 +18,8 @@ const knownEnglishPaths = [
   '/en/tools/ai-prompt-explorer',
   '/en/login',
   '/en/signup',
+  '/en/forgot-password',
+  '/en/reset-password',
   '/en/privacy',
   '/en/dashboard',
   '/en/wordpress-plugin',
