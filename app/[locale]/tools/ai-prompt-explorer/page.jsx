@@ -636,6 +636,9 @@ export default function PromptExplorer() {
       setPrompts(mapped);
       setExtractedKeywords(data.extractedKeywords || []);
       setCompanyName(data.companyName || bedrijfsnaam || "");
+      if (data.sessionToken) {
+        try { localStorage.setItem('teun_claim_token', data.sessionToken) } catch {}
+      }
 
       const cls = buildClusters(mapped);
       setOpenClusters(new Set(cls.slice(0, 2).map(c => c.name)));
@@ -772,7 +775,7 @@ export default function PromptExplorer() {
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
             <p className="text-sm text-amber-800 font-medium">{rateLimitMsg}</p>
             {userTier === 'anonymous' && (
-              <a href="/signup" className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-[#292956] text-white rounded-xl text-sm font-semibold hover:bg-[#1e1e45] transition">
+              <a href={`/signup${typeof window !== 'undefined' && localStorage.getItem('teun_claim_token') ? `?st=${localStorage.getItem('teun_claim_token')}` : ''}`} className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-[#292956] text-white rounded-xl text-sm font-semibold hover:bg-[#1e1e45] transition">
                 {T.freeAccount} <ArrowRightIcon className="w-4 h-4" />
               </a>
             )}
@@ -917,7 +920,7 @@ export default function PromptExplorer() {
                     ? `You now know which ${stats?.total || 0} prompts your customers use. But does ChatGPT, Perplexity or Google AI actually recommend ${companyName || 'you'}? Create a free account and scan your position on all 4 platforms.`
                     : `Je weet nu welke ${stats?.total || 0} prompts jouw klanten gebruiken. Maar beveelt ChatGPT, Perplexity of Google AI ook daadwerkelijk ${companyName || 'jou'} aan? Maak een gratis account aan en scan je positie op alle 4 platforms.`}
                 </p>
-                <a href="/signup" className="inline-flex items-center gap-2 px-6 py-3 bg-[#292956] text-white rounded-xl text-sm font-semibold hover:bg-[#1e1e45] transition">
+                <a href={`/signup${typeof window !== 'undefined' && localStorage.getItem('teun_claim_token') ? `?st=${localStorage.getItem('teun_claim_token')}` : ''}`} className="inline-flex items-center gap-2 px-6 py-3 bg-[#292956] text-white rounded-xl text-sm font-semibold hover:bg-[#1e1e45] transition">
                   {isEn ? 'Check my AI positions' : 'Check mijn AI-posities'} <ArrowRightIcon className="w-4 h-4" />
                 </a>
                 <p className="text-[11px] text-slate-400 mt-3">{isEn ? 'Free · No credit card · Takes 2 minutes' : 'Gratis · Geen creditcard · Duurt 2 minuten'}</p>
@@ -987,7 +990,7 @@ export default function PromptExplorer() {
                   : `~${fmtVol(stats?.totalVol || 0)}× per maand — staat ${companyName || 'jouw bedrijf'} in het AI-antwoord?`}
               </p>
             </div>
-            <a href="/signup" className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-[#292956] text-white rounded-lg text-sm font-semibold hover:bg-[#1e1e45] transition">
+            <a href={`/signup${typeof window !== 'undefined' && localStorage.getItem('teun_claim_token') ? `?st=${localStorage.getItem('teun_claim_token')}` : ''}`} className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-[#292956] text-white rounded-lg text-sm font-semibold hover:bg-[#1e1e45] transition">
               {isEn ? 'Check now' : 'Nu checken'} <ArrowRightIcon className="w-3.5 h-3.5" />
             </a>
           </div>

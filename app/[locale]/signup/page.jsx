@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, Link } from '@/i18n/navigation';
+import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { Mail, Lock, Loader2, AlertCircle, CheckCircle2, User } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations('auth');
   const locale = useLocale();
   const [email, setEmail] = useState('');
@@ -18,16 +20,33 @@ export default function SignupPage() {
   const [success, setSuccess] = useState(false);
   const [sessionToken, setSessionToken] = useState(null);
 
-  // ── NEW: Fetch session token on mount ──
-  // Cookie is httpOnly, so we read it via a tiny API endpoint
+  // ── Fetch session token: URL param > localStorage > cookie ──
   useEffect(() => {
+    // 1. Check URL param (cross-browser: from scan page link)
+    const stParam = searchParams?.get('st')
+    if (stParam) {
+      setSessionToken(stParam)
+      try { localStorage.setItem('teun_claim_token', stParam) } catch {}
+      return
+    }
+
+    // 2. Check localStorage (set by scan page in same browser)
+    try {
+      const stored = localStorage.getItem('teun_claim_token')
+      if (stored) {
+        setSessionToken(stored)
+        return
+      }
+    } catch {}
+
+    // 3. Fallback: read httpOnly cookie via API
     fetch('/api/session-token')
       .then(res => res.json())
       .then(data => {
         if (data.sessionToken) setSessionToken(data.sessionToken);
       })
-      .catch(() => {}); // Non-critical — signup still works without it
-  }, []);
+      .catch(() => {});
+  }, [searchParams]);
 
   const handleSignup = async (e) => {
     e.preventDefault();
@@ -45,12 +64,10 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        // Auth callback is outside next-intl, so construct locale-aware path manually
         emailRedirectTo: `${window.location.origin}/auth/callback?next=${locale === 'nl' ? '/dashboard' : '/en/dashboard'}`,
         data: {
           locale,
-          // ── NEW: Pass session token so confirm route can claim anonymous data ──
-          // This persists in Supabase user_metadata, available regardless of browser context
+          // Persist session token in user_metadata for cross-browser claim
           ...(sessionToken ? { session_token: sessionToken } : {})
         }
       },

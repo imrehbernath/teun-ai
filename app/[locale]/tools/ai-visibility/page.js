@@ -1697,7 +1697,7 @@ function AIVisibilityToolContent() {
                       <p className="text-lg sm:text-xl font-bold text-slate-900 mb-2">{title}</p>
                       <p className="text-sm text-slate-500 mb-4 max-w-md mx-auto">{description}</p>
                       <Link 
-                        href="/signup" 
+                        href={`/signup${results?.meta?.sessionToken ? `?st=${results.meta.sessionToken}` : ''}`} 
                         className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#292956] text-white font-bold rounded-lg hover:bg-[#1e1e45] transition-all shadow-md hover:shadow-lg"
                       >
                         {locale === 'nl' ? 'Gratis account aanmaken' : 'Create free account'} 

@@ -730,16 +730,39 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
 
   useEffect(() => { document.body.classList.add('dashboard-active'); return () => document.body.classList.remove('dashboard-active') }, [])
 
-  // ✨ Claim anonieme scan data bij eerste dashboard load
+ // ✨ Claim anonieme scan data bij eerste dashboard load
+  // Supports cross-browser: reads token from URL param, localStorage, or cookie
   useEffect(() => {
-    // Only run claim once per session, not on every mount
     if (typeof window !== 'undefined' && window.__claimSessionDone) return
-    fetch('/api/auth/claim-session', { method: 'POST', credentials: 'include' })
+
+    // Collect fallback session token (cross-browser support)
+    let claimToken = null
+    try {
+      const urlParams = new URLSearchParams(window.location.search)
+      const urlToken = urlParams.get('st')
+      if (urlToken) {
+        claimToken = urlToken
+        localStorage.setItem('teun_claim_token', urlToken)
+        // Clean URL without reload
+        const cleanUrl = window.location.pathname
+        window.history.replaceState({}, '', cleanUrl)
+      } else {
+        claimToken = localStorage.getItem('teun_claim_token')
+      }
+    } catch {}
+
+    fetch('/api/auth/claim-session', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionToken: claimToken }),
+    })
       .then(r => r.json())
       .then(data => {
         if (typeof window !== 'undefined') window.__claimSessionDone = true
         if (data.claimed?.total > 0) {
           console.log(`✅ ${data.claimed.total} eerdere scan(s) gekoppeld aan account`)
+          try { localStorage.removeItem('teun_claim_token') } catch {}
           fetchData()
         }
       })
