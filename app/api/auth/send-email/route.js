@@ -61,7 +61,7 @@ function emailWrapper(content) {
           <!-- Header -->
           <tr>
             <td style="background:linear-gradient(135deg,#292956,#3d3d7a);padding:28px 32px;text-align:center;">
-              <span style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:0.5px;">TEUN.AI</span>
+              <span style="color:#ffffff!important;font-size:22px;font-weight:700;letter-spacing:0.5px;text-decoration:none;">TEUN<span style="color:#ffffff!important;">&#8203;.AI</span></span>
             </td>
           </tr>
           <!-- Content -->
@@ -281,8 +281,10 @@ export async function POST(request) {
       token_hash,
       redirect_to,
       email_action_type,
-      site_url = 'https://teun.ai',
     } = email_data
+
+    // Always use our own domain, never the Supabase URL
+    const site_url = 'https://teun.ai'
 
     const email = user.email
     const newEmail = user.new_email || email_data.new_email || null
