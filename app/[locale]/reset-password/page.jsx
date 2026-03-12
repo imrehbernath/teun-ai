@@ -20,7 +20,6 @@ export default function ResetPasswordPage() {
 
   const isEn = locale === 'en';
 
-  // Check if user has a valid recovery session
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -30,7 +29,6 @@ export default function ResetPasswordPage() {
       setChecking(false);
     });
 
-    // Listen for password recovery event
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setSessionReady(true);
@@ -61,7 +59,15 @@ export default function ResetPasswordPage() {
     const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
-      setError(error.message);
+      const errorMessages = {
+        'New password should be different from the old password.': isEn
+          ? 'New password must be different from your current password.'
+          : 'Je nieuwe wachtwoord moet anders zijn dan je huidige wachtwoord.',
+        'Password should be at least 6 characters.': isEn
+          ? 'Password must be at least 6 characters.'
+          : 'Wachtwoord moet minimaal 6 tekens zijn.',
+      };
+      setError(errorMessages[error.message] || error.message);
       setLoading(false);
     } else {
       setSuccess(true);
