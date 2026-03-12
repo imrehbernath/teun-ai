@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, Link } from '@/i18n/navigation';
 import { useSearchParams } from 'next/navigation';
@@ -8,7 +8,7 @@ import Image from 'next/image';
 import { Mail, Lock, Loader2, AlertCircle, CheckCircle2, User } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 
-export default function SignupPage() {
+function SignupContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations('auth');
@@ -339,5 +339,18 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Wrapper with Suspense for useSearchParams
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center">
+        <Loader2 className="w-12 h-12 text-slate-300 animate-spin" />
+      </div>
+    }>
+      <SignupContent />
+    </Suspense>
   );
 }
