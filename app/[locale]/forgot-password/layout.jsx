@@ -5,7 +5,7 @@ export async function generateMetadata({ params }) {
   const isEn = locale === 'en';
 
   return {
-    title: isEn ? 'Forgot password | Teun.ai' : 'Wachtwoord vergeten | Teun.ai',
+    title: isEn ? 'Forgot password' : 'Wachtwoord vergeten',
     description: isEn ? 'Reset your Teun.ai password' : 'Reset je Teun.ai wachtwoord',
     robots: {
       index: false,
