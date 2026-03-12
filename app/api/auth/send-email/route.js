@@ -16,7 +16,7 @@ const FROM_EMAIL = 'Teun.ai <hallo@teun.ai>'
 // ═══════════════════════════════════════════════
 
 function verifyWebhook(request) {
-  // Skip verification for now — Supabase signs payload as JWT
+  // Skip verification for now
   // TODO: add proper JWT verification with jose library
   return true
 }
@@ -37,12 +37,19 @@ function buildConfirmUrl(siteUrl, tokenHash, actionType, redirectTo) {
   const type = ACTION_TO_URL_TYPE[actionType] || actionType
   let url = `${siteUrl}/auth/confirm?token_hash=${tokenHash}&type=${type}`
   if (redirectTo) {
-    // Extract final destination from callback URL (e.g. /auth/callback?next=/reset-password → /reset-password)
+    // Extract final destination path from redirectTo
+    // e.g. "https://teun.ai/auth/callback?next=/reset-password" → "/reset-password"
+    // e.g. "https://teun.ai/reset-password" → "/reset-password"
+    // e.g. "https://teun.ai/en/reset-password" → "/en/reset-password"
     let finalRedirect = redirectTo
     try {
       const redirectUrl = new URL(redirectTo, siteUrl)
       const nextParam = redirectUrl.searchParams.get('next')
-      if (nextParam) finalRedirect = nextParam
+      if (nextParam) {
+        finalRedirect = nextParam
+      } else {
+        finalRedirect = redirectUrl.pathname
+      }
     } catch {}
     url += `&next=${encodeURIComponent(finalRedirect)}`
   }
@@ -301,7 +308,7 @@ export async function POST(request) {
     // Build confirmation URL
     const confirmUrl = buildConfirmUrl(site_url, token_hash, email_action_type, redirect_to)
 
-    console.log(`📧 Send email hook: ${email_action_type} to ${email} (${lang})`)
+    console.log(`📧 Send email hook: ${email_action_type} to ${email} (${lang}) → ${confirmUrl}`)
 
     // Select template based on action type and language
     let emailContent
@@ -324,7 +331,6 @@ export async function POST(request) {
         break
 
       case 'invite':
-        // Use signup template for invites
         emailContent = signupTemplates[lang](confirmUrl)
         break
 
