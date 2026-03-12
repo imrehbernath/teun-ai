@@ -37,7 +37,14 @@ function buildConfirmUrl(siteUrl, tokenHash, actionType, redirectTo) {
   const type = ACTION_TO_URL_TYPE[actionType] || actionType
   let url = `${siteUrl}/auth/confirm?token_hash=${tokenHash}&type=${type}`
   if (redirectTo) {
-    url += `&redirect_to=${encodeURIComponent(redirectTo)}`
+    // Extract final destination from callback URL (e.g. /auth/callback?next=/reset-password → /reset-password)
+    let finalRedirect = redirectTo
+    try {
+      const redirectUrl = new URL(redirectTo, siteUrl)
+      const nextParam = redirectUrl.searchParams.get('next')
+      if (nextParam) finalRedirect = nextParam
+    } catch {}
+    url += `&next=${encodeURIComponent(finalRedirect)}`
   }
   return url
 }
