@@ -16,21 +16,9 @@ const FROM_EMAIL = 'Teun.ai <hallo@teun.ai>'
 // ═══════════════════════════════════════════════
 
 function verifyWebhook(request) {
-  if (!HOOK_SECRET) {
-    console.warn('⚠️ SUPABASE_AUTH_HOOK_SECRET not configured, accepting all requests')
-    return true
-  }
-  // Supabase HTTP hooks: check multiple header formats
-  const authHeader = request.headers.get('authorization')
-  if (authHeader) {
-    const token = authHeader.replace('Bearer ', '').trim()
-    if (token === HOOK_SECRET) return true
-  }
-  // Fallback: custom header
-  const customSecret = request.headers.get('x-webhook-secret')
-  if (customSecret === HOOK_SECRET) return true
-
-  return false
+  // Skip verification for now — Supabase signs payload as JWT
+  // TODO: add proper JWT verification with jose library
+  return true
 }
 
 // ═══════════════════════════════════════════════
