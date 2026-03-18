@@ -1141,27 +1141,51 @@ ${searchConsoleContext}
       cleanedText = cleanedText.replace(/^```\n?/, '').replace(/\n?```$/, '');
     }
 
-    const prompts = JSON.parse(cleanedText)
+    // Strip pre-text before array (AI soms: "Hier zijn de prompts:\n[...]")
+    const arrayStart = cleanedText.indexOf('[')
+    const arrayEnd = cleanedText.lastIndexOf(']')
+    if (arrayStart !== -1 && arrayEnd !== -1 && arrayStart < arrayEnd) {
+      cleanedText = cleanedText.substring(arrayStart, arrayEnd + 1)
+    }
 
-    if (!Array.isArray(prompts) || prompts.length !== 10) {
+    let prompts
+    try {
+      prompts = JSON.parse(cleanedText)
+    } catch (parseError) {
+      console.error('❌ JSON parse failed:', parseError.message, '| Raw (first 300 chars):', cleanedText.substring(0, 300))
       throw new Error('Invalid prompt format from AI')
     }
+
+    if (!Array.isArray(prompts) || prompts.length < 5) {
+      console.error('❌ AI returned invalid format or too few prompts:', prompts?.length || 'not an array')
+      throw new Error('Invalid prompt format from AI')
+    }
+
+    if (prompts.length !== 10) {
+      console.warn(`⚠️ AI returned ${prompts.length} prompts instead of 10, using first ${Math.min(prompts.length, 10)}`)
+    }
+
+    // Altijd exact max 10, ook als AI er 11-15 teruggeeft
+    const validatedPrompts = prompts
+      .filter(p => typeof p === 'string' && p.trim().length > 10)
+      .slice(0, 10)
 
     // ============================================
     // ✅ VALIDATION
     // ============================================
     if (customTerms && (customTerms.exclude?.length > 0 || customTerms.include?.length > 0 || customTerms.location?.length > 0)) {
-      const promptsWithExcluded = prompts.filter(prompt => {
+      const promptCount = validatedPrompts.length
+      const promptsWithExcluded = validatedPrompts.filter(prompt => {
         const lowerPrompt = prompt.toLowerCase()
         return customTerms.exclude?.some(term => lowerPrompt.includes(term.toLowerCase()))
       }).length
       
-      const promptsWithIncluded = prompts.filter(prompt => {
+      const promptsWithIncluded = validatedPrompts.filter(prompt => {
         const lowerPrompt = prompt.toLowerCase()
         return customTerms.include?.some(term => lowerPrompt.includes(term.toLowerCase()))
       }).length
 
-      const promptsWithLocation = prompts.filter(prompt => {
+      const promptsWithLocation = validatedPrompts.filter(prompt => {
         const lowerPrompt = prompt.toLowerCase()
         return customTerms.location?.some(term => lowerPrompt.includes(term.toLowerCase()))
       }).length
@@ -1170,7 +1194,7 @@ ${searchConsoleContext}
         !t.toLowerCase().includes('landelijk') && 
         !t.toLowerCase().includes('nederland') &&
         !t.toLowerCase().includes('nationaal')
-      ) ? prompts.filter(prompt => {
+      ) ? validatedPrompts.filter(prompt => {
         const lowerPrompt = prompt.toLowerCase()
         return lowerPrompt.includes('nederland') || 
                lowerPrompt.includes('belgie') || 
@@ -1178,31 +1202,31 @@ ${searchConsoleContext}
                (lowerPrompt.includes('landelijk') && !customTerms.location.some(t => t.toLowerCase().includes('landelijk')))
       }).length : 0
 
-      console.log(`✅ Custom terms validation:`)
-      console.log(`   - ${promptsWithExcluded}/10 prompts contain excluded terms (target: 0)`)
+      console.log(`✅ Custom terms validation (${promptCount} prompts):`)
+      console.log(`   - ${promptsWithExcluded}/${promptCount} prompts contain excluded terms (target: 0)`)
       if (customTerms.include?.length > 0) {
-        console.log(`   - ${promptsWithIncluded}/10 prompts contain included terms (target: 7+)`)
+        console.log(`   - ${promptsWithIncluded}/${promptCount} prompts contain included terms (target: 7+)`)
       }
       if (customTerms.location?.length > 0) {
-        console.log(`   - ${promptsWithLocation}/10 prompts contain location terms (target: 6+)`)
-        console.log(`   - ${hasForbiddenGeographic}/10 prompts contain forbidden geographic terms (target: 0)`)
+        console.log(`   - ${promptsWithLocation}/${promptCount} prompts contain location terms (target: 6+)`)
+        console.log(`   - ${hasForbiddenGeographic}/${promptCount} prompts contain forbidden geographic terms (target: 0)`)
       }
       
       if (promptsWithExcluded > 0) {
         console.warn(`⚠️ WARNING: ${promptsWithExcluded} prompts contain EXCLUDED terms!`)
       }
       if (customTerms.include?.length > 0 && promptsWithIncluded < 7) {
-        console.warn(`⚠️ WARNING: Only ${promptsWithIncluded}/10 prompts contain included terms (target: 7+)`)
+        console.warn(`⚠️ WARNING: Only ${promptsWithIncluded}/${promptCount} prompts contain included terms (target: 7+)`)
       }
       if (customTerms.location?.length > 0 && promptsWithLocation < 6) {
-        console.warn(`⚠️ WARNING: Only ${promptsWithLocation}/10 prompts contain location terms (target: 6+)`)
+        console.warn(`⚠️ WARNING: Only ${promptsWithLocation}/${promptCount} prompts contain location terms (target: 6+)`)
       }
       if (hasForbiddenGeographic > 0) {
         console.warn(`🚨 CRITICAL: ${hasForbiddenGeographic} prompts contain FORBIDDEN geographic terms!`)
       }
     }
 
-    return { success: true, prompts }
+    return { success: true, prompts: validatedPrompts }
   } catch (error) {
     console.error('AI Prompt Generation Error:', error)
     return { success: false, error: isNL ? 'Fout bij promptgeneratie' : 'Error during prompt generation' }
@@ -1410,7 +1434,12 @@ Avoid very well-known global consumer brands (Coca-Cola, Nike, Apple, etc.), tec
 
     return { success: true, data: parsed }
   } catch (error) {
-    console.error('❌ ChatGPT Error:', error.message || error)
+    const isTerminated = error.message === 'terminated' || error.message?.includes('abort')
+    if (isTerminated) {
+      console.warn('⚠️ ChatGPT connectie afgebroken (server druk), scan gaat verder met Perplexity')
+    } else {
+      console.error('❌ ChatGPT Error:', error.message || error)
+    }
     return { 
       success: false, 
       error: error.message || (isNL ? 'Fout bij ChatGPT-analyse' : 'Error during ChatGPT analysis'),
@@ -1418,7 +1447,9 @@ Avoid very well-known global consumer brands (Coca-Cola, Nike, Apple, etc.), tec
         company_mentioned: false,
         mentions_count: 0,
         competitors_mentioned: [],
-        simulated_ai_response_snippet: isNL ? 'ChatGPT analyse mislukt door API error' : 'ChatGPT analysis failed due to API error'
+        simulated_ai_response_snippet: isTerminated
+          ? (isNL ? 'ChatGPT server was even overbelast voor deze prompt, scan gaat verder via Perplexity' : 'ChatGPT server was temporarily busy for this prompt, scan continues via Perplexity')
+          : (isNL ? 'ChatGPT analyse mislukt door API error' : 'ChatGPT analysis failed due to API error')
       }
     }
   }
