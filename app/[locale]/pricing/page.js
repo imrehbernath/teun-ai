@@ -418,6 +418,28 @@ export default function PricingPage() {
 
       {/* ====== BLURRED DASHBOARD PREVIEW ====== */}
       <section className="py-20 bg-slate-100">
+        <style>{`
+          @keyframes bar-grow {
+            from { transform: scaleY(0); }
+            to { transform: scaleY(1); }
+          }
+          .pricing-bar-animate {
+            transform-origin: bottom;
+            animation: bar-grow 0.8s ease-out forwards;
+          }
+          @keyframes dash-float-pricing {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+          }
+          @media (min-width: 1024px) {
+            .dash-float-pricing { animation: dash-float-pricing 6s ease-in-out infinite; }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .pricing-bar-animate { animation: none; transform: scaleY(1); }
+            .dash-float-pricing { animation: none !important; }
+          }
+        `}</style>
+
         <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
@@ -434,41 +456,135 @@ export default function PricingPage() {
             </p>
           </div>
 
-          <div className="relative bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 overflow-hidden shadow-sm">
-            {/* Fake tabs */}
-            <div className="flex gap-2 mb-6 overflow-x-auto">
-              {['AI Visibility', 'Rank Tracker', isNL ? 'Concurrenten' : 'Competitors', 'GEO Audit'].map((tab, i) => (
-                <span key={i} className={`px-4 py-2 rounded-lg text-sm font-medium ${i === 0 ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'text-slate-400'}`}>
-                  {tab}
-                </span>
-              ))}
-            </div>
-
-            {/* Fake metric cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
-              {[
-                { label: 'Visibility Score', value: '73%', delta: '+12%' },
-                { label: 'ChatGPT', value: '8/10', delta: '+3' },
-                { label: 'Perplexity', value: '6/10', delta: '+1' },
-                { label: isNL ? 'Concurrenten' : 'Competitors', value: '14', delta: isNL ? 'getrackt' : 'tracked' },
-              ].map((m, i) => (
-                <div key={i} className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                  <p className="text-xs text-slate-400 mb-1">{m.label}</p>
-                  <p className="text-2xl font-bold text-slate-900">{m.value}</p>
-                  <p className="text-xs text-green-600 font-medium mt-1">{m.delta}</p>
+          <div className="relative">
+            {/* Animated Dashboard Panel */}
+            <div
+              className="dash-float-pricing relative rounded-2xl overflow-hidden z-20"
+              style={{
+                backgroundColor: '#f8fafd',
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 25px 80px rgba(55, 110, 181, 0.12), 0 10px 30px rgba(55, 110, 181, 0.08)'
+              }}
+            >
+              {/* Dashboard Header */}
+              <div
+                className="flex items-center justify-between px-5 py-3.5"
+                style={{ backgroundColor: '#fff', borderBottom: '1px solid #e2e8f0' }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold" style={{ color: '#376eb5' }}>teun.ai</span>
+                  <span className="text-xs text-gray-500 hidden sm:inline">AI Visibility Dashboard</span>
                 </div>
-              ))}
+                <div className="flex gap-1.5">
+                  {['ChatGPT', 'Perplexity', 'Google AI'].map((platform, i) => (
+                    <span
+                      key={platform}
+                      className="text-[10px] px-2.5 py-1 rounded-full font-medium"
+                      style={{
+                        backgroundColor: i === 0 ? '#376eb5' : 'transparent',
+                        color: i === 0 ? '#fff' : '#64748b',
+                        border: i === 0 ? 'none' : '1px solid #e2e8f0'
+                      }}
+                    >
+                      {platform}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Score Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 px-4 sm:px-5 py-4">
+                {[
+                  { label: 'Visibility', value: '73%', color: '#376eb5', sub: isNL ? '+12% deze maand' : '+12% this month', subColor: '#376eb5' },
+                  { label: 'ChatGPT', value: '8/10', color: '#376eb5', sub: isNL ? 'gevonden' : 'found', subColor: '#64748b' },
+                  { label: 'Perplexity', value: '6/10', color: '#376eb5', sub: isNL ? 'gevonden' : 'found', subColor: '#64748b' },
+                  { label: 'Threats', value: '3', color: '#b45309', sub: isNL ? 'concurrenten' : 'competitors', subColor: '#b45309' },
+                ].map((card) => (
+                  <div
+                    key={card.label}
+                    className="rounded-xl p-2 sm:p-3 text-center overflow-hidden"
+                    style={{ backgroundColor: '#fff', border: '1px solid #eef2f7' }}
+                  >
+                    <div className="text-[8px] sm:text-[9px] uppercase tracking-wide font-semibold text-gray-500 truncate">
+                      {card.label}
+                    </div>
+                    <div
+                      className="text-xl sm:text-2xl font-bold my-0.5"
+                      style={{ color: card.color }}
+                    >
+                      {card.value}
+                    </div>
+                    <div className="text-[8px] sm:text-[9px] truncate" style={{ color: card.subColor }}>
+                      {card.sub}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Bar Chart */}
+              <div className="px-5 pb-5">
+                <div
+                  className="rounded-xl p-4"
+                  style={{ backgroundColor: '#fff', border: '1px solid #eef2f7' }}
+                >
+                  <div className="flex items-end gap-1.5 h-16">
+                    {[65, 40, 82, 55, 28, 50, 88, 35, 72, 60, 45, 78].map((height, i) => {
+                      const colors = ['#1abc9c', '#1abc9c', '#376eb5', '#4A8FDB', '#f59e0b', '#1abc9c', '#376eb5', '#1abc9c', '#4A8FDB', '#1abc9c', '#f59e0b', '#376eb5'];
+                      return (
+                        <div
+                          key={i}
+                          className="pricing-bar-animate flex-1 rounded-t"
+                          style={{
+                            height: `${height}%`,
+                            backgroundColor: colors[i],
+                            opacity: (i % 3 === 1) ? 0.45 : 0.75,
+                            animationDelay: `${0.6 + i * 0.08}s`
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {/* Platform legend */}
+                  <div className="flex items-center gap-4 mt-3 pt-3" style={{ borderTop: '1px solid #eef2f7' }}>
+                    {[
+                      { label: 'ChatGPT', color: '#376eb5' },
+                      { label: 'Perplexity', color: '#1abc9c' },
+                      { label: 'Google AI', color: '#b45309' },
+                    ].map((item) => (
+                      <div key={item.label} className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                        <span className="text-[10px] text-gray-500">{item.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Fake chart bars */}
-            <div className="hidden sm:flex items-end gap-2 h-24 px-4">
-              {[35, 48, 42, 58, 52, 65, 60, 72, 68, 78, 74, 85].map((h, i) => (
-                <div key={i} className="flex-1 rounded-t-sm bg-gradient-to-t from-blue-500 to-purple-500" style={{ height: `${h}%`, opacity: 0.4 + h / 200 }} />
-              ))}
+            {/* Teun mascotte - rechtsonder */}
+            <div className="absolute -bottom-2 -right-2 sm:-bottom-4 sm:-right-4 z-30 pointer-events-none select-none">
+              <Image
+                src="/teun-ai-mascotte.png"
+                alt="Teun AI mascotte"
+                width={150}
+                height={150}
+                className="drop-shadow-2xl w-[80px] h-[80px] sm:w-[110px] sm:h-[110px] lg:w-[140px] lg:h-[140px]"
+              />
             </div>
+
+            {/* Floating gradient accents */}
+            <div
+              className="absolute -top-4 -right-4 w-24 h-24 rounded-2xl z-10 opacity-50"
+              style={{ background: 'linear-gradient(135deg, #4A8FDB 0%, #376eb5 100%)' }}
+            />
+            <div
+              className="absolute -bottom-4 -left-4 w-32 h-20 rounded-2xl z-10 opacity-40"
+              style={{ background: 'linear-gradient(135deg, #1abc9c 0%, #16a085 100%)' }}
+            />
 
             {/* Blur overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/80 to-white flex flex-col items-center justify-end pb-10">
+            <div className="absolute inset-0 rounded-2xl z-[25] bg-gradient-to-b from-transparent via-white/70 to-white flex flex-col items-center justify-end pb-10">
               <p className="text-xl font-bold text-slate-900 mb-4">
                 {isNL ? 'Unlock je volledige AI dashboard' : 'Unlock your full AI dashboard'}
               </p>
