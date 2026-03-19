@@ -33,6 +33,11 @@
       "name": "GEO Analysis",
       "description": "Full analysis available in your dashboard"
     },
+    "wpPlugin": {
+      "name": "WordPress Plugin",
+      "description": "Free GEO plugin for WordPress",
+      "badge": "FREE"
+    },
     "brandCheck": {
       "name": "AI Brand Check",
       "description": "Check what AI says about your brand",

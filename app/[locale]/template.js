@@ -53,6 +53,13 @@ function useTools() {
       href: '/dashboard',
       description: t('geoAnalysis.description'),
     },
+    {
+      name: 'WordPress Plugin',
+      href: '/wordpress-plugin',
+      badge: t('wpPlugin.badge'),
+      badgeColor: 'bg-green-500/20 text-green-300',
+      description: t('wpPlugin.description'),
+    },
   ];
 }
 
@@ -170,24 +177,6 @@ function Header() {
                 )}
               </div>
 
-              {/* Blog link — ALLEEN zichtbaar in NL */}
-              {!isEn && (
-                <Link
-                  href="/blog"
-                  className="text-white/90 hover:text-white font-medium text-[15px] transition-colors"
-                >
-                  {t('blog')}
-                </Link>
-              )}
-
-              {/* WordPress Plugin */}
-              <Link
-                href="/wordpress-plugin"
-                className="text-white/90 hover:text-white font-medium text-[15px] transition-colors"
-              >
-                {t('wpPlugin')}
-              </Link>
-
               {/* Pricing */}
               <Link
                 href="/pricing"
@@ -279,26 +268,6 @@ function Header() {
                 ))}
 
                 <div className="border-t border-white/10 my-2" />
-
-                {/* Blog link — ALLEEN zichtbaar in NL (mobile) */}
-                {!isEn && (
-                  <Link
-                    href="/blog"
-                    className="block px-3 py-2 text-white/90 font-medium text-[15px] hover:text-white transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {t('blog')}
-                  </Link>
-                )}
-
-                {/* WordPress Plugin (mobile) */}
-                <Link
-                  href="/wordpress-plugin"
-                  className="block px-3 py-2 text-white/90 font-medium text-[15px] hover:text-white transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {t('wpPlugin')}
-                </Link>
 
                 {/* Pricing (mobile) */}
                 <Link
