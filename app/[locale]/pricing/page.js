@@ -569,7 +569,7 @@ export default function PricingPage() {
                 alt="Teun AI mascotte"
                 width={150}
                 height={150}
-                className="drop-shadow-2xl w-[80px] h-[80px] sm:w-[110px] sm:h-[110px] lg:w-[140px] lg:h-[140px]"
+                className="drop-shadow-2xl w-auto h-[80px] sm:h-[110px] lg:h-[140px] object-contain"
               />
             </div>
 
