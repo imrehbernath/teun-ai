@@ -55,6 +55,7 @@ export default async function sitemap() {
     { path: '/tools/brand-check', changeFrequency: 'weekly', priority: 0.8 },
     { path: '/tools/ai-prompt-explorer', changeFrequency: 'weekly', priority: 0.8 },
     { path: '/wordpress-plugin', changeFrequency: 'monthly', priority: 0.7 },
+    { path: '/pricing', changeFrequency: 'weekly', priority: 0.7 },
   ];
 
   // Privacy page has different slugs per language

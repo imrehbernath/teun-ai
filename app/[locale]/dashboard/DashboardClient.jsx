@@ -145,7 +145,7 @@ function VisibilityChart({ data, t }) {
   )
 }
 
-function GoogleScanBanner({ t, locale, prompts, activeCompany, onScanComplete, googleAiMode, googleAiOverview }) {
+function GoogleScanBanner({ t, locale, prompts, activeCompany, onScanComplete, googleAiMode, googleAiOverview, isPro }) {
   const [scanningMode, setScanningMode] = useState(false)
   const [scanningOverview, setScanningOverview] = useState(false)
 
@@ -154,10 +154,10 @@ function GoogleScanBanner({ t, locale, prompts, activeCompany, onScanComplete, g
   const company = activeCompany?.name
   const website = activeCompany?.website || ''
 
-  // Daily limit: check if scanned today
+  // Daily limit: check if scanned today (Pro users bypass)
   const today = new Date().toDateString()
-  const modeScannedToday = googleAiMode?.lastScan && new Date(googleAiMode.lastScan).toDateString() === today
-  const overviewScannedToday = googleAiOverview?.lastScan && new Date(googleAiOverview.lastScan).toDateString() === today
+  const modeScannedToday = !isPro && googleAiMode?.lastScan && new Date(googleAiMode.lastScan).toDateString() === today
+  const overviewScannedToday = !isPro && googleAiOverview?.lastScan && new Date(googleAiOverview.lastScan).toDateString() === today
   const allScannedToday = modeScannedToday && overviewScannedToday
 
   const startGoogleScan = async () => {
@@ -727,6 +727,11 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   const [promptsEditedOnce, setPromptsEditedOnce] = useState(() => {
     try { return localStorage.getItem('teun_prompts_edited_' + userId) === 'true' } catch { return false }
   })
+  // Subscription state
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null) // 'free' | 'active' | 'canceling' | 'past_due' | 'canceled'
+  const [subscriptionPlan, setSubscriptionPlan] = useState(null) // 'monthly' | 'annual'
+  const [subscriptionEnd, setSubscriptionEnd] = useState(null)
+  const [portalLoading, setPortalLoading] = useState(false)
 
   useEffect(() => { document.body.classList.add('dashboard-active'); return () => document.body.classList.remove('dashboard-active') }, [])
 
@@ -906,6 +911,53 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
     }
   }, [fetchData, locale])
 
+  // Fetch subscription status from profile
+  useEffect(() => {
+    async function fetchSubscription() {
+      try {
+        const supabase = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        )
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('subscription_status, subscription_plan, subscription_current_period_end')
+          .eq('id', userId)
+          .single()
+        if (profile) {
+          setSubscriptionStatus(profile.subscription_status || 'free')
+          setSubscriptionPlan(profile.subscription_plan)
+          setSubscriptionEnd(profile.subscription_current_period_end)
+        }
+      } catch (err) {
+        console.error('Subscription fetch error:', err)
+      }
+    }
+    if (userId) fetchSubscription()
+  }, [userId])
+
+  // Open Stripe Customer Portal
+  async function handleManageSubscription() {
+    setPortalLoading(true)
+    try {
+      const res = await fetch('/api/stripe/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, locale }),
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } catch (err) {
+      console.error('Portal error:', err)
+    } finally {
+      setPortalLoading(false)
+    }
+  }
+
+  const isPro = subscriptionStatus === 'active' || subscriptionStatus === 'canceling'
+
   // Derived
   const visibility = data?.visibility || {}
   const prompts = data?.prompts || []
@@ -945,7 +997,8 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   const toolLinks = [
     { label: t.sidebar.brandCheck, href: lp(locale, '/tools/brand-check'), tag: t.sidebar.free },
     { label: t.sidebar.rankTracker, href: lp(locale, '/tools/ai-rank-tracker'), tag: t.sidebar.free },
-    { label: t.sidebar.geoAnalyse, href: lp(locale, '/dashboard/geo-analyse'), tag: null },
+    { label: 'GEO Audit', onClick: () => setActiveTab('audit'), tag: t.sidebar.free },
+    { label: t.sidebar.geoAnalyse, href: lp(locale, '/dashboard/geo-analyse'), tag: isPro ? null : 'PRO' },
     { label: t.sidebar.contentOptimizer, href: null, tag: t.sidebar.soon },
   ]
 
@@ -1048,8 +1101,13 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
             {toolLinks.map(item => item.href ? (
               <Link key={item.label} href={item.href} className="flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-white/40 hover:text-white/60 transition-colors no-underline">
                 <ArrowRight className="w-3.5 h-3.5 shrink-0" /><span className="flex-1">{item.label}</span>
-                {item.tag && <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase ${item.tag === t.sidebar.free ? 'bg-cyan-500/15 text-cyan-400' : 'bg-white/[0.06] text-white/25'}`}>{item.tag}</span>}
+                {item.tag && <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase ${item.tag === t.sidebar.free ? 'bg-cyan-500/15 text-cyan-400' : item.tag === 'PRO' ? 'bg-blue-500/20 text-blue-400' : 'bg-white/[0.06] text-white/25'}`}>{item.tag}</span>}
               </Link>
+            ) : item.onClick ? (
+              <button key={item.label} onClick={item.onClick} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-white/40 hover:text-white/60 transition-colors no-underline bg-transparent border-none cursor-pointer text-left">
+                <ArrowRight className="w-3.5 h-3.5 shrink-0" /><span className="flex-1">{item.label}</span>
+                {item.tag && <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase ${item.tag === t.sidebar.free ? 'bg-cyan-500/15 text-cyan-400' : item.tag === 'PRO' ? 'bg-blue-500/20 text-blue-400' : 'bg-white/[0.06] text-white/25'}`}>{item.tag}</span>}
+              </button>
             ) : (
               <div key={item.label} className="flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-white/25 cursor-default">
                 <ArrowRight className="w-3.5 h-3.5 shrink-0" /><span className="flex-1">{item.label}</span>
@@ -1057,6 +1115,51 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
               </div>
             ))}
           </nav>
+
+          {/* ── Subscription ── */}
+          <div className="px-3 py-3 border-t border-white/[0.06]">
+            {isPro ? (
+              <div className="px-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
+                    <Crown className="w-3 h-3" /> Pro
+                  </span>
+                  <span className="text-[10px] text-white/30">
+                    {subscriptionPlan === 'annual' ? (locale === 'nl' ? 'Jaarlijks' : 'Annual') : (locale === 'nl' ? 'Maandelijks' : 'Monthly')}
+                  </span>
+                </div>
+                {subscriptionStatus === 'canceling' && (
+                  <div className="text-[10px] text-amber-400/70 mb-2">
+                    {locale === 'nl' ? 'Loopt af op ' : 'Expires '}{subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString(locale === 'nl' ? 'nl-NL' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                  </div>
+                )}
+                <button
+                  onClick={handleManageSubscription}
+                  disabled={portalLoading}
+                  className="w-full text-[11px] text-white/40 hover:text-white/60 bg-transparent border border-white/[0.08] hover:border-white/[0.15] rounded-lg px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {portalLoading
+                    ? (locale === 'nl' ? 'Laden...' : 'Loading...')
+                    : (locale === 'nl' ? 'Abonnement beheren' : 'Manage subscription')}
+                </button>
+              </div>
+            ) : (
+              <Link
+                href={locale === 'nl' ? '/pricing' : '/en/pricing'}
+                className="flex items-center gap-2 px-2 py-2 rounded-lg bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/20 hover:border-blue-500/40 transition-all no-underline group"
+              >
+                <Zap className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                <div>
+                  <div className="text-[11px] font-semibold text-white/80 group-hover:text-white transition-colors">
+                    {locale === 'nl' ? 'Upgrade naar Pro' : 'Upgrade to Pro'}
+                  </div>
+                  <div className="text-[10px] text-white/30">
+                    {locale === 'nl' ? 'Onbeperkt scannen' : 'Unlimited scanning'}
+                  </div>
+                </div>
+              </Link>
+            )}
+          </div>
 
           <div className="px-3 py-4 border-t border-white/[0.06]">
             <div className="flex items-center gap-2.5 px-2">
@@ -1133,7 +1236,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
               </div>
 
               {/* Google AI scan CTA — show when no Google AI data yet */}
-              <GoogleScanBanner t={t} locale={locale} prompts={prompts} activeCompany={activeCompany} onScanComplete={fetchData} googleAiMode={googleAiMode} googleAiOverview={googleAiOverview} />
+              <GoogleScanBanner t={t} locale={locale} prompts={prompts} activeCompany={activeCompany} onScanComplete={fetchData} googleAiMode={googleAiMode} googleAiOverview={googleAiOverview} isPro={isPro} />
 
               {/* Chrome Extension CTA — show when no extension data and extension not installed */}
               {!extensionInstalled && !data?.hasExtensionData && data && totalPrompts > 0 && (
@@ -2103,7 +2206,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
 
           {/* ════════════ AUDIT ════════════ */}
           {activeTab === 'audit' && (
-            <AuditTab locale={locale} activeCompany={activeCompany} userEmail={userEmail} />
+            <AuditTab locale={locale} activeCompany={activeCompany} userEmail={userEmail} isPro={isPro} />
           )}
         </main>
       </div>

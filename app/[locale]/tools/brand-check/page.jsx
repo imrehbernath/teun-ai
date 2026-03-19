@@ -77,6 +77,7 @@ export default function BrandCheckPage() {
   const [limitReached, setLimitReached] = useState(false)
   const [user, setUser] = useState(null)
   const [authChecked, setAuthChecked] = useState(false)
+  const [isPro, setIsPro] = useState(false)
   const isAdmin = user && ADMIN_EMAILS.includes(user.email)
 
   const [scanPhase, setScanPhase] = useState('idle')
@@ -120,9 +121,28 @@ export default function BrandCheckPage() {
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setUser(session?.user ?? null)
       setAuthChecked(true)
+
+      // Check Pro status
+      if (session?.user) {
+        if (ADMIN_EMAILS.includes(session.user.email)) {
+          setIsPro(true)
+        } else {
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('subscription_status')
+              .eq('id', session.user.id)
+              .single()
+            if (['active', 'canceling'].includes(profile?.subscription_status)) {
+              setIsPro(true)
+            }
+          } catch {}
+        }
+      }
+
       try {
         if (session?.user) {
           const today = new Date().toISOString().split('T')[0]
@@ -282,13 +302,19 @@ export default function BrandCheckPage() {
           </div>
         </div>
 
-        {limitReached && !isAdmin && authChecked ? (
+        {limitReached && !isAdmin && !isPro && authChecked ? (
           <div className="bg-white rounded-xl shadow-lg shadow-slate-200/50 border border-slate-200 p-8 text-center">
             <p className="text-xl font-bold text-slate-900 mb-2">{user ? t('dailyLimitTitle') : t('freeLimitTitle', { count: MAX_FREE_SCANS })}</p>
             <p className="text-slate-500 text-sm mb-6 max-w-md mx-auto">{user ? t('dailyLimitDesc', { count: MAX_FREE_SCANS }) : t('freeLimitDesc', { count: MAX_FREE_SCANS })}</p>
-            <Link href={user ? '/dashboard' : '/signup'} className="bg-[#292956] text-white font-semibold px-8 py-3 rounded-lg hover:bg-[#1e1e45] transition-all inline-flex items-center gap-2 cursor-pointer">
-              {user ? t('backToDashboard') : t('createFreeAccount')} <ArrowRight className="w-4 h-4" />
-            </Link>
+            {user ? (
+              <Link href={locale === 'en' ? '/en/pricing' : '/pricing'} className="bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white font-semibold px-8 py-3 rounded-lg hover:shadow-lg transition-all inline-flex items-center gap-2 cursor-pointer">
+                {locale === 'en' ? 'Upgrade to Pro for unlimited scans' : 'Upgrade naar Pro voor onbeperkt scannen'} <ArrowRight className="w-4 h-4" />
+              </Link>
+            ) : (
+              <Link href="/signup" className="bg-[#292956] text-white font-semibold px-8 py-3 rounded-lg hover:bg-[#1e1e45] transition-all inline-flex items-center gap-2 cursor-pointer">
+                {t('createFreeAccount')} <ArrowRight className="w-4 h-4" />
+              </Link>
+            )}
           </div>
         ) : (
           <>

@@ -65,6 +65,7 @@ export default function GeoAuditPage() {
   const [limitReached, setLimitReached] = useState(false)
   const [user, setUser] = useState(null)
   const [authChecked, setAuthChecked] = useState(false)
+  const [isPro, setIsPro] = useState(false)
   const isAdmin = user && ADMIN_EMAILS.includes(user.email)
 
   // Scan animation state
@@ -121,7 +122,7 @@ export default function GeoAuditPage() {
   useEffect(() => {
     const supabase = createClient()
     
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       const currentUser = session?.user ?? null
       setUser(currentUser)
       setAuthChecked(true)
@@ -129,7 +130,25 @@ export default function GeoAuditPage() {
       if (currentUser && ADMIN_EMAILS.includes(currentUser.email)) {
         setLimitReached(false)
         setScanCount(0)
+        setIsPro(true)
         return
+      }
+
+      // Check Pro subscription
+      if (currentUser) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('subscription_status')
+            .eq('id', currentUser.id)
+            .single()
+          if (['active', 'canceling'].includes(profile?.subscription_status)) {
+            setIsPro(true)
+            setLimitReached(false)
+            setScanCount(0)
+            return
+          }
+        } catch {}
       }
 
       try {
@@ -292,7 +311,7 @@ export default function GeoAuditPage() {
         </div>
 
         {/* ── FORM or SIGNUP WALL ────────────────────── */}
-        {limitReached && !isAdmin && !loading && !results ? (
+        {limitReached && !isAdmin && !isPro && !loading && !results ? (
           <div className="bg-white rounded-xl shadow-lg shadow-slate-200/50 border border-slate-200 p-8 text-center">
             <div className="w-14 h-14 bg-gradient-to-br from-violet-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <Zap className="w-7 h-7 text-white" />
@@ -301,8 +320,8 @@ export default function GeoAuditPage() {
               <>
                 <p className="text-xl font-bold text-slate-900 mb-2">{t('dailyLimitTitle')}</p>
                 <p className="text-slate-500 text-sm mb-6 max-w-md mx-auto">{t('dailyLimitDesc', { count: MAX_FREE_SCANS })}</p>
-                <Link href="/dashboard" className="bg-[#292956] text-white font-semibold px-8 py-3 rounded-lg hover:bg-[#1e1e45] transition-all inline-flex items-center gap-2 cursor-pointer">
-                  {t('backToDashboard')} <ArrowRight className="w-4 h-4" />
+                <Link href={locale === 'en' ? '/en/pricing' : '/pricing'} className="bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white font-semibold px-8 py-3 rounded-lg hover:shadow-lg transition-all inline-flex items-center gap-2 cursor-pointer">
+                  {locale === 'en' ? 'Upgrade to Pro for unlimited scans' : 'Upgrade naar Pro voor onbeperkt scannen'} <ArrowRight className="w-4 h-4" />
                 </Link>
               </>
             ) : (
@@ -355,7 +374,7 @@ export default function GeoAuditPage() {
         </>
         )}
 
-        {!limitReached && authChecked && !isAdmin && (
+        {!limitReached && authChecked && !isAdmin && !isPro && (
           <p className="text-center text-xs text-slate-400 mt-3">
             {t('free')} &middot; {user ? '' : `${t('noAccountNeeded')} · `}{t('scansAvailable', { remaining: MAX_FREE_SCANS - scanCount, total: MAX_FREE_SCANS })}{user ? ` ${t('today')}` : ''}
           </p>
@@ -894,17 +913,26 @@ export default function GeoAuditPage() {
 
           {/* Scan another */}
           <div className="mt-6 text-center">
-            {limitReached && !isAdmin ? (
+            {limitReached && !isAdmin && !isPro ? (
               <div className="bg-slate-50 rounded-xl border border-slate-200 p-5">
                 <p className="text-sm text-slate-600 mb-3">
                   {user ? t('usedTodayScans', { count: MAX_FREE_SCANS }) : t('usedFreeScans', { count: MAX_FREE_SCANS })}
                 </p>
-                <Link
-                  href={user ? '/dashboard' : '/signup'}
-                  className="bg-[#292956] text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-[#1e1e45] transition-all inline-flex items-center gap-2 cursor-pointer text-sm"
-                >
-                  {user ? t('backToDashboard') : t('createFreeAccount')} <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
+                {user ? (
+                  <Link
+                    href={locale === 'en' ? '/en/pricing' : '/pricing'}
+                    className="bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white font-semibold px-6 py-2.5 rounded-lg hover:shadow-lg transition-all inline-flex items-center gap-2 cursor-pointer text-sm"
+                  >
+                    {locale === 'en' ? 'Upgrade to Pro for unlimited scans' : 'Upgrade naar Pro voor onbeperkt scannen'} <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                ) : (
+                  <Link
+                    href="/signup"
+                    className="bg-[#292956] text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-[#1e1e45] transition-all inline-flex items-center gap-2 cursor-pointer text-sm"
+                  >
+                    {t('createFreeAccount')} <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
               </div>
             ) : (
               <button onClick={() => { setResults(null); setUrl(''); window.scrollTo({ top: 0, behavior: 'smooth' }) }} className="text-sm text-slate-500 hover:text-slate-700 font-medium inline-flex items-center gap-1 cursor-pointer">

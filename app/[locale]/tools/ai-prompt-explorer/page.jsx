@@ -523,10 +523,20 @@ export default function PromptExplorer() {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           setUser(session.user);
-          // Check if pro (admin or paid)
-          const isAdmin = session.user.email === 'imre@onlinelabs.nl';
-          // TODO: check subscription table for pro status
-          setUserTier(isAdmin ? 'pro' : 'free');
+          // Check if pro (admin or paid subscriber)
+          const isAdmin = session.user.email === 'imre@onlinelabs.nl' || session.user.email === 'hallo@onlinelabs.nl';
+          if (isAdmin) {
+            setUserTier('pro');
+          } else {
+            // Check subscription status
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('subscription_status')
+              .eq('id', session.user.id)
+              .single();
+            const isPro = ['active', 'canceling'].includes(profile?.subscription_status);
+            setUserTier(isPro ? 'pro' : 'free');
+          }
         }
       } catch (e) {
         // No auth available, stay anonymous
@@ -777,6 +787,11 @@ export default function PromptExplorer() {
             {userTier === 'anonymous' && (
               <a href={`/signup${typeof window !== 'undefined' && localStorage.getItem('teun_claim_token') ? `?st=${localStorage.getItem('teun_claim_token')}` : ''}`} className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-[#292956] text-white rounded-xl text-sm font-semibold hover:bg-[#1e1e45] transition">
                 {T.freeAccount} <ArrowRightIcon className="w-4 h-4" />
+              </a>
+            )}
+            {userTier === 'free' && (
+              <a href={isEn ? '/en/pricing' : '/pricing'} className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl text-sm font-semibold hover:shadow-lg transition">
+                {isEn ? 'Upgrade to Pro for unlimited scans' : 'Upgrade naar Pro voor onbeperkt scannen'} <ArrowRightIcon className="w-4 h-4" />
               </a>
             )}
           </div>

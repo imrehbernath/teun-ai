@@ -14,7 +14,7 @@ export default function LanguageSwitcher() {
 
   // Verberg switcher op NL-only pagina's (blog, auteur, blog post slugs)
   // Blog post slugs staan in de root, check of het geen bekende path is
-  const knownMultiLangPaths = ['/', '/tools', '/login', '/signup', '/privacyverklaring', '/privacy', '/dashboard', '/wordpress-plugin'];
+  const knownMultiLangPaths = ['/', '/tools', '/login', '/signup', '/privacyverklaring', '/privacy', '/dashboard', '/wordpress-plugin', '/pricing'];
   const isNlOnlyPage = nlOnlyPrefixes.some((prefix) => pathname.startsWith(prefix));
   const isKnownPath = knownMultiLangPaths.some(
     (path) => pathname === path || pathname.startsWith(path + '/')

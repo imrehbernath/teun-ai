@@ -415,6 +415,11 @@ function RankTrackerContent() {
                     {t('createFreeAccount')} <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 )}
+                {user && (error.includes('dagelijks') || error.includes('morgen') || error.includes('daily') || error.includes('tomorrow')) && (
+                  <Link href={locale === 'en' ? '/en/pricing' : '/pricing'} className="inline-flex items-center gap-1 mt-2 text-sm font-semibold text-[#1E1E3F] hover:underline">
+                    {locale === 'en' ? 'Upgrade to Pro for unlimited scans' : 'Upgrade naar Pro voor onbeperkt scannen'} <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
               </div>
             </div>
           </div>

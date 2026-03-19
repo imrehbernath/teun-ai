@@ -26,7 +26,7 @@ function getScoreLabel(s, t) {
 // ═══════════════════════════════════════════════
 // AUDIT TAB COMPONENT
 // ═══════════════════════════════════════════════
-export default function AuditTab({ locale, activeCompany, userEmail }) {
+export default function AuditTab({ locale, activeCompany, userEmail, isPro }) {
   const nl = locale === 'nl'
   const t = useTranslations('dashboard.audit')
   const STEPS = STEP_IDS.map(id => ({ id, label: t(`steps.${id}`) }))
@@ -51,8 +51,8 @@ export default function AuditTab({ locale, activeCompany, userEmail }) {
   const [geoPagesLoading, setGeoPagesLoading] = useState(true)
   const [geoDetailPage, setGeoDetailPage] = useState(null) // selected page for detail view
 
-  // Daily scan limit (BETA) — admins bypass
-  const scannedToday = !isAdmin && history.length > 0 && new Date(history[0].timestamp).toDateString() === new Date().toDateString()
+  // Daily scan limit (BETA) — admins and Pro users bypass
+  const scannedToday = !isAdmin && !isPro && history.length > 0 && new Date(history[0].timestamp).toDateString() === new Date().toDateString()
 
   // Load history from localStorage
   useEffect(() => {

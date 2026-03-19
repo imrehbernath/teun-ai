@@ -187,6 +187,14 @@ function Header() {
               >
                 {t('wpPlugin')}
               </Link>
+
+              {/* Pricing */}
+              <Link
+                href="/pricing"
+                className="text-white/90 hover:text-white font-medium text-[15px] transition-colors"
+              >
+                {isEn ? 'Pricing' : 'Prijzen'}
+              </Link>
               
               {user ? (
                 <div className="flex items-center gap-4">
@@ -290,6 +298,15 @@ function Header() {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t('wpPlugin')}
+                </Link>
+
+                {/* Pricing (mobile) */}
+                <Link
+                  href="/pricing"
+                  className="block px-3 py-2 text-white/90 font-medium text-[15px] hover:text-white transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {isEn ? 'Pricing' : 'Prijzen'}
                 </Link>
 
                 {user ? (
@@ -456,6 +473,11 @@ function Footer() {
                 >
                   {t('contact')}
                 </a>
+              </li>
+              <li>
+                <Link href="/pricing" className="text-white/70 hover:text-white text-sm transition-colors">
+                  {isEn ? 'Pricing' : 'Prijzen'}
+                </Link>
               </li>
               <li>
                 <Link href="/privacyverklaring" className="text-white/70 hover:text-white text-sm transition-colors">

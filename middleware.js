@@ -22,6 +22,7 @@ const knownEnglishPaths = [
   '/en/reset-password',
   '/en/privacy',
   '/en/dashboard',
+  '/en/pricing',
   '/en/wordpress-plugin',
 ];
 

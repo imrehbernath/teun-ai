@@ -3342,8 +3342,158 @@ function GEOAnalyseContent() {
 }
 
 // ============================================
-// EXPORT WITH SUSPENSE WRAPPER
+// EXPORT WITH SUSPENSE WRAPPER + PRO GATE
 // ============================================
+function ProGateWrapper({ children }) {
+  const [isPro, setIsPro] = useState(null) // null = loading, true/false = known
+  const locale = useLocale()
+  const isNL = locale === 'nl'
+  const [showNotify, setShowNotify] = useState(false)
+  const [notifyEmail, setNotifyEmail] = useState('')
+  const [notifySubmitted, setNotifySubmitted] = useState(false)
+
+  useEffect(() => {
+    async function checkPro() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setIsPro(false); return }
+
+      // Admin check
+      const adminEmails = ['imre@onlinelabs.nl', 'hallo@onlinelabs.nl']
+      if (adminEmails.includes(user.email)) { setIsPro(true); return }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_status')
+        .eq('id', user.id)
+        .single()
+      setIsPro(['active', 'canceling'].includes(profile?.subscription_status))
+    }
+    checkPro()
+  }, [])
+
+  // Loading
+  if (isPro === null) return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-slate-600">Loading...</p>
+      </div>
+    </div>
+  )
+
+  // Pro user — show content
+  if (isPro) return children
+
+  async function handleNotifySubmit(e) {
+    e.preventDefault()
+    if (!notifyEmail) return
+    try {
+      await fetch('/api/notify-pro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: notifyEmail, feature: 'GEO Analyse' }),
+      }).catch(() => {})
+    } catch {}
+    setNotifySubmitted(true)
+  }
+
+  // Free user — show blurred content with overlay
+  return (
+    <div className="relative min-h-screen">
+      {/* Blurred content */}
+      <div className="pointer-events-none select-none" style={{ filter: 'blur(6px)', opacity: 0.4 }}>
+        {children}
+      </div>
+
+      {/* Pro overlay */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15, 23, 42, 0.6)' }}>
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full p-8 text-center">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 mb-5">
+            <svg className="w-7 h-7 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+
+          <h3 className="text-xl font-bold text-slate-900 mb-2">
+            {isNL ? 'GEO Analyse is een Pro functie' : 'GEO Analysis is a Pro feature'}
+          </h3>
+          <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+            {isNL
+              ? 'Optimaliseer je pagina\'s voor AI-zoekmachines met de complete GEO Analyse wizard. Beschikbaar voor Pro gebruikers.'
+              : 'Optimize your pages for AI search engines with the complete GEO Analysis wizard. Available for Pro users.'}
+          </p>
+
+          <div className="space-y-2.5 text-left mb-6">
+            {(isNL
+              ? ['5-stappen GEO analyse wizard', 'Automatische prompt generatie', 'Pagina-voor-pagina optimalisatie', 'PDF rapport downloaden', 'Onbeperkte scans op alle tools']
+              : ['5-step GEO analysis wizard', 'Automatic prompt generation', 'Page-by-page optimization', 'Download PDF report', 'Unlimited scans on all tools']
+            ).map((item, i) => (
+              <div key={i} className="flex items-center gap-2.5 text-sm">
+                <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                <span className="text-slate-700">{item}</span>
+              </div>
+            ))}
+          </div>
+
+          {!showNotify ? (
+            <button
+              onClick={() => setShowNotify(true)}
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-bold text-base hover:shadow-lg hover:scale-[1.01] transition-all cursor-pointer border-none"
+            >
+              <Sparkles className="w-4 h-4" />
+              {isNL ? 'Ontgrendel met Pro' : 'Unlock with Pro'}
+            </button>
+          ) : !notifySubmitted ? (
+            <div>
+              <p className="text-sm text-slate-600 mb-3">
+                {isNL
+                  ? 'Pro komt eraan! Laat je e-mail achter voor een melding bij lancering.'
+                  : 'Pro is coming! Leave your email for a notification at launch.'}
+              </p>
+              <form onSubmit={handleNotifySubmit} className="flex flex-col gap-2">
+                <input
+                  type="email"
+                  required
+                  value={notifyEmail}
+                  onChange={(e) => setNotifyEmail(e.target.value)}
+                  placeholder={isNL ? 'je@email.nl' : 'you@email.com'}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                />
+                <button
+                  type="submit"
+                  className="w-full px-6 py-3 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-semibold text-sm hover:shadow-lg transition-all cursor-pointer border-none"
+                >
+                  {isNL ? 'Houd mij op de hoogte' : 'Notify me'}
+                </button>
+              </form>
+              <p className="text-xs text-slate-400 mt-2">
+                {isNL ? 'Geen spam, alleen een melding bij lancering.' : 'No spam, just a notification at launch.'}
+              </p>
+            </div>
+          ) : (
+            <div className="py-2">
+              <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-100 mb-3">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+              </div>
+              <p className="text-sm font-semibold text-slate-900">
+                {isNL ? 'Je staat op de lijst!' : 'You\'re on the list!'}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                {isNL ? 'We mailen je zodra Pro beschikbaar is.' : 'We\'ll email you when Pro is available.'}
+              </p>
+            </div>
+          )}
+
+          <p className="text-xs text-slate-400 mt-4">
+            {isNL ? 'Vanaf €49,95/maand, maandelijks opzegbaar' : 'From €49.95/month, cancel anytime'}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function GEOAnalysePage() {
   return (
     <Suspense fallback={
@@ -3354,7 +3504,9 @@ export default function GEOAnalysePage() {
         </div>
       </div>
     }>
-      <GEOAnalyseContent />
+      <ProGateWrapper>
+        <GEOAnalyseContent />
+      </ProGateWrapper>
     </Suspense>
   )
 }
