@@ -700,7 +700,7 @@ export default function PricingPage() {
             </div>
           </div>
 
-          <p className="text-center text-slate-400 text-xs mt-4">
+          <p className="text-center text-slate-400 text-xs mt-4 max-w-3xl mx-auto">
             {isNL
               ? '* Peec.ai: kies 3 van 7 modellen, extra modellen via hogere tiers. Profound Starter ($99) alleen ChatGPT. SEMrush AI visibility is een add-on. Briljant.nl: €49/mnd na 7 dagen gratis proefperiode. Prijzen per maart 2026.'
               : '* Peec.ai: choose 3 of 7 models, more models via higher tiers. Profound Starter ($99) ChatGPT only. SEMrush AI visibility is an add-on. Briljant.nl: €49/mo after 7-day free trial. Prices as of March 2026.'}
