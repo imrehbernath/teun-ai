@@ -7,10 +7,12 @@ import { useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Check, X, Minus, ArrowRight, Zap, BarChart3, Bell, FileText, Shield, Infinity, Crown, Sparkles, TrendingUp, Search } from 'lucide-react';
+import { getGrowingStats } from '@/lib/stats';
 
 export default function PricingPage() {
   const locale = useLocale();
   const isNL = locale === 'nl';
+  const stats = getGrowingStats();
   const router = useRouter();
   const supabase = createClient();
   const [annual, setAnnual] = useState(false);
@@ -298,11 +300,11 @@ export default function PricingPage() {
         <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center items-center">
             <div>
-              <div className="text-3xl md:text-4xl font-bold text-white mb-1">2.847+</div>
+              <div className="text-3xl md:text-4xl font-bold text-white mb-1">{stats.scans}</div>
               <div className="text-sm text-white/70">{isNL ? 'AI scans uitgevoerd' : 'AI scans completed'}</div>
             </div>
             <div>
-              <div className="text-3xl md:text-4xl font-bold text-white mb-1">151+</div>
+              <div className="text-3xl md:text-4xl font-bold text-white mb-1">{stats.companies}</div>
               <div className="text-sm text-white/70">{isNL ? 'Bedrijven aangesloten' : 'Businesses connected'}</div>
             </div>
             <div>

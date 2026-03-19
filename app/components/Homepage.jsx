@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { detectBranchLanguage } from '@/lib/branche-detect';
+import { getGrowingStats } from '@/lib/stats';
 
 // ============================================
 // HOMEPAGE COMPONENT - Teun.ai (i18n)
@@ -13,6 +14,7 @@ import { detectBranchLanguage } from '@/lib/branche-detect';
 export default function Homepage() {
   const t = useTranslations('home');
   const locale = useLocale();
+  const stats = getGrowingStats();
 
   const [formData, setFormData] = useState({
     bedrijfsnaam: '',
@@ -534,12 +536,12 @@ export default function Homepage() {
           <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center items-center">
               <div>
-                <div className="text-3xl md:text-4xl font-bold text-white mb-1">{t('stats.scansCount')}</div>
+                <div className="text-3xl md:text-4xl font-bold text-white mb-1">{stats.scans}</div>
                 <div className="text-sm text-white/70">{t('stats.scansLabel')}</div>
               </div>
               <div>
-                <div className="text-3xl md:text-4xl font-bold text-white mb-1">{t('stats.insightsPercent')}</div>
-                <div className="text-sm text-white/70">{t('stats.insightsLabel')}</div>
+                <div className="text-3xl md:text-4xl font-bold text-white mb-1">{stats.companies}</div>
+                <div className="text-sm text-white/70">{locale === 'nl' ? 'Bedrijven aangesloten' : 'Businesses connected'}</div>
               </div>
               <div>
                 <div className="text-3xl md:text-4xl font-bold text-white mb-1">{t('stats.platformsCount')}</div>
