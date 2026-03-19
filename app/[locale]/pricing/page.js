@@ -134,13 +134,13 @@ export default function PricingPage() {
   ];
 
   const competitors = [
-    { name: 'Teun.ai Pro', price: '€49,95', platforms: '4+', prompts: isNL ? 'Onbeperkt' : 'Unlimited', tools: isNL ? '6 gratis' : '6 free', audit: true, explorer: true, plugin: true, hl: true },
-    { name: 'Profound', price: '$399', platforms: '3*', prompts: '150', tools: isNL ? 'Geen' : 'None', audit: false, explorer: false, plugin: false },
-    { name: 'Peec.ai', price: '€89+', platforms: '3*', prompts: '25', tools: isNL ? 'Geen' : 'None', audit: false, explorer: false, plugin: false },
-    { name: 'Geoptie', price: '$49', platforms: isNL ? 'Alle' : 'All', prompts: 'Basis', tools: isNL ? '7 gratis' : '7 free', audit: true, explorer: false, plugin: false },
-    { name: 'Briljant.nl', price: '€39', platforms: '6', prompts: '?', tools: isNL ? 'Geen' : 'None', audit: true, explorer: false, plugin: false },
-    { name: 'SEMrush', price: '€140+', platforms: '3-4*', prompts: '25-200', tools: isNL ? 'Geen' : 'None', audit: false, explorer: false, plugin: false },
-    { name: 'Ahrefs', price: '€99+', platforms: isNL ? 'Geen' : 'None', prompts: 'N/A', tools: isNL ? 'Geen' : 'None', audit: false, explorer: false, plugin: false },
+    { name: 'Teun.ai Pro', price: '€49,95', platforms: '4+', prompts: isNL ? 'Onbeperkt' : 'Unlimited', websites: isNL ? 'Onbeperkt' : 'Unlimited', tools: isNL ? '6 gratis' : '6 free', audit: true, explorer: true, plugin: true, hl: true },
+    { name: 'Profound', price: isNL ? 'Vanaf $99' : 'From $99', platforms: '1-3*', prompts: '50-100', websites: '1', tools: isNL ? 'Geen' : 'None', audit: false, explorer: false, plugin: false },
+    { name: 'Peec.ai', price: isNL ? 'Vanaf €85' : 'From €85', platforms: '3 van 7*', prompts: '50-150', websites: '1-2', tools: isNL ? 'Geen' : 'None', audit: false, explorer: false, plugin: false },
+    { name: 'Geoptie', price: isNL ? 'Vanaf $41' : 'From $41', platforms: isNL ? 'Alle' : 'All', prompts: '15-100', websites: '2-10', tools: isNL ? '7 gratis' : '7 free', audit: true, explorer: false, plugin: false },
+    { name: 'Briljant.nl', price: isNL ? 'Vanaf €49' : 'From €49', platforms: '3', prompts: '100+', websites: '1', tools: isNL ? 'Geen' : 'None', audit: true, explorer: false, plugin: false },
+    { name: 'SEMrush', price: '€140+', platforms: '3-4*', prompts: '25-200', websites: '1-5', tools: isNL ? 'Geen' : 'None', audit: false, explorer: false, plugin: false },
+    { name: 'Ahrefs', price: '€99+', platforms: isNL ? 'Geen' : 'None', prompts: 'N/A', websites: '1-5', tools: isNL ? 'Geen' : 'None', audit: false, explorer: false, plugin: false },
   ];
 
   const faqs = isNL ? [
@@ -148,13 +148,13 @@ export default function PricingPage() {
     { q: 'Welke AI platforms worden gescand?', a: 'ChatGPT Search, Perplexity, Google AI Mode en Google AI Overviews. Alle platforms zijn inbegrepen, zonder extra kosten per platform.' },
     { q: 'Wat betekent \'onbeperkte scans\'?', a: 'Geen dagelijkse limieten, geen credits die opraken. Draai zoveel AI Visibility scans, Brand Checks, Rank Tracker checks en GEO Audits als je nodig hebt.' },
     { q: 'Is er een gratis proefperiode?', a: 'Alle 6 tools zijn gratis te gebruiken met dagelijkse limieten. Zo ervaar je precies wat Teun.ai kan voordat je upgradet naar Pro.' },
-    { q: 'Wat maakt Teun.ai anders dan Profound of Peec?', a: 'Teun.ai biedt 6 gratis tools, scant alle platforms zonder extra kosten, heeft een WordPress plugin en AI Prompt Explorer. Profound kost $399/mnd voor 3 platforms, Peec €89/mnd voor slechts 25 prompts.' },
+    { q: 'Wat maakt Teun.ai anders dan Profound of Peec?', a: 'Teun.ai biedt 6 gratis tools, onbeperkte websites, scant alle platforms zonder extra kosten, en heeft een WordPress plugin en AI Prompt Explorer. Profound kost vanaf $99/mnd voor alleen ChatGPT, Peec.ai vanaf €85/mnd voor max 50 prompts op 3 platforms.' },
   ] : [
     { q: 'Can I cancel at any time?', a: 'Yes. No contracts, no notice period. You keep Pro access until the end of your billing period.' },
     { q: 'Which AI platforms are scanned?', a: 'ChatGPT Search, Perplexity, Google AI Mode and Google AI Overviews. All platforms included, no extra costs per platform.' },
     { q: 'What does \'unlimited scans\' mean?', a: 'No daily limits, no credits running out. Run as many AI Visibility scans, Brand Checks, Rank Tracker checks and GEO Audits as you need.' },
     { q: 'Is there a free trial?', a: 'All 6 tools are free to use with daily limits. Experience exactly what Teun.ai can do before upgrading to Pro.' },
-    { q: 'What makes Teun.ai different from Profound or Peec?', a: 'Teun.ai offers 6 free tools, scans all platforms at no extra cost, has a WordPress plugin and AI Prompt Explorer. Profound costs $399/mo for 3 platforms, Peec €89/mo for just 25 prompts.' },
+    { q: 'What makes Teun.ai different from Profound or Peec?', a: 'Teun.ai offers 6 free tools, unlimited websites, scans all platforms at no extra cost, and has a WordPress plugin and AI Prompt Explorer. Profound starts at $99/mo for ChatGPT only, Peec.ai starts at €85/mo for max 50 prompts on 3 platforms.' },
   ];
 
   const platforms = [
@@ -656,6 +656,7 @@ export default function PricingPage() {
                     <th className="px-4 py-4 font-semibold text-slate-500 text-xs uppercase tracking-wider">{isNL ? 'Prijs /mnd' : 'Price /mo'}</th>
                     <th className="px-4 py-4 font-semibold text-slate-500 text-xs uppercase tracking-wider">AI Platforms</th>
                     <th className="px-4 py-4 font-semibold text-slate-500 text-xs uppercase tracking-wider">Prompts</th>
+                    <th className="px-4 py-4 font-semibold text-slate-500 text-xs uppercase tracking-wider">Websites</th>
                     <th className="px-4 py-4 font-semibold text-slate-500 text-xs uppercase tracking-wider">{isNL ? 'Gratis tools' : 'Free tools'}</th>
                     <th className="px-4 py-4 font-semibold text-slate-500 text-xs uppercase tracking-wider">GEO Audit</th>
                     <th className="px-4 py-4 font-semibold text-slate-500 text-xs uppercase tracking-wider">Prompt Explorer</th>
@@ -665,10 +666,10 @@ export default function PricingPage() {
                 <tbody>
                   {competitors.map((c, i) => (
                     <tr key={i} className={`border-b border-slate-100 ${c.hl ? 'bg-blue-50/50' : 'hover:bg-slate-50'}`}>
-                      <td className={`px-5 py-4 font-semibold ${c.hl ? 'text-blue-700' : 'text-slate-900'}`}>
+                      <td className={`px-5 py-4 font-semibold whitespace-nowrap ${c.hl ? 'text-blue-700' : 'text-slate-900'}`}>
                         {c.name}
                       </td>
-                      <td className={`px-4 py-4 text-center font-bold ${c.hl ? 'text-blue-700 text-base' : 'text-slate-700'}`}>
+                      <td className={`px-4 py-4 text-center font-bold whitespace-nowrap ${c.hl ? 'text-blue-700 text-base' : 'text-slate-700'}`}>
                         {c.price}
                       </td>
                       <td className={`px-4 py-4 text-center ${c.platforms === 'Geen' || c.platforms === 'None' ? 'text-red-400' : c.hl ? 'text-blue-700 font-semibold' : 'text-slate-600'}`}>
@@ -676,6 +677,9 @@ export default function PricingPage() {
                       </td>
                       <td className={`px-4 py-4 text-center ${c.prompts === 'Onbeperkt' || c.prompts === 'Unlimited' ? 'text-green-600 font-semibold' : c.prompts === 'N/A' ? 'text-red-400' : 'text-slate-600'}`}>
                         {c.prompts}
+                      </td>
+                      <td className={`px-4 py-4 text-center ${c.websites === 'Onbeperkt' || c.websites === 'Unlimited' ? 'text-green-600 font-semibold' : 'text-slate-600'}`}>
+                        {c.websites}
                       </td>
                       <td className={`px-4 py-4 text-center ${c.tools.includes('gratis') || c.tools.includes('free') ? 'text-green-600 font-semibold' : 'text-slate-400'}`}>
                         {c.tools}
@@ -698,8 +702,8 @@ export default function PricingPage() {
 
           <p className="text-center text-slate-400 text-xs mt-4">
             {isNL
-              ? '* Extra platforms kosten €30-140/mnd bij Peec.ai. Profound Growth ($399) beperkt tot 3 platforms. SEMrush AI visibility is een add-on. Prijzen per maart 2026.'
-              : '* Extra platforms cost €30-140/mo at Peec.ai. Profound Growth ($399) limited to 3 platforms. SEMrush AI visibility is an add-on. Prices as of March 2026.'}
+              ? '* Peec.ai: kies 3 van 7 modellen, extra modellen via hogere tiers. Profound Starter ($99) alleen ChatGPT. SEMrush AI visibility is een add-on. Briljant.nl: €49/mnd na 7 dagen gratis proefperiode. Prijzen per maart 2026.'
+              : '* Peec.ai: choose 3 of 7 models, more models via higher tiers. Profound Starter ($99) ChatGPT only. SEMrush AI visibility is an add-on. Briljant.nl: €49/mo after 7-day free trial. Prices as of March 2026.'}
           </p>
         </div>
       </section>
