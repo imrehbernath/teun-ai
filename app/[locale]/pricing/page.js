@@ -208,7 +208,7 @@ export default function PricingPage() {
                     ? 'We leggen de laatste hand aan Teun.ai Pro. Laat je e-mail achter en wij laten je als eerste weten wanneer het beschikbaar is.'
                     : 'We\'re putting the finishing touches on Teun.ai Pro. Leave your email and we\'ll let you know first when it\'s available.'}
                 </p>
-              <form onSubmit={handleNotifySubmit} className="flex flex-col gap-2">
+                <form onSubmit={handleNotifySubmit} className="flex gap-2">
                   <input
                     type="email"
                     required
@@ -436,7 +436,7 @@ export default function PricingPage() {
 
           <div className="relative bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 overflow-hidden shadow-sm">
             {/* Fake tabs */}
-            <div className="flex gap-2 mb-6">
+            <div className="flex gap-2 mb-6 overflow-x-auto">
               {['AI Visibility', 'Rank Tracker', isNL ? 'Concurrenten' : 'Competitors', 'GEO Audit'].map((tab, i) => (
                 <span key={i} className={`px-4 py-2 rounded-lg text-sm font-medium ${i === 0 ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'text-slate-400'}`}>
                   {tab}
@@ -445,7 +445,7 @@ export default function PricingPage() {
             </div>
 
             {/* Fake metric cards */}
-            <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
               {[
                 { label: 'Visibility Score', value: '73%', delta: '+12%' },
                 { label: 'ChatGPT', value: '8/10', delta: '+3' },
@@ -461,7 +461,7 @@ export default function PricingPage() {
             </div>
 
             {/* Fake chart bars */}
-            <div className="flex items-end gap-2 h-24 px-4">
+            <div className="hidden sm:flex items-end gap-2 h-24 px-4">
               {[35, 48, 42, 58, 52, 65, 60, 72, 68, 78, 74, 85].map((h, i) => (
                 <div key={i} className="flex-1 rounded-t-sm bg-gradient-to-t from-blue-500 to-purple-500" style={{ height: `${h}%`, opacity: 0.4 + h / 200 }} />
               ))}
