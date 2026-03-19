@@ -395,7 +395,7 @@
     "passwordLabel": "Password",
     "or": "Or",
     "login": {
-      "metaTitle": "Log In | Teun.ai",
+      "metaTitle": "Log In",
       "metaDescription": "Log in to your Teun.ai account to access GEO tools and AI visibility scans.",
       "title": "Log In",
       "subtitle": "Welcome back! Log in to continue.",
@@ -412,7 +412,7 @@
       "signUpLink": "Register here"
     },
     "signup": {
-      "metaTitle": "Create Account | Teun.ai",
+      "metaTitle": "Create Account",
       "metaDescription": "Create a free Teun.ai account and get AI visibility scans. Start with GEO optimization today.",
       "title": "Create Account",
       "subtitle": "Measure your AI visibility across 4 platforms for free",

@@ -395,7 +395,7 @@
     "passwordLabel": "Wachtwoord",
     "or": "Of",
     "login": {
-      "metaTitle": "Inloggen | Teun.ai",
+      "metaTitle": "Inloggen",
       "metaDescription": "Log in op je Teun.ai account om toegang te krijgen tot GEO tools en AI-visibility scans.",
       "title": "Inloggen",
       "subtitle": "Welkom terug! Log in om verder te gaan.",
@@ -412,7 +412,7 @@
       "signUpLink": "Registreer hier"
     },
     "signup": {
-      "metaTitle": "Account Aanmaken | Teun.ai",
+      "metaTitle": "Account Aanmaken",
       "metaDescription": "Maak een gratis Teun.ai account aan en krijg AI-visibility scans. Start vandaag met GEO optimalisatie.",
       "title": "Account Aanmaken",
       "subtitle": "Gratis je AI-zichtbaarheid meten op 4 platforms",
