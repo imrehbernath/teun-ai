@@ -208,7 +208,7 @@ export default function PricingPage() {
                     ? 'We leggen de laatste hand aan Teun.ai Pro. Laat je e-mail achter en wij laten je als eerste weten wanneer het beschikbaar is.'
                     : 'We\'re putting the finishing touches on Teun.ai Pro. Leave your email and we\'ll let you know first when it\'s available.'}
                 </p>
-                <form onSubmit={handleNotifySubmit} className="flex gap-2">
+              <form onSubmit={handleNotifySubmit} className="flex flex-col gap-2">
                   <input
                     type="email"
                     required
