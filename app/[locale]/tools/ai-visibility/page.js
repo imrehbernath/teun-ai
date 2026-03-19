@@ -4,7 +4,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Search, TrendingUp, Zap, CheckCircle2, AlertCircle, Loader2, Award } from 'lucide-react';
+import { Search, TrendingUp, Zap, CheckCircle2, AlertCircle, Loader2, Award, ArrowRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Link } from '@/i18n/navigation';
 import { useTranslations, useLocale } from 'next-intl';
@@ -1950,14 +1950,14 @@ function AIVisibilityToolContent() {
               <div>
                 <div className="text-sm text-red-700"><strong>{t('error.prefix')}</strong> {error}</div>
                 {user && (error.includes('dagelijks') || error.includes('morgen') || error.includes('daily') || error.includes('tomorrow') || error.includes('Chrome extensie') || error.includes('Chrome extension')) && (
-                  <a href={locale === 'en' ? '/en/pricing' : '/pricing'} className="inline-flex items-center gap-1 mt-2 text-sm font-semibold text-[#1E1E3F] hover:underline">
+                  <Link href={locale === 'en' ? '/en/pricing' : '/pricing'} className="inline-flex items-center gap-1 mt-2 text-sm font-semibold text-[#1E1E3F] hover:underline">
                     {locale === 'en' ? 'Upgrade to Pro for unlimited scans' : 'Upgrade naar Pro voor onbeperkt scannen'} <ArrowRight className="w-3.5 h-3.5" />
-                  </a>
+                  </Link>
                 )}
                 {!user && (error.includes('gratis') || error.includes('free') || error.includes('account') || error.includes('Log in')) && (
-                  <a href="/signup" className="inline-flex items-center gap-1 mt-2 text-sm font-semibold text-[#1E1E3F] hover:underline">
+                  <Link href="/signup" className="inline-flex items-center gap-1 mt-2 text-sm font-semibold text-[#1E1E3F] hover:underline">
                     {locale === 'en' ? 'Create free account' : 'Gratis account aanmaken'} <ArrowRight className="w-3.5 h-3.5" />
-                  </a>
+                  </Link>
                 )}
               </div>
             </div>
