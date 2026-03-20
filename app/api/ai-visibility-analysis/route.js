@@ -1097,26 +1097,39 @@ ${customTermsInstruction}`,
           ? `Genereer 10 zeer specifieke, commercieel relevante zoekvragen die een potentiële ${websiteAnalysis?.audienceType === 'B2C' ? 'consument/klant' : websiteAnalysis?.audienceType === 'both' ? 'klant (particulier of zakelijk)' : 'B2B-klant'} zou stellen om **concrete, lokale/nationale bedrijven of leveranciers** te vinden.
 
 **CONTEXT:**
-- Bedrijfscategorie: "${companyCategory}"
+${websiteAnalysis?.success ? `- Bedrijfscategorie (achtergrond): "${companyCategory}"` : `- Bedrijfscategorie: "${companyCategory}"`}
 - Focus op Nederlandse markt
 ${websiteContext}
 ${searchConsoleContext}
+
+${websiteAnalysis?.success ? `🚨 **ABSOLUTE REGEL: WEBSITE-DATA IS HEILIG**
+De zoekwoorden hierboven komen DIRECT van de website van dit bedrijf (via scraping).
+Deze zoekwoorden zijn ALTIJD leidend. Gebruik de bedrijfscategorie ALLEEN als achtergrond.
+NOOIT generieke branche-termen verzinnen die NIET in de zoekwoorden staan.
+Als de zoekwoorden specifiek zijn (bijv. "dakpannen", "zonnepanelen"), maak dan prompts over DIE specifieke onderwerpen, NIET over de brede branche.` : ''}
 
 **KRITIEKE VEREISTEN:**
 1. Commerciële focus: vragen leiden tot concrete bedrijfsnamen
 2. Natuurlijke taal: klinkt als echte mensen
 3. Bedrijfsneutraal: geen "${companyName}" of exacte "${companyCategory}"
 4. Variatie in structuur en startwoorden
+${websiteAnalysis?.success ? '5. ELKE prompt moet gebaseerd zijn op een zoekwoord uit de website-analyse' : ''}
 
 **OUTPUT:** Exact 10 natuurlijke, commerciële vragen als JSON array. ALLEEN de array, geen extra tekst. ALTIJD Nederlands.
 ["Vraag 1", "Vraag 2", ..., "Vraag 10"]`
           : `Generate 10 highly specific, commercially relevant search queries that a potential ${websiteAnalysis?.audienceType === 'B2C' ? 'consumer/customer' : websiteAnalysis?.audienceType === 'both' ? 'customer (individual or business)' : 'B2B client'} would ask to find **concrete, local/national businesses or providers**.
 
 **CONTEXT:**
-- Business category: "${companyCategory}"
+${websiteAnalysis?.success ? `- Business category (background): "${companyCategory}"` : `- Business category: "${companyCategory}"`}
 - Focus on the relevant market for this business
 ${websiteContext}
 ${searchConsoleContext}
+
+${websiteAnalysis?.success ? `🚨 **ABSOLUTE RULE: WEBSITE DATA IS SACRED**
+The keywords above come DIRECTLY from scraping this company's website.
+These keywords are ALWAYS leading. Use the business category ONLY as background.
+NEVER invent generic industry terms that are NOT in the keywords.
+If the keywords are specific (e.g., "roof tiles", "solar panels"), make prompts about THOSE specific topics, NOT about the broad industry.` : ''}
 
 **CRITICAL REQUIREMENTS:**
 1. Commercial focus: questions lead to concrete company names
@@ -1124,6 +1137,7 @@ ${searchConsoleContext}
 3. Company-neutral: no "${companyName}" or exact "${companyCategory}"
 4. Variety in structure and opening words
 5. **100% ENGLISH**: If any keywords above are in Dutch or another language, TRANSLATE them to English (e.g., "zoekmachineoptimalisatie" → "SEO", "Google Ads beheer" → "Google Ads management")
+${websiteAnalysis?.success ? '6. EVERY prompt must be based on a keyword from the website analysis' : ''}
 
 **OUTPUT:** Exactly 10 natural, commercial questions as JSON array. ONLY the array, no extra text. ALWAYS in English.
 ["Question 1", "Question 2", ..., "Question 10"]`
