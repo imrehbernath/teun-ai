@@ -457,8 +457,24 @@ function AIVisibilityToolContent() {
 
   // Herstel resultaten uit sessionStorage (browser-back fix)
   useEffect(() => {
-    // Bij mount: altijd herstellen als er geen actieve resultaten zijn
-    if (!results && !analyzing) {
+    // Detect back-navigation (meerdere methoden als fallback)
+    const isBackNav = (() => {
+      try {
+        // Methode 1: Nieuwe Performance API
+        const navEntry = performance.getEntriesByType?.('navigation')?.[0];
+        if (navEntry?.type === 'back_forward') return true;
+        // Methode 2: Oude API (deprecated maar betrouwbaar)
+        if (performance.navigation?.type === 2) return true;
+        // Methode 3: Referrer check (Next.js client-side nav terug van signup/login)
+        if (document.referrer && /\/(signup|login|en\/signup|en\/login)/.test(document.referrer)) return true;
+      } catch (_) {}
+      return false;
+    })();
+
+    const hasPendingScan = (() => { try { return !!sessionStorage.getItem('pendingScan'); } catch (_) { return false; } })();
+
+    // Restore ALLEEN bij back-navigatie EN geen nieuwe scan pending
+    if (isBackNav && !results && !analyzing && !hasPendingScan) {
       try {
         const saved = sessionStorage.getItem('teun_scan_results');
         const savedForm = sessionStorage.getItem('teun_scan_formData');
@@ -466,12 +482,12 @@ function AIVisibilityToolContent() {
           setResults(JSON.parse(saved));
           setFormData(JSON.parse(savedForm));
           setStep(4);
-          console.log('📋 Scan resultaten hersteld uit sessionStorage');
+          console.log('📋 Scan resultaten hersteld (back-navigatie)');
         }
       } catch (_) {}
     }
 
-    // Ook bij popstate (browser back/forward knop)
+    // Popstate voor latere back/forward navigatie
     const handlePopState = () => {
       if (results || analyzing) return;
       try {
@@ -593,6 +609,9 @@ function AIVisibilityToolContent() {
   };
 
   const handleAnalyze = async () => {
+    // Clear oude resultaten zodat browser-back restore niet interfereert
+    try { sessionStorage.removeItem('teun_scan_results'); sessionStorage.removeItem('teun_scan_formData'); } catch (_) {}
+    setResults(null);
     setAnalyzing(true);
     setProgress(0);
     setError(null);
