@@ -456,8 +456,22 @@ function AIVisibilityToolContent() {
   const [pendingAutoStart, setPendingAutoStart] = useState(false);
 
   // Herstel resultaten uit sessionStorage (browser-back fix)
- // Herstel resultaten uit sessionStorage (ALLEEN bij browser-back)
   useEffect(() => {
+    // Bij mount: altijd herstellen als er geen actieve resultaten zijn
+    if (!results && !analyzing) {
+      try {
+        const saved = sessionStorage.getItem('teun_scan_results');
+        const savedForm = sessionStorage.getItem('teun_scan_formData');
+        if (saved && savedForm) {
+          setResults(JSON.parse(saved));
+          setFormData(JSON.parse(savedForm));
+          setStep(4);
+          console.log('📋 Scan resultaten hersteld uit sessionStorage');
+        }
+      } catch (_) {}
+    }
+
+    // Ook bij popstate (browser back/forward knop)
     const handlePopState = () => {
       if (results || analyzing) return;
       try {
@@ -467,15 +481,10 @@ function AIVisibilityToolContent() {
           setResults(JSON.parse(saved));
           setFormData(JSON.parse(savedForm));
           setStep(4);
-          console.log('📋 Scan resultaten hersteld (browser-back)');
+          console.log('📋 Scan resultaten hersteld (popstate)');
         }
       } catch (_) {}
     };
-
-    // Check bij mount: alleen herstellen als het een back-navigatie is
-    const navEntries = performance.getEntriesByType?.('navigation');
-    const isBackNav = navEntries?.[0]?.type === 'back_forward';
-    if (isBackNav) handlePopState();
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
