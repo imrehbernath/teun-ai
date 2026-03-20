@@ -4,7 +4,9 @@ import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  : null
 
 const PRICES = {
   monthly: process.env.STRIPE_PRICE_MONTHLY,
@@ -13,6 +15,10 @@ const PRICES = {
 
 export async function POST(request) {
   try {
+    if (!stripe) {
+      return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 })
+    }
+
     const body = await request.json()
     const { plan = 'monthly', locale = 'nl' } = body
 
@@ -24,11 +30,9 @@ export async function POST(request) {
     // Get current user from Supabase
     const supabase = await createServiceClient()
     
-    // Try to get user from auth header/cookie
     let userId = null
     let userEmail = null
 
-    // Check if user sent their ID in the body (from frontend)
     if (body.userId) {
       const { data: { user } } = await supabase.auth.admin.getUserById(body.userId)
       if (user) {
@@ -37,7 +41,6 @@ export async function POST(request) {
       }
     }
 
-    // If not logged in, redirect to signup with plan info
     if (!userId) {
       const signupUrl = locale === 'en'
         ? `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/en/signup?plan=pro&billing=${plan}`
@@ -66,10 +69,16 @@ export async function POST(request) {
       customerId = customer.id
 
       // Save customer ID to profile
-      await supabase
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({ stripe_customer_id: customerId })
         .eq('id', userId)
+      
+      if (updateError) {
+        console.error('❌ Failed to save stripe_customer_id:', updateError.message)
+      } else {
+        console.log(`✅ Stripe customer ${customerId} saved for user ${userId}`)
+      }
     }
 
     // Build success/cancel URLs
@@ -95,16 +104,20 @@ export async function POST(request) {
       success_url: successUrl,
       cancel_url: cancelUrl,
       locale: locale === 'nl' ? 'nl' : 'en',
+      metadata: {
+        supabase_user_id: userId,
+        plan: plan,
+      },
       subscription_data: {
         metadata: {
           supabase_user_id: userId,
           plan: plan,
         },
       },
-      // Allow promo codes
       allow_promotion_codes: true,
     })
 
+    console.log(`✅ Checkout session created: ${session.id} for user ${userId} (${plan})`)
     return NextResponse.json({ url: session.url })
   } catch (error) {
     console.error('❌ Stripe Checkout Error:', error.message)

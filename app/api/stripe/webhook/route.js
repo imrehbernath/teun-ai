@@ -7,6 +7,39 @@ import Stripe from 'stripe'
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 
+async function findProfileByCustomerId(supabase, customerId) {
+  // Method 1: Look up by stripe_customer_id
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('stripe_customer_id', customerId)
+    .single()
+
+  if (profile) return profile
+
+  // Method 2: Fallback - get email from Stripe customer, find user in Supabase
+  try {
+    const customer = await stripe.customers.retrieve(customerId)
+    if (customer.email) {
+      const { data: { users } } = await supabase.auth.admin.listUsers()
+      const user = users?.find(u => u.email === customer.email)
+      if (user) {
+        // Save stripe_customer_id for next time
+        await supabase
+          .from('profiles')
+          .update({ stripe_customer_id: customerId })
+          .eq('id', user.id)
+        console.log(`🔗 Linked Stripe customer ${customerId} to user ${user.id} via email ${customer.email}`)
+        return { id: user.id }
+      }
+    }
+  } catch (e) {
+    console.error('❌ Fallback customer lookup failed:', e.message)
+  }
+
+  return null
+}
+
 export async function POST(request) {
   const body = await request.text()
   const signature = request.headers.get('stripe-signature')
@@ -30,20 +63,17 @@ export async function POST(request) {
         const customerId = session.customer
         const subscriptionId = session.subscription
 
+        console.log(`📦 checkout.session.completed: customer=${customerId}, subscription=${subscriptionId}`)
+
         // Get subscription details
         const subscription = await stripe.subscriptions.retrieve(subscriptionId)
         const priceId = subscription.items.data[0]?.price.id
         const plan = priceId === process.env.STRIPE_PRICE_ANNUAL ? 'annual' : 'monthly'
 
-        // Find user by stripe_customer_id
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('stripe_customer_id', customerId)
-          .single()
+        const profile = await findProfileByCustomerId(supabase, customerId)
 
         if (profile) {
-          await supabase
+          const { error: updateError } = await supabase
             .from('profiles')
             .update({
               subscription_status: 'active',
@@ -54,9 +84,13 @@ export async function POST(request) {
             })
             .eq('id', profile.id)
 
-          console.log(`✅ Subscription activated for user ${profile.id} (${plan})`)
+          if (updateError) {
+            console.error(`❌ Profile update failed for ${profile.id}:`, updateError.message)
+          } else {
+            console.log(`✅ Subscription activated for user ${profile.id} (${plan})`)
+          }
         } else {
-          console.warn('⚠️ No profile found for customer:', customerId)
+          console.warn('⚠️ No profile found for customer:', customerId, 'email:', session.customer_details?.email)
         }
         break
       }
@@ -70,11 +104,7 @@ export async function POST(request) {
 
         const status = subscription.cancel_at_period_end ? 'canceling' : subscription.status
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('stripe_customer_id', customerId)
-          .single()
+        const profile = await findProfileByCustomerId(supabase, customerId)
 
         if (profile) {
           await supabase
@@ -96,11 +126,7 @@ export async function POST(request) {
         const subscription = event.data.object
         const customerId = subscription.customer
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('stripe_customer_id', customerId)
-          .single()
+        const profile = await findProfileByCustomerId(supabase, customerId)
 
         if (profile) {
           await supabase
@@ -122,11 +148,7 @@ export async function POST(request) {
         const invoice = event.data.object
         const customerId = invoice.customer
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('stripe_customer_id', customerId)
-          .single()
+        const profile = await findProfileByCustomerId(supabase, customerId)
 
         if (profile) {
           await supabase
@@ -147,7 +169,7 @@ export async function POST(request) {
 
     return NextResponse.json({ received: true })
   } catch (error) {
-    console.error('❌ Webhook processing error:', error.message)
+    console.error('❌ Webhook processing error:', error.message, error.stack)
     return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 })
   }
 }
