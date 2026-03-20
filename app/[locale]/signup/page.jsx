@@ -181,7 +181,8 @@ function SignupContent() {
               {t('signup.heroDesc')}
             </p>
 
-            {/* Benefits list */}
+            {/* Benefits list - hide in Pro flow */}
+            {!isProFlow && (
             <div className="bg-white border border-slate-200 rounded-xl p-5 text-left w-full max-w-xs shadow-sm">
               <p className="text-sm font-semibold text-slate-900 mb-3">{t('signup.benefitsTitle')}</p>
               <ul className="text-sm text-slate-600 space-y-2">
@@ -217,6 +218,7 @@ function SignupContent() {
                 </li>
               </ul>
             </div>
+            )}
           </div>
 
           {/* Right: Signup form */}
@@ -249,20 +251,20 @@ function SignupContent() {
 
             {/* Pro FOMO banner */}
             {isProFlow && (
-              <div className="bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] rounded-xl p-5 mb-6 text-white">
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-5 mb-6">
                 <div className="flex items-start gap-3">
-                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white/10 flex-shrink-0 mt-0.5">
-                    <CheckCircle2 className="w-5 h-5 text-green-400" />
+                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-blue-100 flex-shrink-0 mt-0.5">
+                    <CheckCircle2 className="w-5 h-5 text-blue-600" />
                   </span>
                   <div>
-                    <p className="font-bold text-sm mb-1">{locale === 'nl' ? 'Je Pro abonnement staat klaar' : 'Your Pro subscription is ready'}</p>
-                    <ul className="text-xs text-white/70 space-y-1">
+                    <p className="font-bold text-sm text-slate-900 mb-1">{locale === 'nl' ? 'Je Pro abonnement staat klaar' : 'Your Pro subscription is ready'}</p>
+                    <ul className="text-xs text-slate-600 space-y-1">
                       <li>{locale === 'nl' ? '✓ Onbeperkte scans op alle 6 tools' : '✓ Unlimited scans on all 6 tools'}</li>
                       <li>{locale === 'nl' ? '✓ Onbeperkte websites' : '✓ Unlimited websites'}</li>
                       <li>{locale === 'nl' ? '✓ GEO Optimalisatie dashboard' : '✓ GEO Optimization dashboard'}</li>
                       <li>{locale === 'nl' ? '✓ Maandelijks opzegbaar' : '✓ Cancel anytime'}</li>
                     </ul>
-                    <p className="text-[10px] text-white/40 mt-2">{locale === 'nl' ? 'Na registratie word je teruggestuurd om af te rekenen.' : 'After signup you\'ll be redirected to complete payment.'}</p>
+                    <p className="text-[10px] text-slate-400 mt-2">{locale === 'nl' ? 'Na registratie word je teruggestuurd om af te rekenen.' : 'After signup you\'ll be redirected to complete payment.'}</p>
                   </div>
                 </div>
               </div>
@@ -331,7 +333,8 @@ function SignupContent() {
                   <p className="text-xs text-slate-400 mt-1">{t('signup.passwordHint')}</p>
                 </div>
 
-                {/* Mobile benefits */}
+                {/* Mobile benefits - hide in Pro flow */}
+                {!isProFlow && (
                 <div className="lg:hidden bg-slate-50 border border-slate-200 rounded-xl p-4">
                   <p className="text-sm font-semibold text-slate-900 mb-2">{t('signup.benefitsTitle')}</p>
                   <ul className="text-sm text-slate-600 space-y-1">
@@ -342,6 +345,7 @@ function SignupContent() {
                     <li>📊 {t('signup.benefit5')}</li>
                   </ul>
                 </div>
+                )}
 
                 {/* Signup Button */}
                 <button
