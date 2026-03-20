@@ -26,10 +26,36 @@ export default function PricingPage() {
   const annualPrice = 39.95;
   const price = annual ? annualPrice : monthlyPrice;
 
-  // ✨ Coming soon - Stripe nog niet live
-  // Vervang deze functie door de Stripe versie zodra betalingen live zijn
-  function handleProClick() {
-    setShowNotify(true);
+  // ✨ Live Stripe checkout
+  async function handleProClick() {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        // Niet ingelogd: redirect naar login met return URL
+        router.push(`/login?redirect=${encodeURIComponent(isNL ? '/pricing' : '/en/pricing')}`);
+        return;
+      }
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          plan: annual ? 'annual' : 'monthly',
+          locale: locale,
+        }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || 'Er ging iets mis. Probeer het opnieuw.');
+      }
+    } catch (err) {
+      alert(isNL ? 'Verbindingsfout. Probeer het opnieuw.' : 'Connection error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleNotifySubmit(e) {
