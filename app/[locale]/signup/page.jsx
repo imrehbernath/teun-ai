@@ -244,7 +244,7 @@ function SignupContent() {
               </h1>
               <p className="text-slate-500">
                 {isProFlow
-                  ? (locale === 'nl' ? 'Maak eerst een gratis account aan, daarna activeer je Pro.' : 'Create a free account first, then activate Pro.')
+                  ? (locale === 'nl' ? 'Maak een account aan en activeer daarna Pro.' : 'Create an account and then activate Pro.')
                   : t('signup.subtitle')}
               </p>
             </div>
