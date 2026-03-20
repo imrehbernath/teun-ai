@@ -19,6 +19,8 @@ function SignupContent() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [sessionToken, setSessionToken] = useState(null);
+  const isProFlow = searchParams?.get('pro') === '1';
+  const redirectUrl = searchParams?.get('redirect');
 
   // ── Fetch session token: URL param > localStorage > cookie ──
   useEffect(() => {
@@ -64,7 +66,7 @@ function SignupContent() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${locale === 'nl' ? '/dashboard' : '/en/dashboard'}`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${redirectUrl || (locale === 'nl' ? '/dashboard' : '/en/dashboard')}`,
         data: {
           locale,
           // Persist session token in user_metadata for cross-browser claim
@@ -234,12 +236,46 @@ function SignupContent() {
             {/* Header */}
             <div className="text-center mb-8">
               <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-2">
-                {t('signup.title')}
+                {isProFlow
+                  ? (locale === 'nl' ? 'Nog één stap naar Pro' : 'One step to Pro')
+                  : t('signup.title')}
               </h1>
               <p className="text-slate-500">
-                {t('signup.subtitle')}
+                {isProFlow
+                  ? (locale === 'nl' ? 'Maak eerst een gratis account aan, daarna activeer je Pro.' : 'Create a free account first, then activate Pro.')
+                  : t('signup.subtitle')}
               </p>
             </div>
+
+            {/* Pro FOMO banner */}
+            {isProFlow && (
+              <div className="bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] rounded-xl p-5 mb-6 text-white">
+                <div className="flex items-start gap-3">
+                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white/10 flex-shrink-0 mt-0.5">
+                    <CheckCircle2 className="w-5 h-5 text-green-400" />
+                  </span>
+                  <div>
+                    <p className="font-bold text-sm mb-1">{locale === 'nl' ? 'Je Pro abonnement staat klaar' : 'Your Pro subscription is ready'}</p>
+                    <ul className="text-xs text-white/70 space-y-1">
+                      <li>{locale === 'nl' ? '✓ Onbeperkte scans op alle 6 tools' : '✓ Unlimited scans on all 6 tools'}</li>
+                      <li>{locale === 'nl' ? '✓ Onbeperkte websites' : '✓ Unlimited websites'}</li>
+                      <li>{locale === 'nl' ? '✓ GEO Optimalisatie dashboard' : '✓ GEO Optimization dashboard'}</li>
+                      <li>{locale === 'nl' ? '✓ Maandelijks opzegbaar' : '✓ Cancel anytime'}</li>
+                    </ul>
+                    <p className="text-[10px] text-white/40 mt-2">{locale === 'nl' ? 'Na registratie word je teruggestuurd om af te rekenen.' : 'After signup you\'ll be redirected to complete payment.'}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            {isProFlow && (
+              <p className="text-center text-xs text-slate-400 -mt-3 mb-4">
+                {locale === 'nl' ? 'Of ' : 'Or '}
+                <a href={locale === 'nl' ? '/signup' : '/en/signup'} className="text-blue-500 hover:underline">
+                  {locale === 'nl' ? 'maak een gratis account aan' : 'create a free account'}
+                </a>
+                {locale === 'nl' ? ' zonder Pro.' : ' without Pro.'}
+              </p>
+            )}
 
             {/* Error Message */}
             {error && (
@@ -321,7 +357,9 @@ function SignupContent() {
                   ) : (
                     <>
                       <User className="w-5 h-5" />
-                      {t('signup.title')}
+                      {isProFlow
+                        ? (locale === 'nl' ? 'Account aanmaken en doorgaan naar Pro' : 'Create account and continue to Pro')
+                        : t('signup.title')}
                     </>
                   )}
                 </button>

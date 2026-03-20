@@ -33,7 +33,7 @@ export default function PricingPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         // Niet ingelogd: redirect naar login met return URL
-        router.push(`/login?redirect=${encodeURIComponent(isNL ? '/pricing' : '/en/pricing')}`);
+        router.push(`/signup?pro=1&redirect=${encodeURIComponent(isNL ? '/pricing' : '/en/pricing')}`);
         return;
       }
       const res = await fetch('/api/stripe/checkout', {
