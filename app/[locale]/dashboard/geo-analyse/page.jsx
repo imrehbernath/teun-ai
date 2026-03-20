@@ -3402,7 +3402,8 @@ function ProGateWrapper({ children }) {
   return (
     <div className="relative min-h-screen">
       {/* Blurred content */}
-      <div className="pointer-events-none select-none" style={{ filter: 'blur(6px)', opacity: 0.4 }}>
+      <div className="pointer-events-none select-none" style={{ filter: 'blur(3px)', opacity: 0.65 }}>
+
         {children}
       </div>
 
