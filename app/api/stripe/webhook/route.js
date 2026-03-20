@@ -80,7 +80,8 @@ export async function POST(request) {
               subscription_plan: plan,
               stripe_subscription_id: subscriptionId,
               subscription_start: new Date().toISOString(),
-              subscription_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+              subscription_current_period_end: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
+
             })
             .eq('id', profile.id)
 
@@ -112,7 +113,8 @@ export async function POST(request) {
             .update({
               subscription_status: status,
               subscription_plan: plan,
-              subscription_current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+              subscription_current_period_end: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
+
             })
             .eq('id', profile.id)
 
