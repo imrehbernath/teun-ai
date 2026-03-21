@@ -1024,17 +1024,18 @@ VOORBEELDEN VAN SLECHTE PROMPTS (scoren altijd 0%):
 
 VERPLICHTE REGELS:
 
-1. VARIATIE IN VRAAGTYPE. Gebruik minstens 5 van deze 7 categorieen:
+1. VARIATIE IN VRAAGTYPE. Gebruik minstens 5 van deze 7 categorieen.
+   ⛔ GOUDEN REGEL: Elke prompt MOET een antwoord opleveren waarin ChatGPT minimaal 3 bedrijfsnamen noemt. Prompts over prijzen, uitleg of vergelijkingen die GEEN bedrijfsnamen opleveren zijn VERBODEN.
    - AANBEVELING: "Wie kan mij helpen met...", "Ken je een goed bedrijf voor..."
-   - ERVARING: "Heeft iemand ervaring met...", "Wat zijn jullie ervaringen met..."
-   - PROBLEEM/PIJNPUNT: "Ik heb last van X, wie kan...", "Mijn X werkt niet meer, waar..."
-   - VERGELIJKING: "Wat is het verschil tussen X en Y?", "Wat is de beste optie voor..."
-   - KOSTEN: "Wat kost gemiddeld een...", "Hoeveel moet ik rekenen voor..."
+   - BESTE: "Welk bedrijf is het beste voor...", "Wie is de beste ... in Nederland?"
+   - LOKAAL: "Wie doet [dienst] in [stad]?", "Welke [branche] zit er in [regio]?"
+   - OPLOSSING: "Ik heb [probleem], welk bedrijf kan dat oplossen?", "Onze website scoort slecht, wie kan helpen?"
+   - SPECIALIST: "Welke bureaus zijn gespecialiseerd in...", "Wie heeft ervaring met [dienst] voor [doelgroep]?"
    - SPECIFIEK PRODUCT: Een prompt met een heel specifiek product, dienst of merknaam
    - SITUATIESCHETS: "We gaan verhuizen en zoeken...", "Ons bedrijf groeit en we hebben ... nodig"
 
 2. VARIATIE IN ZINSOPBOUW. Maximaal 2 prompts mogen met hetzelfde woord beginnen.
-   Goede starters: "Ik zoek", "Mijn", "We willen", "Heeft iemand", "Wat kost", "Kan iemand", "Ken je", "Ons bedrijf", "Wie kan", "Waar vind ik"
+   Goede starters: "Ik zoek", "Mijn", "We willen", "Welk bedrijf", "Kan iemand", "Ken je", "Ons bedrijf", "Wie kan", "Waar vind ik"
    VERBODEN: Meer dan 2x beginnen met "Welke" of meer dan 2x met "Waar kan ik"
 
 3. LENGTE: Elke prompt is 10-18 woorden. Niet korter, niet langer.
@@ -1083,17 +1084,18 @@ EXAMPLES OF BAD PROMPTS (always score 0%):
 
 REQUIRED RULES:
 
-1. VARIETY IN QUESTION TYPE. Use at least 5 of these 7 categories:
+1. VARIETY IN QUESTION TYPE. Use at least 5 of these 7 categories.
+   ⛔ GOLDEN RULE: Every prompt MUST trigger an answer where ChatGPT names at least 3 businesses. Prompts about prices, explanations or comparisons that do NOT return company names are FORBIDDEN.
    - RECOMMENDATION: "Who can help me with...", "Do you know a good company for..."
-   - EXPERIENCE: "Has anyone tried...", "What are your experiences with..."
-   - PROBLEM/PAIN POINT: "I'm dealing with X, who can...", "My X is broken, where..."
-   - COMPARISON: "What's the difference between X and Y?", "What's the best option for..."
-   - COST: "What does ... typically cost?", "How much should I budget for..."
+   - BEST: "Which company is best for...", "Who is the best ... in the market?"
+   - LOCAL: "Who does [service] in [city]?", "Which [industry] firms are in [area]?"
+   - SOLUTION: "I have [problem], which company can solve this?", "Our website ranks poorly, who can help?"
+   - SPECIALIST: "Which agencies specialize in...", "Who has experience with [service] for [audience]?"
    - SPECIFIC PRODUCT: A prompt with a very specific product, service, or brand name
    - SITUATION: "We're moving offices and need...", "Our company is growing and we need..."
 
 2. VARIETY IN SENTENCE STRUCTURE. Maximum 2 prompts may start with the same word.
-   Good starters: "I'm looking", "My", "We want", "Has anyone", "What does", "Can anyone", "Do you know", "Our company", "Who can", "Where can I"
+   Good starters: "I'm looking", "My", "We want", "Which company", "Can anyone", "Do you know", "Our company", "Who can", "Where can I"
    FORBIDDEN: More than 2x starting with "Which" or "Where can I"
 
 3. LENGTH: Every prompt is 10-18 words. Not shorter, not longer.
