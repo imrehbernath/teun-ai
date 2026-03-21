@@ -1,30 +1,24 @@
 'use client';
 
 import { useState } from 'react';
-import { ThumbsUp, ThumbsDown, Share2, X, Gift, Send } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, X, Gift, Send } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 
 export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
-  const [step, setStep] = useState('initial'); // initial, expand, linkedin, success
+  const [step, setStep] = useState('initial'); // initial, expand, success
   const [rating, setRating] = useState(null);
   const [comment, setComment] = useState('');
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const t = useTranslations('feedback');
   const locale = useLocale();
   const isNL = locale === 'nl';
 
   const handleRating = async (selectedRating) => {
     setRating(selectedRating);
+    setStep('expand');
 
     // Stuur rating direct naar Slack (zonder te wachten)
     sendToSlack({ rating: selectedRating, step: 'quick-rating' }).catch(() => {});
-
-    if (selectedRating === 'positive') {
-      setStep('linkedin');
-    } else {
-      setStep('expand');
-    }
   };
 
   const sendToSlack = async (extraData = {}) => {
@@ -39,7 +33,7 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
           scanId,
           companyName,
           totalMentions,
-          sharedOnLinkedin: extraData.sharedOnLinkedin || false,
+          sharedOnLinkedin: false,
           proRaffle: !!(extraData.email || email),
           source: 'ai-visibility'
         })
@@ -54,30 +48,6 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
     await sendToSlack({ comment, email });
     setSubmitting(false);
     setStep('success');
-  };
-
-  const handleLinkedInShare = async (shared) => {
-    if (shared) {
-      await sendToSlack({ rating: 'positive', sharedOnLinkedin: true });
-
-      const linkedInText = encodeURIComponent(
-        `🎯 ${t('linkedin.text1')}\n\n` +
-        `📊 ${t('linkedin.text2', { mentions: totalMentions })}\n\n` +
-        `${t('linkedin.text3')}\n` +
-        `👉 https://teun.ai/tools/ai-visibility\n\n` +
-        `#GEO #AISEO #ChatGPT #AIZichtbaarheid`
-      );
-      
-      window.open(
-        `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://teun.ai/tools/ai-visibility')}&summary=${linkedInText}`,
-        '_blank',
-        'width=600,height=600'
-      );
-    }
-
-    // Na LinkedIn: toon PRO verloting
-    setStep('expand');
-    setRating('positive');
   };
 
   // ====================================
@@ -98,54 +68,6 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
               </span>
             )}
           </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ====================================
-  // LINKEDIN SHARE (positive rating)
-  // ====================================
-  if (step === 'linkedin') {
-    return (
-      <div className="relative bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6 mt-6 animate-in fade-in slide-in-from-bottom-4">
-        <button
-          onClick={() => { setStep('expand'); setRating('positive'); }}
-          className="absolute top-4 right-4 text-blue-400 hover:text-blue-600"
-        >
-          <X className="w-5 h-5" />
-        </button>
-        
-        <div className="text-center">
-          <Share2 className="w-12 h-12 text-blue-500 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-slate-900 mb-2">
-            {t('linkedin.title')}
-          </h3>
-          <p className="text-blue-700 mb-4">
-            {t('linkedin.subtitle')}
-          </p>
-          
-          <div className="bg-white rounded-lg p-4 mb-6 text-left text-sm text-slate-600 border border-blue-100">
-            <p className="italic">
-              &ldquo;🎯 {t('linkedin.text1')}<br/>
-              📊 {t('linkedin.text2', { mentions: totalMentions })}...&rdquo;
-            </p>
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={() => handleLinkedInShare(true)}
-              className="flex-1 px-6 py-3 bg-[#0A66C2] text-white font-bold rounded-lg hover:bg-[#004182] transition cursor-pointer"
-            >
-              {t('linkedin.shareButton')}
-            </button>
-            <button
-              onClick={() => handleLinkedInShare(false)}
-              className="px-6 py-3 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition cursor-pointer"
-            >
-              {t('linkedin.skip')}
-            </button>
-          </div>
         </div>
       </div>
     );
@@ -178,7 +100,7 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
           </span>
         </div>
 
-        {/* Comment (optioneel bij positive, prominenter bij negative) */}
+        {/* Comment */}
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
