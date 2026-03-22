@@ -1006,13 +1006,13 @@ VOORBEELDEN VAN GOEDE PROMPTS (hoog scorend in echte scans):
 - "Ik zoek een bureau dat mijn webshop hoger in Google kan krijgen, wie heeft daar ervaring mee?"
 - "Waar kan ik duurzame notitieboeken van steenpapier kopen in Nederland?"
 - "Mijn bedrijfsfietsen moeten onderhouden worden, welke partijen komen op locatie?"
-- "Heeft iemand ervaring met prive zwemles voor volwassenen in de Randstad?"
-- "Wat kost gemiddeld een gietvloer per vierkante meter en welke bedrijven doen dat?"
 - "We willen onze medewerkers een fietsleaseregeling aanbieden, wie kan ons daarbij helpen?"
 - "Ik heb last van chronische rugpijn en wil geen medicijnen, welke osteopaat kan helpen?"
 - "Welke cateraar kan smoked BBQ verzorgen voor 80 personen op een bruiloft?"
 - "Ons restaurant wil telefonische reserveringen automatiseren met AI, wie biedt dat aan?"
 - "Waar kan ik een ergonomische verticale muis bestellen met snelle levering?"
+- "Wie kan een naadloze gietvloer leggen in mijn woonkamer in Amsterdam?"
+- "Welk SEO bureau in Utrecht levert meetbare resultaten voor webshops?"
 
 VOORBEELDEN VAN SLECHTE PROMPTS (scoren altijd 0%):
 - "Welke bedrijven bieden diensten aan voor..." (te vaag, geen context)
@@ -1025,10 +1025,15 @@ VOORBEELDEN VAN SLECHTE PROMPTS (scoren altijd 0%):
 VERPLICHTE REGELS:
 
 1. VARIATIE IN VRAAGTYPE. Gebruik minstens 5 van deze 7 categorieen.
-   ⛔ GOUDEN REGEL: Elke prompt MOET een antwoord opleveren waarin ChatGPT minimaal 3 bedrijfsnamen noemt. Prompts over prijzen, uitleg of vergelijkingen die GEEN bedrijfsnamen opleveren zijn VERBODEN.
+   ⛔ GOUDEN REGEL: Elke prompt MOET een antwoord opleveren waarin ChatGPT minimaal 3 bedrijfsnamen noemt.
+   ⛔ ABSOLUUT VERBODEN PROMPTTYPEN (deze leveren NOOIT bedrijfsnamen op):
+   - "Wat kost..." / "Hoeveel kost..." / "Wat is de prijs van..." (levert prijsinformatie, geen bedrijven)
+   - "Wat is het verschil tussen..." / "Kan iemand uitleggen..." (levert uitleg, geen bedrijven)
+   - "Heeft iemand ervaring met..." zonder te vragen naar een specifiek bedrijf (levert meningen, geen bedrijven)
+   CATEGORIEËN:
    - AANBEVELING: "Wie kan mij helpen met...", "Ken je een goed bedrijf voor..."
    - BESTE: "Welk bedrijf is het beste voor...", "Wie is de beste ... in Nederland?"
-   - LOKAAL: "Wie doet [dienst] in [stad]?", "Welke [branche] zit er in [regio]?"
+   - LOKAAL: "Wie kan [dienst] doen in [stad]?", "Welke [branche] zit er in [regio]?"
    - OPLOSSING: "Ik heb [probleem], welk bedrijf kan dat oplossen?", "Onze website scoort slecht, wie kan helpen?"
    - SPECIALIST: "Welke bureaus zijn gespecialiseerd in...", "Wie heeft ervaring met [dienst] voor [doelgroep]?"
    - SPECIFIEK PRODUCT: Een prompt met een heel specifiek product, dienst of merknaam
@@ -1054,6 +1059,19 @@ VERPLICHTE REGELS:
 
 7. BEDRIJFSNEUTRAAL: Noem NIET "${companyName}" of letterlijk "${companyCategory}".
 
+8. VAKJARGON: Gebruik het juiste werkwoord per branche. NOOIT "installeren" als dat niet de juiste term is.
+   - Vloeren: LEGGEN/AANBRENGEN ("Wie kan een gietvloer leggen", NIET "installeren")
+   - Wanden: STUCEN/AANBRENGEN/AFWERKEN ("Wie kan een naadloze wandafwerking aanbrengen")
+   - Schilderwerk: SCHILDEREN/VERVEN
+   - Dakwerk: DEKKEN/RENOVEREN
+   - Algemeen: als je twijfelt, gebruik "laten doen" of "verzorgen"
+
+9. PLAATSNAAM ALTIJD AAN HET EIND: Locatie komt altijd als "in [stad]" aan het einde van de zin.
+   FOUT: "een specialist voor wandafwerking in Amsterdam in mijn appartement"
+   GOED: "een specialist voor naadloze wandafwerking in mijn appartement in Amsterdam"
+
+10. LOCATIE: Als de gebruiker een servicegebied heeft opgegeven, als de website-analyse een locatie-focus detecteert, of als de zoekwoorden een plaatsnaam bevatten, gebruik die locatie in precies 5 van de 10 prompts (de andere 5 zonder). Als er GEEN locatie bekend is uit geen enkele bron, gebruik dan GEEN plaatsnamen in de prompts.
+
 ${customTermsInstruction}`
         : `You generate 10 search queries that real people would type into ChatGPT or Perplexity.
 
@@ -1067,13 +1085,13 @@ EXAMPLES OF GOOD PROMPTS (high scoring in real scans):
 - "I'm looking for an agency that can help my online store rank higher in Google, any recommendations?"
 - "Where can I buy reusable stone paper notebooks that I can wipe clean and reuse?"
 - "Our company bikes need regular maintenance, which services come on-site?"
-- "Has anyone tried private swimming lessons for adults in the London area?"
-- "What does a poured floor typically cost per square meter and who installs them?"
 - "We want to set up a bike lease program for our employees, who handles that?"
 - "I have chronic back pain and want to avoid medication, which osteopath would you recommend?"
 - "Which caterer can do smoked BBQ for about 80 guests at an outdoor wedding?"
 - "Our restaurant wants to automate phone reservations with AI, who offers that kind of service?"
 - "Where can I order an ergonomic vertical mouse with fast shipping?"
+- "Who can lay a seamless poured floor in my living room in Denver?"
+- "Which SEO agency in Austin delivers measurable results for e-commerce stores?"
 
 EXAMPLES OF BAD PROMPTS (always score 0%):
 - "Which companies offer services for..." (too vague)
@@ -1085,10 +1103,15 @@ EXAMPLES OF BAD PROMPTS (always score 0%):
 REQUIRED RULES:
 
 1. VARIETY IN QUESTION TYPE. Use at least 5 of these 7 categories.
-   ⛔ GOLDEN RULE: Every prompt MUST trigger an answer where ChatGPT names at least 3 businesses. Prompts about prices, explanations or comparisons that do NOT return company names are FORBIDDEN.
+   ⛔ GOLDEN RULE: Every prompt MUST trigger an answer where ChatGPT names at least 3 businesses.
+   ⛔ ABSOLUTELY FORBIDDEN PROMPT TYPES (these NEVER return company names):
+   - "How much does..." / "What does ... cost?" / "What is the price of..." (returns pricing info, not companies)
+   - "What's the difference between..." / "Can someone explain..." (returns explanations, not companies)
+   - "Has anyone tried..." without asking for a specific company (returns opinions, not companies)
+   CATEGORIES:
    - RECOMMENDATION: "Who can help me with...", "Do you know a good company for..."
    - BEST: "Which company is best for...", "Who is the best ... in the market?"
-   - LOCAL: "Who does [service] in [city]?", "Which [industry] firms are in [area]?"
+   - LOCAL: "Who can do [service] in [city]?", "Which [industry] firms are in [area]?"
    - SOLUTION: "I have [problem], which company can solve this?", "Our website ranks poorly, who can help?"
    - SPECIALIST: "Which agencies specialize in...", "Who has experience with [service] for [audience]?"
    - SPECIFIC PRODUCT: A prompt with a very specific product, service, or brand name
@@ -1112,6 +1135,19 @@ REQUIRED RULES:
 
 7. COMPANY-NEUTRAL: Do NOT mention "${companyName}" or literally "${companyCategory}".
 
+8. TRADE LANGUAGE: Use the correct verb per industry. NEVER use "install" if that's not the right term.
+   - Floors: LAY/APPLY ("Who can lay a poured floor", NOT "install a floor")
+   - Walls: PLASTER/APPLY/FINISH
+   - Painting: PAINT
+   - Roofing: ROOF/RENOVATE
+   - General: if unsure, use "do" or "take care of"
+
+9. LOCATION ALWAYS AT THE END: City/region always comes as "in [city]" at the end of the sentence.
+   BAD: "a specialist for wall finishing in Amsterdam in my apartment"
+   GOOD: "a specialist for seamless wall finishing in my apartment in Amsterdam"
+
+10. LOCATION: If the user provided a service area, if the website analysis detected a location focus, or if the keywords contain a city/region name, use that location in exactly 5 of 10 prompts (the other 5 without). If NO location is known from any source, do NOT use any city or region names in the prompts.
+
 ${customTermsInstruction}`,
       messages: [{
         role: 'user',
@@ -1132,7 +1168,7 @@ CHECKLIST VOOR JE OUTPUT:
 - 10 prompts als JSON array
 - Elk 10-18 woorden
 - Maximaal 2x hetzelfde startwoord
-- Minstens 5 verschillende vraagtypen (aanbeveling, ervaring, probleem, vergelijking, kosten, specifiek, situatieschets)
+- Minstens 5 verschillende vraagtypen (aanbeveling, beste, lokaal, oplossing, specialist, specifiek product, situatieschets)
 - 100% Nederlands, geen Engelse woorden
 - Klinkt als een echt mens, niet als een zakelijke brief
 - Bedrijfsnaam "${companyName}" komt NERGENS voor
@@ -1152,7 +1188,7 @@ CHECKLIST FOR YOUR OUTPUT:
 - 10 prompts as JSON array
 - Each 10-18 words
 - Maximum 2x the same starting word
-- At least 5 different question types (recommendation, experience, problem, comparison, cost, specific, situation)
+- At least 5 different question types (recommendation, best, local, solution, specialist, specific product, situation)
 - 100% English, translate any non-English keywords
 - Sounds like a real person, not a corporate brief
 - Company name "${companyName}" appears NOWHERE
