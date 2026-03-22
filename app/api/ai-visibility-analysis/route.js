@@ -1053,24 +1053,33 @@ VERPLICHTE REGELS:
    FOUT: "Welke bedrijven bieden schoonmaakdiensten aan?"
    GOED: "Wie kan het interieur van mijn Tesla professioneel laten reinigen in Den Haag?"
 
-6. NATUURLIJKHEID: Klinkt alsof een echt mens dit typt in ChatGPT.
+6. ZOEKWOORDEN NATUURLIJK VERWERKEN: Zoekwoorden NOOIT letterlijk plakken. Maak er een natuurlijke zin van.
+   FOUT: "Wie legt gietvloer badkamer?" (zoekwoord letterlijk geplakt)
+   GOED: "Wie kan een gietvloer in de badkamer leggen?"
+   FOUT: "Wie kan gietvloer woonkamer aanbrengen?"
+   GOED: "Wie kan een gietvloer in mijn woonkamer aanbrengen?"
+   FOUT: "specialist wandafwerking kantoor"
+   GOED: "een specialist voor wandafwerking in ons kantoor"
+   REGEL: Voeg altijd de juiste voorzetsels en lidwoorden toe (in de, in mijn, voor de, op het).
+
+7. NATUURLIJKHEID: Klinkt alsof een echt mens dit typt in ChatGPT.
    FOUT: "Welke dienstverleners kunnen een professionele oplossing bieden voor onze organisatie?"
    GOED: "Ons kantoor moet geschilderd worden, wie kan dat snel en netjes doen?"
 
-7. BEDRIJFSNEUTRAAL: Noem NIET "${companyName}" of letterlijk "${companyCategory}".
+8. BEDRIJFSNEUTRAAL: Noem NIET "${companyName}" of letterlijk "${companyCategory}".
 
-8. VAKJARGON: Gebruik het juiste werkwoord per branche. NOOIT "installeren" als dat niet de juiste term is.
+9. VAKJARGON: Gebruik het juiste werkwoord per branche. NOOIT "installeren" als dat niet de juiste term is.
    - Vloeren: LEGGEN/AANBRENGEN ("Wie kan een gietvloer leggen", NIET "installeren")
    - Wanden: STUCEN/AANBRENGEN/AFWERKEN ("Wie kan een naadloze wandafwerking aanbrengen")
    - Schilderwerk: SCHILDEREN/VERVEN
    - Dakwerk: DEKKEN/RENOVEREN
    - Algemeen: als je twijfelt, gebruik "laten doen" of "verzorgen"
 
-9. PLAATSNAAM ALTIJD AAN HET EIND: Locatie komt altijd als "in [stad]" aan het einde van de zin.
+10. PLAATSNAAM ALTIJD AAN HET EIND: Locatie komt altijd als "in [stad]" aan het einde van de zin.
    FOUT: "een specialist voor wandafwerking in Amsterdam in mijn appartement"
    GOED: "een specialist voor naadloze wandafwerking in mijn appartement in Amsterdam"
 
-10. LOCATIE: Als de gebruiker een servicegebied heeft opgegeven, als de website-analyse een locatie-focus detecteert, of als de zoekwoorden een plaatsnaam bevatten, gebruik die locatie in precies 5 van de 10 prompts (de andere 5 zonder). Als er GEEN locatie bekend is uit geen enkele bron, gebruik dan GEEN plaatsnamen in de prompts.
+11. LOCATIE: Als de gebruiker een servicegebied heeft opgegeven, als de website-analyse een locatie-focus detecteert, of als de zoekwoorden een plaatsnaam bevatten, gebruik die locatie in precies 5 van de 10 prompts (de andere 5 zonder). Als er GEEN locatie bekend is uit geen enkele bron, gebruik dan GEEN plaatsnamen in de prompts.
 
 ${customTermsInstruction}`
         : `You generate 10 search queries that real people would type into ChatGPT or Perplexity.
@@ -1129,24 +1138,30 @@ REQUIRED RULES:
    BAD: "Which companies offer cleaning services?"
    GOOD: "Who can professionally detail the interior of my Tesla in the Dallas area?"
 
-6. NATURALNESS: Sounds like a real person typing this into ChatGPT.
+6. NATURAL KEYWORD INTEGRATION: NEVER paste keywords literally into a sentence. Add natural prepositions and articles.
+   BAD: "who can lay poured floor living room?" (keyword pasted literally)
+   GOOD: "who can lay a poured floor in the living room?"
+   BAD: "specialist wall finishing office"
+   GOOD: "a specialist for wall finishing in our office"
+
+7. NATURALNESS: Sounds like a real person typing this into ChatGPT.
    BAD: "Which service providers can offer professional solutions for our organization?"
    GOOD: "Our office needs painting, who can do that quickly and neatly?"
 
-7. COMPANY-NEUTRAL: Do NOT mention "${companyName}" or literally "${companyCategory}".
+8. COMPANY-NEUTRAL: Do NOT mention "${companyName}" or literally "${companyCategory}".
 
-8. TRADE LANGUAGE: Use the correct verb per industry. NEVER use "install" if that's not the right term.
+9. TRADE LANGUAGE: Use the correct verb per industry. NEVER use "install" if that's not the right term.
    - Floors: LAY/APPLY ("Who can lay a poured floor", NOT "install a floor")
    - Walls: PLASTER/APPLY/FINISH
    - Painting: PAINT
    - Roofing: ROOF/RENOVATE
    - General: if unsure, use "do" or "take care of"
 
-9. LOCATION ALWAYS AT THE END: City/region always comes as "in [city]" at the end of the sentence.
+10. LOCATION ALWAYS AT THE END: City/region always comes as "in [city]" at the end of the sentence.
    BAD: "a specialist for wall finishing in Amsterdam in my apartment"
    GOOD: "a specialist for seamless wall finishing in my apartment in Amsterdam"
 
-10. LOCATION: If the user provided a service area, if the website analysis detected a location focus, or if the keywords contain a city/region name, use that location in exactly 5 of 10 prompts (the other 5 without). If NO location is known from any source, do NOT use any city or region names in the prompts.
+11. LOCATION: If the user provided a service area, if the website analysis detected a location focus, or if the keywords contain a city/region name, use that location in exactly 5 of 10 prompts (the other 5 without). If NO location is known from any source, do NOT use any city or region names in the prompts.
 
 ${customTermsInstruction}`,
       messages: [{

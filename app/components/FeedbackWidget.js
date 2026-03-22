@@ -23,21 +23,6 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
       '_blank',
       'width=600,height=600'
     );
-
-    // Notify via Slack
-    fetch('/api/feedback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        rating: 'positive',
-        comment: 'LinkedIn PRO deal clicked',
-        scanId,
-        companyName,
-        totalMentions,
-        sharedOnLinkedin: true,
-        source: 'ai-visibility'
-      })
-    }).catch(() => {});
   };
 
   const handleSubmitTips = async () => {
@@ -92,6 +77,9 @@ export default function FeedbackWidget({ scanId, companyName, totalMentions }) {
               <ExternalLink className="w-4 h-4" />
               {isNL ? 'Deel op LinkedIn' : 'Share on LinkedIn'}
             </button>
+            <p className="text-xs text-slate-400 mt-2">
+              {isNL ? 'Minimaal 200 volgers.' : 'Minimum 200 followers.'}
+            </p>
           </div>
         </div>
       </div>
