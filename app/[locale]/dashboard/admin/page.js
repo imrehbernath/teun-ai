@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Search, Users, Eye, Globe, Download, ChevronLeft, ChevronRight, RefreshCw, BarChart3, Radar } from 'lucide-react'
+import { Search, Users, Eye, Globe, Download, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, RefreshCw, BarChart3, Radar, Loader2 } from 'lucide-react'
 
 const ADMIN_EMAIL = 'imre@onlinelabs.nl'
 
@@ -27,6 +27,9 @@ export default function AdminScansPage() {
   const [total, setTotal] = useState(0)
   const [totalAccounts, setTotalAccounts] = useState(0)
   const [totalAnonymous, setTotalAnonymous] = useState(0)
+  const [expandedScan, setExpandedScan] = useState(null)
+  const [expandedPrompts, setExpandedPrompts] = useState(null)
+  const [loadingPrompts, setLoadingPrompts] = useState(false)
   const limit = 30
 
   const supabase = createClient()
@@ -111,6 +114,44 @@ export default function AdminScansPage() {
     a.download = `teun-ai-scans-${new Date().toISOString().split('T')[0]}.csv`
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  // Fetch prompt details for a scan
+  const toggleExpandScan = async (scan) => {
+    if (expandedScan === scan.id) {
+      setExpandedScan(null)
+      setExpandedPrompts(null)
+      return
+    }
+
+    // Only GEO Analyse scans have prompts
+    if (scan.tool !== 'GEO Analyse') {
+      setExpandedScan(scan.id)
+      setExpandedPrompts(null)
+      return
+    }
+
+    setExpandedScan(scan.id)
+    setLoadingPrompts(true)
+
+    try {
+      const params = new URLSearchParams({
+        company: scan.company_name || '',
+        website: scan.website || ''
+      })
+      const res = await fetch(`/api/admin/scan-prompts?${params}`)
+      if (!res.ok) {
+        setExpandedPrompts(null)
+        setLoadingPrompts(false)
+        return
+      }
+      const data = await res.json()
+      setExpandedPrompts(data.prompts || null)
+    } catch (err) {
+      console.error('Prompt fetch error:', err)
+      setExpandedPrompts(null)
+    }
+    setLoadingPrompts(false)
   }
 
   const totalPages = Math.ceil(total / limit)
@@ -249,7 +290,11 @@ export default function AdminScansPage() {
                 </thead>
                 <tbody>
                   {scans.map((scan, i) => (
-                    <tr key={`${scan.id}-${i}`} className="border-b border-slate-50 hover:bg-slate-50/50 transition">
+                    <React.Fragment key={`${scan.id}-${i}`}>
+                    <tr 
+                      onClick={() => toggleExpandScan(scan)}
+                      className="border-b border-slate-50 hover:bg-slate-50/50 transition cursor-pointer"
+                    >
                       <td className="py-3 px-4">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                           scan.type === 'account'
@@ -272,6 +317,7 @@ export default function AdminScansPage() {
                             href={scan.website.startsWith('http') ? scan.website : `https://${scan.website}`}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
                             className="text-[#292956] hover:underline font-medium"
                           >
                             {scan.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
@@ -316,10 +362,64 @@ export default function AdminScansPage() {
                           <span className="text-slate-300">—</span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-slate-500 text-xs whitespace-nowrap">
-                        {formatDate(scan.created_at)}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-500 text-xs whitespace-nowrap">
+                            {formatDate(scan.created_at)}
+                          </span>
+                          {scan.tool === 'GEO Analyse' && (
+                            expandedScan === scan.id 
+                              ? <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+                              : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                          )}
+                        </div>
                       </td>
                     </tr>
+
+                    {/* Expanded Prompts */}
+                    {expandedScan === scan.id && scan.tool === 'GEO Analyse' && (
+                      <tr>
+                        <td colSpan={7} className="bg-slate-50 px-4 py-4">
+                          {loadingPrompts ? (
+                            <div className="flex items-center justify-center py-6">
+                              <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />
+                            </div>
+                          ) : expandedPrompts && expandedPrompts.length > 0 ? (
+                            <div className="max-w-5xl space-y-2">
+                              <p className="text-xs font-semibold text-slate-500 uppercase mb-3">Prompts voor {scan.company_name}</p>
+                              {expandedPrompts.map((prompt, j) => (
+                                <div key={j} className="flex items-start gap-3 bg-white rounded-lg border border-slate-200 px-4 py-3">
+                                  <span className="text-xs font-bold text-slate-400 mt-0.5 w-5 text-right flex-shrink-0">{j + 1}.</span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-slate-800">{prompt.text}</p>
+                                    {(prompt.perplexityCompetitors.length > 0 || prompt.chatgptCompetitors.length > 0) && (
+                                      <div className="flex flex-wrap gap-1 mt-1.5">
+                                        {[...new Set([...prompt.perplexityCompetitors, ...prompt.chatgptCompetitors])].slice(0, 6).map((comp, k) => (
+                                          <span key={k} className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded">
+                                            {comp}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex gap-1.5 flex-shrink-0">
+                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${prompt.perplexity ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
+                                      PPX {prompt.perplexity ? '✓' : '✗'}
+                                    </span>
+                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${prompt.chatgpt ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-400'}`}>
+                                      GPT {prompt.chatgpt ? '✓' : '✗'}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-slate-400 text-center py-4">Geen prompt data beschikbaar voor deze scan.</p>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
