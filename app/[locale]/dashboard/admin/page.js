@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Search, Users, Eye, Globe, Download, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, RefreshCw, BarChart3, Radar, Loader2 } from 'lucide-react'
+import { Search, Users, Eye, Globe, Download, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, RefreshCw, BarChart3, Radar, Loader2, Crown, Calendar, Activity } from 'lucide-react'
 
 const ADMIN_EMAIL = 'imre@onlinelabs.nl'
 
@@ -14,6 +14,13 @@ const TOOL_COLORS = {
   'Google AI Overviews': 'bg-sky-50 text-sky-700',
   'Brand Check': 'bg-rose-50 text-rose-700',
   'GEO Audit': 'bg-teal-50 text-teal-700',
+}
+
+const SUB_STATUS = {
+  'active': { label: 'PRO', class: 'bg-emerald-50 text-emerald-700' },
+  'canceling': { label: 'PRO (stopt)', class: 'bg-amber-50 text-amber-700' },
+  'canceled': { label: 'Gestopt', class: 'bg-slate-100 text-slate-500' },
+  'past_due': { label: 'Achterstallig', class: 'bg-red-50 text-red-600' },
 }
 
 export default function AdminScansPage() {
@@ -30,6 +37,12 @@ export default function AdminScansPage() {
   const [expandedScan, setExpandedScan] = useState(null)
   const [expandedPrompts, setExpandedPrompts] = useState(null)
   const [loadingPrompts, setLoadingPrompts] = useState(false)
+  const [activeTab, setActiveTab] = useState('scans') // scans | users
+  const [users, setUsers] = useState([])
+  const [loadingUsers, setLoadingUsers] = useState(false)
+  const [userSearch, setUserSearch] = useState('')
+  const [userSearchInput, setUserSearchInput] = useState('')
+  const [userSort, setUserSort] = useState('scans') // scans | lastSeen | created
   const limit = 30
 
   const supabase = createClient()
@@ -116,6 +129,44 @@ export default function AdminScansPage() {
     URL.revokeObjectURL(url)
   }
 
+  // Fetch users
+  const fetchUsers = useCallback(async () => {
+    if (!authorized || !userId) return
+    setLoadingUsers(true)
+    try {
+      const params = new URLSearchParams({
+        userId,
+        ...(userSearch && { search: userSearch })
+      })
+      const res = await fetch(`/api/admin/users?${params}`)
+      const data = await res.json()
+      if (res.ok) {
+        setUsers(data.users || [])
+      }
+    } catch (err) {
+      console.error('Users fetch error:', err)
+    }
+    setLoadingUsers(false)
+  }, [authorized, userId, userSearch])
+
+  useEffect(() => {
+    if (activeTab === 'users') fetchUsers()
+  }, [activeTab, fetchUsers])
+
+  // User search debounce
+  useEffect(() => {
+    const timer = setTimeout(() => setUserSearch(userSearchInput), 400)
+    return () => clearTimeout(timer)
+  }, [userSearchInput])
+
+  // Sort users
+  const sortedUsers = [...users].sort((a, b) => {
+    if (userSort === 'scans') return b.totalScans - a.totalScans
+    if (userSort === 'lastSeen') return new Date(b.lastSeen) - new Date(a.lastSeen)
+    if (userSort === 'created') return new Date(b.createdAt) - new Date(a.createdAt)
+    return 0
+  })
+
   // Fetch prompt details for a scan
   const toggleExpandScan = async (scan) => {
     if (expandedScan === scan.id) {
@@ -169,14 +220,14 @@ export default function AdminScansPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Admin — Alle Scans</h1>
-            <p className="text-slate-500 mt-1">Leads en gescande websites van alle tools</p>
+            <h1 className="text-2xl font-bold text-slate-900">Admin</h1>
+            <p className="text-slate-500 mt-1">Leads, scans en gebruikers</p>
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={fetchScans}
+              onClick={activeTab === 'scans' ? fetchScans : fetchUsers}
               className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -192,6 +243,35 @@ export default function AdminScansPage() {
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-1 bg-slate-100 rounded-lg p-1 mb-6 w-fit">
+          <button
+            onClick={() => setActiveTab('scans')}
+            className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md transition ${
+              activeTab === 'scans'
+                ? 'bg-white text-slate-900 shadow-sm font-medium'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4" />
+            Scans
+          </button>
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md transition ${
+              activeTab === 'users'
+                ? 'bg-white text-slate-900 shadow-sm font-medium'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            Gebruikers {users.length > 0 && `(${users.length})`}
+          </button>
+        </div>
+
+        {/* ═══════════════════════════════ SCANS TAB ═══════════════════════════════ */}
+        {activeTab === 'scans' && (
+        <>
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-xl border border-slate-200 p-5">
@@ -451,6 +531,137 @@ export default function AdminScansPage() {
             </div>
           )}
         </div>
+        </>
+        )}
+
+        {/* ═══════════════════════════════ USERS TAB ═══════════════════════════════ */}
+        {activeTab === 'users' && (
+        <>
+        {/* User Search + Sort */}
+        <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                value={userSearchInput}
+                onChange={(e) => setUserSearchInput(e.target.value)}
+                placeholder="Zoek op email, naam of bedrijf..."
+                className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border-0 rounded-lg focus:ring-2 focus:ring-[#292956]/20 focus:bg-white transition"
+              />
+            </div>
+            <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+              {[
+                { value: 'scans', label: 'Meeste scans' },
+                { value: 'lastSeen', label: 'Laatst actief' },
+                { value: 'created', label: 'Nieuwste eerst' }
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setUserSort(opt.value)}
+                  className={`px-3 py-1.5 text-sm rounded-md transition whitespace-nowrap ${
+                    userSort === opt.value
+                      ? 'bg-white text-slate-900 shadow-sm font-medium'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Users Table */}
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          {loadingUsers ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#292956]"></div>
+            </div>
+          ) : sortedUsers.length === 0 ? (
+            <div className="text-center py-20 text-slate-400">
+              Geen gebruikers gevonden
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/50">
+                    <th className="text-left py-3 px-4 font-medium text-slate-500">Gebruiker</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-500">Bedrijf</th>
+                    <th className="text-center py-3 px-4 font-medium text-slate-500">Status</th>
+                    <th className="text-center py-3 px-4 font-medium text-slate-500">Totaal scans</th>
+                    <th className="text-center py-3 px-4 font-medium text-slate-500">GEO</th>
+                    <th className="text-center py-3 px-4 font-medium text-slate-500">Rank</th>
+                    <th className="text-center py-3 px-4 font-medium text-slate-500">Audit</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-500">Laatst actief</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-500">Aangemeld</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedUsers.map((user) => {
+                    const sub = SUB_STATUS[user.subscriptionStatus]
+                    return (
+                      <tr key={user.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition">
+                        <td className="py-3 px-4">
+                          <p className="text-slate-900 font-medium">{user.name || '—'}</p>
+                          <p className="text-xs text-slate-400">{user.email}</p>
+                        </td>
+                        <td className="py-3 px-4 text-slate-600">
+                          {user.company || <span className="text-slate-300">—</span>}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          {sub ? (
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${sub.class}`}>
+                              {user.isPro && <Crown className="w-3 h-3" />}
+                              {sub.label}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-50 text-slate-500">
+                              Gratis
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className={`font-bold text-lg ${user.totalScans > 0 ? 'text-slate-900' : 'text-slate-300'}`}>
+                            {user.totalScans}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className={`text-sm ${user.geoScans > 0 ? 'text-violet-600 font-medium' : 'text-slate-300'}`}>
+                            {user.geoScans}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className={`text-sm ${user.rankChecks > 0 ? 'text-amber-600 font-medium' : 'text-slate-300'}`}>
+                            {user.rankChecks}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className={`text-sm ${user.geoAudits > 0 ? 'text-teal-600 font-medium' : 'text-slate-300'}`}>
+                            {user.geoAudits}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <p className="text-xs text-slate-600 whitespace-nowrap">{formatDate(user.lastSeen)}</p>
+                          {user.lastLogin && user.lastLogin !== user.lastSeen && (
+                            <p className="text-[10px] text-slate-400">Login: {formatDate(user.lastLogin)}</p>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-xs text-slate-500 whitespace-nowrap">
+                          {formatDate(user.createdAt)}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        </>
+        )}
+
       </div>
     </div>
   )
