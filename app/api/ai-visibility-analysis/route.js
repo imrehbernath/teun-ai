@@ -1529,7 +1529,7 @@ Avoid very well-known global consumer brands (Coca-Cola, Nike, Apple, etc.), tec
               content: prompt
             }
           ],
-          max_tokens: 250
+          max_completion_tokens: 250
         })
       }
     )
@@ -1547,7 +1547,22 @@ Avoid very well-known global consumer brands (Coca-Cola, Nike, Apple, etc.), tec
         }
       }
     }
-
+    if (response.status === 400) {
+      const errorText = await response.text()
+      console.log(`⚠️ ChatGPT 400 Bad Request — skip deze prompt. Error: ${errorText}`)
+      return {
+        success: false,
+        error: isNL ? 'ChatGPT kon deze prompt niet verwerken' : 'ChatGPT could not process this prompt',
+        data: {
+          company_mentioned: false,
+          mentions_count: 0,
+          competitors_mentioned: [],
+          simulated_ai_response_snippet: isNL 
+            ? 'ChatGPT kon deze specifieke zoekvraag niet verwerken' 
+            : 'ChatGPT could not process this specific query'
+    }
+  }
+}
     if (!response.ok) {
       const errorText = await response.text()
       console.error(`❌ ChatGPT API error (${response.status}):`, errorText)
