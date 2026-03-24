@@ -411,6 +411,71 @@ export async function POST(request) {
       return NextResponse.json({ error: m.urlRequired }, { status: 400 })
     }
 
+    // ━━━ RATE LIMITING ━━━
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+               request.headers.get('x-real-ip') || 'unknown'
+    
+    const ADMIN_EMAILS = ['imre@onlinelabs.nl', 'hallo@onlinelabs.nl']
+    const ANON_LIMIT = 2    // 2x lifetime voor anonieme gebruikers
+    const AUTH_LIMIT = 3    // 3x totaal voor ingelogde gebruikers, daarna PRO
+
+    // Check auth via cookie
+    const { createClient } = await import('@/lib/supabase/server')
+    const userSupabase = await createClient()
+    const { data: { user } } = await userSupabase.auth.getUser()
+
+    if (user) {
+      // Admin bypass
+      if (ADMIN_EMAILS.includes(user.email?.toLowerCase())) {
+        console.log(`[GEO Audit] 🔓 Admin bypass: ${user.email}`)
+      } else {
+        // Pro bypass
+        const { data: profile } = await supabaseAdmin
+          .from('profiles')
+          .select('subscription_status')
+          .eq('id', user.id)
+          .single()
+
+        if (['active', 'canceling'].includes(profile?.subscription_status)) {
+          console.log(`[GEO Audit] ⭐ Pro bypass: ${user.email}`)
+        } else {
+          // Check total scans for this user
+          const { count } = await supabaseAdmin
+            .from('geo_audit_results')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+
+          if ((count || 0) >= AUTH_LIMIT) {
+            return NextResponse.json({
+              error: locale === 'nl'
+                ? `Je hebt je ${AUTH_LIMIT} gratis GEO Audits gebruikt. Upgrade naar Pro voor onbeperkte audits, of gebruik onze gratis WordPress plugin.`
+                : `You've used your ${AUTH_LIMIT} free GEO Audits. Upgrade to Pro for unlimited audits, or use our free WordPress plugin.`,
+              limitReached: true,
+              upgradeUrl: locale === 'nl' ? '/pricing' : '/en/pricing'
+            }, { status: 403 })
+          }
+        }
+      }
+    } else {
+      // Anonymous: check IP-based limit
+      const { data: anonScan } = await supabaseAdmin
+        .from('anonymous_scans')
+        .select('scans_made')
+        .eq('ip_address', ip)
+        .eq('tool_name', 'geo-audit')
+        .single()
+
+      if ((anonScan?.scans_made || 0) >= ANON_LIMIT) {
+        return NextResponse.json({
+          error: locale === 'nl'
+            ? `Je hebt je ${ANON_LIMIT} gratis audits gebruikt. Maak een gratis account aan voor ${AUTH_LIMIT} extra audits, of gebruik onze gratis WordPress plugin.`
+            : `You've used your ${ANON_LIMIT} free audits. Create a free account for ${AUTH_LIMIT} more audits, or use our free WordPress plugin.`,
+          limitReached: true,
+          signupUrl: locale === 'nl' ? '/signup' : '/en/signup'
+        }, { status: 403 })
+      }
+    }
+
     let normalizedUrl = url.trim()
     if (!normalizedUrl.startsWith('http')) normalizedUrl = 'https://' + normalizedUrl
 
@@ -505,17 +570,41 @@ export async function POST(request) {
       (aiAnalysis.citationScore * 0.20) + (aiAnalysis.eatScore * 0.10) + (liveTestScore * 0.15)
     )
 
-    // ✅ Track anonymous scan with website + company_name for admin leads
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-               request.headers.get('x-real-ip') || 'unknown'
-    if (ip !== 'unknown') {
+    // ✅ Track scan for rate limiting
+    if (user) {
+      // Save to geo_audit_results for logged-in users
       try {
+        await supabaseAdmin
+          .from('geo_audit_results')
+          .insert({
+            user_id: user.id,
+            url: normalizedUrl,
+            domain: resolvedHostname,
+            company_name: aiAnalysis.companyName || resolvedHostname,
+            score: overallScore,
+            data: { source: 'geo-audit-tool', mentioned: liveTest?.mentioned || false }
+          })
+      } catch (e) {
+        console.error('[GEO Audit] Result tracking error:', e.message)
+      }
+    } else if (ip !== 'unknown') {
+      // Increment anonymous scan count
+      try {
+        const { data: existing } = await supabaseAdmin
+          .from('anonymous_scans')
+          .select('scans_made')
+          .eq('ip_address', ip)
+          .eq('tool_name', 'geo-audit')
+          .single()
+
+        const newCount = (existing?.scans_made || 0) + 1
+
         await supabaseAdmin
           .from('anonymous_scans')
           .upsert({
             ip_address: ip,
             tool_name: 'geo-audit',
-            scans_made: 1,
+            scans_made: newCount,
             last_scan_at: new Date().toISOString(),
             website: normalizedUrl || null,
             company_name: aiAnalysis.companyName || resolvedHostname || null

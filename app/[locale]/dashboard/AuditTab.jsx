@@ -51,8 +51,9 @@ export default function AuditTab({ locale, activeCompany, userEmail, isPro }) {
   const [geoPagesLoading, setGeoPagesLoading] = useState(true)
   const [geoDetailPage, setGeoDetailPage] = useState(null) // selected page for detail view
 
-  // Daily scan limit (BETA) — admins and Pro users bypass
-  const scannedToday = !isAdmin && !isPro && history.length > 0 && new Date(history[0].timestamp).toDateString() === new Date().toDateString()
+  // Scan limit — server-side enforced, client shows remaining count
+  const [scansRemaining, setScansRemaining] = useState(null)
+  const [limitReached, setLimitReached] = useState(false)
 
   // Load history from localStorage
   useEffect(() => {
@@ -138,6 +139,16 @@ export default function AuditTab({ locale, activeCompany, userEmail, isPro }) {
         body: JSON.stringify({ url: scanUrl, locale }),
       })
       const json = await res.json()
+      
+      // Handle rate limit
+      if (res.status === 403 && json.limitReached) {
+        setLimitReached(true)
+        setError(json.error)
+        setView('input')
+        setLoading(false)
+        return
+      }
+      
       if (!res.ok || !json.success) throw new Error(json.error || 'Scan failed')
       setResult(json)
       setView('result')
@@ -295,7 +306,7 @@ export default function AuditTab({ locale, activeCompany, userEmail, isPro }) {
                 className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-200 text-[14px] text-slate-800 placeholder:text-slate-300 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/10 transition-all"
               />
             </div>
-            <button onClick={() => runAudit()} disabled={!url || loading || scannedToday}
+            <button onClick={() => runAudit()} disabled={!url || loading || limitReached}
               className="px-7 py-3 rounded-lg text-white text-[14px] font-semibold cursor-pointer hover:opacity-90 transition-opacity border-none disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2.5 shrink-0"
               style={{ background: '#292956' }}>
               <Search className="w-4 h-4" />
@@ -303,11 +314,23 @@ export default function AuditTab({ locale, activeCompany, userEmail, isPro }) {
             </button>
           </div>
           <p className="text-[11px] text-slate-400 mt-2.5">
-            {scannedToday
-              ? (t('alreadyScanned'))
+            {limitReached
+              ? (nl ? '✓ Je hebt al je gratis audits gebruikt. Upgrade naar Pro voor onbeperkte audits.' : '✓ You\'ve used all your free audits. Upgrade to Pro for unlimited audits.')
               : (t('scanDuration'))
             }
           </p>
+          {limitReached && (
+            <div className="flex flex-col gap-1.5 mt-2">
+              <a href={nl ? '/pricing' : '/en/pricing'}
+                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#292956] hover:underline">
+                {nl ? 'Upgrade naar Pro' : 'Upgrade to Pro'} <ArrowRight className="w-3.5 h-3.5" />
+              </a>
+              <a href={nl ? '/wordpress-plugin' : '/en/wordpress-plugin'}
+                className="inline-flex items-center gap-1.5 text-[12px] text-slate-500 hover:text-slate-700 hover:underline">
+                {nl ? 'Of gebruik onze gratis WordPress plugin voor onbeperkte audits' : 'Or use our free WordPress plugin for unlimited audits'}
+              </a>
+            </div>
+          )}
           {error && (
             <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-[13px] text-red-600">{error}</div>
           )}
