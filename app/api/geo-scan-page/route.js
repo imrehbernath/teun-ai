@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+export const maxDuration = 120
+
 const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY
 const PAGESPEED_API_KEY = process.env.GOOGLE_PAGESPEED_API_KEY // Add to .env
 
@@ -659,7 +661,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
-    const { url, locale = 'nl' } = await request.json()
+    const { url, locale = 'nl', companyName = '' } = await request.json()
     
     if (!url) {
       return NextResponse.json({ error: 'URL required' }, { status: 400 })
@@ -681,15 +683,27 @@ export async function POST(request) {
       })
     }
     
-    // Detect page language — use for analysis (not UI locale)
+    // Detect page language
     const pageLang = detectPageLanguage(html, url)
     console.log(`[GEO Scan] Page language: ${pageLang} (UI: ${locale}) — ${url}`)
     
-    // Analyze with Core Web Vitals data — use PAGE language for patterns + messages
-    const results = analyzeHtml(html, url, coreWebVitals, pageLang)
+    // Technical analysis — use UI locale for messages, pageLang for content pattern detection
+    const results = analyzeHtml(html, url, coreWebVitals, locale)
+    
+    // Extract content for Claude analysis
+    const extractedContent = extractContentForClaude(html, url)
+    
+    // Claude custom advice (fire in parallel, don't block if it fails)
+    let customAdvice = []
+    try {
+      customAdvice = await getClaudeAdvice(extractedContent, results, url, locale, companyName)
+    } catch (e) {
+      console.error('[GEO Scan] Claude advice error:', e.message)
+    }
     
     return NextResponse.json({
       ...results,
+      customAdvice,
       detectedLanguage: pageLang,
       scanned: true
     })
@@ -698,4 +712,182 @@ export async function POST(request) {
     console.error('GEO scan error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
+}
+
+// ============================================
+// EXTRACT CONTENT FOR CLAUDE
+// ============================================
+function extractContentForClaude(html, url) {
+  // Title
+  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
+  const title = titleMatch ? titleMatch[1].trim() : ''
+  
+  // Meta description
+  const metaMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i) ||
+                    html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']description["']/i)
+  const metaDesc = metaMatch ? metaMatch[1].trim() : ''
+  
+  // Headings (first 20)
+  const headings = []
+  const headingRegex = /<h([1-6])[^>]*>(.*?)<\/h\1>/gis
+  let hMatch
+  while ((hMatch = headingRegex.exec(html)) !== null && headings.length < 20) {
+    const text = hMatch[2].replace(/<[^>]+>/g, '').trim()
+    if (text) headings.push({ level: parseInt(hMatch[1]), text })
+  }
+  
+  // Body text (first 3000 chars for Claude)
+  const bodyText = html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
+    .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
+    .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 3000)
+  
+  // Schema types
+  const schemaTypes = []
+  const schemaRegex = /"@type"\s*:\s*"([^"]+)"/g
+  let sMatch
+  while ((sMatch = schemaRegex.exec(html)) !== null) {
+    if (!schemaTypes.includes(sMatch[1])) schemaTypes.push(sMatch[1])
+  }
+  
+  // Links
+  const allLinks = (html.match(/<a[^>]*href=["'][^"']+["']/gi) || []).length
+  let hostname = ''
+  try { hostname = new URL(url).hostname } catch {}
+  const internalLinks = hostname ? (html.match(new RegExp(`href=["'][^"']*${hostname.replace(/\./g, '\\.')}[^"']*["']`, 'gi')) || []).length : 0
+  const externalLinks = Math.max(0, allLinks - internalLinks)
+  
+  // Word count
+  const wordCount = bodyText.split(/\s+/).length
+  
+  // FAQ content detection
+  const hasFaq = /<[^>]*(?:faq|veelgestelde|frequently)/i.test(html)
+  
+  return { title, metaDesc, headings, bodyText, schemaTypes, internalLinks, externalLinks, wordCount, hasFaq, url }
+}
+
+// ============================================
+// CLAUDE CUSTOM ADVICE
+// ============================================
+async function getClaudeAdvice(content, scanResults, url, locale, companyName) {
+  const Anthropic = (await import('@anthropic-ai/sdk')).default
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  
+  const isNL = locale === 'nl'
+  const failedChecks = Object.entries(scanResults.checklist || {})
+    .filter(([, v]) => v === false)
+    .map(([k]) => k)
+  
+  const prompt = isNL
+    ? `Je bent een GEO (Generative Engine Optimization) en E-E-A-T specialist. Analyseer deze pagina en geef OP MAAT advies.
+
+URL: ${url}
+Bedrijf: ${companyName || 'onbekend'}
+Title: ${content.title}
+Meta description: ${content.metaDesc || 'ONTBREEKT'}
+Woordentelling: ${content.wordCount}
+Schema types: ${content.schemaTypes.join(', ') || 'Geen'}
+Heeft FAQ: ${content.hasFaq ? 'Ja' : 'Nee'}
+Interne links: ${content.internalLinks}
+
+Koppen:
+${content.headings.map(h => `H${h.level}: ${h.text}`).join('\n')}
+
+Content (eerste deel):
+${content.bodyText}
+
+Failed checks: ${failedChecks.join(', ')}
+Score: ${scanResults.score}/100
+
+Geef PRECIES 6 adviezen als JSON array. VERPLICHTE verdeling:
+- Minimaal 2x categorie "eeat" (Experience, Expertise, Authority, Trust)
+- Minimaal 1x categorie "content"
+- Minimaal 1x categorie "structured_data"
+- Minimaal 1x categorie "geo"
+
+Per advies:
+- "title": actietitel, max 6 woorden, begin met werkwoord
+- "action": concrete actie in 1-2 zinnen, SPECIFIEK voor deze pagina. Noem de echte paginatitel, koppen of content die je ziet.
+- "example": KORT voorbeeld, max 3 regels. Bij meta description: geef de tekst. Bij FAQ: geef 3 vragen als opsomming. Bij schema: noem alleen het type en belangrijkste velden, GEEN volledig JSON-LD blok. Bij E-E-A-T: geef 1-2 zinnen voorbeeldtekst.
+- "why": 1 zin waarom AI-platformen dit belangrijk vinden
+- "priority": "critical", "high", "medium" of "low"
+- "category": "eeat", "content", "technical", "structured_data" of "geo"
+
+BELANGRIJK:
+- Bij E-E-A-T: adviseer concreet over auteursinformatie, ervaringsjaren, certificeringen, klantreviews, KvK-vermelding
+- Bij content: verwijs naar specifieke koppen/tekst die je ZIET op de pagina
+- Bij schema: geef kopieerbaar JSON-LD voorbeeld
+- Bij FAQ: stel 3-5 vragen voor die passen bij de dienst/product op DEZE pagina
+- Alle tekst in het NEDERLANDS
+
+Antwoord ALLEEN met een JSON array, geen markdown, geen backticks.`
+    : `You are a GEO (Generative Engine Optimization) and E-E-A-T specialist. Analyze this page and give CUSTOM advice.
+
+URL: ${url}
+Company: ${companyName || 'unknown'}
+Title: ${content.title}
+Meta description: ${content.metaDesc || 'MISSING'}
+Word count: ${content.wordCount}
+Schema types: ${content.schemaTypes.join(', ') || 'None'}
+Has FAQ: ${content.hasFaq ? 'Yes' : 'No'}
+Internal links: ${content.internalLinks}
+
+Headings:
+${content.headings.map(h => `H${h.level}: ${h.text}`).join('\n')}
+
+Content (first part):
+${content.bodyText}
+
+Failed checks: ${failedChecks.join(', ')}
+Score: ${scanResults.score}/100
+
+Give EXACTLY 6 pieces of advice as JSON array. MANDATORY distribution:
+- At least 2x category "eeat" (Experience, Expertise, Authority, Trust)
+- At least 1x category "content"
+- At least 1x category "structured_data"
+- At least 1x category "geo"
+
+Per advice:
+- "title": action title, max 6 words, start with verb
+- "action": concrete action in 1-2 sentences, SPECIFIC to this page. Reference the actual page title, headings or content you see.
+- "example": SHORT example, max 3 lines. For meta description: give the text. For FAQ: give 3 questions as bullet list. For schema: name the type and key fields only, NO full JSON-LD block. For E-E-A-T: give 1-2 sentences of example text.
+- "why": 1 sentence why AI platforms care about this
+- "priority": "critical", "high", "medium" or "low"
+- "category": "eeat", "content", "technical", "structured_data" or "geo"
+
+IMPORTANT:
+- For E-E-A-T: advise concretely about author info, years of experience, certifications, customer reviews, business registration
+- For content: reference specific headings/text you SEE on the page
+- For schema: give copyable JSON-LD example
+- For FAQ: suggest 3-5 questions that fit the service/product on THIS page
+- All text in ENGLISH
+
+Reply ONLY with a JSON array, no markdown, no backticks.`
+
+  const message = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 2000,
+    system: isNL
+      ? 'Je bent een GEO specialist. Geef ALLEEN een JSON array terug. Geen markdown, geen uitleg, geen backticks.'
+      : 'You are a GEO specialist. Return ONLY a JSON array. No markdown, no explanation, no backticks.',
+    messages: [{ role: 'user', content: prompt }]
+  })
+
+  const text = message.content[0].text.trim()
+  const jsonStr = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+  
+  try {
+    const advice = JSON.parse(jsonStr)
+    if (Array.isArray(advice)) return advice.slice(0, 7)
+  } catch (e) {
+    console.error('[GEO Scan] Claude JSON parse error:', e.message)
+  }
+  
+  return []
 }

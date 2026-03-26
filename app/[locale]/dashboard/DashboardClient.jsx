@@ -732,6 +732,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   const [subscriptionPlan, setSubscriptionPlan] = useState(null) // 'monthly' | 'annual'
   const [subscriptionEnd, setSubscriptionEnd] = useState(null)
   const [portalLoading, setPortalLoading] = useState(false)
+  const [geoAnalyseResults, setGeoAnalyseResults] = useState(null) // { pages: [...], lastScan: Date }
 
   useEffect(() => { document.body.classList.add('dashboard-active'); return () => document.body.classList.remove('dashboard-active') }, [])
 
@@ -956,7 +957,9 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
     }
   }
 
-  const isPro = subscriptionStatus === 'active' || subscriptionStatus === 'canceling'
+  const ADMIN_EMAILS = ['imre@onlinelabs.nl', 'hallo@onlinelabs.nl']
+  const isAdmin = ADMIN_EMAILS.includes(userEmail?.toLowerCase())
+  const isPro = isAdmin || subscriptionStatus === 'active' || subscriptionStatus === 'canceling'
 
   // Derived
   const visibility = data?.visibility || {}
@@ -969,6 +972,54 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   const activeCompany = data?.activeCompany
   const companies = data?.companies || []
   const promptDiscovery = data?.promptDiscovery || []
+
+  // Load GEO Analyse results from Supabase
+  const loadGeoAnalyseResults = useCallback(async () => {
+    const companyName = activeCompany?.name || selectedCompany
+    if (!companyName) return
+    try {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      )
+      const { data: results, error } = await supabase
+        .from('geo_audit_results')
+        .select('url, score, data, created_at')
+        .eq('company_name', companyName)
+        .not('data', 'is', null)
+        .order('created_at', { ascending: false })
+      
+      console.log('[GEO Dashboard] Loading results for:', companyName, '→', results?.length || 0, 'rows', error ? 'ERROR: ' + error.message : '')
+      
+      if (results && results.length > 0) {
+        const geoPages = results.filter(r => r.data?.source === 'geo-analyse')
+        if (geoPages.length > 0) {
+          const seen = new Set()
+          const unique = geoPages.filter(r => { if (seen.has(r.url)) return false; seen.add(r.url); return true })
+          const avgScore = Math.round(unique.reduce((s, r) => s + (r.data?.score || r.score || 0), 0) / unique.length)
+          setGeoAnalyseResults({
+            pages: unique.map(r => ({
+              url: r.url,
+              score: r.data?.score || r.score || 0,
+              customAdvice: r.data?.customAdvice || [],
+              issues: r.data?.issues || [],
+              scores: r.data?.scores || {},
+            })),
+            avgScore,
+            lastScan: geoPages[0].created_at,
+          })
+          return
+        }
+      }
+      setGeoAnalyseResults(null)
+    } catch (e) {
+      console.error('Load GEO results error:', e)
+    }
+  }, [activeCompany, selectedCompany])
+
+  useEffect(() => {
+    if (activeTab === 'geo' && isPro) loadGeoAnalyseResults()
+  }, [activeTab, isPro, loadGeoAnalyseResults])
 
   const totalFound = visibility.found || 0
   const totalPrompts = visibility.totalPrompts || 0
@@ -992,12 +1043,12 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
     { id: 'overview', label: t.tabs.overview, Icon: LayoutDashboard },
     { id: 'prompts', label: t.tabs.prompts, Icon: Search },
     { id: 'competitors', label: t.tabs.competitors, Icon: Swords },
-    { id: 'audit', label: t.tabs.audit, Icon: Sparkles },
+    { id: 'geo', label: t.tabs.geo, Icon: Sparkles },
   ]
   const toolLinks = [
-    { label: t.sidebar.brandCheck, href: lp(locale, '/tools/brand-check'), tag: t.sidebar.free },
-    { label: t.sidebar.rankTracker, href: lp(locale, '/tools/ai-rank-tracker'), tag: t.sidebar.free },
-    { label: 'GEO Audit', onClick: () => setActiveTab('audit'), tag: t.sidebar.free },
+    { label: t.sidebar.brandCheck, href: lp(locale, '/tools/brand-check') },
+    { label: t.sidebar.rankTracker, href: lp(locale, '/tools/ai-rank-tracker') },
+    { label: 'GEO Audit', onClick: () => setActiveTab('audit') },
     { label: t.sidebar.geoAnalyse, href: lp(locale, '/dashboard/geo-analyse'), tag: isPro ? null : 'PRO' },
     { label: t.sidebar.contentOptimizer, href: null, tag: t.sidebar.soon },
   ]
@@ -1101,12 +1152,12 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
             {toolLinks.map(item => item.href ? (
               <Link key={item.label} href={item.href} className="flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-white/40 hover:text-white/60 transition-colors no-underline">
                 <ArrowRight className="w-3.5 h-3.5 shrink-0" /><span className="flex-1">{item.label}</span>
-                {item.tag && <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase ${item.tag === t.sidebar.free ? 'bg-cyan-500/15 text-cyan-400' : item.tag === 'PRO' ? 'bg-blue-500/20 text-blue-400' : 'bg-white/[0.06] text-white/25'}`}>{item.tag}</span>}
+                {item.tag && <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase ${item.tag === 'PRO' ? 'bg-blue-500/20 text-blue-400' : 'bg-white/[0.06] text-white/25'}`}>{item.tag}</span>}
               </Link>
             ) : item.onClick ? (
-              <button key={item.label} onClick={item.onClick} className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-white/40 hover:text-white/60 transition-colors no-underline bg-transparent border-none cursor-pointer text-left">
+              <button key={item.label} onClick={item.onClick} className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors no-underline bg-transparent border-none cursor-pointer text-left ${activeTab === 'audit' && item.label === 'GEO Audit' ? 'text-white/70 bg-white/[0.06] rounded-lg' : 'text-white/40 hover:text-white/60'}`}>
                 <ArrowRight className="w-3.5 h-3.5 shrink-0" /><span className="flex-1">{item.label}</span>
-                {item.tag && <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase ${item.tag === t.sidebar.free ? 'bg-cyan-500/15 text-cyan-400' : item.tag === 'PRO' ? 'bg-blue-500/20 text-blue-400' : 'bg-white/[0.06] text-white/25'}`}>{item.tag}</span>}
+                {item.tag && <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase ${item.tag === 'PRO' ? 'bg-blue-500/20 text-blue-400' : 'bg-white/[0.06] text-white/25'}`}>{item.tag}</span>}
               </button>
             ) : (
               <div key={item.label} className="flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-white/25 cursor-default">
@@ -2204,7 +2255,132 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
           })()}
 
 
-          {/* ════════════ AUDIT ════════════ */}
+          {/* ════════════ GEO OPTIMALISATIE (PRO PROMO) ════════════ */}
+          {activeTab === 'geo' && (
+            <div className="space-y-6">
+              {isPro ? (
+                /* ── PRO user: show results or link to analyse ── */
+                <div className="space-y-6">
+                  {geoAnalyseResults ? (
+                    <>
+                      {/* Score overview */}
+                      <div className="bg-white rounded-xl border border-slate-200 p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h2 className="text-lg font-bold text-slate-800">GEO Analyse Resultaten</h2>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              {locale === 'nl' ? 'Laatste scan:' : 'Last scan:'} {new Date(geoAnalyseResults.lastScan).toLocaleDateString(locale === 'nl' ? 'nl-NL' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className={`text-3xl font-black ${geoAnalyseResults.avgScore >= 70 ? 'text-emerald-600' : geoAnalyseResults.avgScore >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                              {geoAnalyseResults.avgScore}
+                            </div>
+                            <p className="text-[10px] text-slate-400 uppercase">{locale === 'nl' ? 'gem. score' : 'avg. score'}</p>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          {geoAnalyseResults.pages.sort((a, b) => a.score - b.score).map((page) => (
+                            <div key={page.url} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
+                                page.score >= 70 ? 'bg-emerald-100 text-emerald-700' : page.score >= 40 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+                              }`}>{page.score}</div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[12px] font-medium text-slate-700 truncate">{page.url.replace(/^https?:\/\//, '')}</p>
+                                <p className="text-[10px] text-slate-400">
+                                  {page.customAdvice?.length || 0} {locale === 'nl' ? 'adviezen' : 'recommendations'}
+                                  {page.issues?.length > 0 && ` · ${page.issues.length} ${locale === 'nl' ? 'bevindingen' : 'findings'}`}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Actions */}
+                      <div className="flex gap-3">
+                        <a href={lp(locale, '/dashboard/geo-analyse?view=results')}
+                          className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-white text-[14px] font-semibold no-underline hover:opacity-90 transition-opacity"
+                          style={{ background: '#292956' }}>
+                          <Zap className="w-4 h-4" />
+                          {locale === 'nl' ? 'Bekijk werklijst' : 'View worklist'}
+                        </a>
+                        <a href={lp(locale, '/dashboard/geo-analyse')}
+                          className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-slate-200 text-slate-700 text-[14px] font-medium no-underline hover:bg-slate-50 transition">
+                          <RefreshCw className="w-4 h-4" />
+                          {locale === 'nl' ? 'Nieuwe analyse' : 'New analysis'}
+                        </a>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="rounded-xl p-8 text-center" style={{ background: 'linear-gradient(135deg, #EDE9FE, #F5F3FF)', border: '1px solid #C4B5FD40' }}>
+                      <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center mx-auto mb-4 shadow-sm">
+                        <Crown className="w-7 h-7 text-blue-500" />
+                      </div>
+                      <h2 className="text-[20px] font-bold text-slate-800 mb-2">GEO Optimalisatie PRO</h2>
+                      <p className="text-[14px] text-slate-500 mb-6 max-w-md mx-auto">{t.geoPromo.activeDesc}</p>
+                      <a href={lp(locale, '/dashboard/geo-analyse')}
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-white text-[14px] font-semibold no-underline hover:opacity-90 transition-opacity"
+                        style={{ background: '#292956' }}>
+                        <Zap className="w-4 h-4" />
+                        {t.geoPromo.activeCta}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* ── Free user: PRO promo ── */
+                <div className="space-y-6">
+                  {/* Video placeholder */}
+                  <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <div className="aspect-video bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center relative">
+                      <div className="text-center">
+                        <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
+                          <Play className="w-8 h-8 text-white/30 ml-1" />
+                        </div>
+                        <p className="text-white/50 text-[14px] font-medium">{locale === 'nl' ? 'Video binnenkort beschikbaar' : 'Video coming soon'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* PRO features card */}
+                  <div className="bg-white rounded-xl border border-slate-200 p-8">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                        <Crown className="w-5 h-5 text-blue-500" />
+                      </div>
+                      <div>
+                        <h2 className="text-[20px] font-bold text-slate-800 m-0">{t.geoPromo.headline}</h2>
+                      </div>
+                    </div>
+                    <p className="text-[14px] text-slate-500 mb-6 leading-relaxed">{t.geoPromo.description}</p>
+
+                    <div className="space-y-3 mb-8">
+                      {t.geoPromo.features.map((feature, i) => (
+                        <div key={i} className="flex items-start gap-3">
+                          <div className="w-6 h-6 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5">
+                            <Check className="w-3.5 h-3.5 text-emerald-500" />
+                          </div>
+                          <span className="text-[14px] text-slate-700">{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <a href={lp(locale, '/pricing')}
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-white text-[14px] font-semibold no-underline hover:opacity-90 transition-opacity"
+                        style={{ background: 'linear-gradient(135deg, #4F46E5, #6366F1)' }}>
+                        <Crown className="w-4 h-4" />
+                        {t.geoPromo.cta}
+                      </a>
+                      <span className="text-[13px] text-slate-400">{t.geoPromo.price}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ════════════ GEO AUDIT (PAGINA SCANNER) ════════════ */}
           {activeTab === 'audit' && (
             <AuditTab locale={locale} activeCompany={activeCompany} userEmail={userEmail} isPro={isPro} />
           )}

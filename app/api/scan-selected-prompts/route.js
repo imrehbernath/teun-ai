@@ -310,13 +310,58 @@ export async function POST(request) {
       .update({ status: 'scanned' })
       .eq('scan_integration_id', integrationId)
 
-    // Slack notification (fire-and-forget)
+    // Slack notification with PRO badge (fire-and-forget)
     if (process.env.SLACK_WEBHOOK_URL) {
+      // Look up user subscription status
+      let userBadge = '🆓 Gratis'
+      try {
+        const { data: integration } = await supabase
+          .from('tool_integrations')
+          .select('user_id')
+          .eq('id', integrationId)
+          .single()
+
+        if (integration?.user_id) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('email, subscription_status')
+            .eq('id', integration.user_id)
+            .single()
+
+          const adminEmails = ['imre@onlinelabs.nl', 'hallo@onlinelabs.nl']
+          if (adminEmails.includes(profile?.email)) {
+            userBadge = '🔧 Admin'
+          } else if (['active', 'canceling'].includes(profile?.subscription_status)) {
+            userBadge = '⭐ PRO'
+          }
+        }
+      } catch (e) {}
+
       fetch(process.env.SLACK_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text: `🎯 Prompt Selection scan: ${companyName} (${website}) — ${prompts.length} prompts → ChatGPT ${chatgptFound}/${prompts.length}, Perplexity ${perplexityFound}/${prompts.length} (${(scanDuration / 1000).toFixed(0)}s)`
+          blocks: [
+            {
+              type: 'header',
+              text: { type: 'plain_text', text: '🎯 GEO Analyse Scan', emoji: true }
+            },
+            {
+              type: 'section',
+              fields: [
+                { type: 'mrkdwn', text: `*Bedrijf:*\n${companyName}` },
+                { type: 'mrkdwn', text: `*Website:*\n${website}` },
+                { type: 'mrkdwn', text: `*Account:*\n${userBadge}` },
+                { type: 'mrkdwn', text: `*Prompts:*\n${prompts.length}` },
+                { type: 'mrkdwn', text: `*ChatGPT:*\n${chatgptFound}/${prompts.length} vermeld` },
+                { type: 'mrkdwn', text: `*Perplexity:*\n${perplexityFound}/${prompts.length} vermeld` },
+              ]
+            },
+            {
+              type: 'context',
+              elements: [{ type: 'mrkdwn', text: `${new Date().toLocaleString('nl-NL')} · GEO Analyse · ${(scanDuration / 1000).toFixed(0)}s` }]
+            }
+          ]
         })
       }).catch(() => {})
     }

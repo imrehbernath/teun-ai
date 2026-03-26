@@ -6,13 +6,14 @@ const translations = {
   nl: {
     title: 'Dashboard',
     subtitle: 'AI-zichtbaarheid op een plek',
-    tabs: { overview: 'Overzicht', prompts: 'Prompts', competitors: 'Concurrenten', audit: 'GEO Optimalisatie' },
-    headers: { overview: 'Dashboard', prompts: 'Prompt Tracker', competitors: 'Concurrenten', audit: 'GEO Optimalisatie DIY' },
+    tabs: { overview: 'Overzicht', prompts: 'Prompts', competitors: 'Concurrenten', geo: 'GEO Optimalisatie' },
+    headers: { overview: 'Dashboard', prompts: 'Prompt Tracker', competitors: 'Concurrenten', geo: 'GEO Optimalisatie', audit: 'GEO Audit' },
     subtitles: {
       overview: 'AI-zichtbaarheid van {company} op een plek',
       prompts: 'Per prompt je positie op ChatGPT en Perplexity',
       competitors: 'Wie wordt vaker genoemd dan jij',
-      audit: 'Optimaliseer je pagina\'s voor AI-zichtbaarheid',
+      geo: 'Laat AI-assistenten jouw bedrijf aanbevelen',
+      audit: 'Scan een pagina op AI-gereedheid',
     },
     stats: {
       visibility: 'Zichtbaarheid',
@@ -76,17 +77,33 @@ const translations = {
     promptsWithMention: '{found}/{total} prompts met vermelding',
     competitivePosition: 'Concurrentiepositie',
     selectCompany: 'Selecteer bedrijf',
+    geoPromo: {
+      headline: 'Weet precies wat AI over je zegt',
+      description: 'GEO Optimalisatie koppelt je Search Console data aan AI-analyses. Je ziet per pagina hoe zichtbaar je bent in ChatGPT, Perplexity en Google AI, en krijgt concrete optimalisatietips.',
+      videoPlaceholder: 'Bekijk hoe het werkt',
+      features: [
+        'Search Console koppeling voor al je pagina\'s',
+        'Per pagina AI-zichtbaarheid en GEO score',
+        'Concrete optimalisatietips per pagina',
+        'Track je voortgang over tijd',
+      ],
+      cta: 'Upgrade naar PRO',
+      price: '\u20AC49 per maand \u00B7 maandelijks opzegbaar',
+      activeDesc: 'Je hebt GEO Optimalisatie PRO. Start een analyse om je pagina\'s te optimaliseren.',
+      activeCta: 'GEO Analyse starten',
+    },
   },
   en: {
     title: 'Dashboard',
     subtitle: 'AI visibility in one place',
-    tabs: { overview: 'Overview', prompts: 'Prompts', competitors: 'Competitors', audit: 'GEO Optimization' },
-    headers: { overview: 'Dashboard', prompts: 'Prompt Tracker', competitors: 'Competitors', audit: 'GEO Optimization DIY' },
+    tabs: { overview: 'Overview', prompts: 'Prompts', competitors: 'Competitors', geo: 'GEO Optimization' },
+    headers: { overview: 'Dashboard', prompts: 'Prompt Tracker', competitors: 'Competitors', geo: 'GEO Optimization', audit: 'GEO Audit' },
     subtitles: {
       overview: 'AI visibility of {company} in one place',
       prompts: 'Your position per prompt on ChatGPT and Perplexity',
       competitors: 'Who gets mentioned more than you',
-      audit: 'Optimize your pages for AI visibility',
+      geo: 'Get AI assistants to recommend your business',
+      audit: 'Scan a page for AI readiness',
     },
     stats: {
       visibility: 'Visibility', avgPosition: 'Avg. position', topCompetitor: 'Top competitor',
@@ -145,6 +162,21 @@ const translations = {
     promptsWithMention: '{found}/{total} prompts with mention',
     competitivePosition: 'Competitive position',
     selectCompany: 'Select company',
+    geoPromo: {
+      headline: 'Know exactly what AI says about you',
+      description: 'GEO Optimization connects your Search Console data to AI analyses. See per page how visible you are in ChatGPT, Perplexity and Google AI, with actionable optimization tips.',
+      videoPlaceholder: 'See how it works',
+      features: [
+        'Search Console integration for all your pages',
+        'Per-page AI visibility and GEO score',
+        'Actionable optimization tips per page',
+        'Track your progress over time',
+      ],
+      cta: 'Upgrade to PRO',
+      price: '\u20AC49/month \u00B7 cancel anytime',
+      activeDesc: 'You have GEO Optimization PRO. Start an analysis to optimize your pages.',
+      activeCta: 'Start GEO Analysis',
+    },
   },
 }
 
