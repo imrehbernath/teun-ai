@@ -382,7 +382,8 @@ function GEOAnalyseContent() {
     // Try to restore session AFTER loading websites
     const savedSession = loadSession()
     const viewResults = searchParams.get('view') === 'results'
-    if (savedSession && savedSession.companyName && savedSession.step > 1 && !viewResults) {
+    const companyParam = searchParams.get('company')
+    if (savedSession && savedSession.companyName && savedSession.step > 1 && !viewResults && !companyParam) {
       // Only restore if session is recent (1 hour) and has meaningful progress
       const sessionAge = Date.now() - savedSession.timestamp
       const isRecent = sessionAge < 60 * 60 * 1000 // 1 hour
@@ -785,18 +786,19 @@ function GEOAnalyseContent() {
       
       setExistingWebsites(websites)
       
-      // Auto-select first website if available
+      // Auto-select website: prefer URL param, then first available
       if (websites.length > 0) {
-        const firstSite = websites[0]
-        setCompanyName(firstSite.name || '')
-        setCompanyWebsite(firstSite.website || '')
-        setCompanyCategory(firstSite.category || '')
-        // Deduplicate prompts
-        const uniquePrompts = [...new Set(firstSite.prompts || [])]
+        const companyParam = searchParams.get('company')
+        const targetSite = companyParam
+          ? websites.find(w => w.name === companyParam) || websites[0]
+          : websites[0]
+        setCompanyName(targetSite.name || '')
+        setCompanyWebsite(targetSite.website || '')
+        setCompanyCategory(targetSite.category || '')
+        const uniquePrompts = [...new Set(targetSite.prompts || [])]
         setExistingPrompts(uniquePrompts)
-        setExistingAiResults(firstSite.aiResults || [])
-        setSelectedExistingWebsite(firstSite)
-        // Initialize unmatched prompts (deduplicated)
+        setExistingAiResults(targetSite.aiResults || [])
+        setSelectedExistingWebsite(targetSite)
         setUnmatchedPrompts(uniquePrompts)
       }
     } catch (error) {

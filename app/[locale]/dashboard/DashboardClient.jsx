@@ -1019,7 +1019,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
 
   useEffect(() => {
     if (activeTab === 'geo' && isPro) loadGeoAnalyseResults()
-  }, [activeTab, isPro, loadGeoAnalyseResults])
+  }, [activeTab, isPro, loadGeoAnalyseResults, selectedCompany])
 
   const totalFound = visibility.found || 0
   const totalPrompts = visibility.totalPrompts || 0
@@ -1093,7 +1093,8 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
               </div>
             </button>
             {showCompanyDropdown && companies.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-[#232350] rounded-lg border border-white/10 py-1 shadow-2xl z-[110] max-h-60 overflow-y-auto">
+              <div data-co-drop className="absolute top-full left-0 right-0 mt-1 bg-[#232350] rounded-lg border border-white/10 py-1 shadow-2xl z-[110] max-h-60 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+                <style>{`[data-co-drop]::-webkit-scrollbar{display:none}`}</style>
                 {companies.map((c, i) => (
                   <div key={i} className="flex items-center group">
                     <button onClick={() => { setSelectedCompany(c.company_name); setShowCompanyDropdown(false); setConfirmDelete(null) }} className={`flex-1 px-4 py-2.5 text-left text-[12px] hover:bg-white/[0.08] transition-colors border-none cursor-pointer ${selectedCompany === c.company_name ? 'text-white bg-white/[0.06]' : 'text-white/60 bg-transparent'}`}>
@@ -2298,13 +2299,13 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                       </div>
                       {/* Actions */}
                       <div className="flex gap-3">
-                        <a href={lp(locale, '/dashboard/geo-analyse?view=results')}
+                        <a href={lp(locale, `/dashboard/geo-analyse?view=results&company=${encodeURIComponent(activeCompany?.name || '')}`)}
                           className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-white text-[14px] font-semibold no-underline hover:opacity-90 transition-opacity"
                           style={{ background: '#292956' }}>
                           <Zap className="w-4 h-4" />
                           {locale === 'nl' ? 'Bekijk werklijst' : 'View worklist'}
                         </a>
-                        <a href={lp(locale, '/dashboard/geo-analyse')}
+                        <a href={lp(locale, `/dashboard/geo-analyse?company=${encodeURIComponent(activeCompany?.name || '')}`)}
                           className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-slate-200 text-slate-700 text-[14px] font-medium no-underline hover:bg-slate-50 transition">
                           <RefreshCw className="w-4 h-4" />
                           {locale === 'nl' ? 'Nieuwe analyse' : 'New analysis'}
@@ -2318,7 +2319,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                       </div>
                       <h2 className="text-[20px] font-bold text-slate-800 mb-2">GEO Optimalisatie PRO</h2>
                       <p className="text-[14px] text-slate-500 mb-6 max-w-md mx-auto">{t.geoPromo.activeDesc}</p>
-                      <a href={lp(locale, '/dashboard/geo-analyse')}
+                      <a href={lp(locale, `/dashboard/geo-analyse?company=${encodeURIComponent(activeCompany?.name || '')}`)}
                         className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-white text-[14px] font-semibold no-underline hover:opacity-90 transition-opacity"
                         style={{ background: '#292956' }}>
                         <Zap className="w-4 h-4" />
