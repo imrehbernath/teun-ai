@@ -3479,14 +3479,14 @@ function GEOAnalyseContent() {
                       const failedCount = totalChecks - passedCount
 
                       return (
-                        <div key={pageUrl} className="bg-white border border-slate-200 rounded-xl overflow-hidden transition-shadow hover:shadow-sm">
+                        <div key={pageUrl} className="bg-white border border-slate-200 rounded-xl overflow-hidden transition-shadow hover:shadow-md">
                           {/* Page Header */}
                           <div
                             onClick={() => setExpandedPage(isExpanded ? null : pageUrl)}
-                            className="flex items-center gap-3 px-5 py-4 cursor-pointer hover:bg-slate-50/50 transition"
+                            className="flex items-center gap-4 px-5 py-4.5 cursor-pointer hover:bg-slate-50/50 transition"
                           >
                             <div className="flex-shrink-0">
-                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black ${
+                              <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-base font-black ${
                                 result.score >= 70 ? 'bg-emerald-50 text-emerald-700' :
                                 result.score >= 40 ? 'bg-amber-50 text-amber-700' :
                                 'bg-red-50 text-red-700'
@@ -3495,46 +3495,46 @@ function GEOAnalyseContent() {
                               </div>
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-slate-800 truncate">
+                              <p className="text-[15px] font-semibold text-slate-800 truncate">
                                 {pageUrl.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '') || '/'}
                               </p>
                               {matchedPrompt && (
-                                <p className="text-xs text-slate-400 truncate mt-0.5">{matchedPrompt}</p>
+                                <p className="text-[12px] text-slate-400 truncate mt-0.5">{matchedPrompt}</p>
                               )}
                             </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className="flex items-center gap-3 flex-shrink-0">
                               {failedCount > 0 && (
-                                <span className="text-xs text-amber-600 font-medium">{failedCount} {locale === 'nl' ? 'verbeterpunten' : 'improvements'}</span>
+                                <span className="text-[13px] text-amber-600 font-medium">{failedCount} {locale === 'nl' ? 'verbeterpunten' : 'improvements'}</span>
                               )}
                               {failedCount === 0 && (
-                                <span className="text-xs text-emerald-600 font-medium flex items-center gap-1">
-                                  <CheckCircle2 className="w-3.5 h-3.5" /> {locale === 'nl' ? 'Goed' : 'Good'}
+                                <span className="text-[13px] text-emerald-600 font-medium flex items-center gap-1">
+                                  <CheckCircle2 className="w-4 h-4" /> {locale === 'nl' ? 'Goed' : 'Good'}
                                 </span>
                               )}
                               {isExpanded
-                                ? <ChevronUp className="w-4 h-4 text-slate-400" />
-                                : <ChevronDown className="w-4 h-4 text-slate-400" />
+                                ? <ChevronUp className="w-5 h-5 text-slate-400" />
+                                : <ChevronDown className="w-5 h-5 text-slate-400" />
                               }
                             </div>
                           </div>
 
                           {/* Expanded: Custom AI Advice + Details */}
                           {isExpanded && (
-                            <div className="border-t border-slate-100 px-5 py-5 space-y-4">
+                            <div className="border-t border-slate-100 px-6 py-6 space-y-5">
 
                               {/* Score breakdown per category */}
                               {result.scores && Object.keys(result.scores).length > 0 && (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                                   {Object.entries(result.scores).map(([catKey, catScore]) => {
                                     const catLabel = GEO_CHECKLIST[catKey]?.label || catKey
                                     const pct = typeof catScore === 'object' ? (catScore.percentage || 0) : (catScore || 0)
                                     return (
-                                      <div key={catKey} className="bg-slate-50 rounded-lg p-2.5">
-                                        <div className="flex items-center justify-between mb-1">
-                                          <span className="text-[10px] font-medium text-slate-500 truncate">{catLabel}</span>
-                                          <span className="text-xs font-bold" style={{ color: pct >= 70 ? '#059669' : pct >= 40 ? '#f59e0b' : '#ef4444' }}>{pct}%</span>
+                                      <div key={catKey} className="bg-slate-50 rounded-lg p-3">
+                                        <div className="flex items-center justify-between mb-1.5">
+                                          <span className="text-[11px] font-semibold text-slate-600">{catLabel}</span>
+                                          <span className="text-sm font-bold" style={{ color: pct >= 70 ? '#059669' : pct >= 40 ? '#f59e0b' : '#ef4444' }}>{pct}%</span>
                                         </div>
-                                        <div className="h-1 bg-slate-200 rounded-full overflow-hidden">
+                                        <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
                                           <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: pct >= 70 ? '#059669' : pct >= 40 ? '#f59e0b' : '#ef4444' }} />
                                         </div>
                                       </div>
@@ -3545,35 +3545,39 @@ function GEOAnalyseContent() {
 
                               {/* ══ CUSTOM AI ADVICE ══ */}
                               {(result.customAdvice || []).length > 0 && (
-                                <div className="space-y-2.5">
-                                  <p className="text-xs font-bold text-[#292956] uppercase tracking-wide flex items-center gap-1.5">
-                                    <Sparkles className="w-3.5 h-3.5" />
+                                <div className="space-y-3">
+                                  <p className="text-sm font-bold text-[#292956] uppercase tracking-wide flex items-center gap-2">
+                                    <Sparkles className="w-4 h-4" />
                                     {locale === 'nl' ? 'Op maat advies voor deze pagina' : 'Custom advice for this page'}
                                   </p>
                                   {result.customAdvice.map((advice, ai) => {
                                     const catIcons = { eeat: '🏆', content: '📝', technical: '⚙️', structured_data: '🔗', geo: '🎯' }
                                     const pc = {
-                                      critical: { border: '#dc2626', badge: 'bg-red-100 text-red-700', label: locale === 'nl' ? 'kritiek' : 'critical' },
-                                      high: { border: '#ef4444', badge: 'bg-red-50 text-red-600', label: locale === 'nl' ? 'hoog' : 'high' },
-                                      medium: { border: '#f59e0b', badge: 'bg-amber-50 text-amber-600', label: locale === 'nl' ? 'middel' : 'medium' },
-                                      low: { border: '#94a3b8', badge: 'bg-slate-100 text-slate-500', label: locale === 'nl' ? 'laag' : 'low' },
-                                    }[advice.priority] || { border: '#f59e0b', badge: 'bg-amber-50 text-amber-600', label: 'medium' }
+                                      critical: { border: '#dc2626', bg: 'bg-red-50/50', badge: 'bg-red-100 text-red-700', label: locale === 'nl' ? 'KRITIEK' : 'CRITICAL' },
+                                      high: { border: '#ef4444', bg: 'bg-red-50/30', badge: 'bg-red-50 text-red-600', label: locale === 'nl' ? 'HOOG' : 'HIGH' },
+                                      medium: { border: '#f59e0b', bg: 'bg-amber-50/30', badge: 'bg-amber-50 text-amber-600', label: locale === 'nl' ? 'MIDDEL' : 'MEDIUM' },
+                                      low: { border: '#94a3b8', bg: '', badge: 'bg-slate-100 text-slate-500', label: locale === 'nl' ? 'LAAG' : 'LOW' },
+                                    }[advice.priority] || { border: '#f59e0b', bg: '', badge: 'bg-amber-50 text-amber-600', label: 'MEDIUM' }
 
                                     return (
-                                      <div key={ai} className="rounded-lg border border-slate-200 px-4 py-3.5" style={{ borderLeft: `4px solid ${pc.border}` }}>
-                                        <div className="flex items-center gap-2 mb-2">
-                                          <span className="text-base flex-shrink-0">{catIcons[advice.category] || '💡'}</span>
-                                          <span className="text-[13px] font-bold text-slate-900 flex-1">{advice.title}</span>
-                                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${pc.badge}`}>{pc.label}</span>
+                                      <div key={ai} className={`rounded-xl border border-slate-200 px-5 py-4 ${pc.bg}`} style={{ borderLeft: `4px solid ${pc.border}` }}>
+                                        <div className="flex items-start gap-2.5 mb-2.5">
+                                          <span className="text-lg flex-shrink-0 mt-0.5">{catIcons[advice.category] || '💡'}</span>
+                                          <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between gap-2">
+                                              <span className="text-[15px] font-bold text-slate-900">{advice.title}</span>
+                                              <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold tracking-wider ${pc.badge}`}>{pc.label}</span>
+                                            </div>
+                                          </div>
                                         </div>
-                                        <p className="text-[12px] text-slate-700 ml-7 leading-relaxed">{advice.action || advice.detail}</p>
+                                        <p className="text-[13px] text-slate-700 ml-8 leading-relaxed">{advice.action || advice.detail}</p>
                                         {advice.example && (
-                                          <div className="ml-7 mt-2 bg-slate-50 rounded-md p-2.5 border border-slate-100 max-h-24 overflow-y-auto">
-                                            <pre className="text-[10px] text-slate-600 whitespace-pre-wrap font-mono leading-relaxed m-0">{advice.example}</pre>
+                                          <div className="ml-8 mt-2.5 bg-slate-50 rounded-lg p-3 border border-slate-100 max-h-32 overflow-y-auto">
+                                            <pre className="text-[11px] text-slate-600 whitespace-pre-wrap font-mono leading-relaxed m-0">{advice.example}</pre>
                                           </div>
                                         )}
                                         {advice.why && (
-                                          <p className="text-[11px] text-slate-400 ml-7 mt-1.5 italic">{advice.why}</p>
+                                          <p className="text-[12px] text-slate-400 ml-8 mt-2 italic leading-relaxed">{advice.why}</p>
                                         )}
                                       </div>
                                     )
