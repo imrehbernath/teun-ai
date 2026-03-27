@@ -145,141 +145,419 @@ function VisibilityChart({ data, t }) {
   )
 }
 
-function GoogleScanBanner({ t, locale, prompts, activeCompany, onScanComplete, googleAiMode, googleAiOverview, isPro }) {
-  const [scanningMode, setScanningMode] = useState(false)
-  const [scanningOverview, setScanningOverview] = useState(false)
+// ============================================================================
+// GoogleAISection - replaces GoogleScanBanner (lines 148-289 in DashboardClient.jsx)
+//
+// INSTALLATION:
+// 1. Delete the old GoogleScanBanner function (lines 148-289)
+// 2. Paste this component in its place
+// 3. The component accepts the same props, no other changes needed
+// 4. Add ArrowRight to the lucide-react import if not already there
+// ============================================================================
+
+function GoogleAISection({ t, locale, prompts, activeCompany, onScanComplete, googleAiMode, googleAiOverview, isPro }) {
+  const [scanning, setScanning] = useState(false)
+  const [phase, setPhase] = useState('')
+  const [progress, setProgress] = useState({ current: 0, total: 0 })
+  const [currentPrompt, setCurrentPrompt] = useState('')
+  const [liveResults, setLiveResults] = useState({ aiMode: [], aiOverview: [] })
+  const [transformedMap, setTransformedMap] = useState({})
+  const [error, setError] = useState(null)
 
   const hasData = (googleAiMode?.total || 0) > 0 || (googleAiOverview?.total || 0) > 0
   const promptTexts = prompts.map(p => p.text).filter(Boolean)
   const company = activeCompany?.name
   const website = activeCompany?.website || ''
 
-  // Daily limit: check if scanned today (Pro users bypass)
+  // Daily limit
   const today = new Date().toDateString()
   const modeScannedToday = !isPro && googleAiMode?.lastScan && new Date(googleAiMode.lastScan).toDateString() === today
   const overviewScannedToday = !isPro && googleAiOverview?.lastScan && new Date(googleAiOverview.lastScan).toDateString() === today
   const allScannedToday = modeScannedToday && overviewScannedToday
 
-  const startGoogleScan = async () => {
-    if (!company || promptTexts.length === 0) return
-    setScanningMode(true)
-    try {
-      const res = await fetch('/api/scan-google-ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companyName: company, website, prompts: promptTexts })
-      })
-      const data = await res.json()
-      console.log('Google AI Mode result:', res.status, data)
-      if (data.success) onScanComplete?.()
-      else alert(`AI Mode: ${data.error || 'Scan mislukt'}`)
-    } catch (err) {
-      console.error('Google AI Mode error:', err)
-      alert('AI Mode scan mislukt')
+  // Overall progress percentage
+  const getOverallProgress = () => {
+    if (!scanning) return 0
+    if (phase === 'transform') return 3
+    if (phase === 'ai-mode') {
+      return 5 + (progress.total > 0 ? (progress.current / progress.total) * 45 : 0)
     }
-    setScanningMode(false)
-  }
-
-  const startGoogleOverviewScan = async () => {
-    if (!company || promptTexts.length === 0) return
-    setScanningOverview(true)
-    try {
-      const res = await fetch('/api/scan-google-ai-overview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companyName: company, website, prompts: promptTexts })
-      })
-      const data = await res.json()
-      console.log('AI Overview result:', res.status, data)
-      if (data.success) onScanComplete?.()
-      else alert(`AI Overview: ${data.error || 'Scan mislukt'}`)
-    } catch (err) {
-      console.error('AI Overview error:', err)
-      alert('AI Overview scan mislukt')
+    if (phase === 'ai-overview') {
+      return 50 + (progress.total > 0 ? (progress.current / progress.total) * 45 : 0)
     }
-    setScanningOverview(false)
+    if (phase === 'saving') return 97
+    return 0
   }
 
-  const startBothScans = async () => {
-    if (!company || promptTexts.length === 0) return
-    setScanningMode(true)
-    setScanningOverview(true)
-
-    const modePromise = fetch('/api/scan-google-ai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ companyName: company, website, prompts: promptTexts })
-    }).then(async res => {
-      const data = await res.json()
-      console.log('Google AI Mode result:', res.status, data)
-      setScanningMode(false)
-      return data
-    }).catch(err => {
-      console.error('Google AI Mode error:', err)
-      setScanningMode(false)
-      return { success: false }
-    })
-
-    const overviewPromise = fetch('/api/scan-google-ai-overview', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ companyName: company, website, prompts: promptTexts })
-    }).then(async res => {
-      const data = await res.json()
-      console.log('AI Overview result:', res.status, data)
-      setScanningOverview(false)
-      return data
-    }).catch(err => {
-      console.error('AI Overview error:', err)
-      setScanningOverview(false)
-      return { success: false }
-    })
-
-    await Promise.all([modePromise, overviewPromise])
-    onScanComplete?.()
+  const getPhaseLabel = () => {
+    const nl = locale === 'nl'
+    if (phase === 'transform') return nl ? 'Prompts voorbereiden...' : 'Preparing prompts...'
+    if (phase === 'ai-mode') return `Google AI Mode: ${progress.current}/${progress.total}`
+    if (phase === 'ai-overview') return `AI Overviews: ${progress.current}/${progress.total}`
+    if (phase === 'saving') return nl ? 'Resultaten opslaan...' : 'Saving results...'
+    return ''
   }
+
+  const startScan = async () => {
+    if (!company || promptTexts.length === 0 || scanning) return
+    setScanning(true)
+    setError(null)
+    setLiveResults({ aiMode: [], aiOverview: [] })
+    setTransformedMap({})
+
+    try {
+      const total = promptTexts.length
+
+      // ── Phase 1: Transform prompts for AI Overviews ──
+      setPhase('transform')
+      setProgress({ current: 0, total: 1 })
+
+      let transformedQueries = []
+      try {
+        const transformRes = await fetch('/api/google-ai-transform', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompts: promptTexts })
+        })
+        const transformData = await transformRes.json()
+        if (transformData.queries) {
+          transformedQueries = transformData.queries
+          // Store mapping for display
+          const map = {}
+          transformedQueries.forEach(q => { map[q.originalPrompt] = q.searchQuery })
+          setTransformedMap(map)
+        }
+      } catch (e) {
+        console.error('Transform error:', e)
+      }
+
+      // ── Phase 2: Google AI Mode (sequential, 1 prompt at a time) ──
+      setPhase('ai-mode')
+      const aiModeResults = []
+
+      for (let i = 0; i < total; i++) {
+        setProgress({ current: i, total })
+        setCurrentPrompt(promptTexts[i])
+
+        try {
+          const res = await fetch('/api/scan-google-ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              companyName: company,
+              website,
+              prompts: [promptTexts[i]],
+              skipSave: true
+            })
+          })
+          const data = await res.json()
+          const result = data.results?.[0] || {
+            query: promptTexts[i],
+            hasAiResponse: false,
+            companyMentioned: false,
+            mentionCount: 0,
+            aiResponse: '',
+            sources: [],
+            competitors: []
+          }
+          aiModeResults.push(result)
+          setLiveResults(prev => ({ ...prev, aiMode: [...prev.aiMode, result] }))
+        } catch (e) {
+          console.error(`AI Mode error prompt ${i}:`, e)
+          aiModeResults.push({
+            query: promptTexts[i],
+            hasAiResponse: false,
+            companyMentioned: false,
+            mentionCount: 0
+          })
+        }
+        setProgress({ current: i + 1, total })
+      }
+
+      // ── Phase 3: AI Overviews (sequential, with pre-computed transforms) ──
+      setPhase('ai-overview')
+      const aiOverviewResults = []
+
+      for (let i = 0; i < total; i++) {
+        setProgress({ current: i, total })
+        const prompt = promptTexts[i]
+        const transformed = transformedQueries[i]
+        setCurrentPrompt(transformed?.searchQuery || prompt)
+
+        try {
+          const body = {
+            companyName: company,
+            website,
+            prompts: [prompt],
+            skipSave: true
+          }
+          // Pass pre-computed transform to skip Claude call
+          if (transformed) {
+            body.transformedQueries = [transformed]
+          }
+
+          const res = await fetch('/api/scan-google-ai-overview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          })
+          const data = await res.json()
+          const result = data.results?.[0] || {
+            query: prompt,
+            hasAiOverview: false,
+            companyMentioned: false,
+            mentionCount: 0,
+            aiOverviewText: '',
+            sources: []
+          }
+          aiOverviewResults.push(result)
+          setLiveResults(prev => ({ ...prev, aiOverview: [...prev.aiOverview, result] }))
+        } catch (e) {
+          console.error(`AI Overview error prompt ${i}:`, e)
+          aiOverviewResults.push({
+            query: prompt,
+            hasAiOverview: false,
+            companyMentioned: false,
+            mentionCount: 0
+          })
+        }
+        setProgress({ current: i + 1, total })
+      }
+
+      // ── Phase 4: Save combined results ──
+      setPhase('saving')
+      try {
+        await fetch('/api/google-ai-save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            companyName: company,
+            website,
+            prompts: promptTexts,
+            aiModeResults,
+            aiOverviewResults
+          })
+        })
+      } catch (e) {
+        console.error('Save error:', e)
+      }
+
+      // Done - refresh dashboard data
+      onScanComplete?.()
+
+    } catch (err) {
+      console.error('Google AI scan error:', err)
+      setError(err.message)
+    }
+
+    setScanning(false)
+    setPhase('')
+    setCurrentPrompt('')
+  }
+
+  const overallPct = getOverallProgress()
+  const modeFound = liveResults.aiMode.filter(r => r.companyMentioned).length
+  const modeHasResponse = liveResults.aiMode.filter(r => r.hasAiResponse).length
+  const overviewFound = liveResults.aiOverview.filter(r => r.companyMentioned).length
+  const overviewHasResponse = liveResults.aiOverview.filter(r => r.hasAiOverview || r.hasAiResponse).length
 
   return (
-    <div className={`rounded-xl border p-5 mb-6 ${hasData ? 'bg-white border-slate-200' : 'bg-gradient-to-r from-indigo-50 via-violet-50 to-purple-50 border-indigo-200/60'}`}>
+    <div className={`rounded-xl border p-5 mb-6 transition-all ${
+      scanning
+        ? 'bg-gradient-to-r from-slate-50 via-blue-50/30 to-slate-50 border-blue-200/60'
+        : hasData
+          ? 'bg-white border-slate-200'
+          : 'bg-gradient-to-r from-indigo-50 via-violet-50 to-purple-50 border-indigo-200/60'
+    }`}>
       <div className="flex items-start gap-4">
-        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${hasData ? 'bg-slate-100' : 'bg-white/80 border border-indigo-100'}`}>
-          <Globe className={`w-5 h-5 ${hasData ? 'text-slate-500' : 'text-indigo-500'}`} />
+        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+          scanning ? 'bg-blue-100' : hasData ? 'bg-slate-100' : 'bg-white/80 border border-indigo-100'
+        }`}>
+          <Globe className={`w-5 h-5 ${scanning ? 'text-blue-600' : hasData ? 'text-slate-500' : 'text-indigo-500'}`} />
         </div>
         <div className="flex-1 min-w-0">
+          {/* Header */}
           <div className="text-[14px] font-semibold text-slate-800 mb-0.5">
-            {hasData ? 'Google AI' : t.googleScan.title}
+            {hasData || scanning ? 'Google AI' : (t.googleScan?.title || 'Google AI')}
           </div>
-          {!hasData && (
-            <div className="text-[12px] text-slate-500 mb-4">{t.googleScan.desc}</div>
-          )}
-          {hasData && (
+
+          {/* Summary when has data and not scanning */}
+          {hasData && !scanning && (
             <div className="text-[12px] text-slate-400 mb-3">
               AI Mode: {googleAiMode?.found || 0}/{googleAiMode?.total || 0} • AI Overviews: {googleAiOverview?.found || 0}/{googleAiOverview?.total || 0}
             </div>
           )}
-          <div className="flex gap-2 flex-wrap">
-            <button onClick={startBothScans} disabled={scanningMode || scanningOverview || allScannedToday}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white text-[12px] font-semibold border-none cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ background: '#292956' }}>
-              {(scanningMode && scanningOverview) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
-              {t.googleScan.scanBoth}
-            </button>
-            <button onClick={startGoogleScan} disabled={scanningMode || modeScannedToday}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white text-[12px] font-semibold border-none cursor-pointer hover:bg-blue-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-blue-500">
-              {scanningMode ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-              Google AI Mode
-            </button>
-            <button onClick={startGoogleOverviewScan} disabled={scanningOverview || overviewScannedToday}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white text-[12px] font-semibold border-none cursor-pointer hover:bg-emerald-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-emerald-500">
-              {scanningOverview ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
-              AI Overviews
-            </button>
-          </div>
-          {(modeScannedToday || overviewScannedToday) && (
+
+          {/* Description when no data */}
+          {!hasData && !scanning && (
+            <div className="text-[12px] text-slate-500 mb-4">
+              {t.googleScan?.desc || (locale === 'nl'
+                ? 'Scan je prompts op Google AI Mode en AI Overviews. Kijk of Google je noemt in AI-antwoorden.'
+                : 'Scan your prompts on Google AI Mode and AI Overviews. See if Google mentions you in AI responses.')}
+            </div>
+          )}
+
+          {/* ── Scanning: Progress UI ── */}
+          {scanning && (
+            <div className="mt-2 mb-3">
+              {/* Progress bar */}
+              <div className="w-full bg-slate-200/60 rounded-full h-2 mb-2.5 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500 ease-out"
+                  style={{
+                    width: `${Math.max(2, overallPct)}%`,
+                    background: 'linear-gradient(90deg, #3b82f6, #6366f1)'
+                  }}
+                />
+              </div>
+
+              {/* Phase + percentage */}
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[12px] font-medium text-slate-700">
+                  {getPhaseLabel()}
+                </div>
+                <div className="text-[11px] font-semibold text-blue-600">
+                  {Math.round(overallPct)}%
+                </div>
+              </div>
+
+              {/* Current prompt being scanned */}
+              {currentPrompt && (phase === 'ai-mode' || phase === 'ai-overview') && (
+                <div className="text-[11px] text-slate-400 truncate mb-3">
+                  {phase === 'ai-overview' && transformedMap[promptTexts[progress.current - 1]] ? (
+                    <>
+                      <span className="text-slate-500">{promptTexts[progress.current - 1]?.slice(0, 40)}</span>
+                      <span className="mx-1.5 text-slate-300">→</span>
+                      <span className="text-indigo-500 font-medium">{currentPrompt.slice(0, 40)}</span>
+                    </>
+                  ) : (
+                    currentPrompt.slice(0, 80)
+                  )}
+                </div>
+              )}
+
+              {/* Live results dots */}
+              <div className="flex gap-3 mt-2">
+                {/* AI Mode dots */}
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: '#ea4335' }} />
+                  <span className="text-[10px] text-slate-400 mr-1">AI Mode</span>
+                  <div className="flex gap-0.5">
+                    {promptTexts.map((_, i) => {
+                      const result = liveResults.aiMode[i]
+                      return (
+                        <div
+                          key={`m${i}`}
+                          className={`w-2.5 h-2.5 rounded-sm transition-all duration-300 ${
+                            !result
+                              ? 'bg-slate-200'
+                              : result.companyMentioned
+                                ? 'bg-emerald-400'
+                                : result.hasAiResponse
+                                  ? 'bg-amber-300'
+                                  : 'bg-slate-300'
+                          }`}
+                          title={result
+                            ? `${promptTexts[i].slice(0, 30)}: ${result.companyMentioned ? '✓' : result.hasAiResponse ? 'AI response, not mentioned' : 'No AI response'}`
+                            : promptTexts[i].slice(0, 30)
+                          }
+                        />
+                      )
+                    })}
+                  </div>
+                </div>
+                {/* AI Overview dots */}
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: '#fbbc04' }} />
+                  <span className="text-[10px] text-slate-400 mr-1">Overviews</span>
+                  <div className="flex gap-0.5">
+                    {promptTexts.map((_, i) => {
+                      const result = liveResults.aiOverview[i]
+                      return (
+                        <div
+                          key={`o${i}`}
+                          className={`w-2.5 h-2.5 rounded-sm transition-all duration-300 ${
+                            !result
+                              ? 'bg-slate-200'
+                              : result.companyMentioned
+                                ? 'bg-emerald-400'
+                                : (result.hasAiOverview || result.hasAiResponse)
+                                  ? 'bg-amber-300'
+                                  : 'bg-slate-300'
+                          }`}
+                          title={result
+                            ? `${promptTexts[i].slice(0, 30)}: ${result.companyMentioned ? '✓' : (result.hasAiOverview || result.hasAiResponse) ? 'AI response, not mentioned' : 'No AI response'}`
+                            : promptTexts[i].slice(0, 30)
+                          }
+                        />
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Live score summary (appears during AI Overview phase) */}
+              {phase === 'ai-overview' && liveResults.aiMode.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-slate-200/60 grid grid-cols-2 gap-3">
+                  <div className="bg-white rounded-lg p-2.5 border border-slate-100">
+                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">AI Mode</div>
+                    <div className="text-[16px] font-bold text-slate-800">
+                      {modeFound}<span className="text-[12px] text-slate-400 font-normal">/{liveResults.aiMode.length}</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      {locale === 'nl' ? 'genoemd' : 'mentioned'} • {modeHasResponse} {locale === 'nl' ? 'met AI antwoord' : 'with AI response'}
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-2.5 border border-slate-100">
+                    <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">AI Overviews</div>
+                    <div className="text-[16px] font-bold text-slate-800">
+                      {overviewFound}<span className="text-[12px] text-slate-400 font-normal">/{liveResults.aiOverview.length}</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      {locale === 'nl' ? 'genoemd' : 'mentioned'} • {overviewHasResponse} {locale === 'nl' ? 'met AI antwoord' : 'with AI response'}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Scan button ── */}
+          {!scanning && (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={startScan}
+                disabled={allScannedToday || promptTexts.length === 0}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white text-[12px] font-semibold border-none cursor-pointer hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                style={{ background: 'linear-gradient(135deg, #292956, #3b3b8a)' }}
+              >
+                <Play className="w-3.5 h-3.5" />
+                {hasData
+                  ? (locale === 'nl' ? 'Opnieuw scannen' : 'Rescan')
+                  : (t.googleScan?.scanBoth || (locale === 'nl' ? 'Scan Google AI' : 'Scan Google AI'))
+                }
+              </button>
+              {hasData && (
+                <span className="text-[11px] text-slate-400">
+                  AI Mode + AI Overviews
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Daily limit notice */}
+          {(modeScannedToday || overviewScannedToday) && !scanning && (
             <div className="text-[11px] text-slate-400 mt-2.5">
               {locale === 'nl'
                 ? '✓ Vandaag al gescand. Kom morgen terug voor een nieuwe scan (BETA).'
                 : '✓ Already scanned today. Come back tomorrow for a new scan (BETA).'}
+            </div>
+          )}
+
+          {/* Error */}
+          {error && (
+            <div className="text-[11px] text-red-500 mt-2">
+              {locale === 'nl' ? 'Er ging iets mis: ' : 'Something went wrong: '}{error}
             </div>
           )}
         </div>
@@ -1254,11 +1532,14 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
 
             // Case 2: No data at all
             if (totalPrompts === 0 && !hasPendingIntegration) {
-              const unselectedDiscovery = promptDiscovery.filter(d =>
-                (d.status === 'completed' || (d.status === 'selected' && !d.scanIntegrationId))
-              )
-              if (unselectedDiscovery.length > 0) {
-                return <PromptSelectionFlow discovery={unselectedDiscovery} locale={locale} onScanTriggered={() => { fetchData() }} />
+              // Only show PromptSelectionFlow if there are companies to link to
+              if (companies.length > 0) {
+                const unselectedDiscovery = promptDiscovery.filter(d =>
+                  (d.status === 'completed' || (d.status === 'selected' && !d.scanIntegrationId))
+                )
+                if (unselectedDiscovery.length > 0) {
+                  return <PromptSelectionFlow discovery={unselectedDiscovery} locale={locale} onScanTriggered={() => { fetchData() }} />
+                }
               }
               return <EmptyState t={t} locale={locale} />
             }
@@ -1288,7 +1569,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
               </div>
 
               {/* Google AI scan CTA — show when no Google AI data yet */}
-              <GoogleScanBanner t={t} locale={locale} prompts={prompts} activeCompany={activeCompany} onScanComplete={fetchData} googleAiMode={googleAiMode} googleAiOverview={googleAiOverview} isPro={isPro} />
+             <GoogleAISection t={t} locale={locale} prompts={prompts} activeCompany={activeCompany} onScanComplete={fetchData} googleAiMode={googleAiMode} googleAiOverview={googleAiOverview} isPro={isPro} />
 
               {/* Chrome Extension CTA — show when no extension data and extension not installed */}
               {!extensionInstalled && !data?.hasExtensionData && data && totalPrompts > 0 && (

@@ -7,16 +7,69 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
 })
 
-// Use Claude to transform commercial prompts into clean informational Google search queries
-// AI Overviews appear mainly for informational queries (88-91%), rarely for commercial/local ones
-async function transformPromptsToSearchQueries(prompts) {
-  try {
-    const promptList = prompts.map((p, i) => `${i + 1}. ${p}`).join('\n')
-    
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      system: `Je bent een expert in Google zoekopdrachten. Je taak: zet commerciële AI-prompts om naar korte, natuurlijke Nederlandse Google-zoekopdrachten die AI Overviews triggeren.
+// Detect language from prompt texts
+function detectLanguageFromPrompts(prompts) {
+  const text = prompts.join(' ').toLowerCase()
+
+  const dutchWords = [
+    'welke', 'beste', 'waar', 'hoe', 'wat', 'kun', 'kunt', 'voor', 'een', 'het', 'van', 'bij',
+    'goede', 'ervaring', 'ervaringen', 'kosten', 'advies', 'bedrijf', 'bedrijven', 'noem', 'geef',
+    'zijn', 'heeft', 'moet', 'zoek', 'vind', 'aanbevelen', 'vergelijk', 'verschil', 'doen',
+    'geven', 'hebben', 'worden', 'deze', 'die', 'ook', 'niet', 'maar', 'met', 'naar',
+    'over', 'tussen', 'zonder', 'tegen', 'onder', 'boven', 'binnen', 'buiten'
+  ]
+
+  const englishWords = [
+    'which', 'best', 'where', 'how', 'what', 'can', 'for', 'the', 'with',
+    'good', 'experience', 'experiences', 'cost', 'advice', 'company', 'companies',
+    'recommend', 'find', 'compare', 'difference', 'should', 'does', 'review', 'reviews',
+    'that', 'this', 'from', 'have', 'been', 'will', 'would', 'could', 'about',
+    'between', 'without', 'against', 'need', 'looking', 'want', 'services'
+  ]
+
+  let dutchScore = 0
+  let englishScore = 0
+
+  dutchWords.forEach(w => {
+    const regex = new RegExp(`\\b${w}\\b`, 'g')
+    const matches = text.match(regex)
+    if (matches) dutchScore += matches.length
+  })
+
+  englishWords.forEach(w => {
+    const regex = new RegExp(`\\b${w}\\b`, 'g')
+    const matches = text.match(regex)
+    if (matches) englishScore += matches.length
+  })
+
+  console.log(`Language detection: Dutch=${dutchScore}, English=${englishScore}`)
+  return englishScore > dutchScore * 1.3 ? 'en' : 'nl'
+}
+
+// Claude system prompt — bilingual based on detected language
+function getTransformSystemPrompt(lang) {
+  if (lang === 'en') {
+    return `You are an expert in Google search queries. Your task: convert commercial AI prompts into short, natural English Google search queries that trigger AI Overviews.
+
+RULES:
+- Each query should be 2-6 words, maximum 8 words
+- Use natural English as a human would google
+- NO company names, city names, or "best/top/good" words
+- Focus on the TOPIC, not finding a provider
+- Informational queries: "how much does ... cost", "how does ... work", "... reviews", "... pros and cons"
+- If the prompt is already informational, keep it short and clean
+
+EXAMPLES:
+- "Which plastic surgeons in New York do facelifts" → "facelift cost and recovery"
+- "Can you recommend specialists for eyelid surgery at reasonable cost" → "eyelid surgery cost"
+- "Best SEO agency London" → "outsource SEO costs"
+- "Which lawyers are good at employment law" → "employment lawyer when needed"
+- "Give tips for reliable roofers with good reviews" → "choosing a roofer what to look for"
+
+Reply ONLY with a JSON array of strings, one per prompt, in the same order. No explanation.`
+  }
+
+  return `Je bent een expert in Google zoekopdrachten. Je taak: zet commerciële AI-prompts om naar korte, natuurlijke Nederlandse Google-zoekopdrachten die AI Overviews triggeren.
 
 REGELS:
 - Elke zoekopdracht is 2-6 woorden, maximaal 8 woorden
@@ -33,15 +86,27 @@ VOORBEELDEN:
 - "Welke advocaten zijn goed in arbeidsrecht" → "arbeidsrecht advocaat wanneer nodig"
 - "Geef tips voor betrouwbare dakdekkers met goede reviews" → "dakdekker kiezen waar op letten"
 
-Antwoord ALLEEN met een JSON array van strings, één per prompt, in dezelfde volgorde. Geen uitleg.`,
+Antwoord ALLEEN met een JSON array van strings, één per prompt, in dezelfde volgorde. Geen uitleg.`
+}
+
+// Use Claude to transform prompts — now with language detection
+async function transformPromptsToSearchQueries(prompts, lang = 'nl') {
+  try {
+    const promptList = prompts.map((p, i) => `${i + 1}. ${p}`).join('\n')
+    
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1024,
+      system: getTransformSystemPrompt(lang),
       messages: [{
         role: 'user',
-        content: `Zet deze ${prompts.length} commerciële prompts om naar korte Google-zoekopdrachten:\n\n${promptList}`
+        content: lang === 'en'
+          ? `Convert these ${prompts.length} commercial prompts into short Google search queries:\n\n${promptList}`
+          : `Zet deze ${prompts.length} commerciële prompts om naar korte Google-zoekopdrachten:\n\n${promptList}`
       }]
     })
 
     const text = response.content[0].text.trim()
-    // Parse JSON array - handle potential markdown code blocks
     const cleaned = text.replace(/```json\s*|\s*```/g, '').trim()
     const queries = JSON.parse(cleaned)
     
@@ -53,7 +118,6 @@ Antwoord ALLEEN met een JSON array van strings, één per prompt, in dezelfde vo
       }))
     }
     
-    // Fallback if array length mismatch
     console.warn('Claude returned wrong number of queries, using fallback')
     return prompts.map(p => fallbackTransform(p))
   } catch (error) {
@@ -62,20 +126,18 @@ Antwoord ALLEEN met een JSON array van strings, één per prompt, in dezelfde vo
   }
 }
 
-// Simple fallback if Claude fails - just extract key nouns
+// Simple fallback if Claude fails
 function fallbackTransform(prompt) {
   let q = prompt.trim().replace(/[?!.]+$/, '')
   
-  // Strip common Dutch commercial prefixes
   q = q
-    .replace(/^(?:kun je|welke|geef|noem|heb je|ken je|wat zijn de|lijst)\s+(?:mij |me |een aantal |de |het )?(?:beste|top|goede|betrouwbare|ervaren|gerenommeerde)?\s*/i, '')
-    .replace(/(?:specialisten|klinieken|artsen|chirurgen|aanbieders|experts|bedrijven|bureaus|kantoren|advocaten|adviseurs)\s+(?:in \w+ )?(?:noemen|aanbevelen|aanraden|die|voor|met|waar|hebben|bieden)\s*/i, '')
-    .replace(/\s+(?:in|te)\s+(?:amsterdam|rotterdam|den haag|utrecht|eindhoven|nederland)\b/gi, '')
-    .replace(/\s+(?:met|voor|tegen)\s+(?:goede|beste|redelijke|uitstekende|bewezen).*$/i, '')
+    .replace(/^(?:kun je|welke|geef|noem|heb je|ken je|wat zijn de|lijst|can you|which|give|list|what are the)\s+(?:mij |me |een aantal |de |het |some |the )?(?:beste|top|goede|betrouwbare|ervaren|gerenommeerde|best|top|good|reliable|experienced)?\s*/i, '')
+    .replace(/(?:specialisten|klinieken|artsen|chirurgen|aanbieders|experts|bedrijven|bureaus|kantoren|advocaten|adviseurs|specialists|clinics|doctors|providers|experts|companies|agencies|offices|lawyers|advisors)\s+(?:in \w+ )?(?:noemen|aanbevelen|aanraden|die|voor|met|waar|hebben|bieden|recommend|that|for|with|where|have|offer)\s*/i, '')
+    .replace(/\s+(?:in|te|near|around)\s+(?:amsterdam|rotterdam|den haag|utrecht|eindhoven|nederland|london|new york|los angeles)\b/gi, '')
+    .replace(/\s+(?:met|voor|tegen|with|for|against)\s+(?:goede|beste|redelijke|uitstekende|bewezen|good|best|reasonable|excellent|proven).*$/i, '')
     .replace(/\s+/g, ' ')
     .trim()
   
-  // If too short or too long, use truncated original
   if (q.length < 5) q = prompt.split(' ').slice(0, 5).join(' ')
   if (q.length > 60) q = q.substring(0, 60).replace(/\s\w*$/, '')
   
@@ -83,7 +145,7 @@ function fallbackTransform(prompt) {
   return { searchQuery: q, originalPrompt: prompt }
 }
 
-// Recursively extract text from text_blocks (handles nested expandable, lists, etc.)
+// Recursively extract text from text_blocks
 function extractTextFromBlocks(blocks) {
   if (!blocks || !Array.isArray(blocks)) return ''
   let text = ''
@@ -99,7 +161,6 @@ function extractTextFromBlocks(blocks) {
         if (item.text_blocks) text += extractTextFromBlocks(item.text_blocks)
       })
     }
-    // Nested text_blocks (expandable sections)
     if (block.text_blocks) text += extractTextFromBlocks(block.text_blocks)
   })
   return text
@@ -129,10 +190,7 @@ function extractReferences(aiOverview, companyName) {
 
       sources.push({ title, link, snippet, domain, isCompany })
 
-      // Extract COMPANY NAME (not page title) for competitors
       if (!isCompany && (title || domain)) {
-        // Strategy 1: Company name is usually AFTER " - " or " | " in title
-        // e.g. "Ooglidcorrectie kosten - ABC Clinic" → "ABC Clinic"
         let companyFromTitle = ''
         if (title.includes(' - ')) {
           companyFromTitle = title.split(' - ').pop().trim()
@@ -140,15 +198,12 @@ function extractReferences(aiOverview, companyName) {
           companyFromTitle = title.split(' | ').pop().trim()
         }
         
-        // Strategy 2: Clean domain name as fallback
-        // e.g. "www.dutchclinic.com" → "dutchclinic.com"
         let companyFromDomain = domain
           .replace(/^www\./, '')
           .replace(/^https?:\/\//, '')
           .replace(/\/.*$/, '')
           .trim()
         
-        // Pick: title suffix if it looks like a name (short, no colons/questions)
         const nameCandidate = companyFromTitle && 
           companyFromTitle.length > 2 && 
           companyFromTitle.length < 40 &&
@@ -167,14 +222,14 @@ function extractReferences(aiOverview, companyName) {
   return { sources, competitors: [...new Set(competitors)].slice(0, 10) }
 }
 
-// Fetch AI Overview via page_token (two-step flow)
+// Fetch AI Overview via page_token
 async function fetchAiOverviewByToken(pageToken) {
   try {
     const params = new URLSearchParams({
       engine: 'google_ai_overview',
       page_token: pageToken,
       api_key: SERPAPI_KEY,
-      no_cache: 'true'  // Tokens expire quickly, don't use cache
+      no_cache: 'true'
     })
 
     console.log('Fetching AI Overview with page_token...')
@@ -186,7 +241,6 @@ async function fetchAiOverviewByToken(pageToken) {
     }
 
     const data = await response.json()
-
     if (data.error) {
       console.error('AI Overview token error:', data.error)
       return null
@@ -208,7 +262,7 @@ export async function POST(request) {
       )
     }
 
-    const { companyName, website, prompts } = await request.json()
+    const { companyName, website, prompts, skipSave, transformedQueries: preTransformed } = await request.json()
 
     if (!companyName || !prompts || prompts.length === 0) {
       return NextResponse.json(
@@ -229,33 +283,44 @@ export async function POST(request) {
     }
 
     const promptsToScan = prompts.slice(0, 10)
+
+    // Detect language from prompts
+    const lang = detectLanguageFromPrompts(promptsToScan)
+    const gl = lang === 'en' ? 'us' : 'nl'
+    const hl = lang === 'en' ? 'en' : 'nl'
+    console.log(`AI Overview scan: lang=${lang}, gl=${gl}, ${promptsToScan.length} prompts`)
+
     const results = []
 
-    // Batch transform all prompts to search queries using Claude (1 API call)
-    const transformedQueries = await transformPromptsToSearchQueries(promptsToScan)
+    // Use pre-transformed queries if provided, otherwise transform now
+    let transformedQueries
+    if (preTransformed && Array.isArray(preTransformed) && preTransformed.length === promptsToScan.length) {
+      console.log('Using pre-transformed queries from frontend')
+      transformedQueries = preTransformed
+    } else {
+      transformedQueries = await transformPromptsToSearchQueries(promptsToScan, lang)
+    }
 
     for (let i = 0; i < promptsToScan.length; i++) {
       const prompt = promptsToScan[i]
       try {
-        // Add delay between requests
         if (results.length > 0) {
           await new Promise(resolve => setTimeout(resolve, 800))
         }
 
-        // Use pre-computed search query from Claude batch transform
         const { searchQuery, originalPrompt } = transformedQueries[i]
 
-        // Step 1: Regular Google search to check for AI Overview
+        // Google search with dynamic language parameters
         const params = new URLSearchParams({
           engine: 'google',
           q: searchQuery,
           api_key: SERPAPI_KEY,
-          gl: 'nl',
-          hl: 'nl',
+          gl,
+          hl,
           num: 10
         })
 
-        console.log(`Fetching Google search for: "${searchQuery}" (original: "${prompt}")`)
+        console.log(`Fetching Google search for: "${searchQuery}" (original: "${prompt}", lang=${lang})`)
         const response = await fetch(`https://serpapi.com/search.json?${params}`)
         const data = await response.json()
 
@@ -269,18 +334,16 @@ export async function POST(request) {
         let companyMentioned = false
         let mentionCount = 0
 
-        // Step 2: If page_token present, fetch full AI Overview
+        // Fetch full AI Overview if page_token present
         if (aiOverview?.page_token) {
           console.log(`Found page_token for "${prompt}", fetching full AI Overview...`)
           const fullOverview = await fetchAiOverviewByToken(aiOverview.page_token)
           if (fullOverview) {
-            // The full overview response has text_blocks at root or in ai_overview
             aiOverview = fullOverview.ai_overview || fullOverview
           }
         }
 
         if (aiOverview) {
-          // Extract text from AI Overview
           if (aiOverview.text_blocks && Array.isArray(aiOverview.text_blocks)) {
             aiOverviewText = extractTextFromBlocks(aiOverview.text_blocks)
           } else if (aiOverview.text) {
@@ -292,24 +355,20 @@ export async function POST(request) {
           hasAiOverview = aiOverviewText.length > 0
 
           if (hasAiOverview) {
-            // Extract references and competitors
             const refData = extractReferences(aiOverview, companyName)
             sources = refData.sources
             competitors = refData.competitors
 
-            // Check company mention in text + sources
             const companyLower = companyName.toLowerCase()
             const allText = (aiOverviewText + ' ' + sources.map(s => `${s.title} ${s.link} ${s.domain}`).join(' ')).toLowerCase()
 
             companyMentioned = allText.includes(companyLower)
 
-            // Also check website domain
             if (!companyMentioned && website) {
               const domain = website.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '').toLowerCase()
               companyMentioned = allText.includes(domain)
             }
 
-            // Count mentions
             if (companyMentioned) {
               const regex = new RegExp(companyLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
               const matches = allText.match(regex)
@@ -321,9 +380,8 @@ export async function POST(request) {
         console.log(`Query "${searchQuery}": hasAiOverview=${hasAiOverview}, mentioned=${companyMentioned}, sources=${sources.length}`)
 
         results.push({
-          query: prompt,                    // Original prompt for display
-          searchQuery: searchQuery,         // Transformed query used for search
-          // Store with both field names for frontend compatibility
+          query: prompt,
+          searchQuery: searchQuery,
           hasAiOverview,
           hasAiResponse: hasAiOverview,
           companyMentioned,
@@ -341,6 +399,7 @@ export async function POST(request) {
         console.error(`Error scanning query "${prompt}":`, queryError)
         results.push({
           query: prompt,
+          searchQuery: transformedQueries[i]?.searchQuery || prompt,
           hasAiOverview: false,
           hasAiResponse: false,
           companyMentioned: false,
@@ -360,31 +419,36 @@ export async function POST(request) {
     const foundCount = results.filter(r => r.companyMentioned).length
     const hasAiOverviewCount = results.filter(r => r.hasAiOverview).length
 
-    // Save to database
-    const { data: scanRecord, error: dbError } = await supabase
-      .from('google_ai_overview_scans')
-      .insert({
-        user_id: user.id,
-        company_name: companyName,
-        website: website || null,
-        prompts: promptsToScan,
-        results,
-        found_count: foundCount,
-        has_ai_overview_count: hasAiOverviewCount,
-        total_queries: promptsToScan.length,
-        status: 'completed'
-      })
-      .select()
-      .single()
+    // Save to database (skip if single-prompt sequential mode)
+    let scanRecord = null
+    if (!skipSave) {
+      const { data: dbRecord, error: dbError } = await supabase
+        .from('google_ai_overview_scans')
+        .insert({
+          user_id: user.id,
+          company_name: companyName,
+          website: website || null,
+          prompts: promptsToScan,
+          results,
+          found_count: foundCount,
+          has_ai_overview_count: hasAiOverviewCount,
+          total_queries: promptsToScan.length,
+          status: 'completed'
+        })
+        .select()
+        .single()
 
-    if (dbError) {
-      console.error('Database error:', dbError)
+      if (dbError) {
+        console.error('Database error:', dbError)
+      }
+      scanRecord = dbRecord
     }
 
     return NextResponse.json({
       success: true,
       scanId: scanRecord?.id || null,
       companyName,
+      lang,
       totalQueries: promptsToScan.length,
       foundCount,
       hasAiOverviewCount,
