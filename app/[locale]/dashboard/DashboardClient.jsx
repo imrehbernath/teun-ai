@@ -525,18 +525,23 @@ function GoogleAISection({ t, locale, prompts, activeCompany, onScanComplete, go
           {/* ── Scan button ── */}
           {!scanning && (
             <div className="flex items-center gap-3">
-              <button
-                onClick={startScan}
-                disabled={allScannedToday || promptTexts.length === 0}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white text-[12px] font-semibold border-none cursor-pointer hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-                style={{ background: 'linear-gradient(135deg, #292956, #3b3b8a)' }}
-              >
-                <Play className="w-3.5 h-3.5" />
-                {hasData
-                  ? (locale === 'nl' ? 'Opnieuw scannen' : 'Rescan')
-                  : (t.googleScan?.scanBoth || (locale === 'nl' ? 'Scan Google AI' : 'Scan Google AI'))
-                }
-              </button>
+              <div className={!hasData && !allScannedToday ? 'relative' : ''}>
+                {!hasData && !allScannedToday && (
+                  <div className="absolute inset-0 rounded-lg animate-ping opacity-20" style={{ background: 'linear-gradient(135deg, #292956, #3b3b8a)' }} />
+                )}
+                <button
+                  onClick={startScan}
+                  disabled={allScannedToday || promptTexts.length === 0}
+                  className={`relative inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white text-[12px] font-semibold border-none cursor-pointer hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed ${!hasData ? 'shadow-lg shadow-indigo-500/25' : 'shadow-sm'}`}
+                  style={{ background: 'linear-gradient(135deg, #292956, #3b3b8a)' }}
+                >
+                  <Play className="w-3.5 h-3.5" />
+                  {hasData
+                    ? (locale === 'nl' ? 'Opnieuw scannen' : 'Rescan')
+                    : (t.googleScan?.scanBoth || (locale === 'nl' ? 'Scan Google AI' : 'Scan Google AI'))
+                  }
+                </button>
+              </div>
               {hasData && (
                 <span className="text-[11px] text-slate-400">
                   AI Mode + AI Overviews
@@ -1874,8 +1879,27 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                     <span className="text-center">{t.promptTracker.trend}</span>
                   </div>
 
-                  {/* Prompt rows */}
-                  {(editMode ? editablePrompts : prompts.map(p => p.text)).map((promptText, i) => {
+                  {/* Prompt rows — found prompts first */}
+                  {(() => {
+                    const promptList = editMode ? editablePrompts : prompts.map(p => p.text)
+                    // Create sorted indices: found prompts first, then not found
+                    const sortedIndices = editMode
+                      ? promptList.map((_, i) => i)
+                      : promptList.map((_, i) => i).sort((a, b) => {
+                          const pA = prompts[a]
+                          const pB = prompts[b]
+                          const gaiA = googleAiMode.prompts?.[a]
+                          const gaioA = googleAiOverview.prompts?.[a]
+                          const gaiB = googleAiMode.prompts?.[b]
+                          const gaioB = googleAiOverview.prompts?.[b]
+                          const foundA = pA ? (pA.chatgpt.found || pA.perplexity.found || gaiA?.found || gaioA?.found) : false
+                          const foundB = pB ? (pB.chatgpt.found || pB.perplexity.found || gaiB?.found || gaioB?.found) : false
+                          if (foundA && !foundB) return -1
+                          if (!foundA && foundB) return 1
+                          return 0
+                        })
+                    return sortedIndices.map((i) => {
+                    const promptText = promptList[i]
                     const p = prompts[i]
                     const gaiPrompt = googleAiMode.prompts?.[i]
                     const gaioPrompt = googleAiOverview.prompts?.[i]
@@ -2093,7 +2117,8 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                       )}
                     </div>
                     )
-                  })}
+                  })
+                  })()}
                   {prompts.length === 0 && !editMode && <div className="px-6 py-16 text-center text-sm text-slate-400">{t.noData}</div>}
                   {(googleAiMode.total === 0 || googleAiOverview.total === 0) && prompts.length > 0 && !editMode && (
                     <div className="px-6 py-3 border-t border-slate-100 text-[11px] text-slate-400">
