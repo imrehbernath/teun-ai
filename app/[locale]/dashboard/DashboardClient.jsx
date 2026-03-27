@@ -426,12 +426,12 @@ function GoogleAISection({ t, locale, prompts, activeCompany, onScanComplete, go
                 <div className="text-[11px] text-slate-400 truncate mb-3">
                   {phase === 'ai-overview' && transformedMap[promptTexts[progress.current - 1]] ? (
                     <>
-                      <span className="text-slate-500">{promptTexts[progress.current - 1]?.slice(0, 40)}</span>
+                      <span className="text-slate-500">{promptTexts[progress.current - 1]}</span>
                       <span className="mx-1.5 text-slate-300">→</span>
-                      <span className="text-indigo-500 font-medium">{currentPrompt.slice(0, 40)}</span>
+                      <span className="text-indigo-500 font-medium">{currentPrompt}</span>
                     </>
                   ) : (
-                    currentPrompt.slice(0, 80)
+                    currentPrompt
                   )}
                 </div>
               )}
@@ -1574,7 +1574,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
               </div>
 
               {/* Google AI scan CTA — show when no Google AI data yet */}
-             <GoogleAISection t={t} locale={locale} prompts={prompts} activeCompany={activeCompany} onScanComplete={fetchData} googleAiMode={googleAiMode} googleAiOverview={googleAiOverview} isPro={isPro} />
+             <GoogleAISection t={t} locale={locale} prompts={prompts} activeCompany={activeCompany} onScanComplete={() => { fetchData(); setActiveTab('prompts') }} googleAiMode={googleAiMode} googleAiOverview={googleAiOverview} isPro={isPro} />
 
               {/* Chrome Extension CTA — show when no extension data and extension not installed */}
               {!extensionInstalled && !data?.hasExtensionData && data && totalPrompts > 0 && (
