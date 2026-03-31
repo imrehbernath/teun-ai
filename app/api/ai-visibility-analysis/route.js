@@ -794,13 +794,16 @@ export async function POST(request) {
       }
     }
 
-    sendSlackNotification({
-      companyName,
-      companyCategory,
-      websiteUrl,
-      primaryKeyword: identifiedQueriesSummary?.[0] || null,
-      totalMentions: totalCompanyMentions
-    }).catch(err => console.error('Slack notificatie fout:', err));
+    // Skip Slack voor eigen OnlineLabs demo scans
+    if (normalizedDomain !== 'onlinelabs.nl' && !normalizedDomain.startsWith('onlinelabs.nl/')) {
+      sendSlackNotification({
+        companyName,
+        companyCategory,
+        websiteUrl,
+        primaryKeyword: identifiedQueriesSummary?.[0] || null,
+        totalMentions: totalCompanyMentions
+      }).catch(err => console.error('Slack notificatie fout:', err));
+    }
 
     // ✅ Save website + company_name for anonymous scans (for admin leads overview)
     if (!userId && ip !== 'unknown') {
