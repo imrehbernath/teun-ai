@@ -557,8 +557,40 @@ export async function POST(request) {
     let websiteAnalysis = null
     let enhancedKeywords = identifiedQueriesSummary || []
     
+    // ✨ Hardcoded prompts for OnlineLabs demo (GSC-based, optimized for AI visibility)
+    const normalizedDomain = (websiteUrl || '').toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '')
+    if (normalizedDomain === 'onlinelabs.nl' || normalizedDomain.startsWith('onlinelabs.nl/')) {
+      console.log('🎯 OnlineLabs detected — using GSC-based demo prompts')
+      const onlinelabsPrompts = isNL ? [
+        'Ik zoek een ervaren SEO bureau in Amsterdam dat ook helpt met vindbaarheid in AI-zoekmachines',
+        'Welk SEO bureau in Amsterdam heeft ervaring met zowel traditionele SEO als AI-zichtbaarheid in ChatGPT en Perplexity?',
+        'Op zoek naar een SEO specialist in Amsterdam met aantoonbare resultaten en direct contact zonder accountmanager',
+        'Welk online marketing bureau in Amsterdam combineert SEO, website snelheid optimalisatie en conversie optimalisatie?',
+        'Ik zoek een bureau in Amsterdam dat mijn WordPress website kan optimaliseren voor Google en AI-platforms',
+        'Zoek GEO experts in Amsterdam om mijn bedrijf te optimaliseren voor LLM-zichtbaarheid in ChatGPT',
+        'Welk bureau in Nederland is gespecialiseerd in generative engine optimization en AI-vindbaarheid?',
+        'Ik zoek een bureau om AI optimalisatie te doen voor mijn website zodat ik gevonden word in ChatGPT en Perplexity',
+        'Waar vind ik een online marketing bureau in Amsterdam dat gespecialiseerd is in zichtbaarheid in AI-zoekmachines?',
+        'Wat is het beste bureau in Amsterdam dat SEO combineert met GEO optimalisatie voor meetbare groei?',
+      ] : [
+        'Looking for an experienced SEO agency in Amsterdam that also helps with AI search visibility',
+        'Which SEO agency in Amsterdam has experience with both traditional SEO and AI visibility in ChatGPT and Perplexity?',
+        'Looking for an SEO specialist in Amsterdam with proven results and direct contact without account managers',
+        'Which digital marketing agency in Amsterdam combines SEO, website speed optimization and conversion optimization?',
+        'I need an agency in Amsterdam to optimize my WordPress website for Google and AI platforms',
+        'Find GEO experts in Amsterdam to optimize my business for LLM visibility in ChatGPT',
+        'Which agency in the Netherlands specializes in generative engine optimization and AI visibility?',
+        'I need an agency to do AI optimization for my website so I get found in ChatGPT and Perplexity',
+        'Where can I find a digital marketing agency in Amsterdam specialized in AI search engine visibility?',
+        'What is the best agency in Amsterdam that combines SEO with GEO optimization for measurable growth?',
+      ]
+      generatedPrompts = onlinelabsPrompts.slice(0, numberOfPrompts)
+      enhancedKeywords = ['SEO bureau Amsterdam', 'GEO optimalisatie', 'AI-zichtbaarheid', 'WordPress optimalisatie']
+      websiteAnalysis = { success: true, keywords: enhancedKeywords, services: ['SEO', 'GEO', 'Webdesign', 'Google Ads'], usps: ['17 jaar ervaring', 'Teun.ai platform'], location: 'Amsterdam', businessType: 'dienstverlener', audienceType: 'B2B', coreActivity: 'adviseert' }
+    }
+    
     // ✨ Analyze website if URL provided (ScraperAPI + Claude)
-    if (websiteUrl && websiteUrl.trim()) {
+    if (!generatedPrompts.length && websiteUrl && websiteUrl.trim()) {
       console.log('🌐 Website URL provided, starting smart analysis...')
       try {
         websiteAnalysis = await analyzeWebsiteForKeywords(websiteUrl, companyName, companyCategory, isNL)
@@ -604,7 +636,9 @@ export async function POST(request) {
     }
     
     // ✨ Use custom prompts if provided (from dashboard edit)
-    if (customPrompts && Array.isArray(customPrompts) && customPrompts.length > 0) {
+    if (generatedPrompts.length > 0) {
+      console.log(`🎯 Using ${generatedPrompts.length} pre-set prompts (demo/override)`)
+    } else if (customPrompts && Array.isArray(customPrompts) && customPrompts.length > 0) {
       console.log(`📝 Using ${customPrompts.length} custom prompts from dashboard`)
       generatedPrompts = customPrompts.filter(p => p && p.trim().length > 0)
     } else {
