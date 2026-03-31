@@ -675,6 +675,26 @@ export default function Homepage() {
               </div>
             </div>
           </div>
+
+          {/* Demo Video */}
+          <div className="mt-12 max-w-4xl mx-auto">
+            <p className="text-center text-sm font-medium text-slate-500 mb-4">
+              {locale === 'nl' ? '▶ Bekijk de scan in actie (2,5x versneld)' : '▶ See the scan in action (2.5x speed)'}
+            </p>
+            <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-white">
+              <video
+                controls
+                preload="metadata"
+                playsInline
+                className="w-full"
+                poster="/Teun.ai-AI-zichtbaarheidsanalyse-poster.jpg"
+                ref={(el) => { if (el) el.playbackRate = 2.5 }}
+                onPlay={(e) => { e.target.playbackRate = 2.5 }}
+              >
+                <source src="/Teun.ai-AI-zichtbaarheidsanalyse.mp4" type="video/mp4" />
+              </video>
+            </div>
+          </div>
         </div>
       </section>
 

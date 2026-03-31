@@ -813,6 +813,28 @@ function AIVisibilityToolContent() {
          <p className="text-xs text-slate-400">{t('platformInfo')}</p>
         </header>
 
+        {/* Demo Video */}
+        {step === 1 && !analyzing && !results && (
+          <div className="max-w-3xl mx-auto mb-8 sm:mb-10">
+            <p className="text-center text-sm font-medium text-slate-500 mb-3">
+              {locale === 'nl' ? '▶ Bekijk hoe de scan werkt (2,5x versneld)' : '▶ See how the scan works (2.5x speed)'}
+            </p>
+            <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-white">
+              <video
+                controls
+                preload="metadata"
+                playsInline
+                className="w-full"
+                poster="/Teun.ai-AI-zichtbaarheidsanalyse-poster.jpg"
+                ref={(el) => { if (el) el.playbackRate = 2.5 }}
+                onPlay={(e) => { e.target.playbackRate = 2.5 }}
+              >
+                <source src="/Teun.ai-AI-zichtbaarheidsanalyse.mp4" type="video/mp4" />
+              </video>
+            </div>
+          </div>
+        )}
+
         {/* Step Indicator - Pill style matching homepage CTA */}
         <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-6 sm:mb-8 flex-wrap px-2">
           {[
