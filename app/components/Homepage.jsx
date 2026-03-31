@@ -687,11 +687,10 @@ export default function Homepage() {
                 preload="metadata"
                 playsInline
                 className="w-full"
-                poster="/Teun.ai-AI-zichtbaarheidsanalyse-poster.jpg"
                 ref={(el) => { if (el) el.playbackRate = 2.5 }}
                 onPlay={(e) => { e.target.playbackRate = 2.5 }}
               >
-                <source src="/Teun.ai-AI-zichtbaarheidsanalyse.mp4" type="video/mp4" />
+                <source src="/Teun.ai-AI-zichtbaarheidsanalyse.mp4#t=0.001" type="video/mp4" />
               </video>
             </div>
           </div>
