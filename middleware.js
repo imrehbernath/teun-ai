@@ -88,11 +88,8 @@ export default function middleware(request) {
   // voor Googlebot en andere en-US clients
   // ============================================
   if (!pathname.startsWith('/en')) {
-    const hasLocaleCookie = request.cookies.get('NEXT_LOCALE');
-    if (!hasLocaleCookie) {
-      // Injecteer NL cookie in het request zodat next-intl NL kiest
-      request.cookies.set('NEXT_LOCALE', 'nl');
-    }
+    // Altijd NL forceren voor root paden, ook als cookie al op 'en' staat
+    request.cookies.set('NEXT_LOCALE', 'nl');
   }
 
   // Run next-intl middleware
