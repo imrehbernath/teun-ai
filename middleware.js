@@ -16,6 +16,7 @@ const knownEnglishPaths = [
   '/en/tools/geo-audit',
   '/en/tools/brand-check',
   '/en/tools/ai-prompt-explorer',
+  '/en/tools/ai-prompt-discovery',
   '/en/login',
   '/en/signup',
   '/en/forgot-password',

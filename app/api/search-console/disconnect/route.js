@@ -1,26 +1,34 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 
-// DELETE /api/search-console/disconnect - Remove Google SC connection
+// DELETE /api/search-console/disconnect
 export async function DELETE(request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const cookieStore = await cookies()
+  const sessionToken = cookieStore.get('teun_gsc_session')?.value
+
+  if (!user && !sessionToken) {
+    return NextResponse.json({ error: 'No identity' }, { status: 401 })
   }
 
   try {
-    // Delete the Google SC integration
-    const { error } = await supabase
-      .from('tool_integrations')
-      .delete()
-      .eq('user_id', user.id)
-      .eq('tool_name', 'google_search_console')
+    if (user) {
+      await supabase
+        .from('tool_integrations')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('tool_name', 'google_search_console')
+    }
 
-    if (error) {
-      console.error('Error disconnecting:', error)
-      return NextResponse.json({ error: 'Failed to disconnect' }, { status: 500 })
+    if (sessionToken) {
+      await supabase
+        .from('tool_integrations')
+        .delete()
+        .eq('session_token', sessionToken)
+        .eq('tool_name', 'google_search_console')
     }
 
     return NextResponse.json({ success: true })

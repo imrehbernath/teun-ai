@@ -1,28 +1,44 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 
-// Helper to refresh token if expired
-async function getValidAccessToken(supabase, userId) {
-  const { data: integration, error } = await supabase
-    .from('tool_integrations')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('tool_name', 'google_search_console')
-    .single()
+// Helper to get valid access token (supports user_id OR session_token)
+async function getValidAccessToken(supabase, userId, sessionToken) {
+  // Try user_id first, then session_token
+  let integration = null
 
-  if (error || !integration || !integration.results) {
+  if (userId) {
+    const { data } = await supabase
+      .from('tool_integrations')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('tool_name', 'google_search_console')
+      .single()
+    integration = data
+  }
+
+  if (!integration && sessionToken) {
+    const { data } = await supabase
+      .from('tool_integrations')
+      .select('*')
+      .eq('session_token', sessionToken)
+      .eq('tool_name', 'google_search_console')
+      .single()
+    integration = data
+  }
+
+  if (!integration || !integration.results) {
     return null
   }
 
   const results = integration.results
-  
+
   // Check if token is expired (with 5 min buffer)
   const expiresAt = new Date(results.expires_at)
   const now = new Date()
   const bufferMs = 5 * 60 * 1000
 
   if (expiresAt.getTime() - bufferMs > now.getTime()) {
-    // Token still valid
     return results.access_token
   }
 
@@ -50,7 +66,6 @@ async function getValidAccessToken(supabase, userId) {
       return null
     }
 
-    // Update tokens in database
     await supabase
       .from('tool_integrations')
       .update({
@@ -70,49 +85,38 @@ async function getValidAccessToken(supabase, userId) {
   }
 }
 
-// GET /api/search-console/properties - Get user's Search Console properties
+// GET /api/search-console/properties
 export async function GET(request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Get session token from cookie for anonymous users
+  const cookieStore = await cookies()
+  const sessionToken = cookieStore.get('teun_gsc_session')?.value
+
+  if (!user && !sessionToken) {
+    return NextResponse.json({ error: 'No identity', code: 'NOT_CONNECTED' }, { status: 401 })
   }
 
-  const accessToken = await getValidAccessToken(supabase, user.id)
+  const accessToken = await getValidAccessToken(supabase, user?.id, sessionToken)
 
   if (!accessToken) {
     return NextResponse.json({ error: 'Google not connected', code: 'NOT_CONNECTED' }, { status: 401 })
   }
 
   try {
-    // Fetch Search Console sites
     const response = await fetch('https://www.googleapis.com/webmasters/v3/sites', {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      }
+      headers: { 'Authorization': `Bearer ${accessToken}` }
     })
 
     if (!response.ok) {
-      const error = await response.json()
-      console.error('Search Console API error:', error)
-      
       if (response.status === 401) {
-        // Token invalid, mark as inactive
-        await supabase
-          .from('tool_integrations')
-          .update({ status: 'visibility_completed' })
-          .eq('user_id', user.id)
-          .eq('tool_name', 'google_search_console')
         return NextResponse.json({ error: 'Token expired', code: 'TOKEN_EXPIRED' }, { status: 401 })
       }
-      
       return NextResponse.json({ error: 'Failed to fetch properties' }, { status: 500 })
     }
 
     const data = await response.json()
-    
-    // Format properties
     const properties = (data.siteEntry || []).map(site => ({
       url: site.siteUrl,
       permissionLevel: site.permissionLevel
