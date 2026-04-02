@@ -1,5 +1,5 @@
 // app/auth/callback/route.js
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 export async function GET(request) {
@@ -8,7 +8,10 @@ export async function GET(request) {
   const next = requestUrl.searchParams.get('next') ?? '/tools/ai-visibility'
 
   if (code) {
-    const supabase = await createServiceClient()
+    const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
