@@ -183,9 +183,17 @@ function AIPromptDiscoveryContent() {
   const toggle = (q) => { const s = new Set(selected); s.has(q) ? s.delete(q) : s.size < 10 && s.add(q); setSelected(s) }
 
   const scanSelected = () => {
+    const list = [...selected]
     const params = new URLSearchParams()
     if (brandName) params.set('company', brandName)
-    params.set('customPrompts', JSON.stringify([...selected]))
+    // Extract website URL from GSC property
+    if (selectedProperty) {
+      const website = selectedProperty.replace('sc-domain:', '').replace(/\/$/, '')
+      params.set('website', website.startsWith('http') ? website : `https://${website}`)
+    }
+    params.set('category', brandName || 'Bedrijf')
+    params.set('customPrompts', JSON.stringify(list))
+    params.set('autostart', 'true')
     window.location.href = `/${locale === 'en' ? 'en/' : ''}tools/ai-visibility?${params.toString()}`
   }
 
@@ -207,7 +215,7 @@ function AIPromptDiscoveryContent() {
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <p className={`text-sm leading-relaxed ${sel ? 'text-emerald-900 font-medium' : 'text-slate-700'}`}>{p.query}</p>
+          <p className={`text-sm leading-relaxed ${sel ? 'text-emerald-900 font-medium' : 'text-slate-700'}`}>{p.query.charAt(0).toUpperCase() + p.query.slice(1)}</p>
           {pg && <p className="text-xs text-slate-400 mt-0.5 truncate">{pg}</p>}
         </div>
       </div>
