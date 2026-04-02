@@ -392,6 +392,7 @@ function AIVisibilityToolContent() {
             setCurrentStep(t('step3.preparing'));
             setPendingAutoStart(true);
           }
+          setInitializing(false);
           return;
         }
       } catch (e) {
