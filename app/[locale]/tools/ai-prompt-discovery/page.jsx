@@ -184,15 +184,16 @@ function AIPromptDiscoveryContent() {
 
   const scanSelected = () => {
     const list = [...selected]
+    // Store prompts in sessionStorage (AI Visibility page reads from here)
+    sessionStorage.setItem('teun_custom_prompts', JSON.stringify(list))
     const params = new URLSearchParams()
     if (brandName) params.set('company', brandName)
-    // Extract website URL from GSC property
+    params.set('category', brandName || 'Bedrijf')
     if (selectedProperty) {
       const website = selectedProperty.replace('sc-domain:', '').replace(/\/$/, '')
       params.set('website', website.startsWith('http') ? website : `https://${website}`)
     }
-    params.set('category', brandName || 'Bedrijf')
-    params.set('customPrompts', JSON.stringify(list))
+    params.set('customPrompts', 'true')  // flag, not data
     params.set('autostart', 'true')
     window.location.href = `/${locale === 'en' ? 'en/' : ''}tools/ai-visibility?${params.toString()}`
   }

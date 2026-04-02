@@ -376,12 +376,22 @@ function AIVisibilityToolContent() {
           setFormData(prev => ({
             ...prev,
             companyName: company || prev.companyName,
-            companyCategory: category || prev.companyCategory
+            companyCategory: category || prev.companyCategory,
+            website: websiteParam || prev.website
           }));
           
           setCustomPrompts(parsedPrompts);
           setStep(3);
           sessionStorage.removeItem('teun_custom_prompts');
+
+          // Auto-start scan if flag is set (from Prompt Discovery)
+          if (autostart === 'true') {
+            setFromHomepage(true);
+            setAnalyzing(true);
+            setProgress(0);
+            setCurrentStep(t('step3.preparing'));
+            setPendingAutoStart(true);
+          }
           return;
         }
       } catch (e) {
