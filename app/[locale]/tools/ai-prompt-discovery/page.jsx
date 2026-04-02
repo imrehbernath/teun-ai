@@ -414,8 +414,33 @@ function AIPromptDiscoveryContent() {
         <div className="max-w-md mx-auto text-center py-8 px-4">
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
             <p className="text-xl font-bold text-slate-900 mb-2">{isNL ? 'Geen AI-prompts gevonden' : 'No AI prompts found'}</p>
-            <p className="text-sm text-slate-500 mb-4">{isNL ? 'Geen lange queries gevonden in de afgelopen 90 dagen.' : 'No long queries found in the last 90 days.'}</p>
-            {properties.length > 1 && <button onClick={() => setShowPicker(true)} className="text-sm text-emerald-600 hover:underline cursor-pointer">{isNL ? 'Probeer een andere property' : 'Try a different property'}</button>}
+            <p className="text-sm text-slate-500 mb-4">{isNL ? 'Geen lange queries gevonden voor deze property.' : 'No long queries found for this property.'}</p>
+
+            {properties.length > 1 && (
+              <div className="mt-4">
+                <p className="text-xs text-slate-500 mb-2">{isNL ? 'Selecteer een andere property:' : 'Select a different property:'}</p>
+                <div className="space-y-2">
+                  {properties.map(p => (
+                    <button
+                      key={p.url}
+                      onClick={() => { setSelectedProperty(p.url); setAllPrompts([]); try { setBrandName(new URL(p.url.replace('sc-domain:', 'https://')).hostname.replace('www.', '').split('.')[0]) } catch(e){} }}
+                      className={`block w-full text-left px-4 py-2.5 rounded-lg text-sm transition cursor-pointer ${
+                        p.url === selectedProperty
+                          ? 'bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium'
+                          : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      <Globe className="w-3.5 h-3.5 inline mr-2" />
+                      {pLabel(p.url)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button onClick={disconnect} className="mt-4 text-xs text-slate-400 hover:text-red-500 transition cursor-pointer">
+              {isNL ? 'Ontkoppel Search Console' : 'Disconnect Search Console'}
+            </button>
           </div>
         </div>
       )}
