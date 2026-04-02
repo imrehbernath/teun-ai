@@ -216,7 +216,18 @@ function AIPromptDiscoveryContent() {
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <p className={`text-sm leading-relaxed ${sel ? 'text-emerald-900 font-medium' : 'text-slate-700'}`}>{p.query.charAt(0).toUpperCase() + p.query.slice(1)}</p>
+          <p className={`text-sm leading-relaxed ${sel ? 'text-emerald-900 font-medium' : 'text-slate-700'}`}>{
+            (() => {
+              let text = p.query.charAt(0).toUpperCase() + p.query.slice(1)
+              // Capitalize Dutch/common city names
+              const cities = ['amsterdam','rotterdam','utrecht','den haag','eindhoven','groningen','tilburg','almere','breda','nijmegen','haarlem','arnhem','zaanstad','amersfoort','apeldoorn','den bosch','s-hertogenbosch','maastricht','leiden','dordrecht','zoetermeer','zwolle','deventer','delft','alkmaar','hilversum','brugge','antwerpen','gent','brussel','nederland','netherlands','holland','europe','europa']
+              cities.forEach(city => {
+                const re = new RegExp(`\\b${city}\\b`, 'gi')
+                text = text.replace(re, city.split(/[\s-]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(city.includes('-') ? '-' : ' '))
+              })
+              return text
+            })()
+          }</p>
           {pg && <p className="text-xs text-slate-400 mt-0.5 truncate">{pg}</p>}
         </div>
       </div>
@@ -369,6 +380,28 @@ function AIPromptDiscoveryContent() {
               <button onClick={scanSelected} className="px-5 py-2.5 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-semibold text-sm hover:shadow-lg transition flex items-center gap-2 cursor-pointer">
                 <Sparkles className="w-4 h-4" />{isNL ? 'Scan in AI Visibility' : 'Scan in AI Visibility'}<ArrowRight className="w-3.5 h-3.5" />
               </button>
+            </div>
+          )}
+
+          {/* CTA when few/no commercial prompts */}
+          {commercial.length < 3 && (
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-6 mb-6 text-center">
+              <p className="font-bold text-slate-900 mb-2">
+                {isNL
+                  ? commercial.length === 0 ? 'Geen commerciele AI-prompts gevonden' : `Slechts ${commercial.length} commerciele prompt${commercial.length > 1 ? 's' : ''} gevonden`
+                  : commercial.length === 0 ? 'No commercial AI prompts found' : `Only ${commercial.length} commercial prompt${commercial.length > 1 ? 's' : ''} found`}
+              </p>
+              <p className="text-sm text-slate-600 mb-4">
+                {isNL
+                  ? 'Ontdek op welke commerciele prompts potentiele klanten zoeken en of ze jou vinden in ChatGPT en Perplexity.'
+                  : 'Discover which commercial prompts potential customers use and whether they find you in ChatGPT and Perplexity.'}
+              </p>
+              <Link href="/tools/ai-visibility"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-semibold hover:shadow-lg transition">
+                <Sparkles className="w-4 h-4" />
+                {isNL ? 'Doe een AI Visibility Scan' : 'Run an AI Visibility Scan'}
+                <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
           )}
 
