@@ -8,8 +8,8 @@ export async function generateMetadata() {
     ? 'AI Brand Check - What does AI say about your business?'
     : 'AI Brand Check - Wat zegt AI over jouw bedrijf?';
   const description = isEn
-    ? 'Check for free what ChatGPT and Perplexity say about your brand. 6 AI checks, sentiment analysis and concrete improvement tips. Result in 30 seconds.'
-    : 'Check gratis wat ChatGPT en Perplexity over jouw merk zeggen. 6 AI-checks, sentimentanalyse en concrete verbeterpunten. Resultaat in 30 seconden.';
+    ? 'Check for free what ChatGPT and Perplexity say about your brand. 6 AI checks, sentiment analysis, Google Reviews reality check and concrete improvement tips.'
+    : 'Check gratis wat ChatGPT en Perplexity over jouw merk zeggen. 6 AI-checks, sentimentanalyse, Google Reviews reality check en concrete verbeterpunten.';
   const url = isEn
     ? 'https://teun.ai/en/tools/brand-check'
     : 'https://teun.ai/tools/brand-check';
@@ -18,8 +18,8 @@ export async function generateMetadata() {
     title,
     description,
     keywords: isEn
-      ? ['AI brand check', 'brand mentions AI', 'AI reputation check', 'AI brand perception', 'ChatGPT brand perception', 'AI sentiment analysis', 'what does ChatGPT say about my business', 'brand visibility AI', 'AI reputation management']
-      : ['AI brand check', 'AI merkperceptie', 'AI reputatie check', 'wat zegt ChatGPT over mijn bedrijf', 'hoe praat AI over mijn merk', 'AI sentimentanalyse', 'merk zichtbaarheid AI', 'brand mentions AI', 'AI reputatie'],
+      ? ['AI brand check', 'brand mentions AI', 'AI reputation check', 'AI brand perception', 'ChatGPT brand perception', 'AI sentiment analysis', 'what does ChatGPT say about my business', 'brand visibility AI', 'AI reputation management', 'Google Reviews AI']
+      : ['AI brand check', 'AI merkperceptie', 'AI reputatie check', 'wat zegt ChatGPT over mijn bedrijf', 'hoe praat AI over mijn merk', 'AI sentimentanalyse', 'merk zichtbaarheid AI', 'brand mentions AI', 'AI reputatie', 'Google Reviews AI'],
     openGraph: {
       title,
       description,

@@ -82,17 +82,19 @@ export default function BrandCheckPage() {
 
   const [scanPhase, setScanPhase] = useState('idle')
   const [queryStates, setQueryStates] = useState([{ status: 'waiting' }, { status: 'waiting' }, { status: 'waiting' }])
+  const [reviewsData, setReviewsData] = useState(null)
+  const [reviewsLoading, setReviewsLoading] = useState(false)
 
   const faqItems = locale === 'en' ? [
     { q: 'What is an AI Brand Check?', a: 'An AI Brand Check analyzes what AI platforms like ChatGPT and Perplexity say about your business. We check sentiment, reputation signals and whether your brand is actually mentioned in AI-generated answers.' },
     { q: 'Is the AI Brand Check free?', a: 'Yes, you can run 2 brand checks per day for free. No credit card needed.' },
-    { q: 'Which AI platforms are checked?', a: 'We test your brand on both Perplexity and ChatGPT with 3 different commercial queries about experiences, reviews and service quality. That is 6 AI checks in total.' },
+    { q: 'Which AI platforms are checked?', a: 'We test your brand on both Perplexity and ChatGPT with 3 different commercial queries about experiences, reviews and service quality. That is 6 AI checks in total. We also pull your Google Reviews to compare AI perception with reality.' },
     { q: 'What if my brand is not mentioned by AI?', a: 'That means AI platforms don\'t yet associate your brand with your industry. The tool gives you concrete recommendations to improve this, such as publishing more reviews, case studies and expertise content.' },
     { q: 'How can I improve my AI brand perception?', a: 'Focus on Google Reviews, publish case studies and customer stories, ensure consistent NAP data, and create content that explicitly mentions your brand name with your expertise and location.' },
   ] : [
     { q: 'Wat is een AI Brand Check?', a: 'Een AI Brand Check analyseert wat AI-platformen zoals ChatGPT en Perplexity over jouw bedrijf zeggen. We checken sentiment, reputatiesignalen en of jouw merk daadwerkelijk wordt genoemd in AI-antwoorden.' },
     { q: 'Is de AI Brand Check gratis?', a: 'Ja, je kunt 2 brand checks per dag gratis uitvoeren. Geen creditcard nodig.' },
-    { q: 'Welke AI-platformen worden gecheckt?', a: 'We testen je merk op zowel Perplexity als ChatGPT met 3 verschillende commerciele zoekvragen over ervaringen, reviews en servicekwaliteit. Dat zijn 6 AI-checks in totaal.' },
+    { q: 'Welke AI-platformen worden gecheckt?', a: 'We testen je merk op zowel Perplexity als ChatGPT met 3 verschillende commerciele zoekvragen over ervaringen, reviews en servicekwaliteit. Dat zijn 6 AI-checks in totaal. We halen ook je Google Reviews op om AI-perceptie met de werkelijkheid te vergelijken.' },
     { q: 'Wat als mijn merk niet wordt genoemd door AI?', a: 'Dan associeren AI-platformen je merk nog niet met je branche. De tool geeft je concrete aanbevelingen om dit te verbeteren, zoals meer reviews, case studies en expertcontent publiceren.' },
     { q: 'Hoe verbeter ik mijn AI-merkperceptie?', a: 'Focus op Google Reviews, publiceer case studies en klantverhalen, zorg voor consistente bedrijfsgegevens, en maak content die expliciet je merknaam koppelt aan je expertise en locatie.' },
   ]
@@ -164,6 +166,8 @@ export default function BrandCheckPage() {
     setLoading(true)
     setError('')
     setResults(null)
+    setReviewsData(null)
+    setReviewsLoading(false)
     setExpandedQuery(null)
     setActiveTab({})
     setScanPhase('scanning')
@@ -264,6 +268,9 @@ export default function BrandCheckPage() {
       setLoading(false)
       setTimeout(() => { resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }, 200)
 
+      // Auto-fetch Google Reviews in background
+      fetchGoogleReviews(brandName.trim(), location.trim())
+
     } catch (err) {
       setError(locale === 'en' ? 'Connection error. Please try again.' : 'Verbindingsfout. Probeer het opnieuw.')
       setScanPhase('idle')
@@ -272,6 +279,25 @@ export default function BrandCheckPage() {
   }
 
   const getSentimentColor = (s) => s === 'positive' ? '#10b981' : s === 'negative' ? '#ef4444' : s === 'mixed' ? '#f59e0b' : '#94a3b8'
+
+  async function fetchGoogleReviews(brand, loc) {
+    setReviewsLoading(true)
+    setReviewsData(null)
+    try {
+      const res = await fetch('/api/brand-check/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brandName: brand, location: loc, locale }),
+      })
+      const data = await res.json()
+      if (res.ok && data.found) {
+        setReviewsData(data)
+      }
+    } catch (e) {
+      console.error('Reviews fetch error:', e)
+    }
+    setReviewsLoading(false)
+  }
   const getSentimentLabel = (s) => {
     if (locale === 'en') return s === 'positive' ? 'Positive' : s === 'negative' ? 'Negative' : s === 'mixed' ? 'Mixed' : 'Neutral'
     return s === 'positive' ? 'Positief' : s === 'negative' ? 'Negatief' : s === 'mixed' ? 'Gemengd' : 'Neutraal'
@@ -466,6 +492,150 @@ export default function BrandCheckPage() {
             </div>
           )}
 
+          {/* ── GOOGLE REVIEWS REALITY CHECK ── */}
+          {(reviewsLoading || reviewsData) && (
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-6">
+              <div className="flex items-center gap-3 px-5 py-4 bg-slate-50 border-b border-slate-100">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-900">{locale === 'en' ? 'Google Reviews Reality Check' : 'Google Reviews Reality Check'}</p>
+                  <p className="text-xs text-slate-500">{locale === 'en' ? 'How do real reviews compare to AI perception?' : 'Hoe verhouden echte reviews zich tot AI-perceptie?'}</p>
+                </div>
+              </div>
+
+              <div className="p-5">
+                {reviewsLoading && (
+                  <div className="flex items-center gap-3 py-4">
+                    <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                    <p className="text-sm text-slate-500">{locale === 'en' ? 'Fetching Google Reviews...' : 'Google Reviews ophalen...'}</p>
+                  </div>
+                )}
+
+                {reviewsData && reviewsData.summary && (
+                  <>
+                    {/* Rating comparison */}
+                    <div className="flex items-center gap-4 mb-5">
+                      <div className="flex items-center gap-2">
+                        <div className="flex">
+                          {[1,2,3,4,5].map(s => (
+                            <svg key={s} className={`w-5 h-5 ${s <= Math.round(reviewsData.summary.avgRating) ? 'text-amber-400' : 'text-slate-200'}`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                          ))}
+                        </div>
+                        <span className="text-2xl font-bold text-slate-900">{reviewsData.summary.avgRating}</span>
+                        <span className="text-sm text-slate-400">({reviewsData.summary.totalReviews} reviews)</span>
+                      </div>
+
+                      <div className="h-8 w-px bg-slate-200" />
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-slate-500">{locale === 'en' ? 'AI says:' : 'AI zegt:'}</span>
+                        <span className={`text-sm font-semibold px-2.5 py-0.5 rounded-full ${
+                          results.overallSentiment === 'positive' ? 'bg-emerald-50 text-emerald-700' :
+                          results.overallSentiment === 'negative' ? 'bg-red-50 text-red-600' :
+                          'bg-amber-50 text-amber-700'
+                        }`}>{getSentimentLabel(results.overallSentiment)}</span>
+                      </div>
+
+                      {/* Match indicator */}
+                      {(() => {
+                        const rating = reviewsData.summary.avgRating
+                        const aiSent = results.overallSentiment
+                        const match = (rating >= 4 && aiSent === 'positive') || (rating < 3 && aiSent === 'negative') || (rating >= 3 && rating < 4 && aiSent === 'mixed')
+                        return (
+                          <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${match ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                            {match
+                              ? (locale === 'en' ? '✓ Match' : '✓ Komt overeen')
+                              : (locale === 'en' ? '⚠ Mismatch' : '⚠ Verschil')}
+                          </span>
+                        )
+                      })()}
+                    </div>
+
+                    {/* Review themes */}
+                    {reviewsData.themes?.length > 0 && (
+                      <div className="mb-5">
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{locale === 'en' ? 'Themes from reviews' : "Thema's uit reviews"}</p>
+                        <div className="space-y-2">
+                          {reviewsData.themes.slice(0, 5).map((theme, i) => (
+                            <div key={i} className="flex items-center gap-3">
+                              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] flex-shrink-0 ${
+                                theme.sentiment === 'positive' ? 'bg-emerald-500' :
+                                theme.sentiment === 'negative' ? 'bg-red-500' : 'bg-amber-500'
+                              }`}>
+                                {theme.sentiment === 'positive' ? '✓' : theme.sentiment === 'negative' ? '!' : '~'}
+                              </span>
+                              <span className="text-sm text-slate-700 font-medium flex-1">{theme.label}</span>
+                              <span className="text-xs text-slate-400">{theme.positive > 0 && <span className="text-emerald-600">{theme.positive}× {locale === 'en' ? 'pos' : 'pos'}</span>}{theme.positive > 0 && theme.negative > 0 && ' · '}{theme.negative > 0 && <span className="text-red-500">{theme.negative}× {locale === 'en' ? 'neg' : 'neg'}</span>}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* AI insight based on review data */}
+                    {(() => {
+                      const negThemes = reviewsData.themes?.filter(t => t.sentiment === 'negative') || []
+                      const rating = reviewsData.summary.avgRating
+                      const aiSent = results.overallSentiment
+
+                      let insight = null
+                      if (negThemes.length > 0) {
+                        const themeNames = negThemes.map(t => t.label.toLowerCase()).join(', ')
+                        insight = locale === 'en'
+                          ? `AI picks up on "${themeNames}" as a weak point from your reviews. Address this in your content and collect more positive reviews on these topics.`
+                          : `AI pikt "${themeNames}" op als zwak punt uit je reviews. Adresseer dit in je content en verzamel meer positieve reviews op deze onderwerpen.`
+                      } else if (rating < 4 && aiSent === 'positive') {
+                        insight = locale === 'en'
+                          ? `Your Google rating (${rating}) is lower than AI suggests. Focus on collecting more 5-star reviews to align perception with reality.`
+                          : `Je Google rating (${rating}) is lager dan AI suggereert. Focus op het verzamelen van meer 5-sterren reviews om perceptie en werkelijkheid op een lijn te brengen.`
+                      } else if (rating >= 4.5 && aiSent !== 'positive') {
+                        insight = locale === 'en'
+                          ? `Your Google rating is excellent (${rating}) but AI doesn't fully reflect this. Publish more content that showcases your positive reviews and customer stories.`
+                          : `Je Google rating is uitstekend (${rating}) maar AI reflecteert dit niet volledig. Publiceer meer content die je positieve reviews en klantverhalen uitlicht.`
+                      } else if (rating >= 4) {
+                        insight = locale === 'en'
+                          ? `Good alignment: your ${rating} star rating matches the positive AI perception. Keep collecting reviews to maintain this position.`
+                          : `Goede match: je ${rating} sterren rating komt overeen met de positieve AI-perceptie. Blijf reviews verzamelen om deze positie te behouden.`
+                      }
+
+                      if (!insight) return null
+                      return (
+                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
+                          <Sparkles className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                          <p className="text-sm text-blue-800">{insight}</p>
+                        </div>
+                      )
+                    })()}
+
+                    {/* Sample reviews */}
+                    {reviewsData.reviews?.length > 0 && (
+                      <details className="mt-4">
+                        <summary className="text-xs text-slate-400 cursor-pointer hover:text-slate-600">{locale === 'en' ? `Show ${reviewsData.reviews.length} recent reviews` : `Toon ${reviewsData.reviews.length} recente reviews`}</summary>
+                        <div className="mt-3 space-y-3">
+                          {reviewsData.reviews.map((r, i) => (
+                            <div key={i} className="bg-slate-50 rounded-lg p-3">
+                              <div className="flex items-center gap-2 mb-1">
+                                <div className="flex">{[1,2,3,4,5].map(s => <svg key={s} className={`w-3 h-3 ${s <= r.rating ? 'text-amber-400' : 'text-slate-200'}`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}</div>
+                                {r.date && <span className="text-[10px] text-slate-400">{r.date}</span>}
+                              </div>
+                              {r.text && <p className="text-xs text-slate-600 leading-relaxed line-clamp-3">{r.text}</p>}
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                  </>
+                )}
+
+                {reviewsData && !reviewsData.summary && (
+                  <p className="text-sm text-slate-400 py-2">{locale === 'en' ? 'No Google Reviews found for this business.' : 'Geen Google Reviews gevonden voor dit bedrijf.'}</p>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="mb-6">
             <h3 className="font-semibold text-slate-900 mb-3">{locale === 'en' ? 'AI responses per query' : 'AI-antwoorden per zoekvraag'}</h3>
             <div className="space-y-3">
@@ -562,7 +732,7 @@ export default function BrandCheckPage() {
           </div>
 
           <div className="mt-6 text-center">
-            <button onClick={() => { setResults(null); setScanPhase('idle'); setBrandName(''); setLocation(''); setCategory(''); window.scrollTo({ top: 0, behavior: 'smooth' }) }} className="text-sm text-slate-500 hover:text-slate-700 font-medium inline-flex items-center gap-1 cursor-pointer">← {locale === 'en' ? 'Check another brand' : 'Ander merk checken'}</button>
+            <button onClick={() => { setResults(null); setReviewsData(null); setScanPhase('idle'); setBrandName(''); setLocation(''); setCategory(''); window.scrollTo({ top: 0, behavior: 'smooth' }) }} className="text-sm text-slate-500 hover:text-slate-700 font-medium inline-flex items-center gap-1 cursor-pointer">← {locale === 'en' ? 'Check another brand' : 'Ander merk checken'}</button>
           </div>
 
           {/* ━━━ Other Tools ━━━ */}
