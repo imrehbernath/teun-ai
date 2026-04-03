@@ -686,7 +686,7 @@ export default function Homepage() {
             <p className="text-center text-sm font-medium text-slate-500 mb-4">
               {locale === 'nl' ? '▶ Bekijk de scan in actie (2,5x versneld)' : '▶ See the scan in action (2.5x speed)'}
             </p>
-            <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-slate-900 aspect-video relative">
+            <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-slate-100 aspect-video relative">
               {!videoPlaying ? (
                 <button
                   onClick={() => setVideoPlaying(true)}

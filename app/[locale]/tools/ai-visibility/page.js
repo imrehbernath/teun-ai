@@ -831,7 +831,7 @@ function AIVisibilityToolContent() {
             <p className="text-center text-sm font-medium text-slate-500 mb-3">
               {locale === 'nl' ? '▶ Bekijk hoe de scan werkt (2,5x versneld)' : '▶ See how the scan works (2.5x speed)'}
             </p>
-            <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-slate-900 aspect-video relative">
+            <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-slate-100 aspect-video relative">
               {!videoPlaying ? (
                 <button
                   onClick={() => setVideoPlaying(true)}
