@@ -8,67 +8,11 @@ import { createClient } from '@/lib/supabase/client';
 import { ChevronDown } from 'lucide-react';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 
-// Tools menu items — vertaald via next-intl
-function useTools() {
-  const t = useTranslations('tools');
-  
-  return [
-    {
-      name: t('aiVisibility.name'),
-      href: '/tools/ai-visibility',
-      badge: t('aiVisibility.badge'),
-      badgeColor: 'bg-green-500/20 text-green-300',
-      description: t('aiVisibility.description'),
-    },
-    {
-      name: t('aiRankTracker.name'),
-      href: '/tools/ai-rank-tracker',
-      badge: t('aiRankTracker.badge'),
-      badgeColor: 'bg-blue-500/20 text-blue-300',
-      description: t('aiRankTracker.description'),
-    },
-    {
-      name: t('geoAudit.name'),
-      href: '/tools/geo-audit',
-      badge: t('geoAudit.badge'),
-      badgeColor: 'bg-purple-500/20 text-purple-300',
-      description: t('geoAudit.description'),
-    },
-    {
-      name: t('brandCheck.name'),
-      href: '/tools/brand-check',
-      badge: t('brandCheck.badge'),
-      badgeColor: 'bg-pink-500/20 text-pink-300',
-      description: t('brandCheck.description'),
-    },
-    {
-      name: t('promptExplorer.name'),
-      href: '/tools/ai-prompt-explorer',
-      badge: t('promptExplorer.badge'),
-      badgeColor: 'bg-amber-500/20 text-amber-300',
-      description: t('promptExplorer.description'),
-    },
-    {
-      name: t('geoAnalysis.name'),
-      href: '/dashboard',
-      description: t('geoAnalysis.description'),
-    },
-    {
-      name: 'WordPress Plugin',
-      href: '/wordpress-plugin',
-      badge: t('wpPlugin.badge'),
-      badgeColor: 'bg-green-500/20 text-green-300',
-      description: t('wpPlugin.description'),
-    },
-  ];
-}
-
 // Header Component
 function Header() {
   const t = useTranslations('header');
   const locale = useLocale();
   const isEn = locale === 'en';
-  const TOOLS = useTools();
   
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -138,42 +82,88 @@ function Header() {
             <div className="hidden md:flex md:items-center md:gap-6">
               
               {/* Tools Dropdown */}
-              <div ref={toolsRef} className="relative">
+              <div
+                ref={toolsRef}
+                className="relative"
+                onMouseEnter={() => setToolsOpen(true)}
+                onMouseLeave={() => setToolsOpen(false)}
+              >
                 <button
-                  onClick={() => setToolsOpen(!toolsOpen)}
-                  className="text-white/90 hover:text-white font-medium text-[15px] transition-colors flex items-center gap-1.5"
+                  className="text-white/90 hover:text-white font-medium text-[15px] transition-colors flex items-center gap-1.5 cursor-pointer py-2"
                 >
                   {t('tools')}
                   <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${toolsOpen ? 'rotate-180' : ''}`} />
                 </button>
                 
                 {toolsOpen && (
-                  <div className="absolute top-full left-0 mt-2 w-80 bg-[#1E1E3F] border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-dropIn z-[60]">
-                    <div className="p-2">
-                      {TOOLS.map((tool) => (
-                        <Link
-                          key={tool.href}
-                          href={tool.href}
-                          onClick={() => setToolsOpen(false)}
-                          className={`flex flex-col gap-0.5 px-4 py-3 rounded-lg transition-colors ${
-                            pathname === tool.href 
-                              ? 'bg-white/10 text-white' 
-                              : 'text-white/80 hover:bg-white/5 hover:text-white'
-                          }`}
-                        >
-                          <span className="font-medium text-[14px] flex items-center gap-2">
-                            {tool.name}
-                            {tool.badge && (
-                              <span className={`${tool.badgeColor} px-2 py-0.5 rounded text-[10px] font-bold`}>
-                                {tool.badge}
-                              </span>
-                            )}
-                          </span>
-                          <span className="text-white/50 text-xs">{tool.description}</span>
-                        </Link>
-                      ))}
+                  <>
+                    {/* Invisible bridge between button and dropdown */}
+                    <div className="absolute top-full left-0 right-0 h-3" />
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 w-[680px] z-[60]">
+                      <div className="bg-white rounded-2xl shadow-[0_20px_70px_-15px_rgba(0,0,0,0.2)] border border-gray-100 animate-dropIn">
+
+                    {/* Grid - 3 columns */}
+                    <div className="px-8 py-7">
+                      <div className="grid grid-cols-3 gap-8">
+                        
+                        {/* Column 1: Meten */}
+                        <div>
+                          <span className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-4">{isEn ? 'Measure' : 'Meten'}</span>
+                          {[
+                            { name: isEn ? 'AI Visibility Scan' : 'AI Zichtbaarheid Scan', href: '/tools/ai-visibility', desc: isEn ? 'Scan 4 AI platforms' : 'Scan 4 AI-platformen' },
+                            { name: 'AI Brand Check', href: '/tools/brand-check', desc: isEn ? 'What does AI say about you?' : 'Wat zegt AI over jou?' },
+                            { name: 'AI Rank Tracker', href: '/tools/ai-rank-tracker', desc: isEn ? 'Track your AI ranking' : 'Track je AI-ranking' },
+                          ].map(tool => (
+                            <Link key={tool.href} href={tool.href} onClick={() => setToolsOpen(false)}
+                              className="block py-2.5 group">
+                              <span className={`block text-sm font-bold transition-colors ${pathname === tool.href ? 'text-[#7C3AED]' : 'text-gray-900 group-hover:text-[#7C3AED]'}`}>{tool.name}</span>
+                              <span className="block text-xs text-gray-500 mt-0.5">{tool.desc}</span>
+                            </Link>
+                          ))}
+                        </div>
+
+                        {/* Column 2: Ontdekken */}
+                        <div>
+                          <span className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-4">{isEn ? 'Discover' : 'Ontdekken'}</span>
+                          {[
+                            { name: 'AI Prompt Discovery', href: '/tools/ai-prompt-discovery', desc: isEn ? 'Your prompts via GSC' : 'Je prompts via GSC' },
+                            { name: 'AI Prompt Explorer', href: '/tools/ai-prompt-explorer', desc: isEn ? '50+ prompts with volumes' : '50+ prompts met volumes' },
+                          ].map(tool => (
+                            <Link key={tool.href} href={tool.href} onClick={() => setToolsOpen(false)}
+                              className="block py-2.5 group">
+                              <span className={`block text-sm font-bold transition-colors ${pathname === tool.href ? 'text-[#7C3AED]' : 'text-gray-900 group-hover:text-[#7C3AED]'}`}>{tool.name}</span>
+                              <span className="block text-xs text-gray-500 mt-0.5">{tool.desc}</span>
+                            </Link>
+                          ))}
+                        </div>
+
+                        {/* Column 3: Optimaliseren */}
+                        <div>
+                          <span className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-4">{isEn ? 'Optimize' : 'Optimaliseren'}</span>
+                          {[
+                            { name: 'GEO Audit', href: '/tools/geo-audit', desc: isEn ? 'Page score for AI' : 'Pagina-score voor AI' },
+                            { name: isEn ? 'GEO Optimization DIY' : 'GEO Optimalisatie DIY', href: '/pricing', desc: isEn ? 'Optimize your pages' : "Je pagina's optimaliseren" },
+                          ].map(tool => (
+                            <Link key={tool.href} href={tool.href} onClick={() => setToolsOpen(false)}
+                              className="block py-2.5 group">
+                              <span className={`block text-sm font-bold transition-colors ${pathname === tool.href ? 'text-[#7C3AED]' : 'text-gray-900 group-hover:text-[#7C3AED]'}`}>{tool.name}</span>
+                              <span className="block text-xs text-gray-500 mt-0.5">{tool.desc}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+
+                    {/* Footer */}
+                    <div className="px-8 py-3.5 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl">
+                      <Link href="/tools" onClick={() => setToolsOpen(false)}
+                        className="text-sm font-medium text-[#7C3AED] hover:text-[#6D28D9] transition-colors inline-flex items-center gap-1">
+                        {isEn ? 'All tools' : 'Alle tools bekijken'} →
+                      </Link>
+                    </div>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -242,28 +232,42 @@ function Header() {
               <div className="space-y-1">
                 
                 <div className="px-3 py-2">
-                  <span className="text-white/50 text-xs font-semibold uppercase tracking-wider">{t('tools')}</span>
+                  <span className="text-white/50 text-xs font-semibold uppercase tracking-wider">{isEn ? 'Measure' : 'Meten'}</span>
                 </div>
-                {TOOLS.map((tool) => (
-                  <Link
-                    key={tool.href}
-                    href={tool.href}
-                    className={`flex flex-col gap-0.5 px-3 py-2 rounded-lg transition-colors ${
-                      pathname === tool.href
-                        ? 'bg-white/10 text-white'
-                        : 'text-white/80 hover:bg-white/5 hover:text-white'
-                    }`}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <span className="font-medium text-[14px] flex items-center gap-2">
-                      {tool.name}
-                      {tool.badge && (
-                        <span className={`${tool.badgeColor} px-2 py-0.5 rounded text-[10px] font-bold`}>
-                          {tool.badge}
-                        </span>
-                      )}
-                    </span>
-                    <span className="text-white/50 text-xs">{tool.description}</span>
+                {[
+                  { name: isEn ? 'AI Visibility Scan' : 'AI Zichtbaarheid Scan', href: '/tools/ai-visibility' },
+                  { name: 'AI Brand Check', href: '/tools/brand-check' },
+                  { name: 'AI Rank Tracker', href: '/tools/ai-rank-tracker' },
+                ].map(tool => (
+                  <Link key={tool.href} href={tool.href} onClick={() => setMobileMenuOpen(false)}
+                    className={`block px-3 py-2 text-[14px] font-medium transition-colors ${pathname === tool.href ? 'text-white' : 'text-white/70 hover:text-white'}`}>
+                    {tool.name}
+                  </Link>
+                ))}
+
+                <div className="px-3 pt-3 pb-2">
+                  <span className="text-white/50 text-xs font-semibold uppercase tracking-wider">{isEn ? 'Discover' : 'Ontdekken'}</span>
+                </div>
+                {[
+                  { name: 'AI Prompt Discovery', href: '/tools/ai-prompt-discovery' },
+                  { name: 'AI Prompt Explorer', href: '/tools/ai-prompt-explorer' },
+                ].map(tool => (
+                  <Link key={tool.href} href={tool.href} onClick={() => setMobileMenuOpen(false)}
+                    className={`block px-3 py-2 text-[14px] font-medium transition-colors ${pathname === tool.href ? 'text-white' : 'text-white/70 hover:text-white'}`}>
+                    {tool.name}
+                  </Link>
+                ))}
+
+                <div className="px-3 pt-3 pb-2">
+                  <span className="text-white/50 text-xs font-semibold uppercase tracking-wider">{isEn ? 'Optimize' : 'Optimaliseren'}</span>
+                </div>
+                {[
+                  { name: 'GEO Audit', href: '/tools/geo-audit' },
+                  { name: isEn ? 'GEO Optimization DIY' : 'GEO Optimalisatie DIY', href: '/pricing' },
+                ].map(tool => (
+                  <Link key={tool.href} href={tool.href} onClick={() => setMobileMenuOpen(false)}
+                    className={`block px-3 py-2 text-[14px] font-medium transition-colors ${pathname === tool.href ? 'text-white' : 'text-white/70 hover:text-white'}`}>
+                    {tool.name}
                   </Link>
                 ))}
 
@@ -320,7 +324,7 @@ function Header() {
           from { opacity: 0; transform: translateY(-8px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        .animate-dropIn { animation: dropIn 0.15s ease-out; }
+        .animate-dropIn { animation: dropIn 0.2s ease-out; }
       `}</style>
     </>
   );
@@ -377,8 +381,8 @@ function Footer() {
             <span className="text-white font-semibold text-base mb-4 block">{t('geoTools')}</span>
             <ul className="space-y-2">
               <li>
-                <Link href="/dashboard" className="text-white/70 hover:text-white text-sm transition-colors">
-                  {t('completeAnalysis')}
+                <Link href="/pricing" className="text-white/70 hover:text-white text-sm transition-colors">
+                  {isEn ? 'GEO Optimization DIY' : 'GEO Optimalisatie DIY'}
                 </Link>
               </li>
               <li>
@@ -407,24 +411,14 @@ function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/wordpress-plugin" className="text-white/70 hover:text-white text-sm transition-colors">
-                  {t('wordpressPlugin')}
+                <Link href="/tools/ai-prompt-discovery" className="text-white/70 hover:text-white text-sm transition-colors">
+                  AI Prompt Discovery
                 </Link>
               </li>
               <li>
-                <span className="text-white/50 text-sm cursor-not-allowed">
-                  {t('contentOptimizer')} <span className="text-xs">({t('comingSoon')})</span>
-                </span>
-              </li>
-              <li>
-                <span className="text-white/50 text-sm cursor-not-allowed">
-                  {t('schemaGenerator')} <span className="text-xs">({t('comingSoon')})</span>
-                </span>
-              </li>
-              <li>
-                <span className="text-white/50 text-sm cursor-not-allowed">
-                  {t('competitorRadar')} <span className="text-xs">({t('comingSoon')})</span>
-                </span>
+                <Link href="/wordpress-plugin" className="text-white/70 hover:text-white text-sm transition-colors">
+                  {t('wordpressPlugin')}
+                </Link>
               </li>
             </ul>
           </div>

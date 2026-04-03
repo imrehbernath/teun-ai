@@ -183,7 +183,7 @@ const translations = {
 export async function generateMetadata({ params }) {
   const { locale } = await params
   const t = translations[locale] || translations.nl
-  return { title: `${t.title} | Teun.ai`, description: t.subtitle }
+  return { title: t.title, description: t.subtitle }
 }
 
 export default async function DashboardPage({ params }) {
