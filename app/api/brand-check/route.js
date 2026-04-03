@@ -1,180 +1,278 @@
+// app/api/brand-check/route.js
+// ============================================
+// AI BRAND CHECK API — Public (no auth required)
+// Single-query mode: 1 prompt → Perplexity + ChatGPT parallel
+// Frontend calls this 3x sequentially for real progress
+// ============================================
+
+export const maxDuration = 60
+
 import { NextResponse } from 'next/server'
+import OpenAI from 'openai'
+import { hasNonLatinText, getLanguageBlockError } from '@/lib/language-guard'
 
-const SERPAPI_KEY = process.env.SERPAPI_KEY
+const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
-// POST /api/brand-check/reviews
-export async function POST(request) {
-  if (!SERPAPI_KEY) {
-    return NextResponse.json({ error: 'SerpAPI not configured' }, { status: 500 })
+// ============================================
+// PROMPTS per query type
+// ============================================
+const PROMPTS = {
+  nl: {
+    experiences: (brand, loc) => `Wat zijn ervaringen met ${brand}${loc ? ' in ' + loc : ''}? Is het betrouwbaar?`,
+    reviews: (brand) => `${brand} reviews, klachten en beoordelingen`,
+    service: (brand, loc, cat) => `Is ${brand}${loc ? ' in ' + loc : ''} een goed bedrijf voor ${cat}? Bereikbaarheid, service en kwaliteit?`,
+  },
+  en: {
+    experiences: (brand, loc) => `What are experiences with ${brand}${loc ? ' in ' + loc : ''}? Is it reliable?`,
+    reviews: (brand) => `${brand} reviews, complaints and ratings`,
+    service: (brand, loc, cat) => `Is ${brand}${loc ? ' in ' + loc : ''} a good company for ${cat}? Accessibility, service and quality?`,
+  }
+}
+
+// ============================================
+// SENTIMENT ANALYSIS
+// ============================================
+const POSITIVE_WORDS = {
+  nl: ['betrouwbaar', 'goed', 'uitstekend', 'professioneel', 'tevreden', 'aanrader', 'deskundig', 'snel', 'prettig', 'fijn', 'positief', 'goede reviews', 'top', 'hoge score', 'klantvriendelijk', 'vakkundig', 'gedegen', 'transparant', 'persoonlijk'],
+  en: ['reliable', 'good', 'excellent', 'professional', 'satisfied', 'recommended', 'expert', 'fast', 'pleasant', 'positive', 'great reviews', 'top', 'high score', 'customer-friendly', 'skilled', 'thorough', 'transparent', 'personal']
+}
+
+const NEGATIVE_WORDS = {
+  nl: ['klachten', 'slecht', 'onbetrouwbaar', 'negatief', 'problemen', 'teleurgesteld', 'ontevreden', 'langzaam', 'duur', 'niet bereikbaar', 'slechte service', 'oplichting', 'waarschuwing', 'afgeraden', 'onprofessioneel'],
+  en: ['complaints', 'bad', 'unreliable', 'negative', 'problems', 'disappointed', 'dissatisfied', 'slow', 'expensive', 'unreachable', 'poor service', 'scam', 'warning', 'not recommended', 'unprofessional']
+}
+
+const ASPECT_PATTERNS = {
+  bereikbaarheid: /bereikba|contact|telefoon|bellen|reachab|contact|phone/i,
+  reviews: /review|beoordeling|sterren|score|trustpilot|google reviews|rating/i,
+  klachten: /klacht|probleem|negatief|teleurgesteld|complaint|issue|negative/i,
+  service: /service|klantenservice|helpdesk|support|customer service/i,
+  openingstijden: /openingstijd|geopend|open|beschikbaar|hours|opening|available/i,
+  betrouwbaarheid: /betrouwba|vertrouw|veilig|gecertificeerd|reliab|trust|safe|certified/i,
+  prijs: /prijs|kost|betaalbaar|duur|goedkoop|tarief|price|cost|affordable|expensive/i,
+  snelheid: /snel|wachttijd|respons|reactietijd|fast|wait|response time/i,
+}
+
+function analyzeSentiment(content, locale) {
+  const lower = content.toLowerCase()
+  const posWords = POSITIVE_WORDS[locale] || POSITIVE_WORDS.nl
+  const negWords = NEGATIVE_WORDS[locale] || NEGATIVE_WORDS.nl
+
+  const posSignals = [], negSignals = []
+  posWords.forEach(w => { if (lower.includes(w)) posSignals.push(w) })
+  negWords.forEach(w => { if (lower.includes(w)) negSignals.push(w) })
+
+  const aspects = []
+  for (const [aspect, pattern] of Object.entries(ASPECT_PATTERNS)) {
+    if (pattern.test(content)) aspects.push(aspect)
   }
 
-  const { brandName, location, locale } = await request.json()
+  const posCount = posSignals.length, negCount = negSignals.length
+  let sentiment = 'neutral'
+  if (posCount > negCount * 2) sentiment = 'positive'
+  else if (negCount > posCount * 2) sentiment = 'negative'
+  else if (posCount > 0 || negCount > 0) sentiment = 'mixed'
 
-  if (!brandName) {
-    return NextResponse.json({ error: 'brandName required' }, { status: 400 })
+  const total = posCount + negCount
+  const score = total > 0 ? Math.round((posCount / total) * 100) : 50
+
+  return { sentiment, score, posSignals, negSignals, aspects, posCount, negCount }
+}
+
+// ============================================
+// STRIP MARKDOWN from responses
+// ============================================
+function stripMarkdown(text) {
+  if (!text) return ''
+  return text
+    // Remove citation references: [1], [2], [1][2], etc.
+    .replace(/\[(\d+)\]/g, '')
+    // Remove markdown links: [text](url) → text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Remove bare URLs
+    .replace(/https?:\/\/[^\s)\]]+/g, '')
+    .replace(/\([^)]*utm_source[^)]*\)/g, '')
+    // Remove headers: ## Title → Title
+    .replace(/^#{1,6}\s+/gm, '')
+    // Remove bold/italic: **text** or *text* → text
+    .replace(/\*{1,3}([^*]+)\*{1,3}/g, '$1')
+    // Remove blockquotes: > text → text
+    .replace(/^>\s?/gm, '')
+    // Convert list items to clean sentences: - Text → Text
+    .replace(/^[-•]\s+/gm, '• ')
+    // Remove horizontal rules
+    .replace(/^[-*_]{3,}\s*$/gm, '')
+    // Remove inline code backticks
+    .replace(/`([^`]+)`/g, '$1')
+    // Remove empty parentheses from URL removal
+    .replace(/\(\s*\)/g, '')
+    // Clean up double spaces from citation removal
+    .replace(/  +/g, ' ')
+    // Clean up multiple blank lines
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+// ============================================
+// PERPLEXITY CALL
+// ============================================
+async function queryPerplexity(prompt, brandName, locale, location) {
+  const locationCtx = location ? (locale === 'en' ? ` The business is located in ${location}, Netherlands.` : ` Het bedrijf is gevestigd in ${location}, Nederland.`) : ''
+  const systemPrompt = locale === 'en'
+    ? `You are a helpful assistant that provides balanced, honest information about businesses.${locationCtx} Always answer in English. Focus on factual information from reviews, ratings and customer experiences. Do not use markdown formatting, citations, or reference numbers.`
+    : `Je bent een behulpzame assistent die gebalanceerde, eerlijke informatie geeft over bedrijven.${locationCtx} Antwoord altijd in het Nederlands. Focus op feitelijke informatie uit reviews, beoordelingen en klantervaringen. Gebruik geen markdown-opmaak, citaties of referentienummers.`
+
+  const response = await fetch('https://api.perplexity.ai/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${PERPLEXITY_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'sonar',
+      messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: prompt }],
+      max_tokens: 800,
+    }),
+    signal: AbortSignal.timeout(25000),
+  })
+
+  if (!response.ok) throw new Error(`Perplexity API error ${response.status}`)
+  const data = await response.json()
+  const content = stripMarkdown(data.choices?.[0]?.message?.content || '')
+  const mentioned = content.toLowerCase().includes(brandName.toLowerCase())
+  return { platform: 'perplexity', response: content, mentioned, ...analyzeSentiment(content, locale) }
+}
+
+// ============================================
+// CHATGPT SEARCH CALL
+// ============================================
+async function queryChatGPT(prompt, brandName, locale, location) {
+  const systemPrompt = locale === 'en'
+    ? 'You are a helpful assistant that provides balanced, honest information about businesses. Always answer in English. Mention specific companies by name. Do not use markdown formatting.'
+    : 'Je bent een behulpzame assistent die gebalanceerde, eerlijke informatie geeft over bedrijven. Antwoord altijd in het Nederlands. Noem specifieke bedrijven bij naam. Gebruik geen markdown-opmaak.'
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-search-preview',
+    web_search_options: {
+      search_context_size: 'medium',
+      user_location: { type: 'approximate', approximate: { country: 'NL', city: location || 'Amsterdam' } }
+    },
+    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: prompt }],
+  })
+
+  const content = stripMarkdown(response.choices?.[0]?.message?.content || '')
+  const mentioned = content.toLowerCase().includes(brandName.toLowerCase())
+  return { platform: 'chatgpt', response: content, mentioned, ...analyzeSentiment(content, locale) }
+}
+
+// ============================================
+// SLACK NOTIFICATION (only on final call)
+// ============================================
+async function sendSlackNotification(data) {
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL
+  if (!webhookUrl) {
+    console.log('[Brand Check] No SLACK_WEBHOOK_URL configured')
+    return
   }
-
+  const emoji = data.sentiment === 'positive' ? '🟢' : data.sentiment === 'negative' ? '🔴' : data.sentiment === 'mixed' ? '🟡' : '⚪'
   try {
-    // Step 1: Search Google Maps for the business
-    const searchQuery = location ? `${brandName} ${location}` : brandName
-    const searchUrl = `https://serpapi.com/search.json?engine=google_maps&q=${encodeURIComponent(searchQuery)}&type=search&api_key=${SERPAPI_KEY}&hl=${locale === 'en' ? 'en' : 'nl'}`
-
-    const searchRes = await fetch(searchUrl)
-    const searchData = await searchRes.json()
-
-    if (!searchData.local_results || searchData.local_results.length === 0) {
-      return NextResponse.json({
-        found: false,
-        message: locale === 'en' ? 'Business not found on Google Maps' : 'Bedrijf niet gevonden op Google Maps',
+    const res = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: `🏷️ Brand Check: *${data.brandName}*${data.location ? ` (${data.location})` : ''} | ${data.category}\n${emoji} ${data.sentiment} | PX: ${data.pxMentioned ? '✅' : '❌'} | CG: ${data.cgMentioned ? '✅' : '❌'}`
       })
+    })
+    if (!res.ok) console.error(`[Brand Check] Slack webhook returned ${res.status}`)
+  } catch (e) {
+    console.error('[Brand Check] Slack error:', e.message)
+  }
+}
+
+// ============================================
+// POST HANDLER — single query mode
+// ============================================
+export async function POST(request) {
+  let locale = 'nl'
+  try {
+    const body = await request.json()
+    const { brandName, location, category, queryType } = body
+    locale = body.locale || 'nl'
+    const prompts = PROMPTS[locale] || PROMPTS.nl
+
+    if (!brandName || brandName.trim().length < 2) {
+      return NextResponse.json({ error: locale === 'nl' ? 'Bedrijfsnaam is verplicht' : 'Company name is required' }, { status: 400 })
+    }
+    if (!category || category.trim().length < 2) {
+      return NextResponse.json({ error: locale === 'nl' ? 'Branche is verplicht' : 'Industry is required' }, { status: 400 })
     }
 
-    // Find best match (first result or exact name match)
-    const brandLower = brandName.toLowerCase()
-    const match = searchData.local_results.find(r =>
-      r.title?.toLowerCase().includes(brandLower)
-    ) || searchData.local_results[0]
-
-    const placeInfo = {
-      name: match.title,
-      rating: match.rating || null,
-      reviewCount: match.reviews || 0,
-      address: match.address || '',
-      type: match.type || '',
-      dataId: match.data_id || match.place_id,
+    // 🌐 Language guard: block non-Latin brand names and categories
+    if (hasNonLatinText(brandName) || hasNonLatinText(category)) {
+      return NextResponse.json({ error: getLanguageBlockError(locale) }, { status: 400 })
     }
 
-    // No reviews available
-    if (!placeInfo.dataId || placeInfo.reviewCount === 0) {
-      return NextResponse.json({
-        found: true,
-        place: placeInfo,
-        reviews: [],
-        themes: [],
-        summary: null,
-      })
+    if (!['experiences', 'reviews', 'service'].includes(queryType)) {
+      return NextResponse.json({ error: 'Invalid queryType' }, { status: 400 })
     }
 
-    // Step 2: Fetch reviews
-    const reviewsUrl = `https://serpapi.com/search.json?engine=google_maps_reviews&data_id=${encodeURIComponent(placeInfo.dataId)}&api_key=${SERPAPI_KEY}&hl=${locale === 'en' ? 'en' : 'nl'}&sort_by=newestFirst`
+    const brand = brandName.trim()
+    const loc = location?.trim() || ''
+    const cat = category.trim()
 
-    const reviewsRes = await fetch(reviewsUrl)
-    const reviewsData = await reviewsRes.json()
+    // Generate prompt for this query type
+    let prompt
+    if (queryType === 'experiences') prompt = prompts.experiences(brand, loc)
+    else if (queryType === 'reviews') prompt = prompts.reviews(brand)
+    else prompt = prompts.service(brand, loc, cat)
 
-    const reviews = (reviewsData.reviews || []).slice(0, 20).map(r => ({
-      rating: r.rating || 0,
-      text: r.snippet || r.text || '',
-      date: r.date || '',
-      likes: r.likes || 0,
-    }))
+    console.log(`[Brand Check] ${queryType}: ${brand} (${loc || '-'}) — ${cat}`)
 
-    // Step 3: Analyze themes from reviews
-    const themes = analyzeReviewThemes(reviews, locale)
+    // Run Perplexity + ChatGPT in parallel for this single query
+    const [pxResult, cgResult] = await Promise.all([
+      queryPerplexity(prompt, brand, locale, loc).catch(err => {
+        console.error(`[Brand Check] Perplexity error: ${err.message}`)
+        return { platform: 'perplexity', response: '', mentioned: false, sentiment: 'neutral', score: 50, posSignals: [], negSignals: [], aspects: [], posCount: 0, negCount: 0 }
+      }),
+      queryChatGPT(prompt, brand, locale, loc).catch(err => {
+        console.error(`[Brand Check] ChatGPT error: ${err.message}`)
+        return { platform: 'chatgpt', response: '', mentioned: false, sentiment: 'neutral', score: 50, posSignals: [], negSignals: [], aspects: [], posCount: 0, negCount: 0 }
+      }),
+    ])
 
-    // Step 4: Build summary
-    const positiveReviews = reviews.filter(r => r.rating >= 4)
-    const negativeReviews = reviews.filter(r => r.rating <= 2)
-    const neutralReviews = reviews.filter(r => r.rating === 3)
-
-    const avgRating = reviews.length > 0
-      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-      : placeInfo.rating
+    // Slack on final query
+    if (queryType === 'service') {
+      await sendSlackNotification({ brandName: brand, location: loc, category: cat, sentiment: pxResult.sentiment, pxMentioned: pxResult.mentioned, cgMentioned: cgResult.mentioned }).catch(e => console.error('[Brand Check] Slack failed:', e.message))
+    }
 
     return NextResponse.json({
-      found: true,
-      place: placeInfo,
-      reviews: reviews.slice(0, 5), // Only return top 5 for display
-      themes,
-      summary: {
-        avgRating: parseFloat(avgRating),
-        totalReviews: placeInfo.reviewCount,
-        analyzedReviews: reviews.length,
-        positive: positiveReviews.length,
-        negative: negativeReviews.length,
-        neutral: neutralReviews.length,
+      success: true,
+      queryType,
+      prompt,
+      perplexity: {
+        response: pxResult.response,
+        mentioned: pxResult.mentioned,
+        sentiment: pxResult.sentiment,
+        score: pxResult.score,
+        posSignals: pxResult.posSignals,
+        negSignals: pxResult.negSignals,
+        aspects: pxResult.aspects,
+      },
+      chatgpt: {
+        response: cgResult.response,
+        mentioned: cgResult.mentioned,
+        sentiment: cgResult.sentiment,
+        score: cgResult.score,
+        posSignals: cgResult.posSignals,
+        negSignals: cgResult.negSignals,
+        aspects: cgResult.aspects,
       },
     })
 
   } catch (error) {
-    console.error('Google Reviews API error:', error)
-    return NextResponse.json({ error: 'Failed to fetch reviews' }, { status: 500 })
-  }
-}
-
-// Client-side theme analysis (no OpenAI needed, fast)
-function analyzeReviewThemes(reviews, locale) {
-  const isNL = locale !== 'en'
-
-  // Theme keywords mapping
-  const themePatterns = {
-    quality: {
-      label: isNL ? 'Kwaliteit' : 'Quality',
-      keywords: ['kwaliteit', 'quality', 'vakwerk', 'professioneel', 'professional', 'goed werk', 'good work', 'netjes', 'mooi', 'excellent', 'uitstekend', 'prima', 'top', 'perfect'],
-      positive: 0, negative: 0,
-    },
-    service: {
-      label: 'Service',
-      keywords: ['service', 'friendly', 'vriendelijk', 'behulpzaam', 'helpful', 'klantvriendelijk', 'customer service', 'attent', 'meedenken', 'flexibel', 'flexible'],
-      positive: 0, negative: 0,
-    },
-    communication: {
-      label: isNL ? 'Communicatie' : 'Communication',
-      keywords: ['communicatie', 'communication', 'bereikbaar', 'reachable', 'contact', 'reageren', 'response', 'antwoord', 'answer', 'terugbellen', 'callback', 'mail', 'email', 'telefoon', 'phone'],
-      positive: 0, negative: 0,
-    },
-    price: {
-      label: isNL ? 'Prijs-kwaliteit' : 'Value for money',
-      keywords: ['prijs', 'price', 'kosten', 'cost', 'betaalbaar', 'affordable', 'goedkoop', 'cheap', 'duur', 'expensive', 'prijs-kwaliteit', 'value', 'waarde', 'fair', 'eerlijk', 'scherp'],
-      positive: 0, negative: 0,
-    },
-    reliability: {
-      label: isNL ? 'Betrouwbaarheid' : 'Reliability',
-      keywords: ['betrouwbaar', 'reliable', 'op tijd', 'on time', 'afspraak', 'appointment', 'stipt', 'punctual', 'beloftes', 'promises', 'nakomen', 'deliver', 'vertrouwen', 'trust'],
-      positive: 0, negative: 0,
-    },
-    speed: {
-      label: isNL ? 'Snelheid' : 'Speed',
-      keywords: ['snel', 'fast', 'quick', 'vlot', 'tempo', 'speed', 'wachten', 'waiting', 'lang duren', 'took long', 'traag', 'slow', 'direct', 'meteen', 'immediately'],
-      positive: 0, negative: 0,
-    },
-    expertise: {
-      label: isNL ? 'Expertise' : 'Expertise',
-      keywords: ['kennis', 'knowledge', 'ervaring', 'experience', 'expert', 'specialist', 'vakman', 'deskundig', 'skilled', 'kundig', 'competent', 'know-how'],
-      positive: 0, negative: 0,
-    },
-  }
-
-  // Negative signal words
-  const negativeWords = ['niet', 'slecht', 'matig', 'teleurgesteld', 'jammer', 'helaas', 'probleem', 'klacht', 'no', 'bad', 'poor', 'disappointed', 'unfortunately', 'problem', 'complaint', 'terrible', 'awful', 'worst', 'never', 'nooit']
-
-  for (const review of reviews) {
-    const text = (review.text || '').toLowerCase()
-    const isPositive = review.rating >= 4
-    const isNegative = review.rating <= 2
-    const hasNegWord = negativeWords.some(w => text.includes(w))
-
-    for (const [key, theme] of Object.entries(themePatterns)) {
-      const found = theme.keywords.some(kw => text.includes(kw))
-      if (found) {
-        if (isNegative || (hasNegWord && !isPositive)) {
-          theme.negative++
-        } else {
-          theme.positive++
-        }
-      }
+    console.error('[Brand Check] Error:', error?.message || error)
+    const msg = error?.message || ''
+    if (msg.includes('API') || msg.includes('401') || msg.includes('429')) {
+      return NextResponse.json({ error: locale === 'nl' ? 'Tijdelijk probleem. Probeer het over een paar minuten opnieuw.' : 'Temporary issue. Try again in a few minutes.' }, { status: 503 })
     }
+    return NextResponse.json({ error: locale === 'nl' ? 'Er ging iets mis. Probeer het opnieuw.' : 'Something went wrong. Please try again.' }, { status: 500 })
   }
-
-  // Return themes that were actually mentioned, sorted by total mentions
-  return Object.entries(themePatterns)
-    .filter(([_, t]) => t.positive + t.negative > 0)
-    .map(([key, t]) => ({
-      key,
-      label: t.label,
-      positive: t.positive,
-      negative: t.negative,
-      total: t.positive + t.negative,
-      sentiment: t.negative > t.positive ? 'negative' : t.positive > t.negative * 2 ? 'positive' : 'mixed',
-    }))
-    .sort((a, b) => b.total - a.total)
 }
