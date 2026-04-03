@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-const SERPAPI_KEY = process.env.SERPAPI_API_KEY
+const SERPAPI_KEY = process.env.SERPAPI_KEY
 
 // POST /api/brand-check/reviews
 export async function POST(request) {
