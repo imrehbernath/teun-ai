@@ -95,7 +95,7 @@ export default async function ToolsPage() {
       tag: 'BETA',
     },
     {
-      title: isNL ? 'GEO Analyse PRO' : 'GEO Analysis PRO',
+      title: isNL ? 'GEO Optimalisatie DIY' : 'GEO Optimization DIY',
       subtitle: isNL ? 'Compleet dashboard met Search Console' : 'Complete dashboard with Search Console',
       description: isNL
         ? 'Het volledige platform voor serieuze GEO-optimalisatie. Koppel je Search Console, krijg AI-gegenereerd advies per pagina, monitor je voortgang over tijd, en gebruik alle tools onbeperkt. Voor bureaus en bedrijven die structureel werken aan AI-zichtbaarheid.'
@@ -108,17 +108,17 @@ export default async function ToolsPage() {
   ]
 
   const faqItems = isNL ? [
-    { q: 'Zijn de tools echt gratis?', a: 'Ja, 6 van de 7 tools zijn volledig gratis. Alleen de GEO Analyse is een Pro functie (€49,95/maand). Voor de gratis tools heb je voor de meeste niet eens een account nodig.' },
+    { q: 'Zijn de tools echt gratis?', a: 'Ja, 6 van de 7 tools zijn volledig gratis te gebruiken, voor de meeste heb je niet eens een account nodig. Met Pro (€49,95/maand) kun je zelf je pagina\'s optimaliseren via GEO Optimalisatie DIY en gebruik je alle tools onbeperkt.' },
     { q: 'Welke AI-platformen worden gescand?', a: 'We scannen ChatGPT (via de officiële Search API), Perplexity (via sonar-pro), Google AI Mode en Google AI Overviews. Niet elke tool scant alle platformen.' },
-    { q: 'Heb ik een account nodig?', a: 'Voor de AI Visibility Scan, Brand Check en Prompt Discovery niet. Voor het opslaan van resultaten en de GEO Analyse is een gratis account nodig.' },
+    { q: 'Heb ik een account nodig?', a: 'Voor de AI Visibility Scan, Brand Check en Prompt Discovery niet. Voor het opslaan van resultaten en GEO Optimalisatie DIY is een gratis account nodig.' },
     { q: 'Wat is het verschil met Otterly.ai of Peec?', a: 'Bij Teun.ai kun je echt GEO-optimaliseren: niet alleen meten, maar ook verbeteren met concrete adviezen per pagina. We bieden 6 gratis tools waar concurrenten vaak direct betaald zijn. Plus een WordPress plugin en Chrome extensie die andere platforms niet hebben.' },
-    { q: 'Wat kost Pro?', a: 'Pro kost €49,95 per maand (maandelijks opzegbaar) of €39,95 per maand bij jaarabonnement. Je krijgt toegang tot de GEO Analyse, onbeperkte scans, en Search Console integratie.' },
+    { q: 'Wat kost Pro?', a: 'Pro kost €49,95 per maand (maandelijks opzegbaar) of €39,95 per maand bij jaarabonnement. Je krijgt GEO Optimalisatie DIY om zelf je pagina\'s te optimaliseren, onbeperkte scans op alle tools, en Search Console integratie.' },
   ] : [
-    { q: 'Are the tools really free?', a: 'Yes, 6 of 7 tools are completely free. Only GEO Analysis is a Pro feature (€49.95/month). For most free tools you don\'t even need an account.' },
+    { q: 'Are the tools really free?', a: 'Yes, 6 of 7 tools are completely free, most don\'t even require an account. With Pro (€49.95/month) you can optimize your pages yourself via GEO Optimization DIY and use all tools unlimited.' },
     { q: 'Which AI platforms are scanned?', a: 'We scan ChatGPT (official Search API), Perplexity (sonar-pro), Google AI Mode and AI Overviews. Not every tool scans all platforms.' },
-    { q: 'Do I need an account?', a: 'Not for AI Visibility Scan, Brand Check or Prompt Discovery. For saving results and GEO Analysis, a free account is needed.' },
+    { q: 'Do I need an account?', a: 'Not for AI Visibility Scan, Brand Check or Prompt Discovery. For saving results and GEO Optimization DIY, a free account is needed.' },
     { q: 'How does this compare to Otterly.ai or Peec?', a: 'Teun.ai lets you actually optimize for GEO: not just measure, but improve with concrete advice per page. We offer 6 free tools where competitors are often paid from the start. Plus a WordPress plugin and Chrome extension other platforms don\'t have.' },
-    { q: 'What does Pro cost?', a: 'Pro costs €49.95/month (cancel anytime) or €39.95/month annual. You get GEO Analysis, unlimited scans, and Search Console integration.' },
+    { q: 'What does Pro cost?', a: 'Pro costs €49.95/month (cancel anytime) or €39.95/month annual. You get GEO Optimization DIY to optimize your pages yourself, unlimited scans on all tools, and Search Console integration.' },
   ]
 
   return (
