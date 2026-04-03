@@ -286,6 +286,7 @@ function AIVisibilityToolContent() {
   const [loading, setLoading] = useState(true);
   const [referralSource, setReferralSource] = useState(null);
   const [fromHomepage, setFromHomepage] = useState(false);
+  const [videoPlaying, setVideoPlaying] = useState(false);
   
   const [formData, setFormData] = useState({
     companyName: '',
@@ -830,17 +831,39 @@ function AIVisibilityToolContent() {
             <p className="text-center text-sm font-medium text-slate-500 mb-3">
               {locale === 'nl' ? '▶ Bekijk hoe de scan werkt (2,5x versneld)' : '▶ See how the scan works (2.5x speed)'}
             </p>
-            <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-white">
-              <video
-                controls
-                preload="metadata"
-                playsInline
-                className="w-full"
-                ref={(el) => { if (el) el.playbackRate = 2.5 }}
-                onPlay={(e) => { e.target.playbackRate = 2.5 }}
-              >
-                <source src="/Teun.ai-AI-zichtbaarheidsanalyse.mp4#t=0.001" type="video/mp4" />
-              </video>
+            <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-slate-900 aspect-video relative">
+              {!videoPlaying ? (
+                <button
+                  onClick={() => setVideoPlaying(true)}
+                  className="absolute inset-0 w-full h-full cursor-pointer group"
+                >
+                  <Image
+                    src="/Teun.ai-AI-zichtbaarheidsanalyse-poster.webp"
+                    alt={locale === 'nl' ? 'AI Zichtbaarheid Scan demo' : 'AI Visibility Scan demo'}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 768px"
+                  />
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/90 group-hover:bg-white rounded-full flex items-center justify-center shadow-xl group-hover:scale-110 transition-all">
+                      <svg className="w-7 h-7 sm:w-8 sm:h-8 text-[#292956] ml-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                  </div>
+                </button>
+              ) : (
+                <video
+                  autoPlay
+                  controls
+                  playsInline
+                  className="w-full h-full"
+                  onPlay={(e) => { e.target.playbackRate = 2.5 }}
+                >
+                  <source src="/Teun.ai-AI-zichtbaarheidsanalyse.mp4" type="video/mp4" />
+                </video>
+              )}
             </div>
           </div>
         )}

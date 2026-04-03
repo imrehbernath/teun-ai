@@ -32,7 +32,12 @@ export default function Homepage() {
   const [extractionMessage, setExtractionMessage] = useState(null);
   const [keywordTags, setKeywordTags] = useState([]);
   const [newKeywordInput, setNewKeywordInput] = useState('');
+  const [videoMounted, setVideoMounted] = useState(false);
+  const [videoPlaying, setVideoPlaying] = useState(false);
   const lastExtractedUrl = useRef('');
+
+  // Lazy-load video after mount to prevent FOUC
+  useEffect(() => { setVideoMounted(true) }, []);
 
   // Auto-extract keywords when URL looks like a real domain (debounced 800ms)
   useEffect(() => {
@@ -681,17 +686,39 @@ export default function Homepage() {
             <p className="text-center text-sm font-medium text-slate-500 mb-4">
               {locale === 'nl' ? '▶ Bekijk de scan in actie (2,5x versneld)' : '▶ See the scan in action (2.5x speed)'}
             </p>
-            <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-white">
-              <video
-                controls
-                preload="metadata"
-                playsInline
-                className="w-full"
-                ref={(el) => { if (el) el.playbackRate = 2.5 }}
-                onPlay={(e) => { e.target.playbackRate = 2.5 }}
-              >
-                <source src="/Teun.ai-AI-zichtbaarheidsanalyse.mp4#t=0.001" type="video/mp4" />
-              </video>
+            <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-slate-900 aspect-video relative">
+              {!videoPlaying ? (
+                <button
+                  onClick={() => setVideoPlaying(true)}
+                  className="absolute inset-0 w-full h-full cursor-pointer group"
+                >
+                  <Image
+                    src="/Teun.ai-AI-zichtbaarheidsanalyse-poster.webp"
+                    alt={locale === 'nl' ? 'AI Zichtbaarheid Scan demo' : 'AI Visibility Scan demo'}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 896px) 100vw, 896px"
+                  />
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/90 group-hover:bg-white rounded-full flex items-center justify-center shadow-xl group-hover:scale-110 transition-all">
+                      <svg className="w-7 h-7 sm:w-8 sm:h-8 text-[#292956] ml-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                  </div>
+                </button>
+              ) : videoMounted && (
+                <video
+                  autoPlay
+                  controls
+                  playsInline
+                  className="w-full h-full"
+                  onPlay={(e) => { e.target.playbackRate = 2.5 }}
+                >
+                  <source src="/Teun.ai-AI-zichtbaarheidsanalyse.mp4" type="video/mp4" />
+                </video>
+              )}
             </div>
           </div>
         </div>
