@@ -857,6 +857,7 @@ function AIVisibilityToolContent() {
                 <video
                   autoPlay
                   controls
+                  controlsList="nofullscreen"
                   playsInline
                   className="w-full h-full"
                   onPlay={(e) => { e.target.playbackRate = 2.5 }}

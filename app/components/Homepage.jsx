@@ -34,10 +34,20 @@ export default function Homepage() {
   const [newKeywordInput, setNewKeywordInput] = useState('');
   const [videoMounted, setVideoMounted] = useState(false);
   const [videoPlaying, setVideoPlaying] = useState(false);
+  const [videoTheater, setVideoTheater] = useState(false);
   const lastExtractedUrl = useRef('');
 
   // Lazy-load video after mount to prevent FOUC
   useEffect(() => { setVideoMounted(true) }, []);
+
+  // Theater mode: Escape to close, lock scroll
+  useEffect(() => {
+    if (!videoTheater) return
+    const handleKey = (e) => { if (e.key === 'Escape') setVideoTheater(false) }
+    document.addEventListener('keydown', handleKey)
+    document.body.style.overflow = 'hidden'
+    return () => { document.removeEventListener('keydown', handleKey); document.body.style.overflow = '' }
+  }, [videoTheater]);
 
   // Auto-extract keywords when URL looks like a real domain (debounced 800ms)
   useEffect(() => {
@@ -686,7 +696,7 @@ export default function Homepage() {
             <p className="text-center text-sm font-medium text-slate-500 mb-4">
               {locale === 'nl' ? '▶ Bekijk de scan in actie (2,5x versneld)' : '▶ See the scan in action (2.5x speed)'}
             </p>
-            <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-slate-100 aspect-video relative">
+            <div className={`rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-slate-100 aspect-video relative ${videoTheater ? 'invisible' : ''}`}>
               {!videoPlaying ? (
                 <button
                   onClick={() => setVideoPlaying(true)}
@@ -708,19 +718,32 @@ export default function Homepage() {
                     </div>
                   </div>
                 </button>
-              ) : videoMounted && (
-                <video
-                  autoPlay
-                  controls
-                  playsInline
-                  className="w-full h-full"
-                  onPlay={(e) => { e.target.playbackRate = 2.5 }}
-                >
-                  <source src="/Teun.ai-AI-zichtbaarheidsanalyse.mp4" type="video/mp4" />
-                </video>
+              ) : videoMounted && !videoTheater && (
+                <div className="relative w-full h-full">
+                  <video autoPlay controls controlsList="nofullscreen" playsInline className="w-full h-full" onPlay={(e) => { e.target.playbackRate = 2.5 }}>
+                    <source src="/Teun.ai-AI-zichtbaarheidsanalyse.mp4" type="video/mp4" />
+                  </video>
+                  <button onClick={() => setVideoTheater(true)} className="absolute top-3 right-3 bg-black/50 hover:bg-black/70 text-white rounded-lg px-2.5 py-1.5 text-xs font-medium transition cursor-pointer flex items-center gap-1.5" title="Theater modus">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                  </button>
+                </div>
               )}
             </div>
           </div>
+
+          {/* Theater mode overlay */}
+          {videoTheater && (
+            <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 sm:p-8">
+              <button onClick={() => setVideoTheater(false)} className="absolute top-4 right-4 text-white/70 hover:text-white z-50 cursor-pointer">
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+              <div className="rounded-xl overflow-hidden aspect-video w-full max-w-6xl">
+                <video autoPlay controls controlsList="nofullscreen" playsInline className="w-full h-full" onPlay={(e) => { e.target.playbackRate = 2.5 }}>
+                  <source src="/Teun.ai-AI-zichtbaarheidsanalyse.mp4" type="video/mp4" />
+                </video>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

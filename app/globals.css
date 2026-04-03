@@ -68,4 +68,8 @@ body {
 .animate-scroll-right:hover {
   animation-play-state: paused;
 }
+/* Hide native fullscreen button - use theater mode instead */
+video::-webkit-media-controls-fullscreen-button {
+  display: none;
+}
 
