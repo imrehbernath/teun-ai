@@ -339,8 +339,8 @@ export default function PricingPage() {
               <div className="text-sm text-white/70">{isNL ? 'Gratis tools' : 'Free tools'}</div>
             </div>
             <div>
-              <div className="text-3xl md:text-4xl font-bold text-green-400 mb-1">€{price.toFixed(2).replace('.', ',')}</div>
-              <div className="text-sm text-white/70">{isNL ? 'Alles onbeperkt' : 'Everything unlimited'}</div>
+              <div className="text-3xl md:text-4xl font-bold text-green-400 mb-1">4</div>
+              <div className="text-sm text-white/70">{isNL ? 'AI-platformen' : 'AI platforms'}</div>
             </div>
           </div>
         </div>
