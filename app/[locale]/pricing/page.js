@@ -116,14 +116,14 @@ export default function PricingPage() {
       proStatus: 'check',
     },
     {
-      name: isNL ? 'Dagelijkse rank monitoring' : 'Daily rank monitoring',
-      free: null,
-      pro: true,
-      freeStatus: 'cross',
-      proStatus: 'pro',
+      name: 'AI Prompt Discovery',
+      free: isNL ? 'Inbegrepen' : 'Included',
+      pro: isNL ? 'Inbegrepen' : 'Included',
+      freeStatus: 'check',
+      proStatus: 'check',
     },
     {
-      name: isNL ? 'Concurrentie tracking & alerts' : 'Competitor tracking & alerts',
+      name: isNL ? 'Search Console integratie' : 'Search Console integration',
       free: null,
       pro: true,
       freeStatus: 'cross',
@@ -137,14 +137,14 @@ export default function PricingPage() {
       proStatus: 'pro',
     },
     {
-      name: isNL ? 'GEO Analyse & optimalisatie' : 'GEO Analysis & optimization',
+      name: isNL ? 'GEO Optimalisatie DIY' : 'GEO Optimization DIY',
       free: null,
       pro: true,
       freeStatus: 'cross',
       proStatus: 'pro',
     },
     {
-      name: isNL ? 'Uitgebreide PDF rapporten' : 'Extended PDF reports',
+      name: isNL ? 'AI-advies per pagina' : 'AI advice per page',
       free: null,
       pro: true,
       freeStatus: 'cross',
@@ -163,6 +163,7 @@ export default function PricingPage() {
     { name: 'Teun.ai Pro', price: '€49,95', platforms: '4+', prompts: isNL ? 'Onbeperkt' : 'Unlimited', websites: isNL ? 'Onbeperkt' : 'Unlimited', tools: isNL ? '6 gratis' : '6 free', audit: true, explorer: true, plugin: true, hl: true },
     { name: 'Profound', price: isNL ? 'Vanaf $99' : 'From $99', platforms: '1-3*', prompts: '50-100', websites: '1', tools: isNL ? 'Geen' : 'None', audit: false, explorer: false, plugin: false },
     { name: 'Peec.ai', price: isNL ? 'Vanaf €85' : 'From €85', platforms: '3 van 7*', prompts: '50-150', websites: '1-2', tools: isNL ? 'Geen' : 'None', audit: false, explorer: false, plugin: false },
+    { name: 'Otterly.ai', price: isNL ? 'Vanaf $29' : 'From $29', platforms: '6', prompts: '10-100*', websites: '1', tools: isNL ? 'Geen' : 'None', audit: false, explorer: false, plugin: false },
     { name: 'Geoptie', price: isNL ? 'Vanaf $41' : 'From $41', platforms: isNL ? 'Alle' : 'All', prompts: '15-100', websites: '2-10', tools: isNL ? '7 gratis' : '7 free', audit: true, explorer: false, plugin: false },
     { name: 'Briljant.nl', price: isNL ? 'Vanaf €49' : 'From €49', platforms: '3', prompts: '100+', websites: '1', tools: isNL ? 'Geen' : 'None', audit: true, explorer: false, plugin: false },
     { name: 'SEMrush', price: '€140+', platforms: '3-4*', prompts: '25-200', websites: '1-5', tools: isNL ? 'Geen' : 'None', audit: false, explorer: false, plugin: false },
@@ -174,13 +175,13 @@ export default function PricingPage() {
     { q: 'Welke AI platforms worden gescand?', a: 'ChatGPT Search, Perplexity, Google AI Mode en Google AI Overviews. Alle platforms zijn inbegrepen, zonder extra kosten per platform.' },
     { q: 'Wat betekent \'onbeperkte scans\'?', a: 'Geen dagelijkse limieten, geen credits die opraken. Draai zoveel AI Visibility scans, Brand Checks, Rank Tracker checks en GEO Audits als je nodig hebt.' },
     { q: 'Is er een gratis proefperiode?', a: 'Alle 6 tools zijn gratis te gebruiken met dagelijkse limieten. Zo ervaar je precies wat Teun.ai kan voordat je upgradet naar Pro.' },
-    { q: 'Wat maakt Teun.ai anders dan Profound of Peec?', a: 'Teun.ai biedt 6 gratis tools, onbeperkte websites, scant alle platforms zonder extra kosten, en heeft een WordPress plugin en AI Prompt Explorer. Profound kost vanaf $99/mnd voor alleen ChatGPT, Peec.ai vanaf €85/mnd voor max 50 prompts op 3 platforms.' },
+    { q: 'Wat maakt Teun.ai anders dan Otterly, Profound of Peec?', a: 'Teun.ai biedt 6 gratis tools, onbeperkte websites, en je kunt echt zelf GEO-optimaliseren met advies per pagina. Plus een WordPress plugin en Chrome extensie. Otterly.ai kost vanaf $29/mnd voor slechts 10 prompts zonder gratis tools. Profound start bij $99/mnd voor alleen ChatGPT. Peec.ai vanaf €85/mnd voor max 3 van 7 platformen.' },
   ] : [
     { q: 'Can I cancel at any time?', a: 'Yes. No contracts, no notice period. You keep Pro access until the end of your billing period.' },
     { q: 'Which AI platforms are scanned?', a: 'ChatGPT Search, Perplexity, Google AI Mode and Google AI Overviews. All platforms included, no extra costs per platform.' },
     { q: 'What does \'unlimited scans\' mean?', a: 'No daily limits, no credits running out. Run as many AI Visibility scans, Brand Checks, Rank Tracker checks and GEO Audits as you need.' },
     { q: 'Is there a free trial?', a: 'All 6 tools are free to use with daily limits. Experience exactly what Teun.ai can do before upgrading to Pro.' },
-    { q: 'What makes Teun.ai different from Profound or Peec?', a: 'Teun.ai offers 6 free tools, unlimited websites, scans all platforms at no extra cost, and has a WordPress plugin and AI Prompt Explorer. Profound starts at $99/mo for ChatGPT only, Peec.ai starts at €85/mo for max 50 prompts on 3 platforms.' },
+    { q: 'What makes Teun.ai different from Otterly, Profound or Peec?', a: 'Teun.ai offers 6 free tools, unlimited websites, and you can actually optimize for GEO yourself with per-page advice. Plus a WordPress plugin and Chrome extension. Otterly.ai starts at $29/mo for just 10 prompts with no free tools. Profound starts at $99/mo for ChatGPT only. Peec.ai starts at €85/mo for max 3 of 7 platforms.' },
   ];
 
   const platforms = [
@@ -298,8 +299,8 @@ export default function PricingPage() {
 
           <p className="text-base sm:text-lg text-slate-600 mb-8 max-w-xl mx-auto">
             {isNL
-              ? '6 gratis AI visibility tools. Upgrade naar Pro voor onbeperkte scans, dagelijkse monitoring en concurrentie alerts.'
-              : '6 free AI visibility tools. Upgrade to Pro for unlimited scans, daily monitoring and competitor alerts.'}
+              ? '6 gratis AI-zichtbaarheid tools. Upgrade naar Pro voor GEO Optimalisatie DIY en onbeperkt gebruik van alle tools.'
+              : '6 free AI visibility tools. Upgrade to Pro for GEO Optimization DIY and unlimited use of all tools.'}
           </p>
 
           {/* Toggle */}
@@ -410,8 +411,8 @@ export default function PricingPage() {
               )}
               <p className="text-slate-500 text-sm mb-8">
                 {isNL
-                  ? 'Onbeperkt scannen, dagelijkse monitoring en alerts op alle platforms.'
-                  : 'Unlimited scanning, daily monitoring and alerts on all platforms.'}
+                  ? 'GEO Optimalisatie DIY: optimaliseer je pagina\'s zelf en gebruik alle tools onbeperkt.'
+                  : 'GEO Optimization DIY: optimize your pages yourself and use all tools unlimited.'}
               </p>
 
               <button
@@ -479,8 +480,8 @@ export default function PricingPage() {
             </h2>
             <p className="text-slate-500 max-w-lg mx-auto">
               {isNL
-                ? 'Dagelijkse monitoring, concurrentie alerts en volledige scan resultaten.'
-                : 'Daily monitoring, competitor alerts and full scan results.'}
+                ? 'GEO Optimalisatie DIY met Search Console integratie en AI-advies per pagina.'
+                : 'GEO Optimization DIY with Search Console integration and AI advice per page.'}
             </p>
           </div>
 
@@ -728,8 +729,8 @@ export default function PricingPage() {
 
           <p className="text-center text-slate-400 text-xs mt-4 max-w-3xl mx-auto">
             {isNL
-              ? '* Peec.ai: kies 3 van 7 modellen, extra modellen via hogere tiers. Profound Starter ($99) alleen ChatGPT. SEMrush AI visibility is een add-on. Briljant.nl: €49/mnd na 7 dagen gratis proefperiode. Prijzen per maart 2026.'
-              : '* Peec.ai: choose 3 of 7 models, more models via higher tiers. Profound Starter ($99) ChatGPT only. SEMrush AI visibility is an add-on. Briljant.nl: €49/mo after 7-day free trial. Prices as of March 2026.'}
+              ? '* Peec.ai: kies 3 van 7 modellen, extra modellen via hogere tiers. Otterly.ai Lite $29/mnd voor 10 prompts, Standard $189/mnd voor 100 prompts. Profound Starter ($99) alleen ChatGPT. SEMrush AI visibility is een add-on. Briljant.nl: €49/mnd na 7 dagen gratis proefperiode. Prijzen per april 2025.'
+              : '* Peec.ai: choose 3 of 7 models, more models via higher tiers. Otterly.ai Lite $29/mo for 10 prompts, Standard $189/mo for 100 prompts. Profound Starter ($99) ChatGPT only. SEMrush AI visibility is an add-on. Briljant.nl: €49/mo after 7-day free trial. Prices as of April 2025.'}
           </p>
         </div>
       </section>
@@ -746,8 +747,8 @@ export default function PricingPage() {
               </h2>
               <p className="text-white/70 text-lg mb-8 max-w-xl mx-auto">
                 {isNL
-                  ? 'Start gratis of upgrade direct naar Pro voor onbeperkte AI visibility scanning.'
-                  : 'Start free or upgrade directly to Pro for unlimited AI visibility scanning.'}
+                  ? 'Start gratis of upgrade naar Pro voor GEO Optimalisatie DIY en onbeperkt alle tools.'
+                  : 'Start free or upgrade to Pro for GEO Optimization DIY and unlimited access to all tools.'}
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 <button onClick={handleProClick} disabled={loading} className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold text-lg hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg shadow-green-500/25 hover:shadow-green-500/40 cursor-pointer disabled:opacity-60">
