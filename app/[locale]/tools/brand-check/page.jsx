@@ -84,6 +84,7 @@ export default function BrandCheckPage() {
   const [queryStates, setQueryStates] = useState([{ status: 'waiting' }, { status: 'waiting' }, { status: 'waiting' }])
   const [reviewsData, setReviewsData] = useState(null)
   const [reviewsLoading, setReviewsLoading] = useState(false)
+  const [brancheTooltip, setBrancheTooltip] = useState(false)
 
   const faqItems = locale === 'en' ? [
     { q: 'What is an AI Brand Check?', a: 'An AI Brand Check analyzes what AI platforms like ChatGPT and Perplexity say about your business. We check sentiment, reputation signals and whether your brand is actually mentioned in AI-generated answers.' },
@@ -161,7 +162,7 @@ export default function BrandCheckPage() {
   // ── SEQUENTIAL SCAN ────────────────────────
   async function handleScan(e) {
     e.preventDefault()
-    if (!brandName.trim() || !category.trim()) return
+    if (!brandName.trim() || !category.trim() || !location.trim()) return
 
     setLoading(true)
     setError('')
@@ -353,15 +354,25 @@ export default function BrandCheckPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex items-center gap-3">
                     <MapPin className="w-5 h-5 text-slate-400 flex-shrink-0" />
-                    <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder={locale === 'en' ? 'City (optional)' : 'Vestigingsplaats (optioneel)'} className="w-full py-2 text-base text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent" disabled={loading} />
+                    <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder={locale === 'en' ? 'City' : 'Vestigingsplaats'} className="w-full py-2 text-base text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent" required minLength={2} disabled={loading} />
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 relative">
                     <Briefcase className="w-5 h-5 text-slate-400 flex-shrink-0" />
                     <input type="text" value={category} onChange={e => setCategory(e.target.value)} placeholder={locale === 'en' ? 'Your industry' : 'Jouw branche'} className="w-full py-2 text-base text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent" required minLength={2} disabled={loading} />
+                    <span className="relative flex-shrink-0" onClick={() => setBrancheTooltip(!brancheTooltip)}>
+                      <svg className="w-4 h-4 text-slate-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {brancheTooltip && (
+                        <span className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap z-50">
+                          {locale === 'en' ? 'As listed on your Google Business Profile' : 'Zoals vermeld bij Google Bedrijfsprofiel'}
+                        </span>
+                      )}
+                    </span>
                   </div>
                 </div>
               </div>
-              <button type="submit" disabled={loading || !brandName.trim() || !category.trim()} className="w-full bg-[#292956] text-white font-semibold px-6 py-3.5 rounded-xl hover:bg-[#1e1e45] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer text-lg">
+              <button type="submit" disabled={loading || !brandName.trim() || !category.trim() || !location.trim()} className="w-full bg-[#292956] text-white font-semibold px-6 py-3.5 rounded-xl hover:bg-[#1e1e45] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer text-lg">
                 {loading ? <><Loader2 className="w-5 h-5 animate-spin" />{locale === 'en' ? 'Checking...' : 'Checken...'}</> : <><Sparkles className="w-5 h-5" />{t('scanButton')}</>}
               </button>
             </form>
