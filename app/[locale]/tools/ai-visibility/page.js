@@ -270,6 +270,29 @@ function levenshteinDistance(a, b) {
   return matrix[a.length][b.length];
 }
 
+// ====================================
+// FAQ ACCORDION (Teun.ai style — numbered, white cards with border)
+// ====================================
+function FAQAccordion({ items }) {
+  const [openIdx, setOpenIdx] = useState(0);
+  return (
+    <div className="space-y-4">
+      {items.map((item, i) => (
+        <div key={i} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <button onClick={() => setOpenIdx(openIdx === i ? -1 : i)} className="w-full flex items-center justify-between p-6 text-left cursor-pointer">
+            <div className="flex items-center gap-4">
+              <span className="text-slate-400 font-mono text-sm">{String(i + 1).padStart(2, '0')}</span>
+              <span className="font-semibold text-slate-900">{item.q}</span>
+            </div>
+            <svg className={`w-5 h-5 text-slate-400 transition-transform flex-shrink-0 ml-2 ${openIdx === i ? 'rotate-45' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+          </button>
+          {openIdx === i && <div className="px-6 pb-6 pt-0"><p className="text-slate-600 pl-10 leading-relaxed">{item.a}</p></div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function AIVisibilityToolContent() {
   const searchParams = useSearchParams();
   const t = useTranslations('aiVisibility');
@@ -2078,6 +2101,120 @@ function AIVisibilityToolContent() {
           </div>
         )}
       </div>
+
+      {/* ── SEO CONTENT + FAQ (always visible, outside max-w container) ── */}
+      {!analyzing && !results && (
+        <>
+          {/* Section 1: Introductie */}
+          <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4">
+              {locale === 'nl' 
+                ? <>Hoe zichtbaar is jouw bedrijf <br /><span className="text-blue-600">in AI-zoekmachines?</span></>
+                : <>How visible is your business <br /><span className="text-blue-600">in AI search engines?</span></>}
+            </h2>
+            <p className="text-slate-600 leading-relaxed mb-4">
+              {locale === 'nl'
+                ? 'Steeds meer consumenten slaan Google over en vragen ChatGPT, Perplexity of Google AI Mode rechtstreeks om aanbevelingen. "Wat is het beste marketingbureau in Amsterdam?" of "Welke advocaat is gespecialiseerd in arbeidsrecht?". Dit zijn de nieuwe zoekopdrachten die bepalen of klanten jou vinden of je concurrent.'
+                : 'More and more consumers skip Google and ask ChatGPT, Perplexity or Google AI Mode directly for recommendations. "What is the best marketing agency in Amsterdam?" or "Which lawyer specializes in employment law?". These are the new search queries that determine whether customers find you or your competitor.'}
+            </p>
+            <p className="text-slate-600 leading-relaxed">
+              {locale === 'nl'
+                ? 'De AI Zichtbaarheid Scan van Teun.ai genereert automatisch 10 commerciële prompts op basis van jouw branche en zoekwoorden, en legt deze live voor aan ChatGPT Search en Perplexity. Het resultaat: een concreet overzicht van waar jij wel en niet wordt aanbevolen, inclusief welke concurrenten wél worden genoemd.'
+                : 'The AI Visibility Scan by Teun.ai automatically generates 10 commercial prompts based on your industry and keywords, and submits them live to ChatGPT Search and Perplexity. The result: a concrete overview of where you are and are not recommended, including which competitors are being mentioned.'}
+            </p>
+          </section>
+
+          {/* Section 2: Hoe werkt het */}
+          <section className="bg-slate-50 py-16">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 text-center mb-4">
+                {locale === 'nl' ? 'Hoe werkt de AI Zichtbaarheid Scan?' : 'How does the AI Visibility Scan work?'}
+              </h2>
+              <p className="text-slate-500 text-center mb-10 max-w-2xl mx-auto">
+                {locale === 'nl' 
+                  ? 'Van website naar AI-zichtbaarheidsrapport in 4 stappen.' 
+                  : 'From website to AI visibility report in 4 steps.'}
+              </p>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {(locale === 'nl' ? [
+                  { title: 'Website analyseren', desc: 'Voer je URL in en onze AI haalt automatisch je zoekwoorden, branche en bedrijfsnaam op. Of vul ze handmatig in.' },
+                  { title: 'Prompts genereren', desc: '10 commerciële prompts worden gegenereerd op basis van jouw branche, zoekwoorden en servicegebied.' },
+                  { title: 'Live AI scannen', desc: 'Elke prompt wordt live bevraagd bij ChatGPT Search en Perplexity voor actuele, echte resultaten.' },
+                  { title: 'Rapport ontvangen', desc: 'Zie per prompt of je wordt genoemd, welke concurrenten scoren en waar je kansen liggen.' }
+                ] : [
+                  { title: 'Analyse website', desc: 'Enter your URL and our AI automatically extracts your keywords, industry and business name. Or fill them in manually.' },
+                  { title: 'Generate prompts', desc: '10 commercial prompts are generated based on your industry, keywords and service area.' },
+                  { title: 'Live AI scanning', desc: 'Each prompt is submitted live to ChatGPT Search and Perplexity for real-time, actual results.' },
+                  { title: 'Receive report', desc: 'See per prompt whether you are mentioned, which competitors score and where your opportunities are.' }
+                ]).map((item, i) => (
+                  <div key={i} className="bg-white rounded-xl p-6 border border-slate-200">
+                    <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center mb-4">
+                      {[
+                        <Search key="s" className="w-5 h-5" />,
+                        <Zap key="z" className="w-5 h-5" />,
+                        <TrendingUp key="t" className="w-5 h-5" />,
+                        <Award key="a" className="w-5 h-5" />
+                      ][i]}
+                    </div>
+                    <h3 className="font-semibold text-slate-900 mb-2">{item.title}</h3>
+                    <p className="text-sm text-slate-600 leading-relaxed">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Section 3: Van meting naar actie */}
+          <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 text-center">
+              {locale === 'nl'
+                ? <>Van meting naar <br /><span className="text-blue-600">AI-zichtbaarheid</span></>
+                : <>From measurement to <br /><span className="text-blue-600">AI visibility</span></>}
+            </h2>
+            <p className="text-slate-600 leading-relaxed text-center mb-6 max-w-2xl mx-auto">
+              {locale === 'nl'
+                ? 'Weten waar je staat is stap één. De volgende stap is je website optimaliseren zodat AI-platforms jou vaker aanbevelen. Met de gratis GEO Audit van Teun.ai scan je je pagina op AI-zichtbaarheid, test je live op Perplexity of je gevonden wordt, en krijg je concrete aanbevelingen per pagina.'
+                : 'Knowing where you stand is step one. The next step is optimizing your website so AI platforms recommend you more often. With the free GEO Audit from Teun.ai you scan your page for AI visibility, test live on Perplexity whether you\'re found, and get concrete recommendations per page.'}
+            </p>
+            <div className="text-center">
+              <Link href={locale === 'en' ? '/en/tools/geo-audit' : '/tools/geo-audit'} className="inline-flex items-center gap-2 px-6 py-3 bg-[#292956] text-white rounded-xl text-sm font-semibold hover:bg-[#1e1e45] transition">
+                {locale === 'nl' ? 'Gratis GEO Audit starten' : 'Start free GEO Audit'} <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </section>
+
+          {/* FAQ Section */}
+          <section className="py-20 bg-slate-50 relative overflow-visible">
+            <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
+              <div className="grid lg:grid-cols-2 gap-12 items-start">
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-6">
+                    {locale === 'nl' ? 'Veelgestelde vragen' : 'Frequently asked questions'}
+                  </h2>
+                  <FAQAccordion items={locale === 'nl' ? [
+                    { q: 'Wat is een AI zichtbaarheidsanalyse?', a: 'Een AI zichtbaarheidsanalyse controleert of jouw bedrijf wordt genoemd en aanbevolen door AI-platforms zoals ChatGPT en Perplexity. De scan genereert commerciële prompts die echte klanten zouden stellen en kijkt of jij in de antwoorden voorkomt.' },
+                    { q: 'Welke AI-platforms worden gescand?', a: 'De gratis scan controleert ChatGPT Search en Perplexity. Met een Teun.ai account kun je via het dashboard ook Google AI Mode en Google AI Overviews scannen. Samen dekken deze vier platforms het overgrote deel van het AI-zoekverkeer.' },
+                    { q: 'Is de AI Zichtbaarheid Scan gratis?', a: 'Ja. Zonder account kun je 2 scans uitvoeren. Met een gratis account krijg je 1 scan per dag. Met een Pro-abonnement kun je onbeperkt scannen.' },
+                    { q: 'Hoe kan ik mijn AI zichtbaarheid verbeteren?', a: 'Na de scan zie je precies welke prompts je mist. Gebruik de GEO Audit om je website technisch te laten analyseren, of bekijk de AI Prompt Explorer om te zien welke prompts klanten gebruiken in jouw branche.' },
+                    { q: 'Wat is het verschil tussen SEO en GEO?', a: 'SEO is gericht op hoog scoren in Google. GEO (Generative Engine Optimization) is gericht op het worden genoemd door AI-zoekmachines. De AI Zichtbaarheid Scan meet specifiek je GEO-prestaties.' },
+                  ] : [
+                    { q: 'What is an AI visibility scan?', a: 'An AI visibility scan checks whether your business is mentioned and recommended by AI platforms such as ChatGPT and Perplexity. The scan generates commercial prompts that real customers would ask and checks if you appear in the answers.' },
+                    { q: 'Which AI platforms are scanned?', a: 'The free scan checks ChatGPT Search and Perplexity. With a Teun.ai account you can also scan Google AI Mode and Google AI Overviews through the dashboard. Together, these four platforms cover the vast majority of AI search traffic.' },
+                    { q: 'Is the AI Visibility Scan free?', a: 'Yes. Without an account you can run 2 scans. With a free account you get 1 scan per day. With a Pro subscription you can scan unlimited.' },
+                    { q: 'How can I improve my AI visibility?', a: 'After the scan you see exactly which prompts you are missing. Use the GEO Audit to have your website technically analysed, or check the AI Prompt Explorer to see which prompts customers use in your industry.' },
+                    { q: 'What is the difference between SEO and GEO?', a: 'SEO focuses on ranking high in Google. GEO (Generative Engine Optimization) focuses on being mentioned by AI search engines. The AI Visibility Scan specifically measures your GEO performance.' },
+                  ]} />
+                </div>
+                <div className="hidden lg:flex justify-center items-end relative">
+                  <div className="translate-y-22">
+                    <Image src="/teun-ai-mascotte.png" alt="Teun.ai mascotte" width={420} height={520} className="w-[420px] h-auto mb-2" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </>
+      )}
     </div>
   );
 }

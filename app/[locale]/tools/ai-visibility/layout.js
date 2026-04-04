@@ -6,9 +6,9 @@ export async function generateMetadata({ params }) {
 
   if (locale === 'en') {
     return {
-      title: 'AI Visibility Analysis – Test for Free',
-      description: 'Test FREE how often your business is mentioned in ChatGPT, Perplexity and Claude. AI-powered analysis of your visibility in AI search engines.',
-      keywords: 'AI visibility, ChatGPT, Perplexity, Claude, AI search engines, GEO, AI analysis, business visibility',
+      title: 'AI Visibility Scan – Test for Free',
+      description: 'Test free how often your business is mentioned by ChatGPT, Perplexity and Google AI Mode. 10 commercial prompts, instant insight into your AI visibility.',
+      keywords: 'AI visibility, AI visibility scan, ChatGPT visibility, Perplexity, Google AI Mode, GEO, generative engine optimization, business visibility, AI search engines',
       alternates: {
         canonical: `${siteUrl}/en/tools/ai-visibility`,
         languages: {
@@ -18,8 +18,8 @@ export async function generateMetadata({ params }) {
         },
       },
       openGraph: {
-        title: 'AI Visibility Analysis – Test for Free | TEUN.AI',
-        description: 'Test FREE how often your business is mentioned in ChatGPT, Perplexity and Claude.',
+        title: 'AI Visibility Scan – Test for Free | TEUN.AI',
+        description: 'Test free how often your business is mentioned by ChatGPT, Perplexity and Google AI Mode. 10 commercial prompts, instant insight.',
         type: 'website',
         url: `${siteUrl}/en/tools/ai-visibility`,
         locale: 'en_US',
@@ -29,14 +29,14 @@ export async function generateMetadata({ params }) {
             url: '/AI-Zichtbaarheidsanalyse-tool.jpg',
             width: 1200,
             height: 630,
-            alt: 'AI Visibility Analysis Tool',
+            alt: 'AI Visibility Scan Tool',
           }
         ],
       },
       twitter: {
         card: 'summary_large_image',
-        title: 'AI Visibility Analysis – Test for Free | TEUN.AI',
-        description: 'Test FREE how often your business is mentioned in ChatGPT, Perplexity and Claude.',
+        title: 'AI Visibility Scan – Test for Free | TEUN.AI',
+        description: 'Test free how often your business is mentioned by ChatGPT, Perplexity and Google AI Mode. 10 commercial prompts, instant insight.',
         images: ['/AI-Zichtbaarheidsanalyse-tool.jpg'],
       },
     };
@@ -44,9 +44,9 @@ export async function generateMetadata({ params }) {
 
   // Nederlands (default)
   return {
-    title: 'AI Zichtbaarheidsanalyse – Test Gratis',
-    description: 'Test GRATIS hoe vaak jouw bedrijf vermeld wordt in ChatGPT, Perplexity en Claude. AI-gedreven analyse van jouw zichtbaarheid in AI-zoekmachines.',
-    keywords: 'AI zichtbaarheid, ChatGPT, Perplexity, Claude, AI zoekmachines, GEO, AI analyse, bedrijf vindbaarheid',
+    title: 'AI Zichtbaarheid Scan – Gratis Testen',
+    description: 'Test gratis hoe vaak jouw bedrijf vermeld wordt door ChatGPT, Perplexity en Google AI Mode. 10 commerciële prompts, direct inzicht in je AI-zichtbaarheid.',
+    keywords: 'AI zichtbaarheid, AI zichtbaarheid scan, ChatGPT vindbaarheid, Perplexity, Google AI Mode, GEO, generative engine optimization, AI zoekmachines, bedrijf vindbaarheid',
     alternates: {
       canonical: `${siteUrl}/tools/ai-visibility`,
       languages: {
@@ -56,8 +56,8 @@ export async function generateMetadata({ params }) {
       },
     },
     openGraph: {
-      title: 'AI Zichtbaarheidsanalyse – Test Gratis | TEUN.AI',
-      description: 'Test GRATIS hoe vaak jouw bedrijf vermeld wordt in ChatGPT, Perplexity en Claude.',
+      title: 'AI Zichtbaarheid Scan – Gratis Testen | TEUN.AI',
+      description: 'Test gratis hoe vaak jouw bedrijf vermeld wordt door ChatGPT, Perplexity en Google AI Mode. 10 commerciële prompts, direct inzicht.',
       type: 'website',
       url: `${siteUrl}/tools/ai-visibility`,
       locale: 'nl_NL',
@@ -67,14 +67,14 @@ export async function generateMetadata({ params }) {
           url: '/AI-Zichtbaarheidsanalyse-tool.jpg',
           width: 1200,
           height: 630,
-          alt: 'AI Zichtbaarheidsanalyse Tool',
+          alt: 'AI Zichtbaarheid Scan Tool',
         }
       ],
     },
     twitter: {
       card: 'summary_large_image',
-      title: 'AI Zichtbaarheidsanalyse – Test Gratis | TEUN.AI',
-      description: 'Test GRATIS hoe vaak jouw bedrijf vermeld wordt in ChatGPT, Perplexity en Claude.',
+      title: 'AI Zichtbaarheid Scan – Gratis Testen | TEUN.AI',
+      description: 'Test gratis hoe vaak jouw bedrijf vermeld wordt door ChatGPT, Perplexity en Google AI Mode. 10 commerciële prompts, direct inzicht.',
       images: ['/AI-Zichtbaarheidsanalyse-tool.jpg'],
     },
   };
