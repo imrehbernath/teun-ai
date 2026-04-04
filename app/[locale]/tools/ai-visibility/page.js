@@ -2128,11 +2128,11 @@ function AIVisibilityToolContent() {
           <section className="bg-slate-50 py-16">
             <div className="max-w-4xl mx-auto px-4 sm:px-6">
               <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 text-center mb-4">
-                {locale === 'nl' ? 'Hoe werkt de AI Zichtbaarheid Scan?' : 'How does the AI Visibility Scan work?'}
+                {locale === 'nl' ? 'Hoe werkt de scan?' : 'How does the AI Visibility Scan work?'}
               </h2>
               <p className="text-slate-500 text-center mb-10 max-w-2xl mx-auto">
                 {locale === 'nl' 
-                  ? 'Van website naar AI-zichtbaarheidsrapport in 4 stappen.' 
+                  ? 'In 4 stappen naar je AI-zichtbaarheidsrapport.' 
                   : 'From website to AI visibility report in 4 steps.'}
               </p>
               <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
