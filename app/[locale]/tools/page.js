@@ -71,7 +71,8 @@ export default async function ToolsPage() {
         : 'Discover what ChatGPT and Perplexity say about your business. We ask 3 commercial questions about experiences, reviews and service on both platforms. You get sentiment analysis and actionable tips.',
       href: '/tools/brand-check',
       cta: isNL ? 'Check je merk' : 'Check your brand',
-      video: null, poster: null,
+      video: '/Teun.ai-AI-brand-check.mp4',
+      poster: '/Teun.ai-AI-brand-check-poster.webp',
     },
     {
       title: 'GEO Audit',

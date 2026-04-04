@@ -85,6 +85,8 @@ export default function BrandCheckPage() {
   const [reviewsData, setReviewsData] = useState(null)
   const [reviewsLoading, setReviewsLoading] = useState(false)
   const [brancheTooltip, setBrancheTooltip] = useState(false)
+  const [videoPlaying, setVideoPlaying] = useState(false)
+  const [videoTheater, setVideoTheater] = useState(false)
 
   const faqItems = locale === 'en' ? [
     { q: 'What is an AI Brand Check?', a: 'An AI Brand Check analyzes what AI platforms like ChatGPT and Perplexity say about your business. We check sentiment, reputation signals and whether your brand is actually mentioned in AI-generated answers.' },
@@ -158,6 +160,15 @@ export default function BrandCheckPage() {
       } catch (e) {}
     })
   }, [])
+
+  // Theater mode: Escape to close, lock scroll
+  useEffect(() => {
+    if (!videoTheater) return
+    const handleKey = (e) => { if (e.key === 'Escape') setVideoTheater(false) }
+    document.addEventListener('keydown', handleKey)
+    document.body.style.overflow = 'hidden'
+    return () => { document.removeEventListener('keydown', handleKey); document.body.style.overflow = '' }
+  }, [videoTheater])
 
   // ── SEQUENTIAL SCAN ────────────────────────
   async function handleScan(e) {
@@ -321,13 +332,69 @@ export default function BrandCheckPage() {
             <Sparkles className="w-4 h-4" />
             AI Brand Check
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 text-slate-900 leading-tight px-4">{t('heroTitle')}</h1>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 text-slate-900 leading-tight px-4">{t('heroTitle')}</h1>
           <p className="text-base sm:text-lg md:text-xl text-slate-600 px-4 mb-4" dangerouslySetInnerHTML={{ __html: t.raw('heroSubtitle') }} />
           <div className="flex justify-center gap-2 mb-6">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-slate-200 bg-white text-sm text-slate-600"><span className="w-2 h-2 rounded-full bg-emerald-400" />Perplexity</span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-slate-200 bg-white text-sm text-slate-600"><span className="w-2 h-2 rounded-full bg-emerald-400" />ChatGPT</span>
           </div>
         </div>
+
+        {/* ── Demo Video ── */}
+        {!loading && !results && (
+          <div className="max-w-3xl mx-auto mb-8 sm:mb-10">
+            <p className="text-center text-sm font-medium text-slate-500 mb-3">
+              {locale === 'en' ? '▶ See how the Brand Check works (2.5x speed)' : '▶ Bekijk hoe de Brand Check werkt (2,5x versneld)'}
+            </p>
+            <div className={`rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-slate-100 aspect-video relative ${videoTheater ? 'invisible' : ''}`}>
+              {!videoPlaying ? (
+                <button
+                  onClick={() => setVideoPlaying(true)}
+                  className="absolute inset-0 w-full h-full cursor-pointer group"
+                >
+                  <Image
+                    src="/Teun.ai-AI-brand-check-poster.webp"
+                    alt={locale === 'en' ? 'AI Brand Check demo' : 'AI Brand Check demo'}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 768px"
+                  />
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/90 group-hover:bg-white rounded-full flex items-center justify-center shadow-xl group-hover:scale-110 transition-all">
+                      <svg className="w-7 h-7 sm:w-8 sm:h-8 text-[#292956] ml-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                  </div>
+                </button>
+              ) : !videoTheater && (
+                <div className="relative w-full h-full">
+                  <video autoPlay controls controlsList="nofullscreen" playsInline className="w-full h-full" onPlay={(e) => { e.target.playbackRate = 2.5 }}>
+                    <source src="/Teun.ai-AI-brand-check.mp4" type="video/mp4" />
+                  </video>
+                  <button onClick={() => setVideoTheater(true)} className="absolute top-3 right-3 bg-black/50 hover:bg-black/70 text-white rounded-lg px-2.5 py-1.5 text-xs font-medium transition cursor-pointer flex items-center gap-1.5" title="Theater modus">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Theater mode overlay */}
+            {videoTheater && (
+              <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 sm:p-8">
+                <button onClick={() => setVideoTheater(false)} className="absolute top-4 right-4 text-white/70 hover:text-white z-50 cursor-pointer">
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+                <div className="rounded-xl overflow-hidden aspect-video w-full max-w-6xl">
+                  <video autoPlay controls controlsList="nofullscreen" playsInline className="w-full h-full" onPlay={(e) => { e.target.playbackRate = 2.5 }}>
+                    <source src="/Teun.ai-AI-brand-check.mp4" type="video/mp4" />
+                  </video>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {limitReached && !isAdmin && !isPro && authChecked ? (
           <div className="bg-white rounded-xl shadow-lg shadow-slate-200/50 border border-slate-200 p-8 text-center">
@@ -346,29 +413,38 @@ export default function BrandCheckPage() {
         ) : (
           <>
             <form onSubmit={handleScan} className="space-y-4">
-              <div className={`bg-white rounded-xl shadow-lg shadow-slate-200/50 border border-slate-200 p-4 sm:p-6 transition-opacity ${loading ? 'opacity-60' : ''}`}>
-                <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
-                  <Building2 className="w-5 h-5 text-slate-400 flex-shrink-0" />
-                  <input type="text" value={brandName} onChange={e => setBrandName(e.target.value)} placeholder={locale === 'en' ? 'Company name' : 'Je bedrijfsnaam'} className="w-full py-2 text-base text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent" required minLength={2} disabled={loading} />
+              <div className={`bg-white rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200 p-6 sm:p-8 transition-opacity ${loading ? 'opacity-60' : ''}`}>
+                <div className="mb-5">
+                  <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-2">
+                    <Building2 className="w-4 h-4 text-slate-400" />
+                    {locale === 'en' ? 'Company name' : 'Bedrijfsnaam'} <span className="text-red-400">*</span>
+                  </label>
+                  <input type="text" value={brandName} onChange={e => setBrandName(e.target.value)} placeholder={locale === 'en' ? 'e.g. OnlineLabs' : 'bijv. OnlineLabs'} className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400" required minLength={2} disabled={loading} />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex items-center gap-3">
-                    <MapPin className="w-5 h-5 text-slate-400 flex-shrink-0" />
-                    <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder={locale === 'en' ? 'City' : 'Vestigingsplaats'} className="w-full py-2 text-base text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent" required minLength={2} disabled={loading} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-2">
+                      <MapPin className="w-4 h-4 text-slate-400" />
+                      {locale === 'en' ? 'City' : 'Vestigingsplaats'} <span className="text-red-400">*</span>
+                    </label>
+                    <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder={locale === 'en' ? 'e.g. Amsterdam' : 'bijv. Amsterdam'} className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400" required minLength={2} disabled={loading} />
                   </div>
-                  <div className="flex items-center gap-3 relative">
-                    <Briefcase className="w-5 h-5 text-slate-400 flex-shrink-0" />
-                    <input type="text" value={category} onChange={e => setCategory(e.target.value)} placeholder={locale === 'en' ? 'Your industry' : 'Jouw branche'} className="w-full py-2 text-base text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent" required minLength={2} disabled={loading} />
-                    <span className="relative flex-shrink-0" onClick={() => setBrancheTooltip(!brancheTooltip)}>
-                      <svg className="w-4 h-4 text-slate-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {brancheTooltip && (
-                        <span className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap z-50">
-                          {locale === 'en' ? 'As listed on your Google Business Profile' : 'Zoals vermeld bij Google Bedrijfsprofiel'}
-                        </span>
-                      )}
-                    </span>
+                  <div>
+                    <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-2">
+                      <Briefcase className="w-4 h-4 text-slate-400" />
+                      {locale === 'en' ? 'Industry' : 'Branche'} <span className="text-red-400">*</span>
+                      <span className="relative ml-auto" onClick={() => setBrancheTooltip(!brancheTooltip)}>
+                        <svg className="w-4 h-4 text-slate-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {brancheTooltip && (
+                          <span className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap z-50">
+                            {locale === 'en' ? 'As listed on your Google Business Profile' : 'Zoals vermeld bij Google Bedrijfsprofiel'}
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                    <input type="text" value={category} onChange={e => setCategory(e.target.value)} placeholder={locale === 'en' ? 'e.g. Digital marketing agency' : 'bijv. Online marketing bureau'} className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400" required minLength={2} disabled={loading} />
                   </div>
                 </div>
               </div>
