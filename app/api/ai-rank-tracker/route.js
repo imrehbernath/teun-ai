@@ -44,76 +44,88 @@ function generatePrompt(keyword, serviceArea, locale = 'nl') {
   const kwLower = kw.toLowerCase();
   const areaLower = area.toLowerCase();
   
-  const keywordContainsArea = area && kwLower.includes(areaLower);
-  
+  // Remove area from keyword if already present
   let cleanKw = kw;
-  let effectiveArea = area;
-  
-  if (keywordContainsArea) {
+  if (area && kwLower.includes(areaLower)) {
     cleanKw = kw.replace(new RegExp(area, 'i'), '').trim();
     cleanKw = cleanKw.replace(/\s+in\s*$/i, '').trim();
-    effectiveArea = area;
   }
   
+  // Remove "beste"/"best" prefix
   if (locale === 'nl') {
     cleanKw = cleanKw.replace(/^(de\s+)?beste\s+/i, '').trim();
   } else {
     cleanKw = cleanKw.replace(/^(the\s+)?best\s+/i, '').trim();
   }
   
-  const inArea = effectiveArea ? ` in ${effectiveArea}` : '';
+  const inArea = area ? ` in ${area}` : '';
   const cleanLower = cleanKw.toLowerCase();
   
   if (locale === 'en') {
-    // English action keywords
-    const actionPatternsEn = [
-      'have built', 'have made', 'have designed', 'get installed',
-      'buy', 'rent', 'book', 'order', 'arrange', 'hire',
-    ];
-    const isAction = actionPatternsEn.some(v => cleanLower.includes(v));
+    // English: detect keyword type
+    const verbPatterns = ['improve', 'optimize', 'build', 'design', 'develop', 'fix', 'repair', 'install', 'create', 'set up', 'manage', 'grow', 'boost', 'increase'];
+    const isVerb = verbPatterns.some(v => cleanLower.includes(v));
+    
+    const actionPatterns = ['have built', 'have made', 'have designed', 'get installed', 'buy', 'rent', 'book', 'order', 'arrange', 'hire'];
+    const isAction = actionPatterns.some(v => cleanLower.includes(v));
+    
+    const hasServiceWord = /\b(agency|company|firm|specialist|consultant|expert|service|studio|practice|lawyer|doctor|clinic)\b/i.test(cleanKw);
     
     if (isAction) {
-      const templates = [
-        `I want to ${cleanKw}${inArea}. Which companies can you recommend?`,
-        `I want to ${cleanKw}${inArea}. What companies would you suggest?`,
-        `I want to ${cleanKw}${inArea}. Do you know good companies for this?`,
-      ];
-      return templates[cleanKw.length % templates.length];
+      return `I want to ${cleanKw}${inArea}. Which companies can you recommend?`;
     }
-    
-    const templates = [
-      `Can you recommend good ${cleanKw}${inArea}?`,
-      `Which ${cleanKw}${inArea} would you recommend?`,
-      `What are the best ${cleanKw}${inArea}?`,
-    ];
-    return templates[cleanKw.length % templates.length];
+    if (isVerb) {
+      return `I want to ${cleanKw}${inArea}. Which company or specialist would you recommend for this?`;
+    }
+    if (hasServiceWord) {
+      return `Can you recommend a good ${cleanKw}${inArea}?`;
+    }
+    return `I'm looking for a specialist in ${cleanKw}${inArea}. Which companies would you recommend?`;
   }
   
-  // Dutch (original logic)
-  const actionPatterns = [
+  // ── DUTCH ──
+  
+  // Type 1: "laten maken/bouwen" action phrases → "Ik wil ... Welk bedrijf raad je aan?"
+  const latenPatterns = [
     'laten maken', 'laten bouwen', 'laten ontwerpen', 'laten aanleggen',
     'laten renoveren', 'laten schilderen', 'laten verbouwen', 'laten installeren',
     'laten drukken', 'laten repareren', 'laten behangen', 'laten stucen',
-    'kopen', 'huren', 'boeken', 'bestellen', 'regelen', 'aanvragen',
-    'volgen', 'inhuren'
+    'kopen', 'huren', 'boeken', 'bestellen', 'regelen', 'aanvragen', 'inhuren'
   ];
-  const isAction = actionPatterns.some(v => cleanLower.includes(v));
+  const isLaten = latenPatterns.some(v => cleanLower.includes(v));
   
-  if (isAction) {
-    const templates = [
-      `Ik wil ${cleanKw}${inArea}. Welke bedrijven kun je aanbevelen?`,
-      `Ik wil ${cleanKw}${inArea}. Welke bedrijven raad je aan?`,
-      `Ik wil ${cleanKw}${inArea}. Ken je goede bedrijven hiervoor?`,
-    ];
-    return templates[cleanKw.length % templates.length];
+  if (isLaten) {
+    return `Ik wil ${cleanKw}${inArea}. Welke bedrijven kun je aanbevelen?`;
   }
   
-  const templates = [
-    `Kun je goede ${cleanKw}${inArea} aanbevelen?`,
-    `Welke ${cleanKw}${inArea} raad je aan?`,
-    `Wat zijn de beste ${cleanKw}${inArea}?`,
+  // Type 2: Verb infinitives → "Ik wil mijn [X] [verbeteren]. Welk bureau raad je aan?"
+  const verbInfinitives = [
+    'verbeteren', 'optimaliseren', 'ontwikkelen', 'uitbesteden', 'opzetten',
+    'automatiseren', 'beheren', 'analyseren', 'upgraden', 'redesignen',
+    'verduurzamen', 'isoleren', 'verbouwen', 'renoveren', 'schilderen'
   ];
-  return templates[cleanKw.length % templates.length];
+  const foundVerb = verbInfinitives.find(v => cleanLower.includes(v));
+  
+  if (foundVerb) {
+    // Split: "SEO verbeteren" → subject="SEO", verb="verbeteren"
+    const verbIndex = cleanLower.indexOf(foundVerb);
+    const subject = cleanKw.substring(0, verbIndex).trim();
+    if (subject) {
+      return `Ik wil mijn ${subject} ${foundVerb}${inArea}. Welk bedrijf of bureau raad je aan?`;
+    }
+    return `Ik wil ${cleanKw}${inArea}. Welk bedrijf raad je aan?`;
+  }
+  
+  // Type 3: Contains service word (bureau, specialist, etc.) → "Kun je een goed [X] aanbevelen?"
+  const serviceWords = /\b(bureau|bedrijf|specialist|adviseur|advocaat|kantoor|praktijk|studio|consultant|coach|trainer|installateur|aannemer|loodgieter|schilder|monteur)\b/i;
+  const hasServiceWord = serviceWords.test(cleanKw);
+  
+  if (hasServiceWord) {
+    return `Kun je een goed ${cleanKw}${inArea} aanbevelen?`;
+  }
+  
+  // Type 4: General service/industry keywords → "Ik zoek een specialist in [X]. Welk bedrijf raad je aan?"
+  return `Ik zoek een specialist in ${cleanKw}${inArea}. Welk bedrijf raad je aan?`;
 }
 
 // ============================================================
@@ -284,39 +296,27 @@ BELANGRIJKE INSTRUCTIES:
 }
 
 async function scanChatGPT(prompt, brandName, domain, serviceArea, locale) {
-  let response;
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-search-preview',
+      web_search_options: {
+        search_context_size: 'medium',
+        user_location: {
+          type: 'approximate',
+          approximate: { country: locale === 'en' ? 'GB' : 'NL', city: serviceArea || (locale === 'en' ? 'London' : 'Amsterdam') }
+        }
       },
-      body: JSON.stringify({
-        model: 'gpt-4o-search-preview',
-        web_search_options: {
-          search_context_size: 'medium',
-          user_location: {
-            type: 'approximate',
-            approximate: { country: locale === 'en' ? 'GB' : 'NL', city: serviceArea || (locale === 'en' ? 'London' : 'Amsterdam') }
-          }
-        },
-        messages: [
-          { role: 'system', content: getSystemPrompt(serviceArea, locale) },
-          { role: 'user', content: prompt }
-        ]
-      })
-    });
-    
-    if (response.status === 429 && attempt < 3) {
-      const retryAfter = parseInt(response.headers.get('retry-after') || '0');
-      const waitMs = retryAfter ? retryAfter * 1000 : attempt * 20000;
-      console.log(`⏳ Rank Tracker ChatGPT 429 — wacht ${Math.round(waitMs/1000)}s (poging ${attempt}/3)`);
-      await new Promise(r => setTimeout(r, waitMs));
-      continue;
-    }
-    break;
-  }
+      messages: [
+        { role: 'system', content: getSystemPrompt(serviceArea, locale) },
+        { role: 'user', content: prompt }
+      ]
+    })
+  });
   
   if (!response.ok) throw new Error(`ChatGPT API error: ${response.status}`);
   
@@ -348,90 +348,84 @@ async function scanPerplexity(prompt, brandName, domain, serviceArea, locale) {
   return { ...parseRankings(text, brandName, domain), platform: 'perplexity', fullResponse: stripMarkdown(text) };
 }
 
-async function scanGoogleAI(prompt, brandName, domain, serviceArea, locale) {
+async function scanGoogleAI(keyword, brandName, domain, serviceArea, locale) {
   const SERPAPI_KEY = process.env.SERPAPI_KEY;
   if (!SERPAPI_KEY) {
-    throw new Error('SERPAPI_KEY not configured');
+    return { platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '', error: true, errorMessage: 'Not configured' };
   }
+
+  // Google AI Mode werkt stabieler met Engels — wrap het keyword in een Engelse prompt
+  // Google AI begrijpt Nederlandse termen in Engelse context ("help with SEO verbeteren")
+  const area = serviceArea || 'Amsterdam';
+  const englishPrompt = `I'm looking for help with ${keyword} in ${area}, Netherlands. Which companies would you recommend? Give a numbered top 10 list.`;
+  const locationStr = serviceArea ? `${serviceArea}, Netherlands` : 'Amsterdam, North Holland, Netherlands';
 
   const params = new URLSearchParams({
     engine: 'google_ai_mode',
-    q: prompt,
+    q: englishPrompt,
     api_key: SERPAPI_KEY,
-    hl: locale === 'en' ? 'en' : 'nl',
-    gl: locale === 'en' ? 'us' : 'nl',
+    gl: 'nl',
+    hl: 'en',
+    location: locationStr,
+    google_domain: 'google.com',
+    device: 'desktop',
+    no_cache: 'true',
   });
 
-  let response;
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    response = await fetch(`https://serpapi.com/search.json?${params.toString()}`);
-    if ((response.status === 503 || response.status === 429) && attempt < 2) {
-      console.log(`[Rank Tracker] Google AI Mode ${response.status}, retry in 3s (attempt ${attempt}/2)`);
-      await new Promise(r => setTimeout(r, 3000));
-      continue;
+  try {
+    console.log(`[Rank Tracker] Google AI Mode: "${englishPrompt}" (location: ${locationStr})`);
+    
+    const response = await fetch(`https://serpapi.com/search.json?${params.toString()}`);
+    const rawText = await response.text();
+    console.log(`[Rank Tracker] Google AI Mode status: ${response.status}, length: ${rawText.length}`);
+
+    if (!response.ok) {
+      console.error(`[Rank Tracker] Google AI Mode ${response.status}:`, rawText.slice(0, 500));
+      return { platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '', error: true, errorMessage: 'Google AI Mode tijdelijk niet beschikbaar' };
     }
-    break;
-  }
-  if (!response.ok) throw new Error(`Google AI Mode API error: ${response.status}`);
 
-  const data = await response.json();
-  
-  // Robust text extraction (same as dashboard google-ai-scan route)
-  const extractTextFromBlocks = (blocks) => {
-    let text = '';
-    blocks.forEach(block => {
-      if (block.snippet) text += ' ' + block.snippet;
-      if (block.text) text += ' ' + block.text;
-      if (block.list && Array.isArray(block.list)) {
-        block.list.forEach(item => {
-          if (typeof item === 'string') text += ' ' + item;
-          else if (item.snippet) text += ' ' + item.snippet;
-          else if (item.text) text += ' ' + item.text;
-          if (item.text_blocks && Array.isArray(item.text_blocks)) {
-            text += extractTextFromBlocks(item.text_blocks);
+    const data = JSON.parse(rawText);
+
+    const extractTextFromBlocks = (blocks) => {
+      let text = '';
+      for (const block of blocks || []) {
+        if (block.snippet) text += ' ' + block.snippet;
+        if (block.text) text += ' ' + block.text;
+        if (Array.isArray(block.list)) {
+          for (const item of block.list) {
+            if (typeof item === 'string') text += ' ' + item;
+            else {
+              if (item.snippet) text += ' ' + item.snippet;
+              if (item.text) text += ' ' + item.text;
+              if (Array.isArray(item.text_blocks)) text += extractTextFromBlocks(item.text_blocks);
+            }
           }
-        });
+        }
+        if (Array.isArray(block.text_blocks)) text += extractTextFromBlocks(block.text_blocks);
       }
-      if (block.text_blocks && Array.isArray(block.text_blocks)) {
-        text += extractTextFromBlocks(block.text_blocks);
-      }
-    });
-    return text;
-  };
+      return text;
+    };
 
-  let aiResponse = '';
-  
-  if (data.text_blocks && Array.isArray(data.text_blocks)) {
-    aiResponse = extractTextFromBlocks(data.text_blocks);
+    let aiResponse = '';
+    if (Array.isArray(data.text_blocks)) aiResponse = extractTextFromBlocks(data.text_blocks);
+    if (!aiResponse && data.ai_response) aiResponse = data.ai_response;
+    if (!aiResponse && data.answer) aiResponse = data.answer;
+    if (!aiResponse && data.ai_overview?.text) aiResponse = data.ai_overview.text;
+    if (!aiResponse && data.answer_box?.answer) aiResponse = data.answer_box.answer;
+    if (!aiResponse && data.reconstructed_markdown) aiResponse = data.reconstructed_markdown;
+
+    console.log('[Rank Tracker] Google AI Mode response length:', aiResponse.length);
+
+    if (!aiResponse) {
+      return { platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '' };
+    }
+
+    return { ...parseRankings(aiResponse, brandName, domain), platform: 'google_ai', fullResponse: stripMarkdown(aiResponse) };
+    
+  } catch (error) {
+    console.error(`[Rank Tracker] Google AI Mode exception:`, error.message);
+    return { platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '', error: true, errorMessage: 'Google AI Mode tijdelijk niet beschikbaar' };
   }
-  
-  // Fallbacks
-  if (!aiResponse && data.ai_response) aiResponse = data.ai_response;
-  if (!aiResponse && data.answer) aiResponse = data.answer;
-  if (!aiResponse && data.ai_overview?.text) aiResponse = data.ai_overview.text;
-  if (!aiResponse && data.answer_box?.answer) aiResponse = data.answer_box.answer;
-  if (!aiResponse && data.answer_box?.snippet) aiResponse = data.answer_box.snippet;
-  if (!aiResponse && data.reconstructed_markdown) aiResponse = data.reconstructed_markdown;
-
-  // Also check ai_overview text_blocks
-  if (data.ai_overview?.text_blocks) {
-    data.ai_overview.text_blocks.forEach(block => {
-      if (block.snippet) aiResponse += ' ' + block.snippet;
-      if (block.list) {
-        block.list.forEach(item => {
-          if (item.snippet) aiResponse += ' ' + item.snippet;
-        });
-      }
-    });
-  }
-
-  console.log('[Rank Tracker] Google AI Mode:', data.text_blocks?.length || 0, 'text blocks, response length:', aiResponse.length);
-
-  if (!aiResponse) {
-    return { platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '' };
-  }
-
-  return { ...parseRankings(aiResponse, brandName, domain), platform: 'google_ai', fullResponse: stripMarkdown(aiResponse) };
 }
 
 // ============================================================
@@ -508,10 +502,23 @@ export async function POST(request) {
     
     const startTime = Date.now();
     
+    // Google AI gets max 20 seconds — never blocks the scan
+    const googleAiWithTimeout = scanGoogleAI(keyword, brandName, domain, serviceArea, locale)
+      .then(result => result)
+      .catch(() => ({ platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '', error: true, errorMessage: 'Google AI Mode tijdelijk niet beschikbaar' }));
+    
+    const googleAiRace = Promise.race([
+      googleAiWithTimeout,
+      new Promise(resolve => setTimeout(() => resolve({ 
+        platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '',
+        error: true, errorMessage: 'Google AI Mode timeout'
+      }), 30000))
+    ]);
+
     const [chatgptResult, perplexityResult, googleAiResult] = await Promise.allSettled([
       scanChatGPT(prompt, brandName, domain, serviceArea, locale),
       scanPerplexity(prompt, brandName, domain, serviceArea, locale),
-      process.env.SERPAPI_KEY ? scanGoogleAI(prompt, brandName, domain, serviceArea, locale) : Promise.reject(new Error('SERPAPI_KEY not configured'))
+      googleAiRace
     ]);
     
     const duration = Date.now() - startTime;
@@ -519,10 +526,13 @@ export async function POST(request) {
     const processResult = (settled, platformName) => {
       if (settled.status === 'fulfilled') return settled.value;
       console.error(`${platformName} scan failed:`, settled.reason?.message);
+      const friendlyError = platformName === 'google_ai'
+        ? (locale === 'en' ? 'Google AI Mode temporarily unavailable' : 'Google AI Mode tijdelijk niet beschikbaar')
+        : settled.reason?.message || msg.scanFailed;
       return { 
         platform: platformName, found: false, position: null, 
         totalResults: 0, rankings: [], snippet: '', 
-        error: true, errorMessage: settled.reason?.message || msg.scanFailed
+        error: true, errorMessage: friendlyError
       };
     };
     
