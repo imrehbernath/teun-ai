@@ -1,5 +1,5 @@
 // app/api/ai-rank-tracker/route.js
-// AI Rank Tracker - Scant ChatGPT + Perplexity parallel voor ranking positie
+// AI Rank Tracker - Scant ChatGPT + Perplexity + Google AI Mode parallel voor ranking positie
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -348,6 +348,46 @@ async function scanPerplexity(prompt, brandName, domain, serviceArea, locale) {
   return { ...parseRankings(text, brandName, domain), platform: 'perplexity', fullResponse: stripMarkdown(text) };
 }
 
+async function scanGoogleAI(prompt, brandName, domain, serviceArea, locale) {
+  const SERPAPI_KEY = process.env.SERPAPI_KEY;
+  if (!SERPAPI_KEY) {
+    throw new Error('SERPAPI_KEY not configured');
+  }
+
+  const params = new URLSearchParams({
+    engine: 'google_ai_mode',
+    q: prompt,
+    api_key: SERPAPI_KEY,
+    hl: locale === 'en' ? 'en' : 'nl',
+    gl: locale === 'en' ? 'uk' : 'nl',
+  });
+
+  const response = await fetch(`https://serpapi.com/search.json?${params.toString()}`);
+  if (!response.ok) throw new Error(`Google AI Mode API error: ${response.status}`);
+
+  const data = await response.json();
+  
+  // SerpAPI returns text_blocks at root level, each with type + snippet
+  const textBlocks = data.text_blocks || [];
+  const aiResponse = textBlocks
+    .filter(b => b.type === 'paragraph' || b.type === 'list' || b.type === 'heading')
+    .map(b => {
+      if (b.snippet) return b.snippet;
+      if (b.list) return b.list.map(item => item.snippet || item.text_blocks?.map(tb => tb.snippet).join(' ') || '').join('\n');
+      return '';
+    })
+    .filter(Boolean)
+    .join('\n') || data.reconstructed_markdown || data.markdown || '';
+
+  console.log('[Rank Tracker] Google AI Mode:', textBlocks.length, 'text blocks')
+
+  if (!aiResponse) {
+    return { platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '' };
+  }
+
+  return { ...parseRankings(aiResponse, brandName, domain), platform: 'google_ai', fullResponse: stripMarkdown(aiResponse) };
+}
+
 // ============================================================
 // RATE LIMITING
 // ============================================================
@@ -422,9 +462,10 @@ export async function POST(request) {
     
     const startTime = Date.now();
     
-    const [chatgptResult, perplexityResult] = await Promise.allSettled([
+    const [chatgptResult, perplexityResult, googleAiResult] = await Promise.allSettled([
       scanChatGPT(prompt, brandName, domain, serviceArea, locale),
-      scanPerplexity(prompt, brandName, domain, serviceArea, locale)
+      scanPerplexity(prompt, brandName, domain, serviceArea, locale),
+      process.env.SERPAPI_KEY ? scanGoogleAI(prompt, brandName, domain, serviceArea, locale) : Promise.reject(new Error('SERPAPI_KEY not configured'))
     ]);
     
     const duration = Date.now() - startTime;
@@ -441,7 +482,8 @@ export async function POST(request) {
     
     const results = {
       chatgpt: processResult(chatgptResult, 'chatgpt'),
-      perplexity: processResult(perplexityResult, 'perplexity')
+      perplexity: processResult(perplexityResult, 'perplexity'),
+      google_ai: processResult(googleAiResult, 'google_ai')
     };
     
     // Store
