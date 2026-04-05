@@ -359,27 +359,73 @@ async function scanGoogleAI(prompt, brandName, domain, serviceArea, locale) {
     q: prompt,
     api_key: SERPAPI_KEY,
     hl: locale === 'en' ? 'en' : 'nl',
-    gl: locale === 'en' ? 'uk' : 'nl',
+    gl: locale === 'en' ? 'us' : 'nl',
   });
 
-  const response = await fetch(`https://serpapi.com/search.json?${params.toString()}`);
+  let response;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    response = await fetch(`https://serpapi.com/search.json?${params.toString()}`);
+    if ((response.status === 503 || response.status === 429) && attempt < 2) {
+      console.log(`[Rank Tracker] Google AI Mode ${response.status}, retry in 3s (attempt ${attempt}/2)`);
+      await new Promise(r => setTimeout(r, 3000));
+      continue;
+    }
+    break;
+  }
   if (!response.ok) throw new Error(`Google AI Mode API error: ${response.status}`);
 
   const data = await response.json();
   
-  // SerpAPI returns text_blocks at root level, each with type + snippet
-  const textBlocks = data.text_blocks || [];
-  const aiResponse = textBlocks
-    .filter(b => b.type === 'paragraph' || b.type === 'list' || b.type === 'heading')
-    .map(b => {
-      if (b.snippet) return b.snippet;
-      if (b.list) return b.list.map(item => item.snippet || item.text_blocks?.map(tb => tb.snippet).join(' ') || '').join('\n');
-      return '';
-    })
-    .filter(Boolean)
-    .join('\n') || data.reconstructed_markdown || data.markdown || '';
+  // Robust text extraction (same as dashboard google-ai-scan route)
+  const extractTextFromBlocks = (blocks) => {
+    let text = '';
+    blocks.forEach(block => {
+      if (block.snippet) text += ' ' + block.snippet;
+      if (block.text) text += ' ' + block.text;
+      if (block.list && Array.isArray(block.list)) {
+        block.list.forEach(item => {
+          if (typeof item === 'string') text += ' ' + item;
+          else if (item.snippet) text += ' ' + item.snippet;
+          else if (item.text) text += ' ' + item.text;
+          if (item.text_blocks && Array.isArray(item.text_blocks)) {
+            text += extractTextFromBlocks(item.text_blocks);
+          }
+        });
+      }
+      if (block.text_blocks && Array.isArray(block.text_blocks)) {
+        text += extractTextFromBlocks(block.text_blocks);
+      }
+    });
+    return text;
+  };
 
-  console.log('[Rank Tracker] Google AI Mode:', textBlocks.length, 'text blocks')
+  let aiResponse = '';
+  
+  if (data.text_blocks && Array.isArray(data.text_blocks)) {
+    aiResponse = extractTextFromBlocks(data.text_blocks);
+  }
+  
+  // Fallbacks
+  if (!aiResponse && data.ai_response) aiResponse = data.ai_response;
+  if (!aiResponse && data.answer) aiResponse = data.answer;
+  if (!aiResponse && data.ai_overview?.text) aiResponse = data.ai_overview.text;
+  if (!aiResponse && data.answer_box?.answer) aiResponse = data.answer_box.answer;
+  if (!aiResponse && data.answer_box?.snippet) aiResponse = data.answer_box.snippet;
+  if (!aiResponse && data.reconstructed_markdown) aiResponse = data.reconstructed_markdown;
+
+  // Also check ai_overview text_blocks
+  if (data.ai_overview?.text_blocks) {
+    data.ai_overview.text_blocks.forEach(block => {
+      if (block.snippet) aiResponse += ' ' + block.snippet;
+      if (block.list) {
+        block.list.forEach(item => {
+          if (item.snippet) aiResponse += ' ' + item.snippet;
+        });
+      }
+    });
+  }
+
+  console.log('[Rank Tracker] Google AI Mode:', data.text_blocks?.length || 0, 'text blocks, response length:', aiResponse.length);
 
   if (!aiResponse) {
     return { platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '' };
