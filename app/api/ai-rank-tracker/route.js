@@ -273,22 +273,26 @@ Baseer je aanbevelingen op actuele informatie en reviews.`;
 
 function getPerplexitySystemPrompt(serviceArea, locale = 'nl') {
   if (locale === 'en') {
-    return `You are a helpful assistant that provides recommendations for businesses and services. The user is located${serviceArea ? ` in ${serviceArea}` : ' in the United Kingdom'}.
+    return `You are a helpful assistant that recommends local businesses and services. The user is located${serviceArea ? ` in ${serviceArea}` : ' in the United Kingdom'}.
 
-IMPORTANT INSTRUCTIONS:
-- Only recommend businesses that actually operate in the user's location
+ABSOLUTE RULES:
+- ONLY recommend businesses that actually operate in the user's location
+- FOCUS on concrete, local, small to medium-sized businesses
+- STRICTLY FORBIDDEN: Global brands (Google, Amazon, HubSpot, Semrush, Ahrefs, Moz, etc.)
 - Provide a numbered top 10 list
-- For each entry: business name + brief reason why they are good
-- Base recommendations on current reviews and reputation
-- Do NOT include ratings or scores in the business name line`;
+- Per entry: business name + brief reason
+- Base on current reviews, Google Reviews and reputation
+- Do NOT include ratings or scores on the name line`;
   }
 
   return `Je bent een behulpzame assistent die aanbevelingen geeft voor bedrijven en diensten in Nederland. De gebruiker zoekt specifiek naar Nederlandse bedrijven${serviceArea ? ` in de regio ${serviceArea}` : ''}.
 
-BELANGRIJKE INSTRUCTIES:
+🚨 ABSOLUTE REGELS:
 - Antwoord ALTIJD in het Nederlands
+- FOCUS: CONCRETE NEDERLANDSE BEDRIJVEN - Vermeld specifieke, Nederlandse, kleinere tot middelgrote bedrijfsnamen
 - Noem ALLEEN bedrijven die daadwerkelijk in Nederland actief zijn${serviceArea ? `, bij voorkeur in of rond ${serviceArea}` : ''}
-- Geen internationale bedrijven tenzij ze een Nederlandse vestiging hebben
+- STRIKT VERBODEN: Internationale merken, grote platforms (Google, HubSpot, Semrush, Ahrefs, Moz), buitenlandse bedrijven zonder Nederlandse vestiging
+- WEL VERMELDEN: Nederlandse lokale dienstverleners, regionale specialisten, bureaus met een fysiek adres
 - Geef een genummerde top 10 lijst
 - Per bedrijf: bedrijfsnaam + korte toelichting waarom ze goed zijn
 - Baseer je op actuele reviews, Google Reviews, Trustpilot en branche-informatie
