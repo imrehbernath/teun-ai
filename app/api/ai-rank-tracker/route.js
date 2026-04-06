@@ -327,26 +327,172 @@ async function scanChatGPT(prompt, brandName, domain, serviceArea, locale) {
 }
 
 async function scanPerplexity(prompt, brandName, domain, serviceArea, locale) {
-  const response = await fetch('https://api.perplexity.ai/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'sonar-pro',
-      messages: [
-        { role: 'system', content: getPerplexitySystemPrompt(serviceArea, locale) },
-        { role: 'user', content: prompt }
-      ]
-    })
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
   
-  if (!response.ok) throw new Error(`Perplexity API error: ${response.status}`);
+  try {
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'sonar-pro',
+        stream: true,
+        web_search_options: {
+          search_type: 'auto'
+        },
+        messages: [
+          { role: 'system', content: getPerplexitySystemPrompt(serviceArea, locale) },
+          { role: 'user', content: prompt }
+        ]
+      })
+    });
+    
+    if (!response.ok) throw new Error(`Perplexity API error: ${response.status}`);
   
-  const data = await response.json();
-  const text = data.choices?.[0]?.message?.content || '';
-  return { ...parseRankings(text, brandName, domain), platform: 'perplexity', fullResponse: stripMarkdown(text) };
+  // Parse SSE streaming response
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let fullText = '';
+  let buffer = '';
+  
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const payload = line.slice(6).trim();
+      if (!payload || payload === '[DONE]') continue;
+      
+      try {
+        const parsed = JSON.parse(payload);
+        const delta = parsed.choices?.[0]?.delta?.content;
+        if (delta) fullText += delta;
+      } catch (e) {
+        // skip unparseable chunks
+      }
+    }
+  }
+  
+  console.log(`[Rank Tracker] Perplexity response length: ${fullText.length}`);
+  const cleaned = stripMarkdown(fullText);
+  const parsed = parsePerplexityRankings(cleaned, fullText, brandName, domain);
+  return { ...parsed, platform: 'perplexity', fullResponse: cleaned };
+  
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      console.error('[Rank Tracker] Perplexity aborted after 20s');
+      throw new Error('Perplexity timeout');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+// Perplexity-specifieke parser: genummerd, bullets, bold, "Naam: uitleg"
+function parsePerplexityRankings(cleanText, rawText, brandName, domain) {
+  if (!rawText) {
+    return { found: false, position: null, totalResults: 0, rankings: [], snippet: '' };
+  }
+  
+  const rankings = [];
+  const seen = new Set();
+  
+  const addName = (name) => {
+    let clean = name
+      .replace(/^\d+[\.\)\-:\s]+/, '')
+      .replace(/^[•\-\*]\s+/, '')
+      .replace(/\s*[:\-–—]\s*$/, '')
+      .replace(/[\[\]]/g, '')
+      .replace(/\*\*/g, '')
+      .trim();
+    if (clean.length < 2 || clean.length > 80) return;
+    if (seen.has(clean.toLowerCase())) return;
+    // Filter generieke woorden
+    if (/^(waarom|omdat|volgens|deze|dit|een|het|de|top|beste|lokale|bedrijven|specialisten|conclusie|samenvatting|bronnen|sources|references|note|tip)$/i.test(clean)) return;
+    if (/^(http|www\.|google\.|the |a |an )/i.test(clean)) return;
+    seen.add(clean.toLowerCase());
+    rankings.push({ position: rankings.length + 1, name: clean, isTarget: false });
+  };
+  
+  // Parse raw markdown (before stripMarkdown) for bold names
+  const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+  
+  for (const line of lines) {
+    // 1. Genummerde lijst: "1. Bedrijfsnaam" of "1. **Bedrijfsnaam**"
+    let m = line.match(/^\d+[\.\)]\s+\**([^*\n]{2,80}?)\**(?:\s*[:\-–—]\s|$)/);
+    if (m) { addName(m[1]); continue; }
+    
+    // 2. Genummerde lijst met bold: "1. **Bedrijfsnaam** - uitleg"
+    m = line.match(/^\d+[\.\)]\s+\*\*(.+?)\*\*/);
+    if (m) { addName(m[1]); continue; }
+    
+    // 3. Bullets: "- Bedrijfsnaam: uitleg" of "* **Bedrijfsnaam**"
+    m = line.match(/^[•\-\*]\s+\**([^*\n]{2,80}?)\**(?:\s*[:\-–—]\s|$)/);
+    if (m) { addName(m[1]); continue; }
+    
+    m = line.match(/^[•\-\*]\s+\*\*(.+?)\*\*/);
+    if (m) { addName(m[1]); continue; }
+    
+    // 4. Standalone bold names (niet aan begin van zin)
+    const boldMatches = [...line.matchAll(/\*\*([A-ZÀ-ÿ][A-Za-zÀ-ÿ0-9&'.@\-\s]{1,60}?)\*\*/g)];
+    for (const bm of boldMatches) addName(bm[1]);
+    
+    // 5. "Naam – uitleg" of "Naam: uitleg" (begint met hoofdletter)
+    m = line.match(/^([A-ZÀ-ÿ][A-Za-zÀ-ÿ0-9&'.@\-\s]{1,50}?)\s*[:\-–—]\s+\S/);
+    if (m && !m[1].match(/^(Dit|Deze|Het|De|Een|Als|Voor|Met|Door|Wat|Hoe|Waar|The|This|That|For|With|How|Why)/)) {
+      addName(m[1]);
+    }
+  }
+  
+  // Fallback naar standaard parseRankings als weinig gevonden
+  if (rankings.length < 3) {
+    const fallback = parseRankings(rawText, brandName, domain);
+    if (fallback.rankings.length > rankings.length) {
+      return fallback;
+    }
+  }
+  
+  // Brand matching
+  const brandLower = brandName.toLowerCase().trim();
+  const domainBase = domain.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '').split('.')[0].toLowerCase();
+  let position = null;
+  
+  for (const r of rankings) {
+    const n = r.name.toLowerCase();
+    if (n.includes(brandLower) || brandLower.includes(n) || n.includes(domainBase)) {
+      r.isTarget = true;
+      position = r.position;
+      break;
+    }
+  }
+  
+  // Snippet
+  const textLower = cleanText.toLowerCase();
+  let snippet = '';
+  const mentionIndex = textLower.indexOf(brandLower) >= 0 ? textLower.indexOf(brandLower) : textLower.indexOf(domainBase);
+  if (mentionIndex >= 0) {
+    const start = Math.max(0, mentionIndex - 80);
+    const end = Math.min(cleanText.length, mentionIndex + 160);
+    snippet = cleanText.substring(start, end).trim();
+  }
+  
+  return {
+    found: position !== null || textLower.includes(brandLower) || textLower.includes(domainBase),
+    position,
+    totalResults: rankings.length,
+    rankings: rankings.slice(0, 15),
+    snippet,
+  };
 }
 
 async function scanGoogleAI(keyword, brandName, domain, serviceArea, locale) {
