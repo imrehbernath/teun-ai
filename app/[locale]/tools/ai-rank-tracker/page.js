@@ -299,17 +299,16 @@ function RankTrackerContent() {
       resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
 
-    // Animate progress: 0→30% in 3s, 30→60% in 5s, 60→85% in 7s
+    // Animate progress smoothly over ~30s
     let progressInterval;
     const startProgress = () => {
-      let p = 0;
+      const startTime = Date.now();
       progressInterval = setInterval(() => {
-        p += 1;
-        if (p <= 30) setScanProgress(p);
-        else if (p <= 60) setScanProgress(Math.min(30 + (p - 30) * 0.6, 60));
-        else if (p <= 90) setScanProgress(Math.min(60 + (p - 60) * 0.4, 85));
-        if (p >= 100) clearInterval(progressInterval);
-      }, 200);
+        const elapsed = (Date.now() - startTime) / 1000;
+        // Smooth curve: fast start, slow end, reaches 92% at 30s
+        const progress = Math.min(92, 100 * (1 - Math.exp(-elapsed / 10)));
+        setScanProgress(Math.round(progress));
+      }, 300);
     };
     startProgress();
     
@@ -447,26 +446,26 @@ function RankTrackerContent() {
           </div>
         )}
         
-        {/* Skeleton cards - DIRECT bij klik */}
+        {/* Scan Progress */}
         {loading && (
           <>
             <div ref={resultsRef} className="mb-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-slate-600 flex items-center gap-2">
-                  <Search className="w-4 h-4 text-amber-500" />
+                  <Search className="w-4 h-4 text-purple-500" />
                   {locale === 'en'
                     ? `Scanning ${brandName} on 3 platforms...`
                     : `${brandName} scannen op 3 platformen...`}
                 </span>
-                <span className="text-sm font-semibold text-slate-500">{Math.round(scanProgress)}%</span>
+                <span className="text-sm text-slate-400">{Math.round(scanProgress)}%</span>
               </div>
               <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-500 ease-out" style={{ width: `${scanProgress}%` }} />
+                <div className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${scanProgress}%` }} />
               </div>
               <div className="flex justify-between mt-2 text-xs text-slate-400">
-                <span className={scanProgress >= 10 ? 'text-amber-600 font-medium' : ''}>ChatGPT {scanProgress >= 30 ? '✓' : ''}</span>
-                <span className={scanProgress >= 30 ? 'text-purple-600 font-medium' : ''}>Perplexity {scanProgress >= 55 ? '✓' : ''}</span>
-                <span className={scanProgress >= 55 ? 'text-blue-600 font-medium' : ''}>Google AI {scanProgress >= 80 ? '✓' : ''}</span>
+                <span className={scanProgress >= 5 ? 'text-emerald-600 font-medium' : ''}>ChatGPT {scanProgress >= 25 ? '✓' : ''}</span>
+                <span className={scanProgress >= 25 ? 'text-emerald-600 font-medium' : ''}>Perplexity {scanProgress >= 50 ? '✓' : ''}</span>
+                <span className={scanProgress >= 50 ? 'text-emerald-600 font-medium' : ''}>Google AI {scanProgress >= 75 ? '✓' : ''}</span>
               </div>
             </div>
             <div className={`grid grid-cols-1 ${gridCols} gap-4 mb-8`}>

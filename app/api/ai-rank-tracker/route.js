@@ -354,31 +354,20 @@ async function scanGoogleAI(keyword, brandName, domain, serviceArea, locale) {
     return { platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '', error: true, errorMessage: 'Not configured' };
   }
 
-  const area = serviceArea || 'Amsterdam';
-  const googlePrompt = `${keyword} ${area}`;
-  const locationStr = serviceArea ? `${serviceArea}, Netherlands` : 'Amsterdam, North Holland, Netherlands';
+  const googlePrompt = `${keyword} ${serviceArea || (locale === 'en' ? 'London' : 'Amsterdam')}`.trim();
 
   const params = new URLSearchParams({
     engine: 'google_ai_mode',
     q: googlePrompt,
+    gl: locale === 'en' ? 'uk' : 'nl',
+    hl: locale === 'en' ? 'en' : 'nl',
     api_key: SERPAPI_KEY,
-    gl: 'nl',
-    hl: 'nl',
-    location: locationStr,
-    no_cache: 'true',
   });
 
-  // Echte abort timeout op de fetch zelf
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 20000);
-
   try {
-    console.log(`[Rank Tracker] Google AI Mode: "${googlePrompt}" (location: ${locationStr})`);
+    console.log(`[Rank Tracker] Google AI Mode: "${googlePrompt}"`);
 
-    const response = await fetch(`https://serpapi.com/search.json?${params.toString()}`, {
-      signal: controller.signal,
-    });
-
+    const response = await fetch(`https://serpapi.com/search.json?${params.toString()}`);
     const rawText = await response.text();
     console.log(`[Rank Tracker] Google AI Mode status: ${response.status}, length: ${rawText.length}`);
 
@@ -387,56 +376,128 @@ async function scanGoogleAI(keyword, brandName, domain, serviceArea, locale) {
       return { platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '', error: true, errorMessage: `Google AI Mode fout (${response.status})` };
     }
 
-    let data;
-    try { data = JSON.parse(rawText); } catch (e) {
-      return { platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '', error: true, errorMessage: 'Ongeldige JSON' };
-    }
+    const data = JSON.parse(rawText);
 
-    const extractTextFromBlocks = (blocks) => {
-      let text = '';
-      for (const block of blocks || []) {
-        if (block.snippet) text += ' ' + block.snippet;
-        if (block.text) text += ' ' + block.text;
+    // Use reconstructed_markdown for display (has nice formatting)
+    const fullResponse = stripMarkdown(data.reconstructed_markdown || '');
+
+    // Extract company names from structured data
+    // Priority 1: snippet_links (hyperlinks to company websites - most reliable)
+    // Priority 2: table rows with company names
+    // Priority 3: "CompanyName: description" patterns
+    const rankings = [];
+    const seen = new Set();
+    
+    const addCompany = (name) => {
+      const clean = name.trim().replace(/\*\*/g, '').replace(/[\[\]]/g, '').trim();
+      if (clean.length < 3 || clean.length > 60) return;
+      if (seen.has(clean.toLowerCase())) return;
+      // Skip generic terms
+      if (/^(AI|Local|Lokale|Directe|Betrouwbare|Entiteit|Entity|Structured|Question|Further|View|Read|Discover|Information|Citations|Conversion|Core|Content|Technical|Search|Data|Strateg|Techniek|Doel|Succes|Kenmerk)/i.test(clean)) return;
+      if (/^(http|www\.|google\.|the |a |an |de |het |een )/i.test(clean)) return;
+      seen.add(clean.toLowerCase());
+      rankings.push({ position: rankings.length + 1, name: clean, isTarget: false });
+    };
+
+    if (Array.isArray(data.text_blocks)) {
+      for (const block of data.text_blocks) {
+        // Priority 1: snippet_links in list items
         if (Array.isArray(block.list)) {
           for (const item of block.list) {
-            if (typeof item === 'string') text += ' ' + item;
-            else {
-              if (item.snippet) text += ' ' + item.snippet;
-              if (item.text) text += ' ' + item.text;
-              if (Array.isArray(item.text_blocks)) text += extractTextFromBlocks(item.text_blocks);
+            if (item.snippet_links && Array.isArray(item.snippet_links)) {
+              for (const link of item.snippet_links) {
+                if (link.text && link.link && !link.link.includes('google.com/search')) {
+                  addCompany(link.text);
+                }
+              }
             }
           }
         }
-        if (Array.isArray(block.text_blocks)) text += extractTextFromBlocks(block.text_blocks);
+
+        // Priority 2: table rows (first column = company name)
+        if (Array.isArray(block.table) && block.table.length > 1) {
+          // Check if first row header suggests companies
+          const header = (block.table[0] || []).join(' ').toLowerCase();
+          const isCompanyTable = /bureau|agency|bedrijf|company|naam|name|specialist/i.test(header);
+          if (isCompanyTable) {
+            for (let r = 1; r < block.table.length; r++) {
+              if (block.table[r][0]) addCompany(String(block.table[r][0]));
+            }
+          }
+        }
+        // Also check formatted table
+        if (Array.isArray(block.formatted)) {
+          for (const row of block.formatted) {
+            // Look for keys that suggest company names
+            const vals = Object.values(row);
+            const keys = Object.keys(row);
+            const nameKey = keys.find(k => /bureau|agency|bedrijf|company|naam|name/i.test(k));
+            if (nameKey && row[nameKey]) addCompany(String(row[nameKey]));
+          }
+        }
       }
-      return text;
+
+      // Priority 3: "CompanyName: description" from list items (only if < 3 found via links)
+      if (rankings.length < 3) {
+        for (const block of data.text_blocks) {
+          if (Array.isArray(block.list)) {
+            for (const item of block.list) {
+              const snippet = item.snippet || '';
+              const match = snippet.match(/^([^:(]{2,40})\s*(?:\([^)]*\))?\s*:/);
+              if (match) addCompany(match[1]);
+            }
+          }
+        }
+      }
+    }
+
+    // Fallback: parseRankings on markdown (catches numbered lists)
+    if (rankings.length < 3 && (data.reconstructed_markdown || fullResponse)) {
+      const parsed = parseRankings(data.reconstructed_markdown || fullResponse, brandName, domain);
+      if (parsed.rankings.length > rankings.length) {
+        return { ...parsed, platform: 'google_ai', fullResponse };
+      }
+    }
+
+    // Find brand in rankings
+    const brandLower = brandName.toLowerCase().trim();
+    const domainBase = domain.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '').split('.')[0].toLowerCase();
+    let brandPosition = null;
+    let snippet = '';
+
+    for (const r of rankings) {
+      const nameLower = r.name.toLowerCase();
+      if (nameLower.includes(brandLower) || brandLower.includes(nameLower) || nameLower.includes(domainBase)) {
+        brandPosition = r.position;
+        r.isTarget = true;
+        break;
+      }
+    }
+
+    // Extract snippet around brand mention
+    const textLower = fullResponse.toLowerCase();
+    const brandIndex = textLower.indexOf(brandLower);
+    if (brandIndex !== -1) {
+      const start = Math.max(0, brandIndex - 50);
+      const end = Math.min(fullResponse.length, brandIndex + brandLower.length + 150);
+      snippet = fullResponse.substring(start, end).trim();
+    }
+
+    console.log(`[Rank Tracker] Google AI Mode: ${rankings.length} companies found, brand position: ${brandPosition}`);
+
+    return {
+      platform: 'google_ai',
+      found: brandPosition !== null || textLower.includes(brandLower) || textLower.includes(domainBase),
+      position: brandPosition,
+      totalResults: rankings.length,
+      rankings,
+      snippet,
+      fullResponse,
     };
 
-    let aiResponse = '';
-    if (Array.isArray(data.text_blocks)) aiResponse = extractTextFromBlocks(data.text_blocks);
-    if (!aiResponse && data.ai_response) aiResponse = data.ai_response;
-    if (!aiResponse && data.answer) aiResponse = data.answer;
-    if (!aiResponse && data.ai_overview?.text) aiResponse = data.ai_overview.text;
-    if (!aiResponse && data.answer_box?.answer) aiResponse = data.answer_box.answer;
-    if (!aiResponse && data.reconstructed_markdown) aiResponse = data.reconstructed_markdown;
-
-    console.log('[Rank Tracker] Google AI Mode response length:', aiResponse.length);
-
-    if (!aiResponse) {
-      return { platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '' };
-    }
-
-    return { ...parseRankings(aiResponse, brandName, domain), platform: 'google_ai', fullResponse: stripMarkdown(aiResponse) };
-
   } catch (error) {
-    if (error.name === 'AbortError') {
-      console.error('[Rank Tracker] Google AI Mode aborted after 20s');
-      return { platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '', error: true, errorMessage: 'Google AI Mode timeout' };
-    }
     console.error('[Rank Tracker] Google AI Mode exception:', error.message);
     return { platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '', error: true, errorMessage: 'Google AI Mode tijdelijk niet beschikbaar' };
-  } finally {
-    clearTimeout(timeoutId);
   }
 }
 
