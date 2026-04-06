@@ -94,6 +94,7 @@ const anthropic = new Anthropic({
 
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+const SERPAPI_KEY = process.env.SERPAPI_KEY
 const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY
 
 // ============================================
@@ -1412,17 +1413,25 @@ CHECKLIST FOR YOUR OUTPUT:
 // ✨ ULTIMATE PERPLEXITY - "AI Overview Simulator"
 // ============================================
 async function analyzeWithPerplexity(prompt, companyName, isNL = true) {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 20000)
+  
   try {
     const response = await fetch(
       'https://api.perplexity.ai/chat/completions',
       {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${PERPLEXITY_API_KEY}`
         },
         body: JSON.stringify({
           model: 'sonar-pro',
+          stream: true,
+          web_search_options: {
+            search_type: 'auto'
+          },
           messages: [
             {
               role: 'system',
@@ -1438,7 +1447,20 @@ Simuleer hoe een AI Overview of geavanceerde chatbot zou reageren op de zoekopdr
 3. **STRIKT VERBODEN:** Zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.), Tech-platforms (Google, Facebook, etc.), SEO/Marketing tools (Semrush, Ahrefs, etc.)
 4. **WEL VERMELDEN:** Nederlandse lokale dienstverleners, regionale specialisten, kleinere bedrijven
 
-Simuleer een AI Overview die concrete bedrijven noemt!`
+Simuleer een AI Overview die concrete bedrijven noemt!
+
+BELANGRIJK: Sluit ALTIJD af met exact dit blok:
+
+===BEDRIJVEN===
+1. Bedrijfsnaam
+2. Bedrijfsnaam
+3. Bedrijfsnaam
+===EINDE BEDRIJVEN===
+
+REGELS VOOR DIT BLOK:
+- Zet in dit blok ALLEEN bedrijfsnamen, geen uitleg, geen urls, geen reviews
+- Maximaal 10 bedrijven
+- Noem alleen concrete bedrijven die in het antwoord voorkomen`
                 : `You are an advanced AI model trained on a broad dataset of web content, including business information, reviews, technical documentation and compliance.
 
 **YOUR TASK:**
@@ -1450,7 +1472,20 @@ Simulate how an AI Overview or advanced chatbot would respond to the search quer
 3. **STRICTLY FORBIDDEN:** Very well-known global consumer brands (Coca-Cola, Nike, Apple, etc.), Tech platforms (Google, Facebook, etc.), SEO/Marketing tools (Semrush, Ahrefs, etc.)
 4. **DO MENTION:** Local service providers, regional specialists, smaller businesses
 
-Simulate an AI Overview that mentions concrete businesses!`
+Simulate an AI Overview that mentions concrete businesses!
+
+IMPORTANT: ALWAYS end with exactly this block:
+
+===COMPANIES===
+1. Company Name
+2. Company Name
+3. Company Name
+===END COMPANIES===
+
+RULES FOR THIS BLOCK:
+- In this block include ONLY company names, no explanations, urls or reviews
+- Maximum 10 companies
+- Only mention concrete businesses that appear in the answer`
             },
             {
               role: 'user',
@@ -1468,24 +1503,57 @@ Simulate an AI Overview that mentions concrete businesses!`
       throw new Error(`Perplexity API failed: ${response.status}`)
     }
 
-    const data = await response.json()
+    // Parse SSE streaming response
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let rawOutput = ''
+    let buffer = ''
 
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error('❌ Invalid Perplexity Response:', data)
-      throw new Error('Perplexity API error: Invalid response format')
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        const payload = line.slice(6).trim()
+        if (!payload || payload === '[DONE]') continue
+
+        try {
+          const parsed = JSON.parse(payload)
+          const delta = parsed.choices?.[0]?.delta?.content
+          if (delta) rawOutput += delta
+        } catch (e) {
+          // skip unparseable chunks
+        }
+      }
     }
-
-    const rawOutput = data.choices[0].message.content
 
     if (!rawOutput || rawOutput.trim() === '') {
       console.error('❌ Perplexity returned empty content')
       throw new Error('Perplexity returned empty response')
     }
 
-    const parsed = parseWithJS(rawOutput, companyName, isNL)
+    const parsed = parsePerplexityOutput(rawOutput, companyName, isNL)
 
     return { success: true, data: parsed }
   } catch (error) {
+    if (error.name === 'AbortError') {
+      console.error('❌ Perplexity timeout after 20s')
+      return {
+        success: false,
+        error: isNL ? 'Perplexity timeout' : 'Perplexity timeout',
+        data: {
+          company_mentioned: false,
+          mentions_count: 0,
+          competitors_mentioned: [],
+          simulated_ai_response_snippet: isNL ? 'Analyse timeout' : 'Analysis timeout'
+        }
+      }
+    }
     console.error('❌ Perplexity Error:', error.message || error)
     return { 
       success: false, 
@@ -1497,6 +1565,8 @@ Simulate an AI Overview that mentions concrete businesses!`
         simulated_ai_response_snippet: isNL ? 'Analyse mislukt door API error' : 'Analysis failed due to API error'
       }
     }
+  } finally {
+    clearTimeout(timeoutId)
   }
 }
 
@@ -1646,7 +1716,241 @@ Avoid very well-known global consumer brands (Coca-Cola, Nike, Apple, etc.), tec
 }
 
 // ============================================
-// ✅ ULTIMATE PARSER - Super Strict
+// ✨ GOOGLE AI MODE - via SerpAPI
+// ============================================
+async function analyzeWithGoogleAI(prompt, companyName, serviceArea = null, isNL = true) {
+  if (!SERPAPI_KEY) {
+    return {
+      success: false,
+      error: 'SERPAPI_KEY niet geconfigureerd',
+      data: {
+        company_mentioned: false,
+        mentions_count: 0,
+        competitors_mentioned: [],
+        simulated_ai_response_snippet: isNL ? 'Google AI niet beschikbaar' : 'Google AI not available'
+      }
+    }
+  }
+
+  // Korte query zoals de Playground — werkt het meest stabiel
+  const keywords = prompt
+    .replace(/^(Ik zoek|Ik wil|Kun je|Welke|Wat zijn|I'm looking|Can you|Which|What are)[^a-zA-Z]*/i, '')
+    .replace(/\?.*$/, '')
+    .replace(/\.\s*(Welk|Which|Geef|Give).*$/i, '')
+    .trim()
+  const area = serviceArea || (isNL ? 'Amsterdam' : 'London')
+  const googleQuery = `${keywords} ${area}`.substring(0, 100).trim()
+
+  const params = new URLSearchParams({
+    engine: 'google_ai_mode',
+    q: googleQuery,
+    gl: isNL ? 'nl' : 'uk',
+    hl: isNL ? 'nl' : 'en',
+    api_key: SERPAPI_KEY,
+  })
+
+  try {
+    console.log(`   🔍 Google AI Mode: "${googleQuery}"`)
+
+    const response = await fetch(`https://serpapi.com/search.json?${params.toString()}`)
+    const rawText = await response.text()
+
+    if (!response.ok) {
+      console.error(`   ❌ Google AI Mode ${response.status}`)
+      throw new Error(`Google AI Mode: ${response.status}`)
+    }
+
+    const data = JSON.parse(rawText)
+
+    // Extract text from text_blocks + reconstructed_markdown
+    const extractTextFromBlocks = (blocks) => {
+      let text = ''
+      for (const block of blocks || []) {
+        if (block.snippet) text += ' ' + block.snippet
+        if (block.text) text += ' ' + block.text
+        if (Array.isArray(block.list)) {
+          for (const item of block.list) {
+            if (typeof item === 'string') text += ' ' + item
+            else {
+              if (item.snippet) text += ' ' + item.snippet
+              if (item.text) text += ' ' + item.text
+              if (Array.isArray(item.text_blocks)) text += extractTextFromBlocks(item.text_blocks)
+            }
+          }
+        }
+        if (Array.isArray(block.text_blocks)) text += extractTextFromBlocks(block.text_blocks)
+      }
+      return text
+    }
+
+    let aiResponse = ''
+    if (Array.isArray(data.text_blocks)) aiResponse = extractTextFromBlocks(data.text_blocks)
+    if (!aiResponse && data.reconstructed_markdown) aiResponse = data.reconstructed_markdown
+
+    if (!aiResponse) {
+      return {
+        success: false,
+        error: isNL ? 'Geen Google AI antwoord' : 'No Google AI response',
+        data: {
+          company_mentioned: false,
+          mentions_count: 0,
+          competitors_mentioned: [],
+          simulated_ai_response_snippet: isNL ? 'Google AI Mode gaf geen antwoord' : 'Google AI Mode returned no answer'
+        }
+      }
+    }
+
+    // Use same parser as Perplexity/ChatGPT for consistent output
+    const parsed = parseWithJS(aiResponse, companyName, isNL)
+
+    return { success: true, data: parsed }
+  } catch (error) {
+    console.error(`   ❌ Google AI Mode: ${error.message}`)
+    return {
+      success: false,
+      error: error.message || (isNL ? 'Google AI analyse mislukt' : 'Google AI analysis failed'),
+      data: {
+        company_mentioned: false,
+        mentions_count: 0,
+        competitors_mentioned: [],
+        simulated_ai_response_snippet: isNL ? 'Google AI Mode tijdelijk niet beschikbaar' : 'Google AI Mode temporarily unavailable'
+      }
+    }
+  }
+}
+
+// ============================================
+// ✨ PERPLEXITY PARSER - Structured block + fallback
+// ============================================
+function parsePerplexityOutput(rawOutput, companyName, isNL = true) {
+  try {
+    const companyLower = companyName.toLowerCase()
+    const escapedCompany = companyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const mentionsCount = (rawOutput.match(new RegExp(escapedCompany, 'gi')) || []).length
+    const isCompanyMentioned = mentionsCount > 0
+
+    const competitors = []
+    const seen = new Set()
+
+    const addName = (raw) => {
+      let name = raw
+        .replace(/^\s*\d+[\.\)]\s*/, '')
+        .replace(/^\s*[•\-\*]\s*/, '')
+        .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+        .replace(/\*\*/g, '')
+        .replace(/[\[\]]/g, '')
+        .replace(/\s*[-–—:]\s*.*$/, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+
+      if (!name || name.length < 2 || name.length > 80) return
+
+      const lower = name.toLowerCase()
+
+      // Alleen echte platforms/tools blokkeren
+      const banned = new Set([
+        'google', 'facebook', 'instagram', 'linkedin', 'youtube', 'tiktok',
+        'amazon', 'apple', 'microsoft', 'chatgpt', 'openai', 'anthropic', 'perplexity',
+        'semrush', 'ahrefs', 'moz', 'hubspot', 'mailchimp', 'wordpress', 'shopify'
+      ])
+
+      if (banned.has(lower)) return
+      if (seen.has(lower)) return
+      if (lower === companyLower) return
+      if (!/[a-zA-ZÀ-ÿ]/.test(name)) return
+
+      seen.add(lower)
+      competitors.push(name)
+    }
+
+    // 1. Eerst het gestructureerde bedrijvenblok proberen
+    const blockMatch = rawOutput.match(
+      /===BEDRIJVEN===([\s\S]*?)===EINDE BEDRIJVEN===|===COMPANIES===([\s\S]*?)===END COMPANIES===/i
+    )
+
+    if (blockMatch) {
+      const block = (blockMatch[1] || blockMatch[2] || '').trim()
+      block
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean)
+        .forEach(addName)
+    }
+
+    // 2. Fallback: regex op bold, genummerd, bullets
+    if (competitors.length === 0) {
+      const lines = rawOutput.split('\n').map(l => l.trim()).filter(Boolean)
+
+      for (const line of lines) {
+        // Genummerd: "1. **Bedrijf** - uitleg" of "1. Bedrijf - uitleg"
+        let m = line.match(/^\d+[\.\)]\s+\*\*(.+?)\*\*/)
+        if (m) { addName(m[1]); continue }
+        m = line.match(/^\d+[\.\)]\s+([^*\n]{2,60}?)(?:\s*[-–—:]\s|\s*$)/)
+        if (m) { addName(m[1]); continue }
+
+        // Bullets: "- **Bedrijf**: uitleg" of "• Bedrijf: uitleg"
+        m = line.match(/^[•\-\*]\s+\*\*(.+?)\*\*/)
+        if (m) { addName(m[1]); continue }
+        m = line.match(/^[•\-\*]\s+([A-ZÀ-ÿ][A-Za-zÀ-ÿ0-9&'.\-\s]{1,50}?)\s*:\s/)
+        if (m) { addName(m[1]); continue }
+
+        // Standalone bold
+        const boldMatches = [...line.matchAll(/\*\*([A-ZÀ-ÿ][^*]{1,50}?)\*\*/g)]
+        for (const bm of boldMatches) addName(bm[1])
+      }
+    }
+
+    // Strip het blok uit de snippet
+    let cleanOutput = rawOutput
+      .replace(/===(?:BEDRIJVEN|COMPANIES)===([\s\S]*?)===(?:EINDE BEDRIJVEN|END COMPANIES)===/gi, '')
+      .replace(/\*\*/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/#{1,4}\s/g, '')
+      .replace(/https?:\/\/\S+/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+
+    let snippet = ''
+    if (isCompanyMentioned) {
+      const textLower = cleanOutput.toLowerCase()
+      const idx = textLower.indexOf(companyLower)
+      if (idx >= 0) {
+        const start = Math.max(0, idx - 100)
+        const end = Math.min(cleanOutput.length, idx + companyName.length + 200)
+        snippet = (start > 0 ? '...' : '') + cleanOutput.substring(start, end).trim() + (end < cleanOutput.length ? '...' : '')
+      }
+    }
+
+    if (!snippet) {
+      snippet = cleanOutput.slice(0, 400)
+      if (cleanOutput.length > 400) snippet += '...'
+    }
+
+    if (!isCompanyMentioned) {
+      snippet = isNL
+        ? `Het bedrijf "${companyName}" wordt niet genoemd in dit AI-antwoord. ${snippet}`
+        : `The company "${companyName}" is not mentioned in this AI response. ${snippet}`
+    }
+
+    return {
+      company_mentioned: isCompanyMentioned,
+      mentions_count: mentionsCount,
+      competitors_mentioned: competitors.slice(0, 10),
+      simulated_ai_response_snippet: snippet.substring(0, 600)
+    }
+  } catch (error) {
+    console.error('❌ Perplexity parser error:', error)
+    return {
+      company_mentioned: false,
+      mentions_count: 0,
+      competitors_mentioned: [],
+      simulated_ai_response_snippet: isNL ? 'Fout bij het analyseren van de Perplexity-respons' : 'Error analyzing the Perplexity response'
+    }
+  }
+}
+
+// ============================================
+// ✅ ULTIMATE PARSER - Super Strict (for ChatGPT)
 // ============================================
 // FAST JS PARSER — vervangt 20x Claude API calls
 // company_mentioned + mentions_count waren al regex
@@ -1657,6 +1961,8 @@ function cleanCompetitorName(raw) {
   let name = raw
     // Strip markdown links: [Name](url) → Name
     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    // Strip ALL remaining brackets
+    .replace(/[\[\]]/g, '')
     // Strip bare URLs
     .replace(/https?:\/\/\S+/g, '')
     // Strip remaining markdown
@@ -1714,6 +2020,14 @@ function isValidCompetitorName(name, companyLower, excludeList, seen) {
     // Not a generic heading/phrase (NL + EN)
     !/^(tip|let op|belangrijk|conclusie|samenvatting|opmerking|aanbevolen|overzicht|vergelijk|alternatief|optie|keuze|note|important|conclusion|summary|recommended|overview|compare|alternative|option|choice)/i.test(name) &&
     !/^(stap|punt|vraag|antwoord|optie|methode|strategie|voordeel|nadeel|step|point|question|answer|method|strategy|advantage|disadvantage)\s/i.test(name) &&
+    // Not section headers from AI responses
+    !/^(waar je op|goede opties|alternatieven|waarom deze|tips voor|hoe je|wat je|wanneer je|let hierop|onze aanbeveling|ons advies|meer informatie|verder lezen|bronnen|sources|references|see also|read more|further reading)\s/i.test(name) &&
+    // Not Dutch instructions, actions, or descriptive headings
+    !/^(documenteer|waarschuw|controleer|check|bekijk|overweeg|neem|zoek|bel|mail|schrijf|vraag|meld|maak|gebruik|vermijd|kies|vergelijk|probeer|start|stop|lees|ga naar|schakel|stel|plan|regel|evalueer|analyseer|optimaliseer|beoordeel|onderzoek|bespreek|registreer|download|upload|installeer|configureer|activeer|deactiveer)\s/i.test(name) &&
+    // Not Dutch generic descriptive phrases (common patterns in AI responses)
+    !/^(gevestigde|aanbevelingen|mogelijke|beschikbare|populaire|relevante|belangrijke|lokale|professionele|ervaren|gekwalificeerde|betrouwbare|onafhankelijke|erkende|gecertificeerde|specialistische|juridische|medische|technische|financiële|commerciële|industriële|algemene|specifieke|directe|indirecte|formele|informele|wettelijke|verplichte|vrijwillige|preventieve|curatieve|alternatieve|aanvullende|gerechtelijke|buitengerechtelijke|goede|beste|mogelijke|verschillende|overige|verdere|concrete|praktische|nuttige|handige|interessante|geschikte|bekende|nieuwe|andere)\s/i.test(name) &&
+    // Not Dutch compound descriptive phrases
+    !/^(mediation|arbitrage|procedure|behandeling|aanpak|oplossing|werkwijze|benadering|uitkomst|resultaat|gevolg|oorzaak|reden|advies|hulp|steun|begeleiding|ondersteuning|bemiddeling|tussenkomst|interventie|handhaving|toezicht|controle|inspectie|onderzoek|analyse|rapportage|evaluatie|beoordeling)\s+(of|en|voor|bij|van|met|door|tegen|over|na|om|in|uit|op|aan|tot|naar)\s/i.test(name) &&
     // Not a sentence (starts with common sentence starters NL + EN)
     !/^(dit|deze|dat|die|er|het|de|een|als|voor|naar|van|met|bij|wat|wie|waar|wanneer|hoe|welke|enkele|diverse|hier|ook|meer|nog|veel|alle|andere|sommige|this|that|these|those|the|a|an|if|for|to|from|with|at|what|who|where|when|how|which|some|here|also|more|still|many|all|other|there|it|they|we|you|i)\s/i.test(name) &&
     // Not just a business type, status word, or generic term (NL + EN)
@@ -1730,7 +2044,14 @@ function isValidCompetitorName(name, companyLower, excludeList, seen) {
     !nameLower.startsWith('http') &&
     !nameLower.startsWith('www.') &&
     // Not ending with .nl or .com (domain, not company name)
-    !/\.(nl|com|org|net|be|de|eu)$/i.test(name)
+    !/\.(nl|com|org|net|be|de|eu)$/i.test(name) &&
+    // Not a service/skill description (not a company name)
+    !/^(seo|sea|cro|ppc|geo|smm|sem)\s/i.test(name) &&
+    !/\b(optimalisatie|optimization|specialist|bureau|agency|strategie|strategy|marketing|analyse|analysis|advies|consultancy)\s*$/i.test(name) &&
+    // Not just a city name or "in [city]" pattern
+    !/^(amsterdam|rotterdam|utrecht|den haag|eindhoven|groningen|haarlem|leiden|arnhem|nijmegen|breda|tilburg|almere|amersfoort|hilversum|delft|dordrecht|zoetermeer|zwolle|deventer|enschede|apeldoorn)$/i.test(name) &&
+    // Not containing only generic Dutch words (no proper noun detected)
+    !/^[a-z\s\-]+$/.test(name)
   )
 }
 
@@ -1741,6 +2062,8 @@ function parseWithJS(rawOutput, companyName, isNL = true) {
 
     // Pre-clean: resolve markdown links in the raw output for pattern matching
     const cleanedOutput = rawOutput.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    // Fully stripped: no links, no bold, no brackets — for plain text patterns
+    const plainOutput = cleanedOutput.replace(/\*\*/g, '').replace(/[\[\]]/g, '')
 
     // Extract competitor names from bold text and numbered lists
     const competitors = []
@@ -1754,8 +2077,22 @@ function parseWithJS(rawOutput, companyName, isNL = true) {
       'semrush', 'ahrefs', 'moz', 'hubspot', 'mailchimp', 'wordpress', 'shopify',
       'whatsapp', 'telegram', 'pinterest', 'reddit', 'bing', 'yahoo',
       'chatgpt', 'openai', 'anthropic', 'perplexity',
-      'nederland', 'netherlands', 'amsterdam', 'rotterdam', 'den haag', 'utrecht',
-      'eindhoven', 'groningen', 'maastricht', 'breda', 'tilburg', 'almere'
+      // Steden
+      'nederland', 'netherlands', 'amsterdam', 'rotterdam', 'den haag', 'the hague',
+      'utrecht', 'eindhoven', 'groningen', 'maastricht', 'breda', 'tilburg', 'almere',
+      'arnhem', 'nijmegen', 'haarlem', 'leiden', 'delft', 'dordrecht', 'zoetermeer',
+      'zwolle', 'deventer', 'enschede', 'apeldoorn', 'amersfoort', 'hilversum',
+      'noord-holland', 'zuid-holland', 'brabant', 'gelderland', 'overijssel', 'friesland',
+      // Service/skill termen (geen bedrijfsnamen)
+      'seo', 'seo specialist', 'seo bureau', 'seo agency',
+      'online marketing', 'online marketing bureau', 'digital marketing',
+      'webdesign', 'webdesign bureau', 'web development', 'webdevelopment',
+      'conversie optimalisatie', 'conversion optimization', 'cro',
+      'linkbuilding', 'link building', 'content marketing', 'social media marketing',
+      'google ads', 'sea', 'ppc', 'email marketing', 'e-mail marketing',
+      'website laten maken', 'website bouwen', 'website ontwerp',
+      'zoekmachine optimalisatie', 'search engine optimization',
+      'geo', 'geo optimalisatie', 'ai visibility', 'ai zichtbaarheid',
     ])
 
     // Pattern 1: **Bold names** (on cleaned output without markdown links)
@@ -1763,8 +2100,9 @@ function parseWithJS(rawOutput, companyName, isNL = true) {
     let match
     while ((match = boldPattern.exec(cleanedOutput)) !== null) {
       const name = cleanCompetitorName(match[1])
-        .replace(/\s*[-–—:].*/g, '')  // Remove description after dash
+        .replace(/\s*[-–—:].*/g, '')  // Remove description after dash/colon
         .replace(/^\d+[\.\)]\s*/, '')  // Remove leading number
+        .replace(/\s*\([^)]*\)\s*$/, '') // Remove trailing parenthetical like "(OMA)"
         .trim()
       
       if (isValidCompetitorName(name, companyLower, excludeList, seen)) {
@@ -1773,14 +2111,46 @@ function parseWithJS(rawOutput, companyName, isNL = true) {
       }
     }
 
-    // Pattern 2: Numbered list items (1. Name - description)
-    const numberedPattern = /^\s*(\d+)[\.\)\-]\s*\**([^*\n]{2,80})/gm
-    while ((match = numberedPattern.exec(cleanedOutput)) !== null) {
+    // Pattern 2: Numbered list items (1. Name - description) — on plain text
+    const numberedPattern = /^\s*(\d+)[\.\)\-]\s*([^*\n]{2,80})/gm
+    while ((match = numberedPattern.exec(plainOutput)) !== null) {
       let name = cleanCompetitorName(match[2])
         .replace(/\s*[-–—:].*/g, '')  // Remove description after dash
         .trim()
       
       if (isValidCompetitorName(name, companyLower, excludeList, seen)) {
+        seen.add(name.toLowerCase())
+        competitors.push(name)
+      }
+    }
+
+    // Pattern 3: Bullet items with bold name + colon (Perplexity style)
+    // Matches: "- **CompanyName:** description" or "• **CompanyName**: description"
+    const bulletBoldPattern = /^[\s]*[•\-\*]\s+\*\*([^*]{2,60}?)\*\*\s*:?\s/gm
+    while ((match = bulletBoldPattern.exec(rawOutput)) !== null) {
+      const name = match[1].replace(/\s*:$/, '').trim()
+      if (isValidCompetitorName(name, companyLower, excludeList, seen)) {
+        seen.add(name.toLowerCase())
+        competitors.push(name)
+      }
+    }
+
+    // Pattern 4: Bullet items without bold: "- CompanyName: description" (starts with Capital)
+    const bulletPlainPattern = /^[\s]*[•\-\*]\s+([A-ZÀ-Ÿ][A-Za-zÀ-ÿ0-9&'.\-\s]{1,50}?)\s*:\s+\S/gm
+    while ((match = bulletPlainPattern.exec(plainOutput)) !== null) {
+      const name = match[1].trim()
+      if (isValidCompetitorName(name, companyLower, excludeList, seen)) {
+        seen.add(name.toLowerCase())
+        competitors.push(name)
+      }
+    }
+
+    // Pattern 5: "CompanyName: description" at start of line (no bullet, starts with Capital)
+    const colonPattern = /^([A-ZÀ-Ÿ][A-Za-zÀ-ÿ0-9&'.\-\s]{2,50}?)\s*:\s+[a-z]/gm
+    while ((match = colonPattern.exec(plainOutput)) !== null) {
+      const name = match[1].trim()
+      // Extra check: skip section headers (usually longer and more generic)
+      if (name.split(/\s+/).length <= 5 && isValidCompetitorName(name, companyLower, excludeList, seen)) {
         seen.add(name.toLowerCase())
         competitors.push(name)
       }
