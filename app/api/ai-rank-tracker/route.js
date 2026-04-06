@@ -354,37 +354,43 @@ async function scanGoogleAI(keyword, brandName, domain, serviceArea, locale) {
     return { platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '', error: true, errorMessage: 'Not configured' };
   }
 
-  // Google AI Mode werkt stabieler met Engels — wrap het keyword in een Engelse prompt
-  // Google AI begrijpt Nederlandse termen in Engelse context ("help with SEO verbeteren")
   const area = serviceArea || 'Amsterdam';
-  const englishPrompt = `I'm looking for help with ${keyword} in ${area}, Netherlands. Which companies would you recommend? Give a numbered top 10 list.`;
+  const googlePrompt = `${keyword} ${area}`;
   const locationStr = serviceArea ? `${serviceArea}, Netherlands` : 'Amsterdam, North Holland, Netherlands';
 
   const params = new URLSearchParams({
     engine: 'google_ai_mode',
-    q: englishPrompt,
+    q: googlePrompt,
     api_key: SERPAPI_KEY,
     gl: 'nl',
-    hl: 'en',
+    hl: 'nl',
     location: locationStr,
-    google_domain: 'google.com',
-    device: 'desktop',
     no_cache: 'true',
   });
 
+  // Echte abort timeout op de fetch zelf
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
+
   try {
-    console.log(`[Rank Tracker] Google AI Mode: "${englishPrompt}" (location: ${locationStr})`);
-    
-    const response = await fetch(`https://serpapi.com/search.json?${params.toString()}`);
+    console.log(`[Rank Tracker] Google AI Mode: "${googlePrompt}" (location: ${locationStr})`);
+
+    const response = await fetch(`https://serpapi.com/search.json?${params.toString()}`, {
+      signal: controller.signal,
+    });
+
     const rawText = await response.text();
     console.log(`[Rank Tracker] Google AI Mode status: ${response.status}, length: ${rawText.length}`);
 
     if (!response.ok) {
       console.error(`[Rank Tracker] Google AI Mode ${response.status}:`, rawText.slice(0, 500));
-      return { platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '', error: true, errorMessage: 'Google AI Mode tijdelijk niet beschikbaar' };
+      return { platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '', error: true, errorMessage: `Google AI Mode fout (${response.status})` };
     }
 
-    const data = JSON.parse(rawText);
+    let data;
+    try { data = JSON.parse(rawText); } catch (e) {
+      return { platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '', error: true, errorMessage: 'Ongeldige JSON' };
+    }
 
     const extractTextFromBlocks = (blocks) => {
       let text = '';
@@ -421,10 +427,16 @@ async function scanGoogleAI(keyword, brandName, domain, serviceArea, locale) {
     }
 
     return { ...parseRankings(aiResponse, brandName, domain), platform: 'google_ai', fullResponse: stripMarkdown(aiResponse) };
-    
+
   } catch (error) {
-    console.error(`[Rank Tracker] Google AI Mode exception:`, error.message);
+    if (error.name === 'AbortError') {
+      console.error('[Rank Tracker] Google AI Mode aborted after 20s');
+      return { platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '', error: true, errorMessage: 'Google AI Mode timeout' };
+    }
+    console.error('[Rank Tracker] Google AI Mode exception:', error.message);
     return { platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '', error: true, errorMessage: 'Google AI Mode tijdelijk niet beschikbaar' };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -501,24 +513,11 @@ export async function POST(request) {
     const prompt = generatePrompt(keyword, serviceArea, locale);
     
     const startTime = Date.now();
-    
-    // Google AI gets max 20 seconds — never blocks the scan
-    const googleAiWithTimeout = scanGoogleAI(keyword, brandName, domain, serviceArea, locale)
-      .then(result => result)
-      .catch(() => ({ platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '', error: true, errorMessage: 'Google AI Mode tijdelijk niet beschikbaar' }));
-    
-    const googleAiRace = Promise.race([
-      googleAiWithTimeout,
-      new Promise(resolve => setTimeout(() => resolve({ 
-        platform: 'google_ai', found: false, position: null, totalResults: 0, rankings: [], snippet: '', fullResponse: '',
-        error: true, errorMessage: 'Google AI Mode timeout'
-      }), 30000))
-    ]);
 
     const [chatgptResult, perplexityResult, googleAiResult] = await Promise.allSettled([
       scanChatGPT(prompt, brandName, domain, serviceArea, locale),
       scanPerplexity(prompt, brandName, domain, serviceArea, locale),
-      googleAiRace
+      scanGoogleAI(keyword, brandName, domain, serviceArea, locale)
     ]);
     
     const duration = Date.now() - startTime;
