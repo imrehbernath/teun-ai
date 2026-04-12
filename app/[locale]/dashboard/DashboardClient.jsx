@@ -9,6 +9,7 @@ import {
   Eye, Flame, Crown, Target, Shield,
 } from 'lucide-react'
 import AuditTab from './AuditTab'
+import RankTrackerTab from './RankTrackerTab'
 import { createBrowserClient } from '@supabase/ssr'
 
 // Locale-aware path: NL = root, EN = /en/
@@ -525,23 +526,31 @@ function GoogleAISection({ t, locale, prompts, activeCompany, onScanComplete, go
           {/* ── Scan button ── */}
           {!scanning && (
             <div className="flex items-center gap-3">
-              <div className={!hasData && !allScannedToday ? 'relative' : ''}>
-                {!hasData && !allScannedToday && (
-                  <div className="absolute inset-0 rounded-lg animate-ping opacity-20" style={{ background: 'linear-gradient(135deg, #292956, #3b3b8a)' }} />
-                )}
-                <button
-                  onClick={startScan}
-                  disabled={allScannedToday || promptTexts.length === 0}
-                  className={`relative inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white text-[12px] font-semibold border-none cursor-pointer hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed ${!hasData ? 'shadow-lg shadow-indigo-500/25' : 'shadow-sm'}`}
-                  style={{ background: 'linear-gradient(135deg, #292956, #3b3b8a)' }}
-                >
-                  <Play className="w-3.5 h-3.5" />
-                  {hasData
-                    ? (locale === 'nl' ? 'Opnieuw scannen' : 'Rescan')
-                    : (t.googleScan?.scanBoth || (locale === 'nl' ? 'Scan Google AI' : 'Scan Google AI'))
-                  }
-                </button>
-              </div>
+              {/* First scan: always show. Rescan: only PRO */}
+              {(!hasData || isPro) && (
+                <div className={!hasData && !allScannedToday ? 'relative' : ''}>
+                  {!hasData && !allScannedToday && (
+                    <div className="absolute inset-0 rounded-lg animate-ping opacity-20" style={{ background: 'linear-gradient(135deg, #292956, #3b3b8a)' }} />
+                  )}
+                  <button
+                    onClick={startScan}
+                    disabled={allScannedToday || promptTexts.length === 0}
+                    className={`relative inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white text-[12px] font-semibold border-none cursor-pointer hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed ${!hasData ? 'shadow-lg shadow-indigo-500/25' : 'shadow-sm'}`}
+                    style={{ background: 'linear-gradient(135deg, #292956, #3b3b8a)' }}
+                  >
+                    <Play className="w-3.5 h-3.5" />
+                    {hasData
+                      ? (locale === 'nl' ? 'Opnieuw scannen' : 'Rescan')
+                      : (t.googleScan?.scanBoth || (locale === 'nl' ? 'Scan Google AI' : 'Scan Google AI'))
+                    }
+                  </button>
+                </div>
+              )}
+              {hasData && !isPro && (
+                <Link href={lp(locale, '/pricing')} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-500 hover:text-slate-700 no-underline transition-colors">
+                  {locale === 'nl' ? 'Onbeperkt scannen?' : 'Unlimited scanning?'} <span className="font-semibold" style={{ color: '#292956' }}>PRO →</span>
+                </Link>
+              )}
               {hasData && (
                 <span className="text-[11px] text-slate-400">
                   AI Mode + AI Overviews
@@ -1325,18 +1334,17 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   const tabs = [
     { id: 'overview', label: t.tabs.overview, Icon: LayoutDashboard },
     { id: 'prompts', label: t.tabs.prompts, Icon: Search },
+    { id: 'rank-tracker', label: t.tabs?.['rank-tracker'] || 'Rank Tracker', Icon: BarChart3 },
     { id: 'competitors', label: t.tabs.competitors, Icon: Swords },
     { id: 'geo', label: t.tabs.geo, Icon: Sparkles },
   ]
   const toolLinks = [
     { label: t.sidebar.brandCheck, href: lp(locale, '/tools/brand-check') },
-    { label: t.sidebar.rankTracker, href: lp(locale, '/tools/ai-rank-tracker') },
     { label: 'GEO Audit', onClick: () => setActiveTab('audit') },
     { label: t.sidebar.geoAnalyse, href: lp(locale, '/dashboard/geo-analyse'), tag: isPro ? null : 'PRO' },
-    { label: t.sidebar.contentOptimizer, href: null, tag: t.sidebar.soon },
   ]
 
-  const subtitle = t.subtitles[activeTab]?.replace('{company}', activeCompany?.name || '').replace('van  op', 'van je bedrijf op').replace('of  in', 'of your company in')
+  const subtitle = (t.subtitles[activeTab] || (activeTab === 'rank-tracker' ? (locale === 'nl' ? 'Volg je AI-ranking per keyword over tijd' : 'Track your AI ranking per keyword over time') : ''))?.replace('{company}', activeCompany?.name || '').replace('van  op', 'van je bedrijf op').replace('of  in', 'of your company in')
 
   // Total platform hits (additive: ChatGPT found + Perplexity found + Google AI found)
   const chatgptFoundCount = prompts.filter(p => p.chatgpt.found).length
@@ -1356,37 +1364,41 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
       <div className="min-h-screen bg-slate-50 flex" style={{ fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif" }}>
 
         {/* ── SIDEBAR ── */}
-        <aside className="fixed left-0 top-0 bottom-0 w-[240px] flex flex-col z-[100]" style={{ background: '#1a1a3e' }}>
-          <div className="px-5 pt-6 pb-5 border-b border-white/[0.06]">
-            <Link href={lp(locale, '/')} className="block no-underline">
-              <div className="text-[22px] font-bold text-white tracking-tight">TEUN.AI</div>
-              <div className="text-[11px] text-white/40 mt-0.5">{t.sidebar.platform}</div>
+        <aside className="fixed left-0 top-0 bottom-0 w-[240px] flex flex-col z-[100] border-r border-slate-200" style={{ background: '#fafaf8' }}>
+          {/* Navy accent bar */}
+          <div className="h-1" style={{ background: '#292956' }} />
+
+          {/* Logo - text only */}
+          <div className="px-5 pt-5 pb-4">
+            <Link href={lp(locale, '/')} className="no-underline">
+              <div className="text-[20px] font-black tracking-tight leading-none" style={{ color: '#292956' }}>teun.ai</div>
             </Link>
           </div>
 
-          <div className="mx-3 mt-4 relative" data-company-switcher>
-            <button onClick={() => companies.length > 0 && setShowCompanyDropdown(!showCompanyDropdown)} className="w-full p-3 rounded-[10px] bg-white/[0.06] hover:bg-white/[0.1] transition-colors cursor-pointer text-left border-none">
+          {/* Company switcher */}
+          <div className="mx-4 mb-3 relative" data-company-switcher>
+            <button onClick={() => companies.length > 0 && setShowCompanyDropdown(!showCompanyDropdown)} className="w-full p-2.5 rounded-lg bg-white hover:bg-white transition-colors cursor-pointer text-left border border-slate-200 shadow-sm">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-[13px] font-bold shrink-0" style={{ background: activeCompany ? 'linear-gradient(135deg, #06b6d4, #0891b2)' : '#3b3b6b' }}>{activeCompany ? companyInitials : '?'}</div>
+                <div className="w-7 h-7 rounded-md flex items-center justify-center text-white text-[11px] font-bold shrink-0" style={{ background: activeCompany ? '#292956' : '#94a3b8' }}>{activeCompany ? companyInitials : '?'}</div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[13px] font-semibold text-white truncate">{activeCompany?.name || t.selectCompany}</div>
-                  {activeCompany?.website && <div className="text-[11px] text-white/40 truncate">{activeCompany.website}</div>}
+                  <div className="text-[12px] font-semibold text-slate-800 truncate">{activeCompany?.name || t.selectCompany}</div>
+                  {activeCompany?.website && <div className="text-[10px] text-slate-400 truncate">{activeCompany.website}</div>}
                 </div>
-                {companies.length > 1 && <ChevronDown className={`w-3.5 h-3.5 text-white/30 shrink-0 transition-transform ${showCompanyDropdown ? 'rotate-180' : ''}`} />}
+                {companies.length > 1 && <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform ${showCompanyDropdown ? 'rotate-180' : ''}`} />}
               </div>
             </button>
             {showCompanyDropdown && companies.length > 0 && (
-              <div data-co-drop className="absolute top-full left-0 right-0 mt-1 bg-[#232350] rounded-lg border border-white/10 py-1 shadow-2xl z-[110] max-h-60 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+              <div data-co-drop className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg border border-slate-200 py-1 shadow-xl z-[110] max-h-60 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
                 <style>{`[data-co-drop]::-webkit-scrollbar{display:none}`}</style>
                 {companies.map((c, i) => (
                   <div key={i} className="flex items-center group">
-                    <button onClick={() => { setSelectedCompany(c.company_name); setShowCompanyDropdown(false); setConfirmDelete(null) }} className={`flex-1 px-4 py-2.5 text-left text-[12px] hover:bg-white/[0.08] transition-colors border-none cursor-pointer ${selectedCompany === c.company_name ? 'text-white bg-white/[0.06]' : 'text-white/60 bg-transparent'}`}>
+                    <button onClick={() => { setSelectedCompany(c.company_name); setShowCompanyDropdown(false); setConfirmDelete(null) }} className={`flex-1 px-4 py-2.5 text-left text-[12px] hover:bg-slate-50 transition-colors border-none cursor-pointer ${selectedCompany === c.company_name ? 'text-slate-900 font-medium' : 'text-slate-600 bg-transparent'}`} style={selectedCompany === c.company_name ? { background: '#f0f0ff' } : {}}>
                       <div className="font-medium">{c.company_name}</div>
-                      {c.website && <div className="text-[10px] text-white/30 mt-0.5">{c.website}</div>}
+                      {c.website && <div className="text-[10px] text-slate-400 mt-0.5">{c.website}</div>}
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); setConfirmDelete(confirmDelete === c.company_name ? null : c.company_name) }}
-                      className="px-2.5 py-2.5 text-white/20 hover:text-red-400 transition-colors cursor-pointer bg-transparent border-none opacity-0 group-hover:opacity-100"
+                      className="px-2.5 py-2.5 text-slate-300 hover:text-red-500 transition-colors cursor-pointer bg-transparent border-none opacity-0 group-hover:opacity-100"
                       title={locale === 'nl' ? 'Verwijderen' : 'Delete'}>
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -1397,11 +1409,11 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
 
             {/* Delete confirmation modal */}
             {confirmDelete && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-[#1a1a40] rounded-lg border border-red-500/30 p-4 shadow-2xl z-[120]">
-                <p className="text-[12px] text-white/80 mb-1 font-medium">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg border border-red-200 p-4 shadow-xl z-[120]">
+                <p className="text-[12px] text-slate-700 mb-1 font-medium">
                   {locale === 'nl' ? 'Weet je het zeker?' : 'Are you sure?'}
                 </p>
-                <p className="text-[11px] text-white/40 mb-3">
+                <p className="text-[11px] text-slate-500 mb-3">
                   {locale === 'nl'
                     ? `Alle data van "${confirmDelete}" wordt permanent verwijderd (scans, rank checks, etc.)`
                     : `All data for "${confirmDelete}" will be permanently deleted (scans, rank checks, etc.)`}
@@ -1417,7 +1429,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                   </button>
                   <button
                     onClick={() => setConfirmDelete(null)}
-                    className="flex-1 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-white/60 text-[11px] font-medium cursor-pointer border-none transition-colors">
+                    className="flex-1 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-medium cursor-pointer border-none transition-colors">
                     {locale === 'nl' ? 'Annuleren' : 'Cancel'}
                   </button>
                 </div>
@@ -1425,53 +1437,54 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
             )}
           </div>
 
-          <nav className="flex-1 px-3 pt-4 overflow-y-auto">
+          {/* Navigation */}
+          <nav className="flex-1 px-3 pt-1 overflow-y-auto">
             {tabs.map(tab => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg mb-0.5 text-[13px] transition-all text-left cursor-pointer border-none ${activeTab === tab.id ? 'font-semibold text-white bg-white/10' : 'font-normal text-white/50 hover:text-white/70 hover:bg-white/[0.04] bg-transparent'}`}>
-                <tab.Icon className="w-4 h-4 shrink-0" /> {tab.label}
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg mb-0.5 text-[13px] transition-all text-left cursor-pointer border-none ${activeTab === tab.id ? 'font-semibold bg-white shadow-sm' : 'font-normal text-slate-600 hover:text-slate-800 hover:bg-white/60 bg-transparent'}`} style={activeTab === tab.id ? { borderLeft: '3px solid #292956', paddingLeft: '9px', color: '#292956' } : {}}>
+                <tab.Icon className={`w-4 h-4 shrink-0 ${activeTab === tab.id ? '' : 'text-slate-400'}`} style={activeTab === tab.id ? { color: '#292956' } : {}} /> {tab.label}
               </button>
             ))}
-            <div className="h-px bg-white/[0.06] my-3" />
-            <div className="text-[10px] text-white/25 px-3.5 mb-2 uppercase tracking-[0.08em] font-medium">{t.sidebar.tools}</div>
+            <div className="h-px bg-slate-200 my-3" />
+            <div className="text-[10px] text-slate-400 px-3 mb-2 uppercase tracking-[0.08em] font-semibold">{t.sidebar.tools}</div>
             {toolLinks.map(item => item.href ? (
-              <Link key={item.label} href={item.href} className="flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-white/40 hover:text-white/60 transition-colors no-underline">
-                <ArrowRight className="w-3.5 h-3.5 shrink-0" /><span className="flex-1">{item.label}</span>
-                {item.tag && <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase ${item.tag === 'PRO' ? 'bg-blue-500/20 text-blue-400' : 'bg-white/[0.06] text-white/25'}`}>{item.tag}</span>}
+              <Link key={item.label} href={item.href} className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-slate-500 hover:text-slate-700 hover:bg-white/60 rounded-lg transition-colors no-underline">
+                <ArrowRight className="w-3.5 h-3.5 shrink-0 text-slate-400" /><span className="flex-1">{item.label}</span>
+                {item.tag && <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${item.tag === 'PRO' ? 'text-white' : 'bg-slate-200 text-slate-500'}`} style={item.tag === 'PRO' ? { background: '#292956' } : {}}>{item.tag}</span>}
               </Link>
             ) : item.onClick ? (
-              <button key={item.label} onClick={item.onClick} className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] transition-colors no-underline bg-transparent border-none cursor-pointer text-left ${activeTab === 'audit' && item.label === 'GEO Audit' ? 'text-white/70 bg-white/[0.06] rounded-lg' : 'text-white/40 hover:text-white/60'}`}>
-                <ArrowRight className="w-3.5 h-3.5 shrink-0" /><span className="flex-1">{item.label}</span>
-                {item.tag && <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase ${item.tag === 'PRO' ? 'bg-blue-500/20 text-blue-400' : 'bg-white/[0.06] text-white/25'}`}>{item.tag}</span>}
+              <button key={item.label} onClick={item.onClick} className={`w-full flex items-center gap-2.5 px-3 py-2 text-[13px] transition-colors no-underline bg-transparent border-none cursor-pointer text-left rounded-lg ${activeTab === 'audit' && item.label === 'GEO Audit' ? 'bg-white shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-700 hover:bg-white/60'}`} style={activeTab === 'audit' && item.label === 'GEO Audit' ? { borderLeft: '3px solid #292956', paddingLeft: '9px', color: '#292956' } : {}}>
+                <ArrowRight className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'audit' && item.label === 'GEO Audit' ? '' : 'text-slate-400'}`} style={activeTab === 'audit' && item.label === 'GEO Audit' ? { color: '#292956' } : {}} /><span className="flex-1">{item.label}</span>
+                {item.tag && <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${item.tag === 'PRO' ? 'text-white' : 'bg-slate-200 text-slate-500'}`} style={item.tag === 'PRO' ? { background: '#292956' } : {}}>{item.tag}</span>}
               </button>
             ) : (
-              <div key={item.label} className="flex items-center gap-2.5 px-3.5 py-2 text-[13px] text-white/25 cursor-default">
+              <div key={item.label} className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-slate-400 cursor-default">
                 <ArrowRight className="w-3.5 h-3.5 shrink-0" /><span className="flex-1">{item.label}</span>
-                {item.tag && <span className="text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase bg-white/[0.06] text-white/25">{item.tag}</span>}
+                {item.tag && <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase bg-slate-200 text-slate-500">{item.tag}</span>}
               </div>
             ))}
           </nav>
 
           {/* ── Subscription ── */}
-          <div className="px-3 py-3 border-t border-white/[0.06]">
+          <div className="px-4 py-3 border-t border-slate-200">
             {isPro ? (
-              <div className="px-2">
+              <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-white text-[10px] font-bold uppercase tracking-wider" style={{ background: '#292956' }}>
                     <Crown className="w-3 h-3" /> Pro
                   </span>
-                  <span className="text-[10px] text-white/30">
+                  <span className="text-[10px] text-slate-400">
                     {subscriptionPlan === 'annual' ? (locale === 'nl' ? 'Jaarlijks' : 'Annual') : (locale === 'nl' ? 'Maandelijks' : 'Monthly')}
                   </span>
                 </div>
                 {subscriptionStatus === 'canceling' && (
-                  <div className="text-[10px] text-amber-400/70 mb-2">
+                  <div className="text-[10px] text-amber-600 mb-2">
                     {locale === 'nl' ? 'Loopt af op ' : 'Expires '}{subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString(locale === 'nl' ? 'nl-NL' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
                   </div>
                 )}
                 <button
                   onClick={handleManageSubscription}
                   disabled={portalLoading}
-                  className="w-full text-[11px] text-white/40 hover:text-white/60 bg-transparent border border-white/[0.08] hover:border-white/[0.15] rounded-lg px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
+                  className="w-full text-[11px] text-slate-500 hover:text-slate-700 bg-white border border-slate-200 hover:border-slate-300 rounded-lg px-3 py-2 transition-all cursor-pointer disabled:opacity-50"
                 >
                   {portalLoading
                     ? (locale === 'nl' ? 'Laden...' : 'Loading...')
@@ -1481,14 +1494,16 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
             ) : (
               <Link
                 href={locale === 'nl' ? '/pricing' : '/en/pricing'}
-                className="flex items-center gap-2 px-2 py-2 rounded-lg bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/20 hover:border-blue-500/40 transition-all no-underline group"
+                className="flex items-center gap-2.5 px-3 py-3 rounded-lg border border-slate-200 bg-white hover:shadow-sm transition-all no-underline group"
               >
-                <Zap className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#292956' }}>
+                  <Zap className="w-4 h-4 text-white" />
+                </div>
                 <div>
-                  <div className="text-[11px] font-semibold text-white/80 group-hover:text-white transition-colors">
+                  <div className="text-[12px] font-semibold text-slate-800">
                     {locale === 'nl' ? 'Upgrade naar Pro' : 'Upgrade to Pro'}
                   </div>
-                  <div className="text-[10px] text-white/30">
+                  <div className="text-[10px] text-slate-500">
                     {locale === 'nl' ? 'Onbeperkt scannen' : 'Unlimited scanning'}
                   </div>
                 </div>
@@ -1496,10 +1511,11 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
             )}
           </div>
 
-          <div className="px-3 py-4 border-t border-white/[0.06]">
-            <div className="flex items-center gap-2.5 px-2">
-              <div className="w-7 h-7 rounded-lg bg-[#292956] flex items-center justify-center text-white/60 text-[11px] font-semibold shrink-0">{initials}</div>
-              <div className="text-[12px] text-white/50 truncate min-w-0">{userEmail}</div>
+          {/* User */}
+          <div className="px-4 py-3 border-t border-slate-200">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0 text-white" style={{ background: '#292956' }}>{initials}</div>
+              <div className="text-[12px] text-slate-600 truncate min-w-0">{userEmail}</div>
             </div>
           </div>
         </aside>
@@ -1508,7 +1524,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
         <main className="ml-[240px] flex-1 p-8 pb-16 min-h-screen max-w-[1100px]">
           <div className="flex items-start justify-between mb-7">
             <div>
-              <h1 className="text-[24px] font-bold text-slate-800 m-0 leading-tight">{t.headers[activeTab]}</h1>
+              <h1 className="text-[24px] font-bold text-slate-800 m-0 leading-tight">{t.headers[activeTab] || (activeTab === 'rank-tracker' ? 'Rank Tracker' : '')}</h1>
               <p className="text-[13px] text-slate-400 mt-1 m-0">{subtitle}</p>
             </div>
             <div className="flex gap-2 items-center shrink-0">
@@ -1568,7 +1584,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
             <>
               <div className="flex gap-4 mb-6">
                 <StatCard label={t.stats.visibility} value={`${visibilityPct}%`} sub={`${totalFound}/${totalPrompts} ${t.stats.promptsFound}`} accent="#059669" />
-                <StatCard label={locale === 'nl' ? 'Platformvermeldingen' : 'Platform hits'} value={totalPlatformHits} sub={`ChatGPT ${chatgptFoundCount}/${totalPrompts} · Perplexity ${perplexityFoundCount}/${totalPrompts}`} />
+                <StatCard label={locale === 'nl' ? 'Platformvermeldingen' : 'Platform hits'} value={totalPlatformHits} sub={`ChatGPT ${chatgptFoundCount}/${totalPrompts} · Perplexity ${perplexityFoundCount}/${totalPrompts}${(googleAiMode.total || 0) > 0 ? ` · AI Mode ${googleAiMode.found || 0}/${googleAiMode.total}` : ''}${(googleAiOverview.total || 0) > 0 ? ` · AI Overview ${googleAiOverview.found || 0}/${googleAiOverview.total}` : ''}`} />
                 <StatCard label={t.stats.topCompetitor} value={data.topCompetitor?.name || '—'} sub={data.topCompetitor ? `${data.topCompetitor.appearances || data.topCompetitor.mentions}× ${locale === 'nl' ? 'in ' + totalPrompts + ' prompts' : 'in ' + totalPrompts + ' prompts'}` : ''} accent="#64748b" small />
                 <StatCard label={t.stats.lastScan} value={lastScanText} sub={lastScanDate} />
               </div>
@@ -1707,58 +1723,80 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
             const hasChanges = editMode && editablePrompts.some((p, i) => prompts[i] && p !== prompts[i].text)
 
             const confirmAndRescan = async () => {
-              const validPrompts = editablePrompts.filter(p => p.trim().length > 0)
+              // Alleen gewijzigde prompts identificeren
+              const changedIndices = editablePrompts
+                .map((p, i) => p.trim() !== (prompts[i]?.text || '').trim() ? i : -1)
+                .filter(i => i >= 0)
+              const changedPrompts = changedIndices.map(i => editablePrompts[i]).filter(p => p.trim().length > 0)
+              
               const company = activeCompany?.name
               const website = activeCompany?.website || ''
               const category = activeCompany?.category || ''
-              if (!company || validPrompts.length === 0) return
+              if (!company || changedPrompts.length === 0) return
+
+              const hasGoogleAiMode = (googleAiMode.total || 0) > 0
+              const hasGoogleAiOverview = (googleAiOverview.total || 0) > 0
 
               setShowConfirmRescan(false)
               setRescanning(true)
-              const total = validPrompts.length
+              const total = changedPrompts.length
               setRescanProgress({ current: 0, total, phase: 'ChatGPT & Perplexity' })
 
-              // Phase 1: ChatGPT + Perplexity (per prompt)
-              for (let i = 0; i < validPrompts.length; i++) {
+              // Phase 1: ChatGPT + Perplexity (alleen gewijzigde prompts)
+              for (let i = 0; i < changedPrompts.length; i++) {
                 setRescanProgress({ current: i + 1, total, phase: 'ChatGPT & Perplexity' })
                 try {
                   await fetch('/api/ai-visibility-check', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ companyName: company, query: validPrompts[i], category })
+                    body: JSON.stringify({ companyName: company, query: changedPrompts[i], category })
                   })
                 } catch (err) { console.error('Rescan error:', err) }
-                if (i < validPrompts.length - 1) await new Promise(r => setTimeout(r, 1500))
+                if (i < changedPrompts.length - 1) await new Promise(r => setTimeout(r, 1500))
               }
 
-              // Phase 2: Google AI Mode
-              setRescanProgress({ current: 0, total: 1, phase: 'Google AI Mode' })
-              try {
-                await fetch('/api/scan-google-ai', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ companyName: company, website, prompts: validPrompts })
-                })
-              } catch (err) { console.error('Google AI Mode rescan error:', err) }
+              // Phase 2: Google AI Mode (alleen als al eerder gescand)
+              if (hasGoogleAiMode) {
+                setRescanProgress({ current: 0, total: 1, phase: 'Google AI Mode' })
+                try {
+                  const allPrompts = editablePrompts.filter(p => p.trim().length > 0)
+                  await fetch('/api/scan-google-ai', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ companyName: company, website, prompts: allPrompts })
+                  })
+                } catch (err) { console.error('Google AI Mode rescan error:', err) }
+              }
 
-              // Phase 3: Google AI Overviews
-              setRescanProgress({ current: 0, total: 1, phase: 'AI Overviews' })
-              try {
-                await fetch('/api/scan-google-ai-overview', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ companyName: company, website, prompts: validPrompts })
-                })
-              } catch (err) { console.error('AI Overview rescan error:', err) }
+              // Phase 3: Google AI Overviews (alleen als al eerder gescand)
+              if (hasGoogleAiOverview) {
+                setRescanProgress({ current: 0, total: 1, phase: 'AI Overviews' })
+                try {
+                  const allPrompts = editablePrompts.filter(p => p.trim().length > 0)
+                  await fetch('/api/scan-google-ai-overview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ companyName: company, website, prompts: allPrompts })
+                  })
+                } catch (err) { console.error('AI Overview rescan error:', err) }
+              }
 
-              // Mark as edited
-              setPromptsEditedOnce(true)
-              try { localStorage.setItem('teun_prompts_edited_' + userId, 'true') } catch {}
+              // Mark rescan as used (free users get 1 rescan)
+              if (!isPro) {
+                setPromptsEditedOnce(true)
+                try { localStorage.setItem('teun_prompts_edited_' + userId, 'true') } catch {}
+              }
 
               setRescanning(false)
               setEditMode(false)
               fetchData()
             }
+
+            // Info voor bevestigingsdialoog
+            const changedCount = editMode ? editablePrompts.filter((p, i) => p.trim() !== (prompts[i]?.text || '').trim()).length : 0
+            const hasGoogleAiMode = (googleAiMode.total || 0) > 0
+            const hasGoogleAiOverview = (googleAiOverview.total || 0) > 0
+            const platformNames = ['ChatGPT', 'Perplexity', ...(hasGoogleAiMode ? ['Google AI Mode'] : []), ...(hasGoogleAiOverview ? ['AI Overviews'] : [])].join(', ')
 
             return (
               <div className="space-y-4">
@@ -1796,12 +1834,9 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                     {!editMode && !rescanning && (
                       <button
                         onClick={startEditing}
-                        disabled={promptsEditedOnce}
-                        className="px-4 py-1.5 rounded-lg border border-slate-200 text-[12px] font-semibold text-slate-700 cursor-pointer hover:border-slate-300 hover:bg-slate-50 transition-all flex items-center gap-1.5 bg-white disabled:opacity-40 disabled:cursor-not-allowed"
-                        title={promptsEditedOnce ? (locale === 'nl' ? 'Je hebt je prompts al aangepast (max 1× in BETA)' : 'You\'ve already edited your prompts (max 1× in BETA)') : ''}
+                        className="px-4 py-1.5 rounded-lg border border-slate-200 text-[12px] font-semibold text-slate-700 cursor-pointer hover:border-slate-300 hover:bg-slate-50 transition-all flex items-center gap-1.5 bg-white"
                       >
                         <Pencil className="w-3 h-3" /> {t.promptTracker.editPrompts}
-                        {promptsEditedOnce && <span className="text-[10px] text-amber-600 ml-1">✓ {locale === 'nl' ? 'gebruikt' : 'used'}</span>}
                       </button>
                     )}
                     {editMode && !rescanning && (
@@ -1810,52 +1845,52 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                           className="px-3 py-1.5 rounded-lg border border-slate-200 text-[12px] font-medium text-slate-500 cursor-pointer hover:bg-slate-50 transition-all bg-white">
                           {locale === 'nl' ? 'Annuleren' : 'Cancel'}
                         </button>
-                        <button onClick={() => hasChanges ? setShowConfirmRescan(true) : cancelEditing()}
-                          disabled={!hasChanges}
-                          className="px-4 py-1.5 rounded-lg border-none text-[12px] font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-                          style={{ background: '#292956' }}>
-                          <RefreshCw className="w-3 h-3 inline mr-1.5" />
-                          {locale === 'nl' ? 'Opslaan & opnieuw scannen' : 'Save & rescan'}
-                        </button>
+                        {promptsEditedOnce && !isPro ? (
+                          <Link
+                            href={locale === 'nl' ? '/pricing' : '/en/pricing'}
+                            className="px-4 py-1.5 rounded-lg border-none text-[12px] font-semibold text-white no-underline inline-flex items-center gap-1.5"
+                            style={{ background: '#292956' }}>
+                            <Crown className="w-3 h-3" />
+                            {locale === 'nl' ? 'Upgrade voor opnieuw scannen' : 'Upgrade to rescan'}
+                          </Link>
+                        ) : (
+                          <button onClick={() => hasChanges ? setShowConfirmRescan(true) : cancelEditing()}
+                            disabled={!hasChanges}
+                            className="px-4 py-1.5 rounded-lg border-none text-[12px] font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+                            style={{ background: '#292956' }}>
+                            <RefreshCw className="w-3 h-3 inline mr-1.5" />
+                            {locale === 'nl' ? 'Opslaan & opnieuw scannen' : 'Save & rescan'}
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
 
-                  {/* Edit mode warnings */}
+                  {/* Edit mode info */}
                   {editMode && !rescanning && (
-                    <div className="px-6 py-4 bg-amber-50/70 border-b border-amber-100 space-y-2">
-                      <div className="flex items-start gap-2">
-                        <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                        <div>
-                          <div className="text-[13px] font-semibold text-amber-800 mb-0.5">
-                            {locale === 'nl' ? 'Pas prompts alleen aan als ze niet kloppen of niet relevant zijn' : 'Only edit prompts if they are incorrect or not relevant'}
-                          </div>
-                          <div className="text-[12px] text-amber-700 leading-relaxed">
-                            {locale === 'nl'
-                              ? 'Na het aanpassen worden alle resultaten gereset en worden ChatGPT, Perplexity, Google AI Mode en AI Overviews opnieuw gescand. Dit kan een paar minuten duren.'
-                              : 'After editing, all results will be reset and ChatGPT, Perplexity, Google AI Mode and AI Overviews will be rescanned. This may take a few minutes.'}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 ml-6">
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-200/60 text-amber-800">BETA</span>
-                        <span className="text-[12px] text-amber-700">
-                          {locale === 'nl' ? 'Je kunt prompts maximaal 1 keer aanpassen' : 'You can edit prompts a maximum of 1 time'}
-                        </span>
+                    <div className="px-6 py-3 bg-slate-50 border-b border-slate-100">
+                      <div className="text-[12px] text-slate-600 leading-relaxed">
+                        {promptsEditedOnce && !isPro
+                          ? (locale === 'nl'
+                            ? 'Je hebt je gratis rescan al gebruikt. Upgrade naar Pro voor onbeperkt aanpassen en scannen.'
+                            : 'You have used your free rescan. Upgrade to Pro for unlimited editing and scanning.')
+                          : (locale === 'nl'
+                            ? 'Klik op een prompt om aan te passen. Na het opslaan worden alle platformen opnieuw gescand.'
+                            : 'Click a prompt to edit. After saving, all platforms will be rescanned.')}
                       </div>
                     </div>
                   )}
 
                   {/* Confirm rescan dialog */}
                   {showConfirmRescan && (
-                    <div className="px-6 py-5 bg-red-50 border-b border-red-100">
-                      <div className="text-[14px] font-semibold text-red-800 mb-2">
-                        {locale === 'nl' ? 'Weet je het zeker?' : 'Are you sure?'}
+                    <div className="px-6 py-5 bg-slate-50 border-b border-slate-200">
+                      <div className="text-[14px] font-semibold text-slate-800 mb-2">
+                        {locale === 'nl' ? `${changedCount} aangepaste prompt${changedCount > 1 ? 's' : ''} opnieuw scannen?` : `Rescan ${changedCount} changed prompt${changedCount > 1 ? 's' : ''}?`}
                       </div>
-                      <div className="text-[13px] text-red-700 mb-4 leading-relaxed">
+                      <div className="text-[13px] text-slate-600 mb-4 leading-relaxed">
                         {locale === 'nl'
-                          ? 'Alle huidige resultaten worden verwijderd en alle platformen worden opnieuw gescand met de aangepaste prompts. Dit kun je in de BETA niet ongedaan maken.'
-                          : 'All current results will be deleted and all platforms will be rescanned with the edited prompts. This cannot be undone in BETA.'}
+                          ? `De aangepaste prompts worden opnieuw gescand op ${platformNames}. Dit duurt even.`
+                          : `The changed prompts will be rescanned on ${platformNames}. This takes a moment.`}
                       </div>
                       <div className="flex gap-2">
                         <button onClick={() => setShowConfirmRescan(false)}
@@ -1863,8 +1898,9 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                           {locale === 'nl' ? 'Annuleren' : 'Cancel'}
                         </button>
                         <button onClick={confirmAndRescan}
-                          className="px-4 py-2 rounded-lg border-none text-[12px] font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity bg-red-600">
-                          {locale === 'nl' ? 'Ja, aanpassen & opnieuw scannen' : 'Yes, edit & rescan'}
+                          className="px-4 py-2 rounded-lg border-none text-[12px] font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity"
+                          style={{ background: '#292956' }}>
+                          {locale === 'nl' ? 'Ja, opnieuw scannen' : 'Yes, rescan'}
                         </button>
                       </div>
                     </div>
@@ -2078,7 +2114,23 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                                   <span className="w-2 h-2 rounded-full" style={{ background: '#fbbc04' }} />
                                   <span className="text-[12px] font-semibold text-slate-700">AI Overviews</span>
                                   {gaioPrompt && <MentionBadge found={gaioPrompt.found} mentionCount={gaioPrompt.mentionCount} />}
+                                  {gaioPrompt && gaioPrompt.hasAiOverview && !gaioPrompt.found && (
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 font-medium">
+                                      {locale === 'nl' ? 'AIO bestaat, niet geciteerd' : 'AIO exists, not cited'}
+                                    </span>
+                                  )}
+                                  {gaioPrompt && !gaioPrompt.hasAiOverview && (
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-400">
+                                      {locale === 'nl' ? 'Geen AI Overview' : 'No AI Overview'}
+                                    </span>
+                                  )}
                                 </div>
+                                {gaioPrompt?.searchQuery && (
+                                  <div className="text-[11px] bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                                    <span className="text-amber-600 font-medium">{locale === 'nl' ? 'Zoekopdracht:' : 'Search query:'}</span>
+                                    <span className="text-amber-800 ml-1">{gaioPrompt.searchQuery}</span>
+                                  </div>
+                                )}
                                 {gaioPrompt?.snippet && (
                                   <div className="text-[12px] text-slate-600 leading-relaxed bg-white rounded-lg p-3 border border-slate-200">
                                     <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mb-1">Snippet</div>
@@ -2091,6 +2143,20 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                                     <div className="flex flex-wrap gap-1">
                                       {gaioPrompt.competitors.map((c, j) => (
                                         <span key={j} className="text-[10px] px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-medium">{typeof c === 'string' ? c : c.name || c}</span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                {gaioPrompt?.sources?.length > 0 && (
+                                  <div>
+                                    <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mb-1">{locale === 'nl' ? 'Bronnen' : 'Sources'}</div>
+                                    <div className="space-y-1">
+                                      {gaioPrompt.sources.filter(s => s.link).slice(0, 5).map((src, j) => (
+                                        <a key={j} href={src.link} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-1 text-[11px] no-underline hover:underline ${src.isCompany ? 'text-emerald-600 font-semibold' : 'text-indigo-600 hover:text-indigo-800'}`}>
+                                          <ExternalLink className="w-3 h-3 shrink-0" />
+                                          <span className="truncate">{src.title || src.domain || src.link}</span>
+                                          {src.isCompany && <span className="text-[9px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded ml-1 shrink-0">{locale === 'nl' ? 'jij' : 'you'}</span>}
+                                        </a>
                                       ))}
                                     </div>
                                   </div>
@@ -2561,6 +2627,16 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
             )
           })()}
 
+
+          {/* ════════════ RANK TRACKER ════════════ */}
+          {activeTab === 'rank-tracker' && (
+            <RankTrackerTab
+              userId={userId}
+              locale={locale}
+              activeCompany={activeCompany}
+              isPro={isPro}
+            />
+          )}
 
           {/* ════════════ GEO OPTIMALISATIE (PRO PROMO) ════════════ */}
           {activeTab === 'geo' && (

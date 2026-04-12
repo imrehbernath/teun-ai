@@ -260,7 +260,9 @@ function processGoogleAiResults(scans, companyName) {
 
     return {
       text: r.query || r.ai_prompt || r.prompt || r.searchQuery || getPromptText(scanPrompts[i]) || `Prompt ${i + 1}`,
+      searchQuery: r.searchQuery || null,
       found: isMentioned,
+      hasAiOverview: r.hasAiOverview || r.hasAiResponse || false,
       mentionCount: r.mentionCount || r.mentions_count || mentionCount,
       snippet: responseText || null,
       competitors: r.competitorsInSources || r.competitorsMentioned || r.competitors_mentioned || competitorNames,

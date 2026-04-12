@@ -42,50 +42,68 @@ function detectLanguageFromPrompts(prompts) {
   })
 
   console.log(`Language detection: Dutch=${dutchScore}, English=${englishScore}`)
-  // Default to Dutch unless clearly English (1.3x threshold)
   return englishScore > dutchScore * 1.3 ? 'en' : 'nl'
 }
 
+// Claude system prompt — optimized for AI Overview triggers
 function getSystemPrompt(lang) {
   if (lang === 'en') {
-    return `You are an expert in Google search queries. Your task: convert commercial AI prompts into short, natural English Google search queries that trigger AI Overviews.
+    return `You are an expert in Google AI Overviews. Your task: convert commercial AI prompts into informational Google search queries that TRIGGER AI Overviews.
 
-RULES:
-- Each query should be 2-6 words, maximum 8 words
-- Use natural English as a human would google
-- NO company names, city names, or "best/top/good" words
-- Focus on the TOPIC, not finding a provider
-- Informational queries: "how much does ... cost", "how does ... work", "... reviews", "... pros and cons"
-- If the prompt is already informational, keep it short and clean
+AI OVERVIEW TRIGGER RULES (based on research):
+- AI Overviews appear in 90-100% of informational "what/how/when/why" queries
+- Long-tail queries (7+ words) trigger AIOs 50%+ of the time
+- Queries about costs, steps, comparisons, pros/cons have the highest trigger rate
+- Decision-oriented queries ("when to hire", "how to choose") trigger AIOs for business citations
+- Practical expertise questions win over encyclopedia definitions
+
+CONVERSION RULES:
+- Each query should be 6-12 words (long-tail = higher AIO chance)
+- MUST start with a trigger word: "what", "how", "when", "why", "difference between", "costs of", "steps to", "pros and cons"
+- Convert "find me a provider" into "when do I need this service" or "how does this work" or "what does this cost"
+- Keep the INDUSTRY/TOPIC but change intent from transactional to informational
+- NO company names or "best/top/good"
+- City names ARE allowed when they add local context (local queries trigger business citations)
 
 EXAMPLES:
-- "Which plastic surgeons in New York do facelifts" → "facelift cost and recovery"
-- "Can you recommend specialists for eyelid surgery at reasonable cost" → "eyelid surgery cost"
-- "Best SEO agency London" → "outsource SEO costs"
-- "Which lawyers are good at employment law" → "employment lawyer when needed"
-- "Give tips for reliable roofers with good reviews" → "choosing a roofer what to look for"
+- "Which SEO agencies in Amsterdam are good" → "when should you hire an SEO specialist"
+- "Recommend a good real estate lawyer" → "what does a real estate lawyer cost per hour"
+- "Best web design agency for webshops" → "how much does a professional webshop cost"
+- "Which accountants handle international tax" → "how does international tax work for businesses"
+- "Find a reliable contractor for renovation" → "steps to take when renovating your home"
+- "Good physiotherapist for back pain" → "when to see a physiotherapist for back pain"
 
 Reply ONLY with a JSON array of strings, one per prompt, in the same order. No explanation.`
   }
 
-  return `Je bent een expert in Google zoekopdrachten. Je taak: zet commerciële AI-prompts om naar korte, natuurlijke Nederlandse Google-zoekopdrachten die AI Overviews triggeren.
+  return `Je bent een expert in Google AI Overviews. Je taak: zet commerciele AI-prompts om naar informatieve Google-zoekopdrachten die AI Overviews TRIGGEREN.
 
-REGELS:
-- Elke zoekopdracht is 2-6 woorden, maximaal 8 woorden
-- Gebruik natuurlijk Nederlands zoals een mens zou googlen
-- GEEN bedrijfsnamen, plaatsnamen of "beste/top/goede" woorden
-- Focus op het ONDERWERP, niet op het vinden van een aanbieder
-- Informatieve queries: "wat kost ...", "hoe werkt ...", "... ervaringen", "... voor- en nadelen"
-- Als de prompt al informatief is, houd hem kort en clean
+AI OVERVIEW TRIGGER REGELS (gebaseerd op onderzoek):
+- AI Overviews verschijnen bij 90-100% van informatieve "wat/hoe/wanneer/waarom" vragen
+- Long-tail queries (7+ woorden) triggeren AIOs in 50%+ van gevallen
+- Vragen over kosten, stappenplannen, vergelijkingen, voor-/nadelen hebben de hoogste trigger-kans
+- Beslissingsvragen ("wanneer inhuren", "hoe kiezen") triggeren AIOs met bedrijfscitaties
+- Praktische expertisevragen winnen van encyclopedische definities
+
+CONVERSIEREGELS:
+- Elke query moet 6-12 woorden zijn (long-tail = hogere AIO-kans)
+- MOET beginnen met een triggerwoord: "wat kost", "hoe werkt", "wanneer", "waarom", "verschil tussen", "stappenplan voor", "voor- en nadelen van"
+- Zet "vind een aanbieder" om naar "wanneer heb ik dit nodig" of "hoe werkt dit" of "wat kost dit"
+- Behoud de BRANCHE/HET ONDERWERP maar verander de intentie van transactioneel naar informationeel
+- GEEN bedrijfsnamen of "beste/top/goede"
+- Plaatsnamen MOGEN als ze lokale context toevoegen (lokale queries triggeren bedrijfscitaties)
 
 VOORBEELDEN:
-- "Welke plastisch chirurgen in Amsterdam doen facelift" → "facelift kosten en ervaringen"
-- "Kun je specialisten noemen die ooglidcorrectie doen tegen redelijke kosten" → "ooglidcorrectie kosten"
-- "Beste SEO bureau Amsterdam" → "SEO uitbesteden kosten"
-- "Welke advocaten zijn goed in arbeidsrecht" → "arbeidsrecht advocaat wanneer nodig"
-- "Geef tips voor betrouwbare dakdekkers met goede reviews" → "dakdekker kiezen waar op letten"
+- "Welk SEO bureau in Amsterdam is goed" → "wanneer SEO specialist inhuren voor je website"
+- "Kun je een goede vastgoedadvocaat aanbevelen" → "wat kost een vastgoedadvocaat per uur"
+- "Beste webdesign bureau voor webshops" → "hoeveel kost een professionele webshop laten maken"
+- "Welke accountants doen internationale belastingen" → "hoe werkt internationale belastingaangifte voor bedrijven"
+- "Zoek een betrouwbare aannemer voor verbouwing" → "stappenplan verbouwing woning wat komt erbij kijken"
+- "Goede fysiotherapeut voor rugpijn" → "wanneer naar fysiotherapeut bij rugklachten"
+- "Ik zoek een ervaren SEO specialist in Amsterdam" → "wat kost SEO uitbesteden aan een specialist"
+- "Welk online marketing bureau combineert SEO en website snelheid" → "verschil tussen SEO en website snelheid optimalisatie"
 
-Antwoord ALLEEN met een JSON array van strings, één per prompt, in dezelfde volgorde. Geen uitleg.`
+Antwoord ALLEEN met een JSON array van strings, een per prompt, in dezelfde volgorde. Geen uitleg.`
 }
 
 // Simple fallback if Claude fails
@@ -98,8 +116,13 @@ function fallbackTransform(prompt) {
     .replace(/\s+/g, ' ')
     .trim()
 
+  // Add AIO trigger prefix
+  if (!/^(wat|hoe|wanneer|waarom|verschil|what|how|when|why|difference)/i.test(q)) {
+    q = `wat kost ${q}`
+  }
+
   if (q.length < 5) q = prompt.split(' ').slice(0, 5).join(' ')
-  if (q.length > 60) q = q.substring(0, 60).replace(/\s\w*$/, '')
+  if (q.length > 80) q = q.substring(0, 80).replace(/\s\w*$/, '')
 
   return { searchQuery: q, originalPrompt: prompt }
 }
@@ -133,8 +156,8 @@ export async function POST(request) {
         messages: [{
           role: 'user',
           content: lang === 'en'
-            ? `Convert these ${prompts.length} commercial prompts into short Google search queries:\n\n${promptList}`
-            : `Zet deze ${prompts.length} commerciële prompts om naar korte Google-zoekopdrachten:\n\n${promptList}`
+            ? `Convert these ${prompts.length} commercial prompts into informational Google search queries that trigger AI Overviews:\n\n${promptList}`
+            : `Zet deze ${prompts.length} commerciele prompts om naar informatieve Google-zoekopdrachten die AI Overviews triggeren:\n\n${promptList}`
         }]
       })
 
