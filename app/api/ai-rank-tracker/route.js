@@ -17,8 +17,8 @@ const MESSAGES = {
     domainRequired: 'Website URL is verplicht (min. 3 tekens)',
     brandRequired: 'Bedrijfsnaam is verplicht (min. 2 tekens)',
     keywordRequired: 'Zoekwoord is verplicht (min. 2 tekens)',
-    dailyLimit: 'Dagelijks limiet bereikt (3 per dag). Probeer morgen opnieuw.',
-    freeLimit: 'Je hebt je 2 gratis rank checks gebruikt. Maak een gratis account aan voor meer.',
+    weeklyLimit: 'Weeklijks limiet bereikt (3 per week). Upgrade naar Pro voor 50 keywords automatisch.',
+    freeLimit: 'Je hebt je 3 gratis rank checks gebruikt. Maak een gratis account aan voor 3 checks per week.',
     scanError: 'Er ging iets mis bij het scannen. Probeer het opnieuw.',
     scanFailed: 'Scan mislukt',
   },
@@ -26,8 +26,8 @@ const MESSAGES = {
     domainRequired: 'Website URL is required (min. 3 characters)',
     brandRequired: 'Company name is required (min. 2 characters)',
     keywordRequired: 'Keyword is required (min. 2 characters)',
-    dailyLimit: 'Daily limit reached (3 per day). Try again tomorrow.',
-    freeLimit: 'You have used your 2 free rank checks. Create a free account for more.',
+    weeklyLimit: 'Weekly limit reached (3 per week). Upgrade to Pro for 50 keywords automatic tracking.',
+    freeLimit: 'You have used your 3 free rank checks. Create a free account for 3 checks per week.',
     scanError: 'Something went wrong while scanning. Please try again.',
     scanFailed: 'Scan failed',
   }
@@ -658,31 +658,44 @@ async function checkRateLimit(ip, userId, msg) {
     if (user?.user?.email === process.env.ADMIN_EMAIL) {
       return { allowed: true };
     }
+    
+    // Check Pro subscription — Pro users get unlimited
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('subscription_status')
+      .eq('id', userId)
+      .single();
+    
+    if (['active', 'canceling'].includes(profile?.subscription_status)) {
+      return { allowed: true };
+    }
   }
   
   if (userId) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Logged-in free: 3 per week
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
     
     const { count } = await supabase
       .from('rank_checks')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .gte('created_at', today.toISOString());
+      .gte('created_at', weekAgo.toISOString());
     
     if (count >= 3) {
-      return { allowed: false, reason: msg.dailyLimit };
+      return { allowed: false, reason: msg.weeklyLimit };
     }
     return { allowed: true };
   }
   
+  // Anonymous: 3 total ever
   const { count } = await supabase
     .from('rank_checks')
     .select('*', { count: 'exact', head: true })
     .eq('ip_address', ip)
     .is('user_id', null);
   
-  if (count >= 2) {
+  if (count >= 3) {
     return { allowed: false, reason: msg.freeLimit };
   }
   return { allowed: true };

@@ -96,8 +96,8 @@ export default function PricingPage() {
     },
     {
       name: 'AI Rank Tracker',
-      free: isNL ? '2x per dag' : '2x per day',
-      pro: isNL ? 'Onbeperkt' : 'Unlimited',
+      free: isNL ? '3x per week handmatig' : '3x per week manual',
+      pro: isNL ? '50 keywords auto' : '50 keywords auto',
       freeStatus: 'limited',
       proStatus: 'check',
     },
@@ -133,6 +133,13 @@ export default function PricingPage() {
       name: isNL ? 'Onbeperkte scans alle tools' : 'Unlimited scans all tools',
       free: null,
       pro: true,
+      freeStatus: 'cross',
+      proStatus: 'pro',
+    },
+    {
+      name: isNL ? 'Automatische keyword tracking' : 'Automatic keyword tracking',
+      free: null,
+      pro: isNL ? '50 keywords' : '50 keywords',
       freeStatus: 'cross',
       proStatus: 'pro',
     },
@@ -173,15 +180,17 @@ export default function PricingPage() {
   const faqs = isNL ? [
     { q: 'Kan ik op elk moment opzeggen?', a: 'Ja. Geen contracten, geen opzegtermijn. Je houdt Pro toegang tot het einde van je betaalperiode.' },
     { q: 'Welke AI platforms worden gescand?', a: 'ChatGPT Search, Perplexity, Google AI Mode en Google AI Overviews. Alle platforms zijn inbegrepen, zonder extra kosten per platform.' },
+    { q: 'Wat is automatische keyword tracking?', a: 'Met Pro stel je tot 50 keywords eenmalig in. Teun.ai checkt automatisch wekelijks je posities op alle AI-platformen en toont trends over tijd. Gratis gebruikers kunnen 3x per week handmatig scannen.' },
     { q: 'Wat betekent \'onbeperkte scans\'?', a: 'Geen dagelijkse limieten, geen credits die opraken. Draai zoveel AI Visibility scans, Brand Checks, Rank Tracker checks en GEO Audits als je nodig hebt.' },
-    { q: 'Is er een gratis proefperiode?', a: 'Alle 6 tools zijn gratis te gebruiken met dagelijkse limieten. Zo ervaar je precies wat Teun.ai kan voordat je upgradet naar Pro.' },
-    { q: 'Wat maakt Teun.ai anders dan Otterly, Profound of Peec?', a: 'Teun.ai biedt 6 gratis tools, onbeperkte websites, en je kunt echt zelf GEO-optimaliseren met advies per pagina. Plus een WordPress plugin en Chrome extensie. Otterly.ai kost vanaf $29/mnd voor slechts 10 prompts zonder gratis tools. Profound start bij $99/mnd voor alleen ChatGPT. Peec.ai vanaf €85/mnd voor max 3 van 7 platformen.' },
+    { q: 'Is er een gratis proefperiode?', a: 'Alle 6 tools zijn gratis te gebruiken met limieten. Zo ervaar je precies wat Teun.ai kan voordat je upgradet naar Pro.' },
+    { q: 'Wat maakt Teun.ai anders dan Otterly, Profound of Peec?', a: 'Teun.ai biedt 6 gratis tools, onbeperkte websites, automatische keyword tracking voor 50 keywords en je kunt echt zelf GEO-optimaliseren met advies per pagina. Plus een WordPress plugin en Chrome extensie. Otterly.ai kost vanaf $29/mnd voor slechts 10 prompts zonder gratis tools. Profound start bij $99/mnd voor alleen ChatGPT. Peec.ai vanaf €85/mnd voor max 3 van 7 platformen.' },
   ] : [
     { q: 'Can I cancel at any time?', a: 'Yes. No contracts, no notice period. You keep Pro access until the end of your billing period.' },
     { q: 'Which AI platforms are scanned?', a: 'ChatGPT Search, Perplexity, Google AI Mode and Google AI Overviews. All platforms included, no extra costs per platform.' },
+    { q: 'What is automatic keyword tracking?', a: 'With Pro you set up to 50 keywords once. Teun.ai automatically checks your positions on all AI platforms weekly and shows trends over time. Free users can scan manually 3 times per week.' },
     { q: 'What does \'unlimited scans\' mean?', a: 'No daily limits, no credits running out. Run as many AI Visibility scans, Brand Checks, Rank Tracker checks and GEO Audits as you need.' },
-    { q: 'Is there a free trial?', a: 'All 6 tools are free to use with daily limits. Experience exactly what Teun.ai can do before upgrading to Pro.' },
-    { q: 'What makes Teun.ai different from Otterly, Profound or Peec?', a: 'Teun.ai offers 6 free tools, unlimited websites, and you can actually optimize for GEO yourself with per-page advice. Plus a WordPress plugin and Chrome extension. Otterly.ai starts at $29/mo for just 10 prompts with no free tools. Profound starts at $99/mo for ChatGPT only. Peec.ai starts at €85/mo for max 3 of 7 platforms.' },
+    { q: 'Is there a free trial?', a: 'All 6 tools are free to use with limits. Experience exactly what Teun.ai can do before upgrading to Pro.' },
+    { q: 'What makes Teun.ai different from Otterly, Profound or Peec?', a: 'Teun.ai offers 6 free tools, unlimited websites, automatic keyword tracking for 50 keywords and you can actually optimize for GEO yourself with per-page advice. Plus a WordPress plugin and Chrome extension. Otterly.ai starts at $29/mo for just 10 prompts with no free tools. Profound starts at $99/mo for ChatGPT only. Peec.ai starts at €85/mo for max 3 of 7 platforms.' },
   ];
 
   const platforms = [
@@ -237,7 +246,7 @@ export default function PricingPage() {
                     ? 'We leggen de laatste hand aan Teun.ai Pro. Laat je e-mail achter en wij laten je als eerste weten wanneer het beschikbaar is.'
                     : 'We\'re putting the finishing touches on Teun.ai Pro. Leave your email and we\'ll let you know first when it\'s available.'}
                 </p>
-                <form onSubmit={handleNotifySubmit} className="flex flex-col sm:flex-row gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="email"
                     required
@@ -247,12 +256,12 @@ export default function PricingPage() {
                     className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                   />
                   <button
-                    type="submit"
+                    onClick={handleNotifySubmit}
                     className="px-6 py-3 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-semibold text-sm hover:shadow-lg transition-all cursor-pointer border-none whitespace-nowrap"
                   >
                     {isNL ? 'Houd mij op de hoogte' : 'Notify me'}
                   </button>
-                </form>
+                </div>
                 <p className="text-xs text-slate-400 mt-3">
                   {isNL ? 'Geen spam, alleen een melding bij lancering.' : 'No spam, just a notification at launch.'}
                 </p>
@@ -299,8 +308,8 @@ export default function PricingPage() {
 
           <p className="text-base sm:text-lg text-slate-600 mb-8 max-w-xl mx-auto">
             {isNL
-              ? '6 gratis AI-zichtbaarheid tools. Upgrade naar Pro voor GEO Optimalisatie DIY en onbeperkt gebruik van alle tools.'
-              : '6 free AI visibility tools. Upgrade to Pro for GEO Optimization DIY and unlimited use of all tools.'}
+              ? '6 gratis AI-zichtbaarheid tools. Upgrade naar Pro voor 50 keywords automatische tracking, GEO Optimalisatie DIY en onbeperkt gebruik van alle tools.'
+              : '6 free AI visibility tools. Upgrade to Pro for 50 keywords automatic tracking, GEO Optimization DIY and unlimited use of all tools.'}
           </p>
 
           {/* Toggle */}
@@ -411,8 +420,8 @@ export default function PricingPage() {
               )}
               <p className="text-slate-500 text-sm mb-8">
                 {isNL
-                  ? 'GEO Optimalisatie DIY: optimaliseer je pagina\'s zelf en gebruik alle tools onbeperkt.'
-                  : 'GEO Optimization DIY: optimize your pages yourself and use all tools unlimited.'}
+                  ? '50 keywords automatisch tracken, GEO Optimalisatie DIY en alle tools onbeperkt.'
+                  : '50 keywords automatic tracking, GEO Optimization DIY and all tools unlimited.'}
               </p>
 
               <button
@@ -480,8 +489,8 @@ export default function PricingPage() {
             </h2>
             <p className="text-slate-500 max-w-lg mx-auto">
               {isNL
-                ? 'GEO Optimalisatie DIY met Search Console integratie en AI-advies per pagina.'
-                : 'GEO Optimization DIY with Search Console integration and AI advice per page.'}
+                ? 'Automatische keyword tracking, GEO Optimalisatie DIY met Search Console integratie en AI-advies per pagina.'
+                : 'Automatic keyword tracking, GEO Optimization DIY with Search Console integration and AI advice per page.'}
             </p>
           </div>
 
@@ -742,13 +751,18 @@ export default function PricingPage() {
             <div className="p-8 sm:p-12 text-center">
               <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
                 {isNL
-                  ? 'Klaar om gevonden te worden in AI-antwoorden?'
-                  : 'Ready to be found in AI answers?'}
+                  ? 'Weet waar je staat in AI-antwoorden'
+                  : 'Know where you stand in AI answers'}
               </h2>
-              <p className="text-white/70 text-lg mb-8 max-w-xl mx-auto">
+              <p className="text-white/70 text-lg mb-3 max-w-xl mx-auto">
                 {isNL
-                  ? 'Start gratis of upgrade naar Pro voor GEO Optimalisatie DIY en onbeperkt alle tools.'
-                  : 'Start free or upgrade to Pro for GEO Optimization DIY and unlimited access to all tools.'}
+                  ? 'Track automatisch 50 keywords en optimaliseer zelf met GEO Optimalisatie DIY.'
+                  : 'Automatically track 50 keywords and optimize yourself with GEO Optimization DIY.'}
+              </p>
+              <p className="text-white/50 text-sm mb-8 max-w-lg mx-auto">
+                {isNL
+                  ? 'Liever hulp? OnlineLabs helpt je met professionele GEO-optimalisatie.'
+                  : 'Prefer help? OnlineLabs helps you with professional GEO optimization.'}
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 <button onClick={handleProClick} disabled={loading} className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold text-lg hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg shadow-green-500/25 hover:shadow-green-500/40 cursor-pointer disabled:opacity-60">
@@ -763,7 +777,12 @@ export default function PricingPage() {
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
-              <p className="text-white/50 text-xs mt-6">
+              <div className="mt-4">
+                <a href="https://onlinelabs.nl" target="_blank" rel="noopener noreferrer" className="text-white/50 hover:text-white/80 text-sm transition-colors">
+                  {isNL ? 'GEO-optimalisatie door OnlineLabs' : 'GEO optimization by OnlineLabs'} →
+                </a>
+              </div>
+              <p className="text-white/40 text-xs mt-6">
                 {isNL ? 'Geen creditcard nodig voor gratis account. Pro is maandelijks opzegbaar.' : 'No credit card needed for free account. Pro can be cancelled monthly.'}
               </p>
             </div>

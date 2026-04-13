@@ -652,47 +652,246 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* ====== HOE HET WERKT ====== */}
+      {/* ====== PLATFORM OVERVIEW: Ontdekken → Analyseren → Optimaliseren ====== */}
+{/* REPLACES the old "Hoe het werkt" section (lines ~655-748 in Homepage.jsx) */}
+{/* Keep the video section + theater mode code that was below it */}
+
       <section className="py-20 bg-slate-100">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
-              {t('howItWorks.title')}
+              {locale === 'nl' ? (
+                <>Jouw complete <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">AI-zichtbaarheid platform</span></>
+              ) : (
+                <>Your complete <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">AI visibility platform</span></>
+              )}
             </h2>
+            <p className="text-slate-500 max-w-xl mx-auto text-lg">
+              {locale === 'nl'
+                ? '6 tools die samenwerken. Van eerste check tot structurele optimalisatie.'
+                : '6 tools working together. From first check to structural optimization.'}
+            </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-2xl p-8 shadow-sm">
-              <div className="flex items-start gap-4">
-                <div className="text-4xl font-bold text-[#1E1E3F]">1.</div>
-                <div>
-                  <p className="text-xl font-bold text-slate-900 mb-2">{t('howItWorks.step1Title')}</p>
-                  <p className="text-slate-600">{t('howItWorks.step1Text')}</p>
+          <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+
+            {/* ── CARD 1: ONTDEKKEN ── */}
+            <div className="bg-white rounded-2xl p-6 lg:p-8 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="M21 21l-4.35-4.35" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900">
+                    {locale === 'nl' ? 'Ontdekken' : 'Discover'}
+                  </h3>
+                </div>
+                <span className="text-3xl font-bold text-slate-200">01</span>
+              </div>
+
+              {/* Mini UI mockup */}
+              <div className="bg-slate-50 rounded-xl p-4 mb-5 border border-slate-100">
+                <div className="flex items-center gap-1.5 mb-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">AI Visibility Scan</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-500">
+                      {locale === 'nl' ? 'Jouw merk gevonden in' : 'Your brand found in'}
+                    </span>
+                    <span className="text-sm font-bold text-emerald-600">7/10</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-500">
+                      {locale === 'nl' ? 'Concurrent gevonden in' : 'Competitor found in'}
+                    </span>
+                    <span className="text-sm font-bold text-slate-400">9/10</span>
+                  </div>
+                  <div className="pt-2 border-t border-slate-100">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs text-slate-500">Visibility score</span>
+                      <span className="text-sm font-bold text-emerald-600">68%</span>
+                    </div>
+                    <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full" style={{ width: '68%' }}></div>
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                <span className="text-xs px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg font-medium">AI Visibility Scan</span>
+                <span className="text-xs px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg font-medium">Brand Check</span>
+              </div>
+
+              <p className="text-sm text-slate-500 leading-relaxed">
+                {locale === 'nl'
+                  ? 'Check direct of AI-zoekmachines jouw bedrijf aanbevelen. Op ChatGPT, Perplexity, Google AI Mode en AI Overviews.'
+                  : 'Instantly check if AI search engines recommend your business. On ChatGPT, Perplexity, Google AI Mode and AI Overviews.'}
+              </p>
             </div>
-            <div className="bg-white rounded-2xl p-8 shadow-sm">
-              <div className="flex items-start gap-4">
-                <div className="text-4xl font-bold text-[#1E1E3F]">2.</div>
-                <div>
-                  <p className="text-xl font-bold text-slate-900 mb-2">{t('howItWorks.step2Title')}</p>
-                  <p className="text-slate-600">{t('howItWorks.step2Text')}</p>
+
+            {/* ── CARD 2: ANALYSEREN & TRACKEN ── */}
+            <div className="bg-white rounded-2xl p-6 lg:p-8 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path d="M3 3v18h18" />
+                      <path d="M7 16l4-8 4 4 4-6" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900">
+                    {locale === 'nl' ? 'Analyseren & tracken' : 'Analyze & track'}
+                  </h3>
+                </div>
+                <span className="text-3xl font-bold text-slate-200">02</span>
+              </div>
+
+              {/* Mini UI mockup */}
+              <div className="bg-slate-50 rounded-xl p-4 mb-5 border border-slate-100">
+                <div className="flex items-center gap-1.5 mb-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                  <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">AI Rank Tracker</span>
+                </div>
+                <div className="space-y-1.5">
+                  {[
+                    { pos: 1, name: locale === 'nl' ? 'Concurrent A' : 'Competitor A', platforms: 'ChatGPT + Perplexity', color: 'bg-amber-400', you: false },
+                    { pos: 2, name: locale === 'nl' ? 'Jouw bedrijf' : 'Your business', platforms: 'ChatGPT', color: 'bg-emerald-500', you: true },
+                    { pos: 3, name: locale === 'nl' ? 'Concurrent B' : 'Competitor B', platforms: 'Perplexity', color: 'bg-slate-400', you: false },
+                  ].map((item) => (
+                    <div key={item.pos} className="flex items-center gap-2.5">
+                      <span className={`w-5 h-5 rounded-full ${item.color} text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0`}>
+                        {item.pos}
+                      </span>
+                      <span className={`text-xs flex-1 ${item.you ? 'font-bold text-blue-600' : 'text-slate-700'}`}>
+                        {item.name}
+                      </span>
+                      <span className="text-[10px] text-slate-400">{item.platforms}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400">
+                    {locale === 'nl' ? 'Wekelijks automatisch' : 'Weekly automatic'}
+                  </span>
+                  <span className="text-[10px] font-medium text-blue-600">
+                    {locale === 'nl' ? '50 keywords (Pro)' : '50 keywords (Pro)'}
+                  </span>
                 </div>
               </div>
+
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                <span className="text-xs px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg font-medium">AI Rank Tracker</span>
+                <span className="text-xs px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg font-medium">GEO Audit</span>
+                <span className="text-xs px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg font-medium">Prompt Explorer</span>
+              </div>
+
+              <p className="text-sm text-slate-500 leading-relaxed">
+                {locale === 'nl'
+                  ? 'Volg je AI-rankings wekelijks op alle platformen. Ontdek welke prompts klanten gebruiken en audit je technische GEO-score.'
+                  : 'Track your AI rankings weekly across all platforms. Discover which prompts customers use and audit your technical GEO score.'}
+              </p>
             </div>
-            <div className="bg-white rounded-2xl p-8 shadow-sm">
-              <div className="flex items-start gap-4">
-                <div className="text-4xl font-bold text-[#1E1E3F]">3.</div>
-                <div>
-                  <p className="text-xl font-bold text-slate-900 mb-2">{t('howItWorks.step3Title')}</p>
-                  <p className="text-slate-600">{t('howItWorks.step3Text')}</p>
+
+            {/* ── CARD 3: OPTIMALISEREN ── */}
+            <div className="bg-white rounded-2xl p-6 lg:p-8 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900">
+                    {locale === 'nl' ? 'Optimaliseren' : 'Optimize'}
+                  </h3>
+                </div>
+                <span className="text-3xl font-bold text-slate-200">03</span>
+              </div>
+
+              {/* Mini UI mockup */}
+              <div className="bg-slate-50 rounded-xl p-4 mb-5 border border-slate-100">
+                <div className="flex items-center gap-1.5 mb-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                  <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">GEO {locale === 'nl' ? 'Optimalisatie' : 'Optimization'} DIY</span>
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { label: locale === 'nl' ? 'Schema markup toevoegen' : 'Add schema markup', done: true },
+                    { label: locale === 'nl' ? 'Google Reviews verbeteren' : 'Improve Google Reviews', done: true },
+                    { label: locale === 'nl' ? 'Autoriteit blogpost schrijven' : 'Write authority blog post', done: false },
+                    { label: locale === 'nl' ? 'Vergelijkingspagina maken' : 'Create comparison page', done: false },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-2.5">
+                      <span className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-[9px] ${
+                        item.done
+                          ? 'bg-emerald-100 text-emerald-600'
+                          : 'bg-amber-100 text-amber-600'
+                      }`}>
+                        {item.done ? '✓' : '○'}
+                      </span>
+                      <span className={`text-xs ${item.done ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
+                        {item.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400">Visibility lift</span>
+                  <span className="text-sm font-bold text-emerald-600">+18%</span>
                 </div>
               </div>
+
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                <span className="text-xs px-2.5 py-1 bg-amber-50 text-amber-700 rounded-lg font-medium">GEO {locale === 'nl' ? 'Optimalisatie' : 'Optimization'} DIY</span>
+                <span className="text-xs px-2.5 py-1 bg-amber-50 text-amber-700 rounded-lg font-medium">{locale === 'nl' ? 'AI-advies per pagina' : 'AI advice per page'}</span>
+              </div>
+
+              <p className="text-sm text-slate-500 leading-relaxed">
+                {locale === 'nl'
+                  ? 'Krijg concrete aanbevelingen per pagina. Zelf doen met DIY, of laat OnlineLabs het voor je regelen.'
+                  : 'Get concrete recommendations per page. Do it yourself with DIY, or let OnlineLabs handle it for you.'}
+              </p>
             </div>
           </div>
 
-          {/* Demo Video */}
-          <div className="mt-12 max-w-4xl mx-auto">
+          {/* CTA below cards */}
+          <div className="mt-12 text-center">
+            <p className="text-slate-500 mb-6">
+              {locale === 'nl'
+                ? 'Alle tools zijn gratis te gebruiken. Upgrade naar Pro voor automatische tracking en onbeperkt gebruik.'
+                : 'All tools are free to use. Upgrade to Pro for automatic tracking and unlimited use.'}
+            </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              <Link
+                href="/tools/ai-visibility"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all"
+              >
+                {locale === 'nl' ? 'Gratis scan starten' : 'Start free scan'}
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </Link>
+              <Link
+                href="/pricing"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-semibold hover:shadow-md hover:border-slate-300 transition-all"
+              >
+                {locale === 'nl' ? 'Bekijk Pro' : 'View Pro'}
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </Link>
+            </div>
+          </div>
+
+          {/* Demo Video - kept from original */}
+          <div className="mt-16 max-w-4xl mx-auto">
             <p className="text-center text-sm font-medium text-slate-500 mb-4">
               {locale === 'nl' ? '▶ Bekijk de scan in actie (2,5x versneld)' : '▶ See the scan in action (2.5x speed)'}
             </p>
@@ -731,7 +930,7 @@ export default function Homepage() {
             </div>
           </div>
 
-          {/* Theater mode overlay */}
+          {/* Theater mode overlay - kept from original */}
           {videoTheater && (
             <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 sm:p-8">
               <button onClick={() => setVideoTheater(false)} className="absolute top-4 right-4 text-white/70 hover:text-white z-50 cursor-pointer">
