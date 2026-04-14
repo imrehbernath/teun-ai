@@ -627,18 +627,8 @@ export default function PricingPage() {
       </section>
 
       {/* ====== CTA BANNER ====== */}
-      <section className="py-20 bg-gradient-to-b from-blue-50/60 to-slate-50 relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div 
-            className="pricing-orb-1 absolute top-[-20%] right-[10%] w-[300px] h-[300px] rounded-full"
-            style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 60%)' }}
-          />
-          <div 
-            className="pricing-orb-2 absolute bottom-[-15%] left-[5%] w-[250px] h-[250px] rounded-full"
-            style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.06) 0%, transparent 60%)' }}
-          />
-        </div>
-        <div className="relative max-w-3xl mx-auto px-5 sm:px-6 lg:px-8 text-center">
+      <section className="py-20 bg-white">
+        <div className="max-w-3xl mx-auto px-5 sm:px-6 lg:px-8 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4">{isNL ? 'Weet waar je staat in AI-antwoorden' : 'Know where you stand in AI answers'}</h2>
           <p className="text-slate-500 text-lg mb-3 max-w-xl mx-auto">{isNL ? 'Volg automatisch je AI rankings en optimaliseer zelf met GEO Optimalisatie DIY.' : 'Automatically track your AI rankings and optimize yourself with GEO Optimization DIY.'}</p>
           <p className="text-slate-400 text-sm mb-8 max-w-lg mx-auto">{isNL ? 'Liever hulp? OnlineLabs helpt je met professionele GEO-optimalisatie.' : 'Prefer help? OnlineLabs helps you with professional GEO optimization.'}</p>
