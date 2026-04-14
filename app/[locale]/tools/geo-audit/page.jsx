@@ -56,6 +56,7 @@ export default function GeoAuditPage() {
   const [copiedPrompt, setCopiedPrompt] = useState(false)
   const [showFullSnippet, setShowFullSnippet] = useState(false)
   const [downloadingPdf, setDownloadingPdf] = useState(false)
+  const [openFaq, setOpenFaq] = useState(0)
   const resultsRef = useRef(null)
 
   // Scan limit
@@ -296,6 +297,32 @@ export default function GeoAuditPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 relative overflow-hidden">
+      {/* Animation styles */}
+      <style>{`
+        @keyframes tool-float-slow {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -25px) scale(1.08); }
+          66% { transform: translate(-25px, 15px) scale(0.95); }
+        }
+        @keyframes tool-float-medium {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(-40px, 30px) scale(1.1); }
+        }
+        .tool-orb-1 { animation: tool-float-slow 22s ease-in-out infinite; }
+        .tool-orb-2 { animation: tool-float-medium 18s ease-in-out infinite; animation-delay: -4s; }
+        .tool-orb-3 { animation: tool-float-slow 26s ease-in-out infinite reverse; animation-delay: -8s; }
+        @media (prefers-reduced-motion: reduce) {
+          .tool-orb-1, .tool-orb-2, .tool-orb-3 { animation: none; }
+        }
+      `}</style>
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="tool-orb-1 absolute -top-32 -right-32 lg:top-[-10%] lg:right-[5%] w-[300px] h-[300px] lg:w-[450px] lg:h-[450px] rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 40%, transparent 70%)' }} />
+        <div className="tool-orb-2 absolute -bottom-24 -left-24 lg:bottom-[-15%] lg:left-[-5%] w-[250px] h-[250px] lg:w-[400px] lg:h-[400px] rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.10) 0%, rgba(139, 92, 246, 0.03) 40%, transparent 70%)' }} />
+        <div className="tool-orb-3 absolute top-[50%] right-[8%] w-[120px] h-[120px] lg:w-[180px] lg:h-[180px] rounded-full hidden lg:block"
+          style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 60%)' }} />
+      </div>
 
       {/* ── HERO + FORM ────────────────────────────── */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
@@ -1019,42 +1046,43 @@ export default function GeoAuditPage() {
             </div>
           </section>
 
-          {/* Live test uitleg */}
+          {/* Live test uitleg - light style */}
           <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 text-center">
               {locale === 'en'
-                ? <>Not just analysis.<br /><span className="text-[#4F46E5]">a real AI test</span></>
-                : <>Niet alleen analyse.<br /><span className="text-[#4F46E5]">een échte AI-test</span></>}
+                ? <>Not just analysis.<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">a real AI test</span></>
+                : <>Niet alleen analyse.<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">een échte AI-test</span></>}
             </h2>
-            <p className="text-slate-600 leading-relaxed text-center mb-6 max-w-2xl mx-auto">
+            <p className="text-slate-600 leading-relaxed text-center mb-8 max-w-2xl mx-auto">
               {locale === 'en'
-                ? 'What makes this GEO audit unique: we generate a commercial prompt based on your page, send it to Perplexity in real-time, and check if your business is actually mentioned in the answer. You immediately see who AI recommends instead of you.'
-                : 'Wat deze GEO audit uniek maakt: we genereren een commerciële prompt op basis van je pagina, sturen die real-time naar Perplexity, en controleren of jouw bedrijf daadwerkelijk in het antwoord staat. Je ziet direct wie AI aanbeveelt in plaats van jou.'}
+                ? 'What makes this GEO audit unique: we generate a commercial prompt based on your page, send it to Perplexity in real-time, and check if your business is actually mentioned in the answer.'
+                : 'Wat deze GEO audit uniek maakt: we genereren een commerciële prompt op basis van je pagina, sturen die real-time naar Perplexity, en controleren of jouw bedrijf daadwerkelijk in het antwoord staat.'}
             </p>
-            <div className="bg-[#292956] rounded-2xl p-6 sm:p-8 text-white">
-              <div className="space-y-4">
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+              <div className="space-y-5">
                 <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs">👤</span>
+                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                   </div>
-                  <div className="bg-white/10 rounded-lg rounded-tl-none px-4 py-2.5 text-sm text-white/90">
+                  <div className="bg-slate-50 rounded-xl rounded-tl-sm px-4 py-3 text-sm text-slate-700 border border-slate-100">
                     {locale === 'en'
                       ? '"Can you recommend a good [your industry] in [your city]?"'
                       : '"Kun je een goede [jouw branche] in [jouw stad] aanbevelen?"'}
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-emerald-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs">🤖</span>
+                  <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Zap className="w-4 h-4 text-emerald-500" />
                   </div>
-                  <div className="bg-white/10 rounded-lg rounded-tl-none px-4 py-2.5 text-sm text-white/90">
-                    {locale === 'en'
-                      ? '"Here are some options I can recommend..."'
-                      : '"Hier zijn enkele opties die ik kan aanbevelen..."'}
-                    <br />
-                    <span className="text-emerald-400 font-medium">
+                  <div className="bg-slate-50 rounded-xl rounded-tl-sm px-4 py-3 border border-slate-100">
+                    <p className="text-sm text-slate-700">
+                      {locale === 'en'
+                        ? '"Here are some options I can recommend..."'
+                        : '"Hier zijn enkele opties die ik kan aanbevelen..."'}
+                    </p>
+                    <p className="text-sm text-emerald-600 font-medium mt-1">
                       {locale === 'en' ? 'Does your business appear? Or only your competitors?' : 'Staat jouw bedrijf erbij? Of alleen je concurrenten?'}
-                    </span>
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1101,53 +1129,68 @@ export default function GeoAuditPage() {
             </div>
           </section>
 
-          {/* FAQ */}
-          <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
-                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-6">
-                  {locale === 'en' ? 'Frequently asked questions' : 'Veelgestelde vragen'}
-                </h2>
-                <div className="space-y-3">
-                  {faqItems.map((item, i) => (
-                    <details key={i} className="group border border-slate-200 rounded-xl bg-white">
-                      <summary className="flex items-center justify-between p-4 cursor-pointer font-medium text-slate-900 hover:bg-slate-50 rounded-xl text-sm sm:text-base">
-                        {item.q}
-                        <ChevronDown className="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform flex-shrink-0 ml-2" />
-                      </summary>
-                      <p className="px-4 pb-4 text-sm text-slate-600 leading-relaxed">{item.a}</p>
-                    </details>
-                  ))}
-                </div>
-          </section>
-
-          {/* CTA */}
-          <section className="max-w-3xl mx-auto px-4 sm:px-6 pb-16">
-            <div className="bg-white border border-slate-200 rounded-xl p-6 sm:p-8 text-center">
-              <p className="text-lg font-bold text-slate-900 mb-2">
-                {locale === 'en' 
-                  ? 'This was 1 page, 1 prompt. How visible are you really?' 
-                  : 'Dit was 1 pagina, 1 prompt. Hoe zichtbaar ben je echt?'}
-              </p>
-              <p className="text-slate-600 text-sm max-w-md mx-auto mb-5">
+          {/* Pricing CTA */}
+          <section className="py-16 bg-white">
+            <div className="max-w-3xl mx-auto px-5 sm:px-6 lg:px-8 text-center">
+              <p className="text-slate-500 mb-6">
                 {locale === 'en'
-                  ? 'Your customers ask dozens of different questions to AI. Create a free account and scan your visibility on 10 prompts across ChatGPT, Perplexity, Google AI Mode and Google AI Overviews.'
-                  : 'Jouw klanten stellen tientallen verschillende vragen aan AI. Maak een gratis account aan en scan je zichtbaarheid op 10 prompts op ChatGPT, Perplexity, Google AI Mode en Google AI Overviews.'}
+                  ? 'All tools are free to use. Upgrade to Lite or Pro for automatic tracking and unlimited use.'
+                  : 'Alle tools zijn gratis te gebruiken. Upgrade naar Lite of Pro voor automatische tracking en onbeperkt gebruik.'}
               </p>
-              <Link href="/signup" className="inline-flex items-center gap-2 bg-[#292956] text-white font-semibold px-6 py-3 rounded-lg hover:bg-[#1e1e45] transition-colors cursor-pointer">
-                {locale === 'en' ? 'Create free account' : 'Gratis account aanmaken'} <ArrowRight className="w-4 h-4" />
-              </Link>
+              <div className="flex flex-wrap justify-center gap-4">
+                <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer">
+                  {locale === 'en' ? 'Start free GEO Audit' : 'Gratis GEO Audit starten'} <ArrowRight className="w-5 h-5" />
+                </button>
+                <Link href="/pricing" className="inline-flex items-center gap-2 px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-lg hover:shadow-md hover:border-slate-300 transition-all">
+                  {locale === 'en' ? 'View Lite & Pro' : 'Bekijk Lite & Pro'} <ArrowRight className="w-5 h-5" />
+                </Link>
+              </div>
+              <p className="text-slate-400 text-xs mt-3">
+                {locale === 'en' ? 'From €29.95/mo excl. VAT' : 'Vanaf €29,95/mnd excl. BTW'}
+              </p>
             </div>
           </section>
 
-          {/* Teun welkom */}
-          <div className="flex justify-center pb-12">
-            <Image
-              src="/Teun-ai_welkom.png"
-              alt={locale === 'en' ? 'Teun.ai mascot' : 'Teun.ai mascotte'}
-              width={200}
-              height={200}
-              className="w-40 sm:w-48"
-            />
-          </div>
+          {/* FAQ with Teun */}
+          <section className="py-20 bg-slate-50 relative overflow-visible">
+            <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
+              <div className="grid lg:grid-cols-2 gap-12 items-start">
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-6">
+                    {locale === 'en' ? 'Frequently asked questions' : 'Veelgestelde vragen'}
+                  </h2>
+                  <div className="space-y-4">
+                    {faqItems.map((item, i) => (
+                      <div key={i} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                        <button
+                          onClick={() => setOpenFaq(openFaq === i ? -1 : i)}
+                          className="w-full flex items-center justify-between p-6 text-left cursor-pointer"
+                        >
+                          <div className="flex items-center gap-4">
+                            <span className="text-slate-400 font-mono text-sm">{String(i + 1).padStart(2, '0')}</span>
+                            <span className="font-semibold text-slate-900">{item.q}</span>
+                          </div>
+                          <svg className={`w-5 h-5 text-slate-400 transition-transform flex-shrink-0 ml-2 ${openFaq === i ? 'rotate-45' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                        </button>
+                        {openFaq === i && (
+                          <div className="px-6 pb-6 pt-0">
+                            <p className="text-slate-600 pl-10">{item.a}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="hidden lg:flex justify-center items-end relative">
+                  <div className="translate-y-20" style={{ marginTop: '5px' }}>
+                    <Image src="/teun-ai-mascotte.png" alt={locale === 'en' ? 'Teun helps you' : 'Teun helpt je'} width={420} height={530} className="drop-shadow-xl" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
         </>
       )}
 

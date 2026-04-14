@@ -70,6 +70,11 @@ export async function POST(request) {
         const priceId = subscription.items.data[0]?.price.id
         const plan = priceId === process.env.STRIPE_PRICE_ANNUAL ? 'annual' : 'monthly'
 
+        // Determine tier from session metadata or price ID
+        const tier = session.metadata?.tier || (
+          [process.env.STRIPE_PRICE_LITE_MONTHLY, process.env.STRIPE_PRICE_LITE_ANNUAL].includes(priceId) ? 'lite' : 'pro'
+        )
+
         const profile = await findProfileByCustomerId(supabase, customerId)
 
         if (profile) {
@@ -78,6 +83,7 @@ export async function POST(request) {
             .update({
               subscription_status: 'active',
               subscription_plan: plan,
+              subscription_tier: tier,
               stripe_subscription_id: subscriptionId,
               subscription_start: new Date().toISOString(),
               subscription_current_period_end: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
@@ -88,7 +94,7 @@ export async function POST(request) {
           if (updateError) {
             console.error(`❌ Profile update failed for ${profile.id}:`, updateError.message)
           } else {
-            console.log(`✅ Subscription activated for user ${profile.id} (${plan})`)
+            console.log(`✅ Subscription activated for user ${profile.id} (${tier}/${plan})`)
           }
         } else {
           console.warn('⚠️ No profile found for customer:', customerId, 'email:', session.customer_details?.email)
@@ -103,6 +109,9 @@ export async function POST(request) {
         const priceId = subscription.items.data[0]?.price.id
         const plan = priceId === process.env.STRIPE_PRICE_ANNUAL ? 'annual' : 'monthly'
 
+        // Detect tier from price ID
+        const tier = [process.env.STRIPE_PRICE_LITE_MONTHLY, process.env.STRIPE_PRICE_LITE_ANNUAL].includes(priceId) ? 'lite' : 'pro'
+
         const status = subscription.cancel_at_period_end ? 'canceling' : subscription.status
 
         const profile = await findProfileByCustomerId(supabase, customerId)
@@ -113,12 +122,13 @@ export async function POST(request) {
             .update({
               subscription_status: status,
               subscription_plan: plan,
+              subscription_tier: tier,
               subscription_current_period_end: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
 
             })
             .eq('id', profile.id)
 
-          console.log(`✅ Subscription updated for user ${profile.id}: ${status} (${plan})`)
+          console.log(`✅ Subscription updated for user ${profile.id}: ${status} (${tier}/${plan})`)
         }
         break
       }
@@ -136,6 +146,7 @@ export async function POST(request) {
             .update({
               subscription_status: 'canceled',
               subscription_plan: null,
+              subscription_tier: null,
               stripe_subscription_id: null,
             })
             .eq('id', profile.id)

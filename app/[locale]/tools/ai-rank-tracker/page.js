@@ -364,7 +364,41 @@ function RankTrackerContent() {
   }
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 relative">
+      {/* Animation styles */}
+      <style>{`
+        @keyframes tool-float-slow {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -25px) scale(1.08); }
+          66% { transform: translate(-25px, 15px) scale(0.95); }
+        }
+        @keyframes tool-float-medium {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(-40px, 30px) scale(1.1); }
+        }
+        .tool-orb-1 { animation: tool-float-slow 22s ease-in-out infinite; }
+        .tool-orb-2 { animation: tool-float-medium 18s ease-in-out infinite; animation-delay: -4s; }
+        .tool-orb-3 { animation: tool-float-slow 26s ease-in-out infinite reverse; animation-delay: -8s; }
+        @media (prefers-reduced-motion: reduce) {
+          .tool-orb-1, .tool-orb-2, .tool-orb-3 { animation: none; }
+        }
+      `}</style>
+
+      {/* Animated background orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div 
+          className="tool-orb-1 absolute -top-32 -right-32 lg:top-[-10%] lg:right-[5%] w-[300px] h-[300px] lg:w-[450px] lg:h-[450px] rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 40%, transparent 70%)' }}
+        />
+        <div 
+          className="tool-orb-2 absolute -bottom-24 -left-24 lg:bottom-[-15%] lg:left-[-5%] w-[250px] h-[250px] lg:w-[400px] lg:h-[400px] rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.10) 0%, rgba(139, 92, 246, 0.03) 40%, transparent 70%)' }}
+        />
+        <div 
+          className="tool-orb-3 absolute top-[50%] right-[8%] w-[120px] h-[120px] lg:w-[180px] lg:h-[180px] rounded-full hidden lg:block"
+          style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 60%)' }}
+        />
+      </div>
       <div className="relative max-w-6xl mx-auto px-4 py-6 sm:py-12">
         
         {/* Hero */}
@@ -733,19 +767,49 @@ function RankTrackerContent() {
           </section>
 
           <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 text-center">{locale === 'en' ? <>Your competitors are already<br /><span className="text-amber-600">ranking in AI search</span></> : <>Je concurrenten staan al<br /><span className="text-amber-600">in AI-zoekresultaten</span></>}</h2>
-            <p className="text-slate-600 leading-relaxed text-center mb-6 max-w-2xl mx-auto">{locale === 'en' ? 'When someone asks ChatGPT "What is the best [service] in [city]?", AI creates a ranked list of recommendations. Your position in that list directly impacts whether potential customers find you or your competitor. Tracking your AI ranking is the first step to improving it.' : 'Als iemand ChatGPT vraagt "Wat is de beste [dienst] in [stad]?", maakt AI een gerangschikte lijst van aanbevelingen. Je positie in die lijst bepaalt direct of potentiële klanten jou vinden of je concurrent. Je AI-ranking monitoren is de eerste stap naar verbetering.'}</p>
-            <div className="bg-[#292956] rounded-2xl p-6 sm:p-8 text-white">
-              <div className="space-y-4">
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 text-center">{locale === 'en' ? <>Your competitors are already<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">ranking in AI search</span></> : <>Je concurrenten staan al<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">in AI-zoekresultaten</span></>}</h2>
+            <p className="text-slate-600 leading-relaxed text-center mb-8 max-w-2xl mx-auto">{locale === 'en' ? 'When someone asks ChatGPT "What is the best [service] in [city]?", AI creates a ranked list of recommendations. Your position in that list directly impacts whether potential customers find you or your competitor.' : 'Als iemand ChatGPT vraagt "Wat is de beste [dienst] in [stad]?", maakt AI een gerangschikte lijst van aanbevelingen. Je positie in die lijst bepaalt direct of potentiële klanten jou vinden of je concurrent.'}</p>
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+              <div className="space-y-5">
                 <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5"><span className="text-xs">👤</span></div>
-                  <div className="bg-white/10 rounded-lg rounded-tl-none px-4 py-2.5 text-sm text-white/90">{locale === 'en' ? '"What is the best web design agency in Amsterdam?"' : '"Wat is het beste webdesign bureau in Amsterdam?"'}</div>
+                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl rounded-tl-sm px-4 py-3 text-sm text-slate-700 border border-slate-100">{locale === 'en' ? '"What is the best web design agency in Amsterdam?"' : '"Wat is het beste webdesign bureau in Amsterdam?"'}</div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-amber-500/30 flex items-center justify-center flex-shrink-0 mt-0.5"><Sparkles className="w-3 h-3 text-amber-300" /></div>
-                  <div className="bg-white/10 rounded-lg rounded-tl-none px-4 py-2.5 text-sm text-white/90">{locale === 'en' ? '"Here are the top web design agencies in Amsterdam: 1. ..."' : '"Dit zijn de beste webdesign bureaus in Amsterdam: 1. ..."'}<br /><span className="text-amber-300 font-medium">{locale === 'en' ? 'Is your business #1, #5, or not even mentioned?' : 'Staat jouw bedrijf op #1, #5, of word je niet eens genoemd?'}</span></div>
+                  <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                  </div>
+                  <div className="bg-slate-50 rounded-xl rounded-tl-sm px-4 py-3 border border-slate-100">
+                    <p className="text-sm text-slate-700">{locale === 'en' ? '"Here are the top web design agencies in Amsterdam: 1. ..."' : '"Dit zijn de beste webdesign bureaus in Amsterdam: 1. ..."'}</p>
+                    <p className="text-sm text-amber-600 font-medium mt-1">{locale === 'en' ? 'Is your business #1, #5, or not even mentioned?' : 'Staat jouw bedrijf op #1, #5, of word je niet eens genoemd?'}</p>
+                  </div>
                 </div>
               </div>
+            </div>
+            <p className="text-center text-slate-500 text-sm mt-6">{locale === 'en' ? 'Tracking your AI ranking is the first step to improving it.' : 'Je AI-ranking monitoren is de eerste stap naar verbetering.'}</p>
+          </section>
+
+          {/* Pricing CTA */}
+          <section className="py-16 bg-white">
+            <div className="max-w-3xl mx-auto px-5 sm:px-6 lg:px-8 text-center">
+              <p className="text-slate-500 mb-6">
+                {locale === 'en'
+                  ? 'All tools are free to use. Upgrade to Lite or Pro for automatic tracking and unlimited use.'
+                  : 'Alle tools zijn gratis te gebruiken. Upgrade naar Lite of Pro voor automatische tracking en onbeperkt gebruik.'}
+              </p>
+              <div className="flex flex-wrap justify-center gap-4">
+                <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer">
+                  {locale === 'nl' ? 'Gratis rank check starten' : 'Start free rank check'} <ArrowRight className="w-5 h-5" />
+                </button>
+                <Link href="/pricing" className="inline-flex items-center gap-2 px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-lg hover:shadow-md hover:border-slate-300 transition-all">
+                  {locale === 'nl' ? 'Bekijk Lite & Pro' : 'View Lite & Pro'} <ArrowRight className="w-5 h-5" />
+                </Link>
+              </div>
+              <p className="text-slate-400 text-xs mt-3">
+                {locale === 'nl' ? 'Vanaf €29,95/mnd excl. BTW' : 'From €29.95/mo excl. VAT'}
+              </p>
             </div>
           </section>
 
@@ -800,7 +864,7 @@ function RankTrackerContent() {
                 </div>
 
                 <div className="hidden lg:flex justify-center items-end relative">
-                  <div className="translate-y-20">
+                  <div className="translate-y-20" style={{ marginTop: '5px' }}>
                     <Image
                       src="/teun-ai-mascotte.png"
                       alt={locale === 'en' ? 'Teun helps you' : 'Teun helpt je'}

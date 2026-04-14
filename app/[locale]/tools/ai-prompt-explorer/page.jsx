@@ -684,7 +684,34 @@ export default function PromptExplorer() {
   }, [prompts]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 relative">
+      {/* Animation styles */}
+      <style>{`
+        @keyframes tool-float-slow {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -25px) scale(1.08); }
+          66% { transform: translate(-25px, 15px) scale(0.95); }
+        }
+        @keyframes tool-float-medium {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(-40px, 30px) scale(1.1); }
+        }
+        .tool-orb-1 { animation: tool-float-slow 22s ease-in-out infinite; }
+        .tool-orb-2 { animation: tool-float-medium 18s ease-in-out infinite; animation-delay: -4s; }
+        .tool-orb-3 { animation: tool-float-slow 26s ease-in-out infinite reverse; animation-delay: -8s; }
+        @media (prefers-reduced-motion: reduce) {
+          .tool-orb-1, .tool-orb-2, .tool-orb-3 { animation: none; }
+        }
+      `}</style>
+      {/* Animated background orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="tool-orb-1 absolute -top-32 -right-32 lg:top-[-10%] lg:right-[5%] w-[300px] h-[300px] lg:w-[450px] lg:h-[450px] rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 40%, transparent 70%)' }} />
+        <div className="tool-orb-2 absolute -bottom-24 -left-24 lg:bottom-[-15%] lg:left-[-5%] w-[250px] h-[250px] lg:w-[400px] lg:h-[400px] rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.10) 0%, rgba(139, 92, 246, 0.03) 40%, transparent 70%)' }} />
+        <div className="tool-orb-3 absolute top-[50%] right-[8%] w-[120px] h-[120px] lg:w-[180px] lg:h-[180px] rounded-full hidden lg:block"
+          style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 60%)' }} />
+      </div>
 
       {/* ── HERO ── */}
       <div className="relative max-w-6xl mx-auto px-4 py-6 sm:py-12">
@@ -1042,18 +1069,25 @@ export default function PromptExplorer() {
             </div>
           </section>
 
-          {/* Section 3: AI conversation example */}
-          <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 text-center">
-              {T.seo3Title}
-            </h2>
-            <p className="text-slate-600 leading-relaxed text-center mb-6 max-w-2xl mx-auto">
-              {T.seo3P}
-            </p>
-            <div className="text-center">
-              <a href={isEn ? "/en/tools/geo-audit" : "/tools/geo-audit"} className="inline-flex items-center gap-2 px-6 py-3 bg-[#292956] text-white rounded-xl text-sm font-semibold hover:bg-[#1e1e45] transition">
-                {T.seo3Cta} <ArrowRightIcon className="w-4 h-4" />
-              </a>
+          {/* Pricing CTA */}
+          <section className="py-16 bg-white">
+            <div className="max-w-3xl mx-auto px-5 sm:px-6 lg:px-8 text-center">
+              <p className="text-slate-500 mb-6">
+                {isEn
+                  ? 'All tools are free to use. Upgrade to Lite or Pro for automatic tracking and unlimited use.'
+                  : 'Alle tools zijn gratis te gebruiken. Upgrade naar Lite of Pro voor automatische tracking en onbeperkt gebruik.'}
+              </p>
+              <div className="flex flex-wrap justify-center gap-4">
+                <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer">
+                  {isEn ? 'Generate free prompts' : 'Gratis prompts genereren'} <ArrowRightIcon className="w-5 h-5" />
+                </button>
+                <a href={isEn ? '/en/pricing' : '/pricing'} className="inline-flex items-center gap-2 px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-lg hover:shadow-md hover:border-slate-300 transition-all">
+                  {isEn ? 'View Lite & Pro' : 'Bekijk Lite & Pro'} <ArrowRightIcon className="w-5 h-5" />
+                </a>
+              </div>
+              <p className="text-slate-400 text-xs mt-3">
+                {isEn ? 'From €29.95/mo excl. VAT' : 'Vanaf €29,95/mnd excl. BTW'}
+              </p>
             </div>
           </section>
 
@@ -1066,7 +1100,7 @@ export default function PromptExplorer() {
                   <FAQ items={T.faqs} />
                 </div>
                 <div className="hidden lg:flex justify-center items-end relative">
-                  <div className="translate-y-22">
+                  <div className="translate-y-20" style={{ marginTop: '5px' }}>
                     <Image src="/teun-ai-mascotte.png" alt="Teun.ai mascotte" width={420} height={520} className="w-[420px] h-auto mb-2" />
                   </div>
                 </div>

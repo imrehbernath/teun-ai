@@ -1022,6 +1022,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   // Subscription state
   const [subscriptionStatus, setSubscriptionStatus] = useState(null) // 'free' | 'active' | 'canceling' | 'past_due' | 'canceled'
   const [subscriptionPlan, setSubscriptionPlan] = useState(null) // 'monthly' | 'annual'
+  const [subscriptionTier, setSubscriptionTier] = useState(null) // null | 'lite' | 'pro'
   const [subscriptionEnd, setSubscriptionEnd] = useState(null)
   const [portalLoading, setPortalLoading] = useState(false)
   const [geoAnalyseResults, setGeoAnalyseResults] = useState(null) // { pages: [...], lastScan: Date }
@@ -1214,12 +1215,13 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
         )
         const { data: profile } = await supabase
           .from('profiles')
-          .select('subscription_status, subscription_plan, subscription_current_period_end')
+          .select('subscription_status, subscription_plan, subscription_tier, subscription_current_period_end')
           .eq('id', userId)
           .single()
         if (profile) {
           setSubscriptionStatus(profile.subscription_status || 'free')
           setSubscriptionPlan(profile.subscription_plan)
+          setSubscriptionTier(profile.subscription_tier || null)
           setSubscriptionEnd(profile.subscription_current_period_end)
         }
       } catch (err) {
@@ -1251,7 +1253,10 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
 
   const ADMIN_EMAILS = ['imre@onlinelabs.nl', 'hallo@onlinelabs.nl']
   const isAdmin = ADMIN_EMAILS.includes(userEmail?.toLowerCase())
-  const isPro = isAdmin || subscriptionStatus === 'active' || subscriptionStatus === 'canceling'
+  const isPaid = !isAdmin && (subscriptionStatus === 'active' || subscriptionStatus === 'canceling')
+  const isProTier = isAdmin || (isPaid && subscriptionTier === 'pro')
+  const isLiteTier = isPaid && subscriptionTier === 'lite'
+  const isPro = isAdmin || isPaid // backwards compatible: any paid user gets tool access
 
   // Derived
   const visibility = data?.visibility || {}
@@ -1341,7 +1346,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   const toolLinks = [
     { label: t.sidebar.brandCheck, href: lp(locale, '/tools/brand-check') },
     { label: 'GEO Audit', onClick: () => setActiveTab('audit') },
-    { label: t.sidebar.geoAnalyse, href: lp(locale, '/dashboard/geo-analyse'), tag: isPro ? null : 'PRO' },
+    { label: t.sidebar.geoAnalyse, href: lp(locale, '/dashboard/geo-analyse'), tag: isPro ? (isLiteTier ? '10' : null) : 'PRO' },
   ]
 
   const subtitle = (t.subtitles[activeTab] || (activeTab === 'rank-tracker' ? (locale === 'nl' ? 'Volg je AI-ranking per keyword over tijd' : 'Track your AI ranking per keyword over time') : ''))?.replace('{company}', activeCompany?.name || '').replace('van  op', 'van je bedrijf op').replace('of  in', 'of your company in')
@@ -1469,8 +1474,8 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
             {isPro ? (
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-white text-[10px] font-bold uppercase tracking-wider" style={{ background: '#292956' }}>
-                    <Crown className="w-3 h-3" /> Pro
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-white text-[10px] font-bold uppercase tracking-wider ${isProTier ? 'bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F]' : 'bg-blue-600'}`}>
+                    {isProTier ? <><Crown className="w-3 h-3" /> Pro</> : <>Lite</>}
                   </span>
                   <span className="text-[10px] text-slate-400">
                     {subscriptionPlan === 'annual' ? (locale === 'nl' ? 'Jaarlijks' : 'Annual') : (locale === 'nl' ? 'Maandelijks' : 'Monthly')}
@@ -1481,6 +1486,13 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                     {locale === 'nl' ? 'Loopt af op ' : 'Expires '}{subscriptionEnd ? new Date(subscriptionEnd).toLocaleDateString(locale === 'nl' ? 'nl-NL' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
                   </div>
                 )}
+
+                {/* Support info */}
+                <div className="text-[10px] text-slate-400 mb-2 space-y-0.5">
+                  <div>✉ hallo@onlinelabs.nl</div>
+                  {isProTier && <div>☎ 020 - 820 20 22</div>}
+                </div>
+
                 <button
                   onClick={handleManageSubscription}
                   disabled={portalLoading}
@@ -1490,6 +1502,16 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                     ? (locale === 'nl' ? 'Laden...' : 'Loading...')
                     : (locale === 'nl' ? 'Abonnement beheren' : 'Manage subscription')}
                 </button>
+
+                {/* Lite users: upgrade to Pro CTA */}
+                {isLiteTier && (
+                  <Link
+                    href={locale === 'nl' ? '/pricing' : '/en/pricing'}
+                    className="block w-full text-center text-[11px] text-blue-600 hover:text-blue-800 mt-2 font-medium transition-colors"
+                  >
+                    {locale === 'nl' ? 'Upgrade naar Pro (50 keywords)' : 'Upgrade to Pro (50 keywords)'}
+                  </Link>
+                )}
               </div>
             ) : (
               <Link
@@ -1501,10 +1523,10 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                 </div>
                 <div>
                   <div className="text-[12px] font-semibold text-slate-800">
-                    {locale === 'nl' ? 'Upgrade naar Pro' : 'Upgrade to Pro'}
+                    {locale === 'nl' ? 'Upgrade naar Lite of Pro' : 'Upgrade to Lite or Pro'}
                   </div>
                   <div className="text-[10px] text-slate-500">
-                    {locale === 'nl' ? 'Onbeperkt scannen' : 'Unlimited scanning'}
+                    {locale === 'nl' ? 'Vanaf €29,95/mnd' : 'From €29.95/mo'}
                   </div>
                 </div>
               </Link>

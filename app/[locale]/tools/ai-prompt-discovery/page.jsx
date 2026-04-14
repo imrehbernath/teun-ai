@@ -264,7 +264,35 @@ function AIPromptDiscoveryContent() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 relative">
+      {/* Animation styles */}
+      <style>{`
+        @keyframes tool-float-slow {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -25px) scale(1.08); }
+          66% { transform: translate(-25px, 15px) scale(0.95); }
+        }
+        @keyframes tool-float-medium {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(-40px, 30px) scale(1.1); }
+        }
+        .tool-orb-1 { animation: tool-float-slow 22s ease-in-out infinite; }
+        .tool-orb-2 { animation: tool-float-medium 18s ease-in-out infinite; animation-delay: -4s; }
+        .tool-orb-3 { animation: tool-float-slow 26s ease-in-out infinite reverse; animation-delay: -8s; }
+        @media (prefers-reduced-motion: reduce) {
+          .tool-orb-1, .tool-orb-2, .tool-orb-3 { animation: none; }
+        }
+      `}</style>
+
+      {/* Animated background orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="tool-orb-1 absolute -top-32 -right-32 lg:top-[-10%] lg:right-[5%] w-[300px] h-[300px] lg:w-[450px] lg:h-[450px] rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 40%, transparent 70%)' }} />
+        <div className="tool-orb-2 absolute -bottom-24 -left-24 lg:bottom-[-15%] lg:left-[-5%] w-[250px] h-[250px] lg:w-[400px] lg:h-[400px] rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.10) 0%, rgba(139, 92, 246, 0.03) 40%, transparent 70%)' }} />
+        <div className="tool-orb-3 absolute top-[50%] right-[8%] w-[120px] h-[120px] lg:w-[180px] lg:h-[180px] rounded-full hidden lg:block"
+          style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 60%)' }} />
+      </div>
 
       {/* ══ HERO + CONNECT ══ */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
@@ -528,28 +556,59 @@ function AIPromptDiscoveryContent() {
 
           <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 text-center">
-              {isNL ? <>Eenmalig koppelen,<br /><span className="text-[#7C3AED]">wij doen de rest</span></> : <>Connect once,<br /><span className="text-[#7C3AED]">we do the rest</span></>}
+              {isNL ? <>Eenmalig koppelen,<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">wij doen de rest</span></> : <>Connect once,<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">we do the rest</span></>}
             </h2>
-            <p className="text-slate-600 leading-relaxed text-center mb-6 max-w-2xl mx-auto">
+            <p className="text-slate-600 leading-relaxed text-center mb-8 max-w-2xl mx-auto">
               {isNL
                 ? 'Na het koppelen analyseren we automatisch je queries van de afgelopen 90 dagen. Geen handmatige exports of regex filters nodig.'
                 : 'After connecting, we automatically analyze your queries from the last 90 days. No manual exports or regex filters needed.'}
             </p>
-            <div className="bg-[#292956] rounded-2xl p-6 sm:p-8 text-white">
-              <div className="space-y-4">
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+              <div className="space-y-5">
                 <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5"><span className="text-xs font-bold">1</span></div>
-                  <div className="bg-white/10 rounded-lg rounded-tl-none px-4 py-2.5 text-sm text-white/90">{isNL ? 'Koppel je Google Search Console (alleen-lezen, geen account nodig)' : 'Connect your Google Search Console (read-only, no account needed)'}</div>
+                  <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-sm font-bold text-blue-600">1</span>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl rounded-tl-sm px-4 py-3 text-sm text-slate-700 border border-slate-100">{isNL ? 'Koppel je Google Search Console (alleen-lezen, geen account nodig)' : 'Connect your Google Search Console (read-only, no account needed)'}</div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5"><span className="text-xs font-bold">2</span></div>
-                  <div className="bg-white/10 rounded-lg rounded-tl-none px-4 py-2.5 text-sm text-white/90">{isNL ? 'We filteren alle 8+ woorden queries en categoriseren ze automatisch' : 'We filter all 8+ word queries and categorize them automatically'}</div>
+                  <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-sm font-bold text-blue-600">2</span>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl rounded-tl-sm px-4 py-3 text-sm text-slate-700 border border-slate-100">{isNL ? 'We filteren alle 8+ woorden queries en categoriseren ze automatisch' : 'We filter all 8+ word queries and categorize them automatically'}</div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-emerald-500/30 flex items-center justify-center flex-shrink-0 mt-0.5"><Sparkles className="w-3 h-3 text-emerald-300" /></div>
-                  <div className="bg-white/10 rounded-lg rounded-tl-none px-4 py-2.5 text-sm text-white/90">{isNL ? 'Selecteer prompts en scan ze direct in ChatGPT en Perplexity' : 'Select prompts and scan them directly in ChatGPT and Perplexity'}<br /><span className="text-emerald-300 font-medium">{isNL ? 'Van data naar actie in 30 seconden' : 'From data to action in 30 seconds'}</span></div>
+                  <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Sparkles className="w-4 h-4 text-emerald-500" />
+                  </div>
+                  <div className="bg-slate-50 rounded-xl rounded-tl-sm px-4 py-3 border border-slate-100">
+                    <p className="text-sm text-slate-700">{isNL ? 'Selecteer prompts en scan ze direct in ChatGPT en Perplexity' : 'Select prompts and scan them directly in ChatGPT and Perplexity'}</p>
+                    <p className="text-sm text-emerald-600 font-medium mt-1">{isNL ? 'Van data naar actie in 30 seconden' : 'From data to action in 30 seconds'}</p>
+                  </div>
                 </div>
               </div>
+            </div>
+          </section>
+
+          {/* Pricing CTA */}
+          <section className="py-16 bg-white">
+            <div className="max-w-3xl mx-auto px-5 sm:px-6 lg:px-8 text-center">
+              <p className="text-slate-500 mb-6">
+                {isNL
+                  ? 'Alle tools zijn gratis te gebruiken. Upgrade naar Lite of Pro voor automatische tracking en onbeperkt gebruik.'
+                  : 'All tools are free to use. Upgrade to Lite or Pro for automatic tracking and unlimited use.'}
+              </p>
+              <div className="flex flex-wrap justify-center gap-4">
+                <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer">
+                  {isNL ? 'Search Console koppelen' : 'Connect Search Console'} <ArrowRight className="w-5 h-5" />
+                </button>
+                <Link href="/pricing" className="inline-flex items-center gap-2 px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-lg hover:shadow-md hover:border-slate-300 transition-all">
+                  {isNL ? 'Bekijk Lite & Pro' : 'View Lite & Pro'} <ArrowRight className="w-5 h-5" />
+                </Link>
+              </div>
+              <p className="text-slate-400 text-xs mt-3">
+                {isNL ? 'Vanaf €29,95/mnd excl. BTW' : 'From €29.95/mo excl. VAT'}
+              </p>
             </div>
           </section>
 
@@ -577,7 +636,7 @@ function AIPromptDiscoveryContent() {
                   </div>
                 </div>
                 <div className="hidden lg:flex justify-center items-end relative">
-                  <div className="translate-y-20">
+                  <div className="translate-y-20" style={{ marginTop: '5px' }}>
                     <Image src="/teun-ai-mascotte.png" alt={isNL ? 'Teun helpt je' : 'Teun helps you'} width={420} height={530} className="drop-shadow-xl" />
                   </div>
                 </div>

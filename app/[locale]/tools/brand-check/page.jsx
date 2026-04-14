@@ -324,7 +324,41 @@ export default function BrandCheckPage() {
   const scanProgress = Math.round((completedCount / 3) * 100)
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 relative">
+      {/* Animation styles */}
+      <style>{`
+        @keyframes tool-float-slow {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -25px) scale(1.08); }
+          66% { transform: translate(-25px, 15px) scale(0.95); }
+        }
+        @keyframes tool-float-medium {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(-40px, 30px) scale(1.1); }
+        }
+        .tool-orb-1 { animation: tool-float-slow 22s ease-in-out infinite; }
+        .tool-orb-2 { animation: tool-float-medium 18s ease-in-out infinite; animation-delay: -4s; }
+        .tool-orb-3 { animation: tool-float-slow 26s ease-in-out infinite reverse; animation-delay: -8s; }
+        @media (prefers-reduced-motion: reduce) {
+          .tool-orb-1, .tool-orb-2, .tool-orb-3 { animation: none; }
+        }
+      `}</style>
+
+      {/* Animated background orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div 
+          className="tool-orb-1 absolute -top-32 -right-32 lg:top-[-10%] lg:right-[5%] w-[300px] h-[300px] lg:w-[450px] lg:h-[450px] rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 40%, transparent 70%)' }}
+        />
+        <div 
+          className="tool-orb-2 absolute -bottom-24 -left-24 lg:bottom-[-15%] lg:left-[-5%] w-[250px] h-[250px] lg:w-[400px] lg:h-[400px] rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.10) 0%, rgba(139, 92, 246, 0.03) 40%, transparent 70%)' }}
+        />
+        <div 
+          className="tool-orb-3 absolute top-[50%] right-[8%] w-[120px] h-[120px] lg:w-[180px] lg:h-[180px] rounded-full hidden lg:block"
+          style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 60%)' }}
+        />
+      </div>
       {/* ── HERO + INPUT (always visible) ── */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
         <div className="text-center mb-8 sm:mb-12">
@@ -862,21 +896,51 @@ export default function BrandCheckPage() {
             </div>
           </section>
 
-          {/* AI has an opinion */}
+          {/* AI has an opinion - light style matching homepage */}
           <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 text-center">{locale === 'en' ? <>AI has an opinion<br /><span className="text-[#7C3AED]">about your business</span></> : <>AI heeft een mening<br /><span className="text-[#7C3AED]">over jouw bedrijf</span></>}</h2>
-            <p className="text-slate-600 leading-relaxed text-center mb-6 max-w-2xl mx-auto">{locale === 'en' ? 'When someone asks "Is [your company] reliable?", AI constructs an answer from online sources. Reviews, forums, social media, and industry articles all influence AI brand mentions. Understanding what AI says about your business is the first step to improving your AI reputation.' : 'Als iemand vraagt "Is [jouw bedrijf] betrouwbaar?", stelt AI een antwoord samen uit online bronnen. Reviews, forums, social media en brancheartikelen bepalen de AI merkperceptie. Begrijpen hoe AI over jouw merk praat is de eerste stap naar een betere AI reputatie.'}</p>
-            <div className="bg-[#292956] rounded-2xl p-6 sm:p-8 text-white">
-              <div className="space-y-4">
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 text-center">{locale === 'en' ? <>AI has an opinion<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">about your business</span></> : <>AI heeft een mening<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">over jouw bedrijf</span></>}</h2>
+            <p className="text-slate-600 leading-relaxed text-center mb-8 max-w-2xl mx-auto">{locale === 'en' ? 'When someone asks "Is [your company] reliable?", AI constructs an answer from online sources. Reviews, forums, social media, and industry articles all influence AI brand mentions.' : 'Als iemand vraagt "Is [jouw bedrijf] betrouwbaar?", stelt AI een antwoord samen uit online bronnen. Reviews, forums, social media en brancheartikelen bepalen de AI merkperceptie.'}</p>
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+              <div className="space-y-5">
                 <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5"><span className="text-xs">👤</span></div>
-                  <div className="bg-white/10 rounded-lg rounded-tl-none px-4 py-2.5 text-sm text-white/90">{locale === 'en' ? '"What are experiences with [your company]? Is it reliable?"' : '"Wat zijn ervaringen met [jouw bedrijf]? Is het betrouwbaar?"'}</div>
+                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl rounded-tl-sm px-4 py-3 text-sm text-slate-700 border border-slate-100">{locale === 'en' ? '"What are experiences with [your company]? Is it reliable?"' : '"Wat zijn ervaringen met [jouw bedrijf]? Is het betrouwbaar?"'}</div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-purple-500/30 flex items-center justify-center flex-shrink-0 mt-0.5"><Sparkles className="w-3 h-3 text-purple-300" /></div>
-                  <div className="bg-white/10 rounded-lg rounded-tl-none px-4 py-2.5 text-sm text-white/90">{locale === 'en' ? '"Based on available information..."' : '"Op basis van beschikbare informatie..."'}<br /><span className="text-purple-300 font-medium">{locale === 'en' ? 'Is the response positive, negative, or does AI not even know your brand?' : 'Is het antwoord positief, negatief, of kent AI je merk niet eens?'}</span></div>
+                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Sparkles className="w-4 h-4 text-purple-500" />
+                  </div>
+                  <div className="bg-slate-50 rounded-xl rounded-tl-sm px-4 py-3 border border-slate-100">
+                    <p className="text-sm text-slate-700">{locale === 'en' ? '"Based on available information..."' : '"Op basis van beschikbare informatie..."'}</p>
+                    <p className="text-sm text-purple-600 font-medium mt-1">{locale === 'en' ? 'Is the response positive, negative, or does AI not even know your brand?' : 'Is het antwoord positief, negatief, of kent AI je merk niet eens?'}</p>
+                  </div>
                 </div>
               </div>
+            </div>
+            <p className="text-center text-slate-500 text-sm mt-6">{locale === 'en' ? 'Understanding what AI says about your business is the first step to improving your AI reputation.' : 'Begrijpen hoe AI over jouw merk praat is de eerste stap naar een betere AI reputatie.'}</p>
+          </section>
+
+          {/* Pricing CTA */}
+          <section className="py-16 bg-white">
+            <div className="max-w-3xl mx-auto px-5 sm:px-6 lg:px-8 text-center">
+              <p className="text-slate-500 mb-6">
+                {locale === 'en'
+                  ? 'All tools are free to use. Upgrade to Lite or Pro for automatic tracking and unlimited use.'
+                  : 'Alle tools zijn gratis te gebruiken. Upgrade naar Lite of Pro voor automatische tracking en onbeperkt gebruik.'}
+              </p>
+              <div className="flex flex-wrap justify-center gap-4">
+                <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer">
+                  {locale === 'nl' ? 'Gratis Brand Check starten' : 'Start free Brand Check'} <ArrowRight className="w-5 h-5" />
+                </button>
+                <Link href="/pricing" className="inline-flex items-center gap-2 px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-lg hover:shadow-md hover:border-slate-300 transition-all">
+                  {locale === 'nl' ? 'Bekijk Lite & Pro' : 'View Lite & Pro'} <ArrowRight className="w-5 h-5" />
+                </Link>
+              </div>
+              <p className="text-slate-400 text-xs mt-3">
+                {locale === 'nl' ? 'Vanaf €29,95/mnd excl. BTW' : 'From €29.95/mo excl. VAT'}
+              </p>
             </div>
           </section>
 
