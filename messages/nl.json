@@ -88,7 +88,7 @@
       "subtitleBold": "Gratis scan in 1 minuut.",
       "aiModeLabel": "account",
       "aiOverviewsLabel": "account",
-      "platformInfo": "10 prompts per scan • 2x gratis zonder account • AI Modus & AI Overviews met gratis account"
+      "platformInfo": "10 prompts per scan • 1x gratis zonder account • AI Modus & AI Overviews met gratis account"
     },
     "form": {
       "companyName": "Bedrijfsnaam",
@@ -183,7 +183,7 @@
     "badge": "AI Zichtbaarheid Scan",
     "title": "AI Zichtbaarheidsanalyse",
     "subtitle": "Hoe vermelden AI-modellen jouw bedrijf bij commerciële zoekvragen?",
-    "platformInfo": "10 prompts per scan • 2x gratis zonder account • AI Modus & AI Overviews met gratis account",
+    "platformInfo": "10 prompts per scan • 1x gratis zonder account • AI Modus & AI Overviews met gratis account",
     "aiMode": "AI Modus",
     "aiOverviews": "AI Overviews",
     "accountTag": "account",

@@ -88,7 +88,7 @@
       "subtitleBold": "Free scan in 1 minute.",
       "aiModeLabel": "account",
       "aiOverviewsLabel": "account",
-      "platformInfo": "10 prompts per scan • 2x free without account • AI Mode & AI Overviews with free account"
+      "platformInfo": "10 prompts per scan • 1x free without account • AI Mode & AI Overviews with free account"
     },
     "form": {
       "companyName": "Company name",
@@ -183,7 +183,7 @@
     "badge": "AI Visibility Scan",
     "title": "AI Visibility Analysis",
     "subtitle": "How do AI models mention your business for commercial search queries?",
-    "platformInfo": "10 prompts per scan • 2x free without account • AI Mode & AI Overviews with free account",
+    "platformInfo": "10 prompts per scan • 1x free without account • AI Mode & AI Overviews with free account",
     "aiMode": "AI Mode",
     "aiOverviews": "AI Overviews",
     "accountTag": "account",

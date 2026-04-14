@@ -940,8 +940,8 @@ export default function Homepage() {
           <div className="mt-12 text-center">
             <p className="text-slate-500 mb-6">
               {locale === 'nl'
-                ? 'Alle tools zijn gratis te gebruiken. Upgrade naar Pro voor automatische tracking en onbeperkt gebruik.'
-                : 'All tools are free to use. Upgrade to Pro for automatic tracking and unlimited use.'}
+                ? 'Alle tools zijn gratis te gebruiken. Upgrade naar Lite of Pro voor automatische tracking en onbeperkt gebruik.'
+                : 'All tools are free to use. Upgrade to Lite or Pro for automatic tracking and unlimited use.'}
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link
@@ -957,7 +957,7 @@ export default function Homepage() {
                 href="/pricing"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-semibold hover:shadow-md hover:border-slate-300 transition-all"
               >
-                {locale === 'nl' ? 'Bekijk Pro' : 'View Pro'}
+                {locale === 'nl' ? 'Bekijk Lite & Pro' : 'View Lite & Pro'}
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
