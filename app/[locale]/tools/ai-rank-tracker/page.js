@@ -268,6 +268,7 @@ function RankTrackerContent() {
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
   const [isPro, setIsPro] = useState(false);
+  const [subscriptionTier, setSubscriptionTier] = useState(null); // null | 'lite' | 'pro'
   const [duration, setDuration] = useState(null);
   const [openFaq, setOpenFaq] = useState(0);
   
@@ -278,14 +279,14 @@ function RankTrackerContent() {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser) {
-        // Check Pro subscription (matches beta-config.js logic)
         const { data: profile } = await supabase
           .from('profiles')
-          .select('subscription_status')
+          .select('subscription_status, subscription_tier')
           .eq('id', currentUser.id)
           .single();
         if (['active', 'canceling'].includes(profile?.subscription_status)) {
           setIsPro(true);
+          setSubscriptionTier(profile?.subscription_tier || 'pro');
         }
       }
     });
@@ -468,7 +469,9 @@ function RankTrackerContent() {
           
           <p className="text-xs text-slate-400 text-center mt-2.5">
             {isPro
-              ? (locale === 'en' ? 'Pro · 50 keywords automatic tracking' : 'Pro · 50 keywords automatisch tracken')
+              ? (locale === 'en' 
+                ? `${subscriptionTier === 'lite' ? 'Lite' : 'Pro'} · ${subscriptionTier === 'lite' ? '20' : '50'} keywords automatic tracking` 
+                : `${subscriptionTier === 'lite' ? 'Lite' : 'Pro'} · ${subscriptionTier === 'lite' ? '20' : '50'} keywords automatisch tracken`)
               : !user 
                 ? (locale === 'en' ? '2 free checks · Log in for 2x per week' : '2x gratis proberen · Log in voor 2x per week')
                 : (locale === 'en' ? '2x per week manual · Lite/Pro: unlimited' : '2x per week handmatig · Lite/Pro: onbeperkt')
@@ -622,15 +625,15 @@ function RankTrackerContent() {
                   <p className="text-sm text-slate-500 mb-6 max-w-lg mx-auto">
                     {isInvisible
                       ? (locale === 'en'
-                          ? `${competitorSet.size} competitors are being recommended. This is just 1 keyword — track up to 50 keywords automatically with Pro.`
-                          : `${competitorSet.size} concurrenten worden wél aanbevolen. Dit is slechts 1 zoekwoord — track tot 50 keywords automatisch met Pro.`)
+                          ? `${competitorSet.size} competitors are being recommended. This is just 1 keyword — upgrade to Lite or Pro for automatic tracking.`
+                          : `${competitorSet.size} concurrenten worden wél aanbevolen. Dit is slechts 1 zoekwoord — upgrade naar Lite of Pro voor automatische tracking.`)
                       : isWeak
                         ? (locale === 'en'
-                            ? `${competitorSet.size} competitors rank higher. Track up to 50 keywords automatically with Pro and improve your AI visibility.`
-                            : `${competitorSet.size} concurrenten staan hoger. Track tot 50 keywords automatisch met Pro en verbeter je AI-zichtbaarheid.`)
+                            ? `${competitorSet.size} competitors rank higher. Upgrade to Lite or Pro for automatic tracking.`
+                            : `${competitorSet.size} concurrenten staan hoger. Upgrade naar Lite of Pro voor automatische tracking.`)
                         : (locale === 'en'
-                            ? 'This is just 1 keyword. Track up to 50 keywords automatically with Pro and monitor all your important rankings.'
-                            : 'Dit is slechts 1 zoekwoord. Track tot 50 keywords automatisch met Pro en monitor al je belangrijke rankings.')
+                            ? 'This is just 1 keyword. Upgrade to Lite or Pro for automatic tracking of all your important rankings.'
+                            : 'Dit is slechts 1 zoekwoord. Upgrade naar Lite of Pro voor automatische tracking van al je belangrijke rankings.')
                     }
                   </p>
 
@@ -719,12 +722,12 @@ function RankTrackerContent() {
                 <>
                   {t('loggedInAs', { email: user.email })}
                   {isPro ? (
-                    <span className="ml-2 inline-flex items-center text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">PRO</span>
+                    <span className={`ml-2 inline-flex items-center text-xs px-2 py-0.5 rounded-full font-semibold ${subscriptionTier === 'pro' ? 'bg-blue-100 text-blue-700' : 'bg-blue-50 text-blue-600'}`}>{subscriptionTier === 'lite' ? 'LITE' : 'PRO'}</span>
                   ) : (
                     <>
                       {' · '}
                       <Link href={locale === 'en' ? '/en/pricing' : '/pricing'} className="text-teal-600 hover:text-teal-700 font-medium underline">
-                        {locale === 'en' ? 'Pro: 50 keywords auto' : 'Pro: 50 keywords automatisch'}
+                        {locale === 'en' ? 'Upgrade to Lite or Pro' : 'Upgrade naar Lite of Pro'}
                       </Link>
                     </>
                   )}
