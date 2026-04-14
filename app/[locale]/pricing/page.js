@@ -347,7 +347,7 @@ export default function PricingPage() {
               <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-3">Lite</p>
               <div className="flex items-baseline gap-1 mb-1">
                 <span className="text-5xl font-bold text-slate-900">€{litePrice.toFixed(2).replace('.', ',')}</span>
-                <span className="text-slate-400 text-sm">/{isNL ? 'maand' : 'month'}</span>
+                <span className="text-slate-400 text-sm">/{isNL ? 'mnd' : 'mo'} <span className="text-[10px]">{isNL ? 'excl. BTW' : 'excl. VAT'}</span></span>
               </div>
               {annual && (
                 <p className="text-sm text-slate-400 mb-2">
@@ -369,9 +369,11 @@ export default function PricingPage() {
                 <Zap className="w-4 h-4" />
                 {loadingTier === 'lite' ? (isNL ? 'Laden...' : 'Loading...') : (isNL ? 'Start met Lite' : 'Start with Lite')}
               </button>
-              <p className="text-center text-xs text-slate-400 mb-8">
-                {isNL ? 'Maandelijks opzegbaar, geen verborgen kosten' : 'Cancel anytime, no hidden costs'}
-              </p>
+              <div className="flex items-center justify-center gap-3 text-xs text-emerald-600 font-medium mb-8 mt-2">
+                <span className="flex items-center gap-1"><Check className="w-3 h-3" /> {isNL ? 'Maandelijks opzegbaar' : 'Cancel anytime'}</span>
+                <span className="text-slate-300">|</span>
+                <span className="flex items-center gap-1"><Check className="w-3 h-3" /> {isNL ? 'Geen verborgen kosten' : 'No hidden costs'}</span>
+              </div>
 
               <div className="space-y-0">
                 {features.map((f, i) => (
@@ -405,7 +407,7 @@ export default function PricingPage() {
               <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-3 mt-1">Pro</p>
               <div className="flex items-baseline gap-1 mb-1">
                 <span className="text-5xl font-bold text-slate-900">€{proPrice.toFixed(2).replace('.', ',')}</span>
-                <span className="text-slate-400 text-sm">/{isNL ? 'maand' : 'month'}</span>
+                <span className="text-slate-400 text-sm">/{isNL ? 'mnd' : 'mo'} <span className="text-[10px]">{isNL ? 'excl. BTW' : 'excl. VAT'}</span></span>
               </div>
               {annual && (
                 <p className="text-sm text-slate-400 mb-2">
@@ -427,9 +429,11 @@ export default function PricingPage() {
                 <Zap className="w-4 h-4" />
                 {loadingTier === 'pro' ? (isNL ? 'Laden...' : 'Loading...') : (isNL ? 'Start met Pro' : 'Start with Pro')}
               </button>
-              <p className="text-center text-xs text-slate-400 mb-8">
-                {isNL ? 'Maandelijks opzegbaar, geen verborgen kosten' : 'Cancel anytime, no hidden costs'}
-              </p>
+              <div className="flex items-center justify-center gap-3 text-xs text-emerald-600 font-medium mb-8 mt-2">
+                <span className="flex items-center gap-1"><Check className="w-3 h-3" /> {isNL ? 'Maandelijks opzegbaar' : 'Cancel anytime'}</span>
+                <span className="text-slate-300">|</span>
+                <span className="flex items-center gap-1"><Check className="w-3 h-3" /> {isNL ? 'Geen verborgen kosten' : 'No hidden costs'}</span>
+              </div>
 
               <div className="space-y-0">
                 {features.map((f, i) => (
