@@ -31,7 +31,7 @@ export default function PricingPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        router.push(`/signup?pro=1&redirect=${encodeURIComponent(isNL ? '/pricing' : '/en/pricing')}`);
+        router.push(`${isNL ? '' : '/en'}/signup?tier=${tier}&redirect=${encodeURIComponent(isNL ? '/pricing' : '/en/pricing')}`);
         return;
       }
       const res = await fetch('/api/stripe/checkout', {

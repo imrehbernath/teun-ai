@@ -19,7 +19,11 @@ function SignupContent() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [sessionToken, setSessionToken] = useState(null);
-  const isProFlow = searchParams?.get('pro') === '1';
+  const tierParam = searchParams?.get('tier') // 'lite' or 'pro'
+  const isProFlow = tierParam === 'pro' || searchParams?.get('pro') === '1' // backwards compatible
+  const isLiteFlow = tierParam === 'lite'
+  const isPaidFlow = isProFlow || isLiteFlow
+  const tierLabel = isProFlow ? 'Pro' : 'Lite'
   const redirectUrl = searchParams?.get('redirect');
 
   // ── Fetch session token: URL param > localStorage > cookie ──
@@ -181,8 +185,8 @@ function SignupContent() {
               {t('signup.heroDesc')}
             </p>
 
-            {/* Benefits list - hide in Pro flow */}
-            {!isProFlow && (
+            {/* Benefits list - hide in paid flow */}
+            {!isPaidFlow && (
             <div className="bg-white border border-slate-200 rounded-xl p-5 text-left w-full max-w-xs shadow-sm">
               <p className="text-sm font-semibold text-slate-900 mb-3">{t('signup.benefitsTitle')}</p>
               <ul className="text-sm text-slate-600 space-y-2">
@@ -238,30 +242,32 @@ function SignupContent() {
             {/* Header */}
             <div className="text-center mb-8">
               <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-2">
-                {isProFlow
-                  ? (locale === 'nl' ? 'Nog één stap naar Pro' : 'One step to Pro')
+                {isPaidFlow
+                  ? (locale === 'nl' ? `Nog één stap naar ${tierLabel}` : `One step to ${tierLabel}`)
                   : t('signup.title')}
               </h1>
               <p className="text-slate-500">
-                {isProFlow
-                  ? (locale === 'nl' ? 'Maak een account aan en activeer daarna Pro.' : 'Create an account and then activate Pro.')
+                {isPaidFlow
+                  ? (locale === 'nl' ? `Maak een account aan en activeer daarna ${tierLabel}.` : `Create an account and then activate ${tierLabel}.`)
                   : t('signup.subtitle')}
               </p>
             </div>
 
-            {/* Pro FOMO banner */}
-            {isProFlow && (
+            {/* Tier FOMO banner */}
+            {isPaidFlow && (
               <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-5 mb-6">
                 <div className="flex items-start gap-3">
                   <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-blue-100 flex-shrink-0 mt-0.5">
                     <CheckCircle2 className="w-5 h-5 text-blue-600" />
                   </span>
                   <div>
-                    <p className="font-bold text-sm text-slate-900 mb-1">{locale === 'nl' ? 'Je Pro abonnement staat klaar' : 'Your Pro subscription is ready'}</p>
+                    <p className="font-bold text-sm text-slate-900 mb-1">{locale === 'nl' ? `Je ${tierLabel} abonnement staat klaar` : `Your ${tierLabel} subscription is ready`}</p>
                     <ul className="text-xs text-slate-600 space-y-1">
                       <li>{locale === 'nl' ? '✓ Onbeperkte scans op alle 6 tools' : '✓ Unlimited scans on all 6 tools'}</li>
-                      <li>{locale === 'nl' ? '✓ Onbeperkte websites' : '✓ Unlimited websites'}</li>
-                      <li>{locale === 'nl' ? '✓ GEO Optimalisatie dashboard' : '✓ GEO Optimization dashboard'}</li>
+                      {isLiteFlow && <li>{locale === 'nl' ? '✓ 20 keywords automatische tracking' : '✓ 20 keywords automatic tracking'}</li>}
+                      {isProFlow && <li>{locale === 'nl' ? '✓ 50 keywords automatische tracking' : '✓ 50 keywords automatic tracking'}</li>}
+                      <li>{locale === 'nl' ? '✓ GEO Optimalisatie DIY' : '✓ GEO Optimization DIY'}</li>
+                      {isProFlow && <li>{locale === 'nl' ? '✓ Telefonische support' : '✓ Phone support'}</li>}
                       <li>{locale === 'nl' ? '✓ Maandelijks opzegbaar' : '✓ Cancel anytime'}</li>
                     </ul>
                     <p className="text-[10px] text-slate-400 mt-2">{locale === 'nl' ? 'Na registratie word je teruggestuurd om af te rekenen.' : 'After signup you\'ll be redirected to complete payment.'}</p>
@@ -269,13 +275,13 @@ function SignupContent() {
                 </div>
               </div>
             )}
-            {isProFlow && (
+            {isPaidFlow && (
               <p className="text-center text-xs text-slate-400 -mt-3 mb-4">
                 {locale === 'nl' ? 'Of ' : 'Or '}
                 <a href={locale === 'nl' ? '/signup' : '/en/signup'} className="text-blue-500 hover:underline">
                   {locale === 'nl' ? 'maak een gratis account aan' : 'create a free account'}
                 </a>
-                {locale === 'nl' ? ' zonder Pro.' : ' without Pro.'}
+                {locale === 'nl' ? ` zonder ${tierLabel}.` : ` without ${tierLabel}.`}
               </p>
             )}
 
@@ -333,8 +339,8 @@ function SignupContent() {
                   <p className="text-xs text-slate-400 mt-1">{t('signup.passwordHint')}</p>
                 </div>
 
-                {/* Mobile benefits - hide in Pro flow */}
-                {!isProFlow && (
+                {/* Mobile benefits - hide in paid flow */}
+                {!isPaidFlow && (
                 <div className="lg:hidden bg-slate-50 border border-slate-200 rounded-xl p-4">
                   <p className="text-sm font-semibold text-slate-900 mb-2">{t('signup.benefitsTitle')}</p>
                   <ul className="text-sm text-slate-600 space-y-1">
@@ -361,8 +367,8 @@ function SignupContent() {
                   ) : (
                     <>
                       <User className="w-5 h-5" />
-                      {isProFlow
-                        ? (locale === 'nl' ? 'Account aanmaken en doorgaan naar Pro' : 'Create account and continue to Pro')
+                      {isPaidFlow
+                        ? (locale === 'nl' ? `Account aanmaken en doorgaan naar ${tierLabel}` : `Create account and continue to ${tierLabel}`)
                         : t('signup.title')}
                     </>
                   )}
