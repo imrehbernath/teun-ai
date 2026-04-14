@@ -416,8 +416,8 @@ export async function POST(request) {
                request.headers.get('x-real-ip') || 'unknown'
     
     const ADMIN_EMAILS = ['imre@onlinelabs.nl', 'hallo@onlinelabs.nl']
-    const ANON_LIMIT = 2    // 2x lifetime voor anonieme gebruikers
-    const AUTH_LIMIT = 3    // 3x totaal voor ingelogde gebruikers, daarna PRO
+    const ANON_LIMIT = 1    // 1 totaal lifetime voor anonieme gebruikers
+    const AUTH_LIMIT = 1    // 1 per week voor ingelogde gratis gebruikers
 
     // Check auth via cookie
     const { createClient } = await import('@/lib/supabase/server')
@@ -439,17 +439,20 @@ export async function POST(request) {
         if (['active', 'canceling'].includes(profile?.subscription_status)) {
           console.log(`[GEO Audit] ⭐ Pro bypass: ${user.email}`)
         } else {
-          // Check total scans for this user
+          // Check weekly scans for this user
+          const weekAgo = new Date()
+          weekAgo.setDate(weekAgo.getDate() - 7)
           const { count } = await supabaseAdmin
             .from('geo_audit_results')
             .select('id', { count: 'exact', head: true })
             .eq('user_id', user.id)
+            .gte('created_at', weekAgo.toISOString())
 
           if ((count || 0) >= AUTH_LIMIT) {
             return NextResponse.json({
               error: locale === 'nl'
-                ? `Je hebt je ${AUTH_LIMIT} gratis GEO Audits gebruikt. Upgrade naar Pro voor onbeperkte audits, of gebruik onze gratis WordPress plugin.`
-                : `You've used your ${AUTH_LIMIT} free GEO Audits. Upgrade to Pro for unlimited audits, or use our free WordPress plugin.`,
+                ? 'Je hebt je wekelijkse gratis GEO Audit gebruikt. Upgrade naar Lite voor onbeperkte audits.'
+                : 'You\'ve used your weekly free GEO Audit. Upgrade to Lite for unlimited audits.',
               limitReached: true,
               upgradeUrl: locale === 'nl' ? '/pricing' : '/en/pricing'
             }, { status: 403 })
@@ -468,8 +471,8 @@ export async function POST(request) {
       if ((anonScan?.scans_made || 0) >= ANON_LIMIT) {
         return NextResponse.json({
           error: locale === 'nl'
-            ? `Je hebt je ${ANON_LIMIT} gratis audits gebruikt. Maak een gratis account aan voor ${AUTH_LIMIT} extra audits, of gebruik onze gratis WordPress plugin.`
-            : `You've used your ${ANON_LIMIT} free audits. Create a free account for ${AUTH_LIMIT} more audits, or use our free WordPress plugin.`,
+            ? 'Je hebt je gratis audit gebruikt. Maak een gratis account aan voor 1 audit per week.'
+            : 'You\'ve used your free audit. Create a free account for 1 audit per week.',
           limitReached: true,
           signupUrl: locale === 'nl' ? '/signup' : '/en/signup'
         }, { status: 403 })

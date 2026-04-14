@@ -60,7 +60,8 @@ export default function GeoAuditPage() {
   const resultsRef = useRef(null)
 
   // Scan limit
-  const MAX_FREE_SCANS = 2
+  const MAX_ANON_SCANS = 1   // 1 totaal lifetime voor anoniem
+  const MAX_FREE_SCANS = 1   // 1 per week voor gratis accounts
   const ADMIN_EMAILS = ['imre@onlinelabs.nl', 'hallo@onlinelabs.nl']
   const [scanCount, setScanCount] = useState(0)
   const [limitReached, setLimitReached] = useState(false)
@@ -86,13 +87,13 @@ export default function GeoAuditPage() {
 
   // ── FAQ Structured Data ──────────────────────
   const faqItems = locale === 'en' ? [
-    { q: 'Is the GEO Audit really free?', a: 'Yes, you can scan 2 pages per day for free. No credit card required. For unlimited scans, create a free account and use the GEO Analyse tool in your dashboard.' },
+    { q: 'Is the GEO Audit really free?', a: 'Yes, you can try 1 audit for free without an account. With a free account you get 1 audit per week. Upgrade to Lite or Pro for unlimited audits.' },
     { q: 'What is the difference between GEO and SEO?', a: 'SEO focuses on ranking in Google\'s link-based results. GEO optimizes your content to be cited and recommended by AI platforms like ChatGPT, Perplexity and Google AI Overviews.' },
     { q: 'Why does AI visibility matter for my business?', a: 'More than 40% of online searches will involve AI by 2026. If your competitors are mentioned and you are not, you lose visibility and potential customers, even if you rank well in Google.' },
     { q: 'Which AI platforms does the audit test?', a: 'The live test runs on Perplexity. The technical and content analysis covers optimization for ChatGPT, Perplexity, Google AI Overviews and Claude.' },
     { q: 'How can I improve my GEO Score?', a: 'The audit gives you 3 concrete recommendations. Common improvements include: adding FAQ schema, structuring content with direct answers, implementing JSON-LD structured data, and creating an llms.txt file.' },
   ] : [
-    { q: 'Is de GEO Audit echt gratis?', a: 'Ja, je kunt 2 pagina\'s per dag gratis scannen . Geen creditcard nodig. Voor onbeperkte scans maak je een gratis account aan en gebruik je de GEO Analyse tool in je dashboard.' },
+    { q: 'Is de GEO Audit echt gratis?', a: 'Ja, je kunt 1 audit gratis uitvoeren zonder account. Met een gratis account krijg je 1 audit per week. Upgrade naar Lite of Pro voor onbeperkte audits.' },
     { q: 'Wat is het verschil tussen GEO en SEO?', a: 'SEO richt zich op ranken in Google\'s linkgebaseerde resultaten. GEO optimaliseert je content om geciteerd en aanbevolen te worden door AI-platformen zoals ChatGPT, Perplexity en Google AI Overviews.' },
     { q: 'Waarom is AI-zichtbaarheid belangrijk voor mijn bedrijf?', a: 'Meer dan 40% van online zoekopdrachten gaat in 2026 via AI. Als jouw concurrenten wél genoemd worden en jij niet, verlies je zichtbaarheid en potentiële klanten, zelfs als je goed rankt in Google.' },
     { q: 'Welke AI-platformen test de audit?', a: 'De live test draait op Perplexity. De technische en content-analyse dekt optimalisatie voor ChatGPT, Perplexity, Google AI Overviews en Claude.' },
@@ -154,9 +155,9 @@ export default function GeoAuditPage() {
 
       try {
         if (currentUser) {
-          const today = new Date().toISOString().split('T')[0]
-          const key = `geo_audit_${today}`
-          const stored = localStorage.getItem(key)
+          const now = new Date()
+          const weekKey = `geo_audit_${now.getFullYear()}_W${Math.ceil(((now - new Date(now.getFullYear(),0,1)) / 86400000 + new Date(now.getFullYear(),0,1).getDay() + 1) / 7)}`
+          const stored = localStorage.getItem(weekKey)
           const count = stored ? parseInt(stored, 10) : 0
           setScanCount(count)
           if (count >= MAX_FREE_SCANS) setLimitReached(true)
@@ -164,7 +165,7 @@ export default function GeoAuditPage() {
           const stored = localStorage.getItem('geo_audit_count')
           const count = stored ? parseInt(stored, 10) : 0
           setScanCount(count)
-          if (count >= MAX_FREE_SCANS) setLimitReached(true)
+          if (count >= MAX_ANON_SCANS) setLimitReached(true)
         }
       } catch (e) { /* private browsing */ }
     })
@@ -236,13 +237,15 @@ export default function GeoAuditPage() {
         setScanCount(newCount)
         try {
           if (user) {
-            const today = new Date().toISOString().split('T')[0]
-            localStorage.setItem(`geo_audit_${today}`, newCount.toString())
+            const now = new Date()
+            const weekKey = `geo_audit_${now.getFullYear()}_W${Math.ceil(((now - new Date(now.getFullYear(),0,1)) / 86400000 + new Date(now.getFullYear(),0,1).getDay() + 1) / 7)}`
+            localStorage.setItem(weekKey, newCount.toString())
           } else {
             localStorage.setItem('geo_audit_count', newCount.toString())
           }
         } catch (e) {}
-        if (newCount >= MAX_FREE_SCANS) setLimitReached(true)
+        const limit = user ? MAX_FREE_SCANS : MAX_ANON_SCANS
+        if (newCount >= limit) setLimitReached(true)
       }
 
       await new Promise(r => setTimeout(r, 600))
