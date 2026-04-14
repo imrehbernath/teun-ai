@@ -1100,8 +1100,8 @@ export default function PromptExplorer() {
                   <FAQ items={T.faqs} />
                 </div>
                 <div className="hidden lg:flex justify-center items-end relative">
-                  <div className="translate-y-20" style={{ marginTop: '5px' }}>
-                    <Image src="/teun-ai-mascotte.png" alt="Teun.ai mascotte" width={420} height={520} className="w-[420px] h-auto mb-2" />
+                  <div className="translate-y-20" style={{ marginTop: '94px' }}>
+                    <Image src="/teun-ai-mascotte.png" alt="Teun.ai mascotte" width={420} height={530} className="drop-shadow-xl" />
                   </div>
                 </div>
               </div>
