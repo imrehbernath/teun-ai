@@ -214,12 +214,36 @@ export default function PricingPage() {
 
   return (
     <div className="bg-white">
+      {/* ====== PAGE ANIMATION STYLES ====== */}
+      <style>{`
+        @keyframes pricing-float-slow {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -25px) scale(1.08); }
+          66% { transform: translate(-25px, 15px) scale(0.95); }
+        }
+        @keyframes pricing-float-medium {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(-40px, 30px) scale(1.1); }
+        }
+        .pricing-orb-1 { animation: pricing-float-slow 22s ease-in-out infinite; }
+        .pricing-orb-2 { animation: pricing-float-medium 18s ease-in-out infinite; animation-delay: -4s; }
+        .pricing-orb-3 { animation: pricing-float-slow 26s ease-in-out infinite reverse; animation-delay: -8s; }
+        @media (prefers-reduced-motion: reduce) {
+          .pricing-orb-1, .pricing-orb-2, .pricing-orb-3 { animation: none; }
+        }
+      `}</style>
 
       {/* ====== HERO ====== */}
       <section className="relative bg-gradient-to-br from-slate-50 via-white to-blue-50 overflow-hidden">
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-100 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-100 rounded-full blur-3xl"></div>
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div 
+            className="pricing-orb-1 absolute -top-32 -right-32 lg:top-[-10%] lg:right-[5%] w-[300px] h-[300px] lg:w-[450px] lg:h-[450px] rounded-full"
+            style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 40%, transparent 70%)' }}
+          />
+          <div 
+            className="pricing-orb-2 absolute -bottom-24 -left-24 lg:bottom-[-15%] lg:left-[-5%] w-[250px] h-[250px] lg:w-[400px] lg:h-[400px] rounded-full"
+            style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.10) 0%, rgba(139, 92, 246, 0.03) 40%, transparent 70%)' }}
+          />
         </div>
 
         <div className="relative max-w-4xl mx-auto px-5 sm:px-6 lg:px-8 pt-12 lg:pt-16 pb-10 text-center">
@@ -428,11 +452,17 @@ export default function PricingPage() {
       {/* ====== BLURRED DASHBOARD PREVIEW ====== */}
       <section className="py-20 bg-slate-100">
         <style>{`
-          @keyframes bar-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-          .pricing-bar-animate { transform-origin: bottom; animation: bar-grow 0.8s ease-out forwards; }
+          @keyframes bar-pulse {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(0.7); }
+          }
+          .pricing-bar-pulse {
+            transform-origin: bottom;
+            animation: bar-pulse ease-in-out infinite;
+          }
           @keyframes dash-float-pricing { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
           @media (min-width: 1024px) { .dash-float-pricing { animation: dash-float-pricing 6s ease-in-out infinite; } }
-          @media (prefers-reduced-motion: reduce) { .pricing-bar-animate { animation: none; transform: scaleY(1); } .dash-float-pricing { animation: none !important; } }
+          @media (prefers-reduced-motion: reduce) { .pricing-bar-pulse { animation: none; transform: scaleY(1); } .dash-float-pricing { animation: none !important; } }
         `}</style>
 
         <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8">
@@ -483,7 +513,8 @@ export default function PricingPage() {
                   <div className="flex items-end gap-1.5 h-16">
                     {[65, 40, 82, 55, 28, 50, 88, 35, 72, 60, 45, 78].map((height, i) => {
                       const colors = ['#1abc9c', '#1abc9c', '#376eb5', '#4A8FDB', '#f59e0b', '#1abc9c', '#376eb5', '#1abc9c', '#4A8FDB', '#1abc9c', '#f59e0b', '#376eb5'];
-                      return (<div key={i} className="pricing-bar-animate flex-1 rounded-t" style={{ height: `${height}%`, backgroundColor: colors[i], opacity: (i % 3 === 1) ? 0.45 : 0.75, animationDelay: `${0.6 + i * 0.08}s` }} />);
+                      const durations = [3.2, 4.1, 2.8, 3.6, 4.5, 3.0, 3.8, 4.3, 2.9, 3.4, 4.0, 3.1];
+                      return (<div key={i} className="pricing-bar-pulse flex-1 rounded-t" style={{ height: `${height}%`, backgroundColor: colors[i], opacity: (i % 3 === 1) ? 0.45 : 0.75, animationDuration: `${durations[i]}s`, animationDelay: `${i * 0.3}s` }} />);
                     })}
                   </div>
                   <div className="flex items-center gap-4 mt-3 pt-3" style={{ borderTop: '1px solid #eef2f7' }}>
@@ -526,7 +557,7 @@ export default function PricingPage() {
               ? 'Alle tools werken op ChatGPT, Perplexity, Google AI Mode en AI Overviews.'
               : 'All tools work on ChatGPT, Perplexity, Google AI Mode and AI Overviews.'}
           </p>
-          <Link href="/tools/ai-visibility" className="text-blue-600 hover:text-blue-700 font-medium text-sm">
+          <Link href="/tools" className="text-blue-600 hover:text-blue-700 font-medium text-sm">
             {isNL ? 'Bekijk alle tools' : 'View all tools'} →
           </Link>
         </div>
@@ -534,9 +565,15 @@ export default function PricingPage() {
 
       {/* ====== COMPETITOR COMPARISON ====== */}
       <section className="py-20 bg-gradient-to-br from-slate-100 via-white to-blue-50 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-100 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-100 rounded-full blur-3xl"></div>
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div 
+            className="pricing-orb-2 absolute top-[-10%] left-[-5%] w-[350px] h-[350px] rounded-full"
+            style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.10) 0%, rgba(59, 130, 246, 0.03) 40%, transparent 70%)' }}
+          />
+          <div 
+            className="pricing-orb-3 absolute bottom-[-10%] right-[5%] w-[300px] h-[300px] rounded-full"
+            style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, transparent 60%)' }}
+          />
         </div>
         <div className="relative max-w-6xl mx-auto px-5 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -592,25 +629,25 @@ export default function PricingPage() {
       {/* ====== CTA BANNER ====== */}
       <section className="py-16">
         <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-[#1E1E3F] via-[#2D2D5F] to-[#1E1E3F] rounded-3xl overflow-hidden shadow-xl">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="p-8 sm:p-12 text-center">
-              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">{isNL ? 'Weet waar je staat in AI-antwoorden' : 'Know where you stand in AI answers'}</h2>
-              <p className="text-white/70 text-lg mb-3 max-w-xl mx-auto">{isNL ? 'Volg automatisch je AI rankings en optimaliseer zelf met GEO Optimalisatie DIY.' : 'Automatically track your AI rankings and optimize yourself with GEO Optimization DIY.'}</p>
-              <p className="text-white/50 text-sm mb-8 max-w-lg mx-auto">{isNL ? 'Liever hulp? OnlineLabs helpt je met professionele GEO-optimalisatie.' : 'Prefer help? OnlineLabs helps you with professional GEO optimization.'}</p>
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4">{isNL ? 'Weet waar je staat in AI-antwoorden' : 'Know where you stand in AI answers'}</h2>
+              <p className="text-slate-500 text-lg mb-3 max-w-xl mx-auto">{isNL ? 'Volg automatisch je AI rankings en optimaliseer zelf met GEO Optimalisatie DIY.' : 'Automatically track your AI rankings and optimize yourself with GEO Optimization DIY.'}</p>
+              <p className="text-slate-400 text-sm mb-8 max-w-lg mx-auto">{isNL ? 'Liever hulp? OnlineLabs helpt je met professionele GEO-optimalisatie.' : 'Prefer help? OnlineLabs helps you with professional GEO optimization.'}</p>
               <div className="flex flex-wrap justify-center gap-4">
-                <button onClick={() => handleCheckout('lite')} disabled={loading} className="inline-flex items-center gap-2 px-8 py-4 bg-white text-[#1E1E3F] rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer disabled:opacity-60">
+                <button onClick={() => handleCheckout('lite')} disabled={loading} className="inline-flex items-center gap-2 px-8 py-4 bg-white border-2 border-[#1E1E3F] text-[#1E1E3F] rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer disabled:opacity-60">
                   {isNL ? `Lite, €${litePrice.toFixed(2).replace('.', ',')}/mnd` : `Lite, €${litePrice.toFixed(2).replace('.', ',')}/mo`}
                 </button>
-                <button onClick={() => handleCheckout('pro')} disabled={loading} className="inline-flex items-center gap-2 px-8 py-4 bg-white/10 border-2 border-white text-white rounded-xl font-bold text-lg hover:bg-white/20 transition-all cursor-pointer disabled:opacity-60">
+                <button onClick={() => handleCheckout('pro')} disabled={loading} className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer disabled:opacity-60">
                   <Zap className="w-5 h-5" />
                   {isNL ? `Pro, €${proPrice.toFixed(2).replace('.', ',')}/mnd` : `Pro, €${proPrice.toFixed(2).replace('.', ',')}/mo`}
                 </button>
               </div>
               <div className="flex flex-wrap justify-center gap-6 mt-6">
-                <Link href="/tools/ai-visibility" className="text-white/60 hover:text-white/90 text-sm transition-colors">{isNL ? 'Gratis uitproberen' : 'Try free'} →</Link>
-                <a href="https://www.onlinelabs.nl/skills/geo-optimalisatie" target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-white/90 text-sm transition-colors">{isNL ? 'GEO door OnlineLabs' : 'GEO by OnlineLabs'} →</a>
+                <Link href="/tools/ai-visibility" className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors">{isNL ? 'Gratis uitproberen' : 'Try free'} →</Link>
+                <a href="https://www.onlinelabs.nl/skills/geo-optimalisatie" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-slate-700 text-sm transition-colors">{isNL ? 'GEO door OnlineLabs' : 'GEO by OnlineLabs'} →</a>
               </div>
-              <p className="text-white/40 text-xs mt-6">{isNL ? 'Geen creditcard nodig voor gratis account. Beide pakketten maandelijks opzegbaar. Prijzen excl. BTW.' : 'No credit card needed for free account. Both plans can be cancelled monthly. Prices excl. VAT.'}</p>
+              <p className="text-slate-400 text-xs mt-6">{isNL ? 'Geen creditcard nodig voor gratis account. Beide pakketten maandelijks opzegbaar. Prijzen excl. BTW.' : 'No credit card needed for free account. Both plans can be cancelled monthly. Prices excl. VAT.'}</p>
             </div>
           </div>
         </div>
