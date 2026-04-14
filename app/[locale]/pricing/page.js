@@ -96,6 +96,15 @@ export default function PricingPage() {
       proStatus: 'check',
     },
     {
+      name: 'AI Prompt Discovery',
+      free: isNL ? 'Inbegrepen' : 'Included',
+      lite: isNL ? 'Inbegrepen' : 'Included',
+      pro: isNL ? 'Inbegrepen' : 'Included',
+      freeStatus: 'check',
+      liteStatus: 'check',
+      proStatus: 'check',
+    },
+    {
       name: 'GEO Audit',
       free: isNL ? '1x per week' : '1x per week',
       lite: isNL ? 'Onbeperkt' : 'Unlimited',
@@ -106,6 +115,15 @@ export default function PricingPage() {
     },
     {
       name: 'Chrome Extensie',
+      free: isNL ? 'Inbegrepen' : 'Included',
+      lite: isNL ? 'Inbegrepen' : 'Included',
+      pro: isNL ? 'Inbegrepen' : 'Included',
+      freeStatus: 'check',
+      liteStatus: 'check',
+      proStatus: 'check',
+    },
+    {
+      name: 'WordPress Plugin',
       free: isNL ? 'Inbegrepen' : 'Included',
       lite: isNL ? 'Inbegrepen' : 'Included',
       pro: isNL ? 'Inbegrepen' : 'Included',
