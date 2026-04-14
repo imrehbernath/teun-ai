@@ -627,29 +627,35 @@ export default function PricingPage() {
       </section>
 
       {/* ====== CTA BANNER ====== */}
-      <section className="py-16">
-        <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-8 sm:p-12 text-center">
-              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4">{isNL ? 'Weet waar je staat in AI-antwoorden' : 'Know where you stand in AI answers'}</h2>
-              <p className="text-slate-500 text-lg mb-3 max-w-xl mx-auto">{isNL ? 'Volg automatisch je AI rankings en optimaliseer zelf met GEO Optimalisatie DIY.' : 'Automatically track your AI rankings and optimize yourself with GEO Optimization DIY.'}</p>
-              <p className="text-slate-400 text-sm mb-8 max-w-lg mx-auto">{isNL ? 'Liever hulp? OnlineLabs helpt je met professionele GEO-optimalisatie.' : 'Prefer help? OnlineLabs helps you with professional GEO optimization.'}</p>
-              <div className="flex flex-wrap justify-center gap-4">
-                <button onClick={() => handleCheckout('lite')} disabled={loading} className="inline-flex items-center gap-2 px-8 py-4 bg-white border-2 border-[#1E1E3F] text-[#1E1E3F] rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer disabled:opacity-60">
-                  {isNL ? `Lite, €${litePrice.toFixed(2).replace('.', ',')}/mnd` : `Lite, €${litePrice.toFixed(2).replace('.', ',')}/mo`}
-                </button>
-                <button onClick={() => handleCheckout('pro')} disabled={loading} className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer disabled:opacity-60">
-                  <Zap className="w-5 h-5" />
-                  {isNL ? `Pro, €${proPrice.toFixed(2).replace('.', ',')}/mnd` : `Pro, €${proPrice.toFixed(2).replace('.', ',')}/mo`}
-                </button>
-              </div>
-              <div className="flex flex-wrap justify-center gap-6 mt-6">
-                <Link href="/tools/ai-visibility" className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors">{isNL ? 'Gratis uitproberen' : 'Try free'} →</Link>
-                <a href="https://www.onlinelabs.nl/skills/geo-optimalisatie" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-slate-700 text-sm transition-colors">{isNL ? 'GEO door OnlineLabs' : 'GEO by OnlineLabs'} →</a>
-              </div>
-              <p className="text-slate-400 text-xs mt-6">{isNL ? 'Geen creditcard nodig voor gratis account. Beide pakketten maandelijks opzegbaar. Prijzen excl. BTW.' : 'No credit card needed for free account. Both plans can be cancelled monthly. Prices excl. VAT.'}</p>
-            </div>
+      <section className="py-20 bg-gradient-to-b from-blue-50/60 to-slate-50 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div 
+            className="pricing-orb-1 absolute top-[-20%] right-[10%] w-[300px] h-[300px] rounded-full"
+            style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 60%)' }}
+          />
+          <div 
+            className="pricing-orb-2 absolute bottom-[-15%] left-[5%] w-[250px] h-[250px] rounded-full"
+            style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.06) 0%, transparent 60%)' }}
+          />
+        </div>
+        <div className="relative max-w-3xl mx-auto px-5 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4">{isNL ? 'Weet waar je staat in AI-antwoorden' : 'Know where you stand in AI answers'}</h2>
+          <p className="text-slate-500 text-lg mb-3 max-w-xl mx-auto">{isNL ? 'Volg automatisch je AI rankings en optimaliseer zelf met GEO Optimalisatie DIY.' : 'Automatically track your AI rankings and optimize yourself with GEO Optimization DIY.'}</p>
+          <p className="text-slate-400 text-sm mb-8 max-w-lg mx-auto">{isNL ? 'Liever hulp? OnlineLabs helpt je met professionele GEO-optimalisatie.' : 'Prefer help? OnlineLabs helps you with professional GEO optimization.'}</p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <button onClick={() => handleCheckout('lite')} disabled={loading} className="inline-flex items-center gap-2 px-8 py-4 bg-white border-2 border-[#1E1E3F] text-[#1E1E3F] rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer disabled:opacity-60">
+              {isNL ? `Lite, €${litePrice.toFixed(2).replace('.', ',')}/mnd` : `Lite, €${litePrice.toFixed(2).replace('.', ',')}/mo`}
+            </button>
+            <button onClick={() => handleCheckout('pro')} disabled={loading} className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer disabled:opacity-60">
+              <Zap className="w-5 h-5" />
+              {isNL ? `Pro, €${proPrice.toFixed(2).replace('.', ',')}/mnd` : `Pro, €${proPrice.toFixed(2).replace('.', ',')}/mo`}
+            </button>
           </div>
+          <div className="flex flex-wrap justify-center gap-6 mt-6">
+            <Link href="/signup" className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors">{isNL ? 'Gratis account aanmaken' : 'Create free account'} →</Link>
+            <a href="https://www.onlinelabs.nl/skills/geo-optimalisatie" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-slate-700 text-sm transition-colors">{isNL ? 'GEO door OnlineLabs' : 'GEO by OnlineLabs'} →</a>
+          </div>
+          <p className="text-slate-400 text-xs mt-6">{isNL ? 'Geen creditcard nodig voor gratis account. Beide pakketten maandelijks opzegbaar. Prijzen excl. BTW.' : 'No credit card needed for free account. Both plans can be cancelled monthly. Prices excl. VAT.'}</p>
         </div>
       </section>
 
