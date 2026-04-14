@@ -470,8 +470,8 @@ function RankTrackerContent() {
             {isPro
               ? (locale === 'en' ? 'Pro · 50 keywords automatic tracking' : 'Pro · 50 keywords automatisch tracken')
               : !user 
-                ? (locale === 'en' ? '3 free checks · Log in for 3x per week' : '3x gratis proberen · Log in voor 3x per week')
-                : (locale === 'en' ? '3x per week manual · Pro: 50 keywords auto' : '3x per week handmatig · Pro: 50 keywords automatisch')
+                ? (locale === 'en' ? '2 free checks · Log in for 2x per week' : '2x gratis proberen · Log in voor 2x per week')
+                : (locale === 'en' ? '2x per week manual · Lite/Pro: unlimited' : '2x per week handmatig · Lite/Pro: onbeperkt')
             } • ChatGPT + Perplexity + Google AI
           </p>
         </div>
@@ -490,7 +490,7 @@ function RankTrackerContent() {
                 )}
                 {user && (error.includes('week') || error.includes('Week') || error.includes('Pro')) && (
                   <Link href={locale === 'en' ? '/en/pricing' : '/pricing'} className="inline-flex items-center gap-1 mt-2 text-sm font-semibold text-[#1E1E3F] hover:underline">
-                    {locale === 'en' ? 'Upgrade to Pro for 50 keywords automatic tracking' : 'Upgrade naar Pro voor 50 keywords automatisch tracken'} <ArrowRight className="w-3.5 h-3.5" />
+                    {locale === 'en' ? 'Upgrade to Lite or Pro for unlimited tracking' : 'Upgrade naar Lite of Pro voor onbeperkt tracken'} <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 )}
               </div>
@@ -644,13 +644,13 @@ function RankTrackerContent() {
                         <ArrowRight className="w-4 h-4" />
                       </Link>
                       <p className="text-xs text-slate-400 mt-3">
-                        {locale === 'en' ? 'Free · 3x per week manual · No credit card' : 'Gratis · 3x per week handmatig · Geen creditcard'}
+                        {locale === 'en' ? 'Free · 2x per week · No credit card' : 'Gratis · 2x per week · Geen creditcard'}
                       </p>
                       <Link 
                         href={locale === 'en' ? '/en/pricing' : '/pricing'}
                         className="inline-flex items-center gap-1 mt-3 text-sm font-semibold text-[#1E1E3F] hover:underline"
                       >
-                        {locale === 'en' ? 'Or upgrade to Pro for 50 keywords auto' : 'Of upgrade naar Pro voor 50 keywords automatisch'} <ArrowRight className="w-3.5 h-3.5" />
+                        {locale === 'en' ? 'Or upgrade to Lite or Pro for unlimited' : 'Of upgrade naar Lite of Pro voor onbeperkt'} <ArrowRight className="w-3.5 h-3.5" />
                       </Link>
                     </>
                   ) : isPro ? (
@@ -667,11 +667,11 @@ function RankTrackerContent() {
                         href={locale === 'en' ? '/en/pricing' : '/pricing'}
                         className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#292956] text-white font-bold rounded-xl hover:bg-[#1e1e45] transition-all shadow-md hover:shadow-lg"
                       >
-                        {locale === 'en' ? 'Upgrade to Pro — 50 keywords auto' : 'Upgrade naar Pro — 50 keywords automatisch'}
+                        {locale === 'en' ? 'Upgrade to Lite or Pro' : 'Upgrade naar Lite of Pro'}
                         <ArrowRight className="w-4 h-4" />
                       </Link>
                       <p className="text-xs text-slate-400 mt-3">
-                        {locale === 'en' ? '€49.95/mo · Automatic weekly tracking · Cancel anytime' : '€49,95/mnd · Automatische wekelijkse tracking · Maandelijks opzegbaar'}
+                        {locale === 'en' ? 'From €29.95/mo · Automatic weekly tracking · Cancel anytime' : 'Vanaf €29,95/mnd · Automatische wekelijkse tracking · Maandelijks opzegbaar'}
                       </p>
                     </>
                   )}
@@ -730,7 +730,7 @@ function RankTrackerContent() {
                   )}
                 </>
               ) : (
-                <>{locale === 'en' ? 'Want more? ' : 'Meer nodig? '}<Link href="/signup" className="text-teal-600 hover:text-teal-700 font-medium underline">{locale === 'en' ? 'Create free account (3x/week)' : 'Maak gratis account (3x/week)'}</Link>{' · '}<Link href={locale === 'en' ? '/en/pricing' : '/pricing'} className="text-teal-600 hover:text-teal-700 font-medium underline">{locale === 'en' ? 'Pro: 50 keywords auto' : 'Pro: 50 keywords automatisch'}</Link></>
+                <>{locale === 'en' ? 'Want more? ' : 'Meer nodig? '}<Link href="/signup" className="text-teal-600 hover:text-teal-700 font-medium underline">{locale === 'en' ? 'Create free account (2x/week)' : 'Maak gratis account (2x/week)'}</Link>{' · '}<Link href={locale === 'en' ? '/en/pricing' : '/pricing'} className="text-teal-600 hover:text-teal-700 font-medium underline">{locale === 'en' ? 'Lite/Pro: unlimited' : 'Lite/Pro: onbeperkt'}</Link></>
               )}
             </p>
           </div>
@@ -822,13 +822,13 @@ function RankTrackerContent() {
                   <div className="space-y-4">
                     {(locale === 'en' ? [
                       { q: 'What is an AI Rank Tracker?', a: 'An AI Rank Tracker checks where your business appears in AI-generated answers on platforms like ChatGPT, Perplexity, and Google AI Mode. Unlike traditional SEO rankings, AI rankings are based on how AI models perceive your brand authority, reviews, and online presence.' },
-                      { q: 'Is this a free rank tracking tool?', a: 'Yes, you can try 3 rank checks for free without an account. With a free account you get 3 manual checks per week. Upgrade to Pro for automatic tracking of 50 keywords with weekly trend reports.' },
+                      { q: 'Is this a free rank tracking tool?', a: 'Yes, you can try 2 rank checks for free without an account. With a free account you get 2 manual checks per week. Upgrade to Lite for 20 keywords or Pro for 50 keywords automatic tracking.' },
                       { q: 'Which AI platforms do you track?', a: 'We track rankings on ChatGPT, Perplexity, and Google AI Mode — the three most important AI search platforms. All are queried live with your keyword and location context.' },
                       { q: 'How can I improve my AI ranking?', a: 'AI rankings are influenced by your online reputation (Google Reviews, Trustpilot), content authority (blog posts, case studies), brand mentions on authoritative sites, and consistent business information (NAP data). Our GEO Audit tool analyzes your page-level optimization.' },
                       { q: 'How is AI ranking different from Google ranking?', a: 'Google ranks web pages based on links and keywords. AI platforms like ChatGPT synthesize information from multiple sources to create a recommendation. Being mentioned positively across many sources matters more than having one well-optimized page.' },
                     ] : [
                       { q: 'Wat is een AI Rank Tracker?', a: 'Een AI Rank Tracker checkt waar jouw bedrijf verschijnt in AI-gegenereerde antwoorden op platformen zoals ChatGPT, Perplexity en Google AI Mode. Anders dan traditionele SEO-rankings, zijn AI-rankings gebaseerd op hoe AI-modellen je merkautoriteit, reviews en online aanwezigheid interpreteren.' },
-                      { q: 'Is dit een gratis rank tracking tool?', a: 'Ja, je kunt 3 rank checks gratis uitproberen zonder account. Met een gratis account krijg je 3 handmatige checks per week. Upgrade naar Pro voor automatische tracking van 50 keywords met wekelijkse trendrapportages.' },
+                      { q: 'Is dit een gratis rank tracking tool?', a: 'Ja, je kunt 2 rank checks gratis uitproberen zonder account. Met een gratis account krijg je 2 handmatige checks per week. Upgrade naar Lite voor 20 keywords of Pro voor 50 keywords automatische tracking.' },
                       { q: 'Welke AI-platformen worden getrackt?', a: 'We tracken rankings op ChatGPT, Perplexity én Google AI Mode — de drie belangrijkste AI-zoekplatformen. Alle drie worden live bevraagd met je zoekwoord en locatiecontext.' },
                       { q: 'Hoe verbeter ik mijn AI-ranking?', a: 'AI-rankings worden beïnvloed door je online reputatie (Google Reviews, Trustpilot), content-autoriteit (blogposts, case studies), merkvermeldingen op gezaghebbende sites, en consistente bedrijfsgegevens (NAP-data). Onze GEO Audit tool analyseert je optimalisatie op paginaniveau.' },
                       { q: 'Hoe verschilt AI-ranking van Google-ranking?', a: 'Google rangschikt webpagina\'s op basis van links en zoekwoorden. AI-platformen zoals ChatGPT combineren informatie uit meerdere bronnen tot een aanbeveling. Positief vermeld worden op veel bronnen is belangrijker dan één goed geoptimaliseerde pagina.' },
