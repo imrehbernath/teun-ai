@@ -1,5 +1,5 @@
 // app/api/stripe/checkout/route.js
-// Creates a Stripe Checkout Session for Teun.ai Pro
+// Creates a Stripe Checkout Session for Teun.ai Lite or Pro
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
@@ -9,8 +9,14 @@ const stripe = process.env.STRIPE_SECRET_KEY
   : null
 
 const PRICES = {
-  monthly: process.env.STRIPE_PRICE_MONTHLY,
-  annual: process.env.STRIPE_PRICE_ANNUAL,
+  lite: {
+    monthly: process.env.STRIPE_PRICE_LITE_MONTHLY,
+    annual: process.env.STRIPE_PRICE_LITE_ANNUAL,
+  },
+  pro: {
+    monthly: process.env.STRIPE_PRICE_PRO_MONTHLY || process.env.STRIPE_PRICE_MONTHLY,
+    annual: process.env.STRIPE_PRICE_PRO_ANNUAL || process.env.STRIPE_PRICE_ANNUAL,
+  },
 }
 
 export async function POST(request) {
@@ -20,11 +26,13 @@ export async function POST(request) {
     }
 
     const body = await request.json()
-    const { plan = 'monthly', locale = 'nl' } = body
+    const { plan = 'monthly', tier = 'pro', locale = 'nl' } = body
 
-    const priceId = PRICES[plan]
+    // Support both old (no tier) and new (with tier) pricing page
+    const tierPrices = PRICES[tier] || PRICES['pro']
+    const priceId = tierPrices[plan]
     if (!priceId) {
-      return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid plan or tier' }, { status: 400 })
     }
 
     // Get current user from Supabase
@@ -43,8 +51,8 @@ export async function POST(request) {
 
     if (!userId) {
       const signupUrl = locale === 'en'
-        ? `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/en/signup?plan=pro&billing=${plan}`
-        : `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/signup?plan=pro&billing=${plan}`
+        ? `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/en/signup?plan=${tier}&billing=${plan}`
+        : `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/signup?plan=${tier}&billing=${plan}`
       
       return NextResponse.json({ url: signupUrl, requiresAuth: true })
     }
@@ -106,18 +114,20 @@ export async function POST(request) {
       locale: locale === 'nl' ? 'nl' : 'en',
       metadata: {
         supabase_user_id: userId,
+        tier: tier,
         plan: plan,
       },
       subscription_data: {
         metadata: {
           supabase_user_id: userId,
+          tier: tier,
           plan: plan,
         },
       },
       allow_promotion_codes: true,
     })
 
-    console.log(`✅ Checkout session created: ${session.id} for user ${userId} (${plan})`)
+    console.log(`✅ Checkout session created: ${session.id} for user ${userId} (${tier}/${plan})`)
     return NextResponse.json({ url: session.url })
   } catch (error) {
     console.error('❌ Stripe Checkout Error:', error.message)
