@@ -848,8 +848,8 @@ export async function POST(request) {
           coreActivity: websiteAnalysis.coreActivity
         } : null,
         betaMessage: userId 
-          ? (isNL ? `Je hebt nog ${updatedCheck.scansRemaining} scans deze maand!` : `You have ${updatedCheck.scansRemaining} scans remaining this month!`)
-          : (isNL ? `Maak een gratis account voor ${BETA_CONFIG.TOOLS['ai-visibility'].limits.authenticated} scans per maand` : `Create a free account for ${BETA_CONFIG.TOOLS['ai-visibility'].limits.authenticated} scans per month`)
+          ? (isNL ? `Je kunt volgende week weer scannen, of upgrade naar Lite voor onbeperkt.` : `You can scan again next week, or upgrade to Lite for unlimited.`)
+          : (isNL ? `Maak een gratis account voor 1 scan per week` : `Create a free account for 1 scan per week`)
       }
     })
 
