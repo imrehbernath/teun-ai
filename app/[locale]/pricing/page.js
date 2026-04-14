@@ -61,7 +61,7 @@ export default function PricingPage() {
   const features = [
     {
       name: 'AI Visibility Scan',
-      free: isNL ? '1x per dag' : '1x per day',
+      free: isNL ? '1x per week' : '1x per week',
       lite: isNL ? 'Onbeperkt' : 'Unlimited',
       pro: isNL ? 'Onbeperkt' : 'Unlimited',
       freeStatus: 'limited',
@@ -70,7 +70,7 @@ export default function PricingPage() {
     },
     {
       name: 'AI Rank Tracker',
-      free: isNL ? '3x per week handmatig' : '3x per week manual',
+      free: isNL ? '2x per week handmatig' : '2x per week manual',
       lite: isNL ? '20 keywords auto' : '20 keywords auto',
       pro: isNL ? '50 keywords auto' : '50 keywords auto',
       freeStatus: 'limited',
@@ -79,7 +79,7 @@ export default function PricingPage() {
     },
     {
       name: 'Brand Check',
-      free: isNL ? '2x totaal' : '2x total',
+      free: isNL ? '1x per week' : '1x per week',
       lite: isNL ? 'Onbeperkt' : 'Unlimited',
       pro: isNL ? 'Onbeperkt' : 'Unlimited',
       freeStatus: 'limited',
@@ -97,7 +97,7 @@ export default function PricingPage() {
     },
     {
       name: 'GEO Audit',
-      free: isNL ? '1x per dag' : '1x per day',
+      free: isNL ? '1x per week' : '1x per week',
       lite: isNL ? 'Onbeperkt' : 'Unlimited',
       pro: isNL ? 'Onbeperkt' : 'Unlimited',
       freeStatus: 'limited',
@@ -193,14 +193,14 @@ export default function PricingPage() {
     { q: 'Wat is het verschil tussen Lite en Pro?', a: 'Beide pakketten geven onbeperkt toegang tot alle tools en GEO Optimalisatie DIY. De verschillen: Lite volgt 20 keywords automatisch en bevat 10 GEO Analyse prompts met e-mail support. Pro volgt 50 keywords, heeft onbeperkte GEO Analyse prompts en telefonische support.' },
     { q: 'Kan ik op elk moment opzeggen?', a: 'Ja. Geen contracten, geen opzegtermijn. Je houdt toegang tot het einde van je betaalperiode.' },
     { q: 'Welke AI platforms worden gescand?', a: 'ChatGPT Search, Perplexity, Google AI Mode en Google AI Overviews. Alle platforms zijn inbegrepen bij elk pakket, zonder extra kosten per platform.' },
-    { q: 'Wat is automatische keyword tracking?', a: 'Je stelt je keywords eenmalig in. Teun.ai checkt automatisch wekelijks je posities op alle AI-platformen en toont trends over tijd. Gratis gebruikers kunnen 3x per week handmatig scannen.' },
+    { q: 'Wat is automatische keyword tracking?', a: 'Je stelt je keywords eenmalig in. Teun.ai checkt automatisch wekelijks je posities op alle AI-platformen en toont trends over tijd. Gratis gebruikers kunnen 2x per week handmatig scannen.' },
     { q: 'Is er een gratis proefperiode?', a: 'Alle 6 tools zijn gratis te gebruiken met limieten. Zo ervaar je precies wat Teun.ai kan. Geen trial nodig, gewoon proberen.' },
     { q: 'Kan ik upgraden van Lite naar Pro?', a: 'Ja, je kunt op elk moment upgraden. Je betaalt direct het verschil en krijgt meteen toegang tot 50 keywords en onbeperkte GEO Analyse prompts.' },
   ] : [
     { q: 'What is the difference between Lite and Pro?', a: 'Both plans give unlimited access to all tools and GEO Optimization DIY. The differences: Lite tracks 20 keywords automatically and includes 10 GEO Analysis prompts with email support. Pro tracks 50 keywords, has unlimited GEO Analysis prompts and phone support.' },
     { q: 'Can I cancel at any time?', a: 'Yes. No contracts, no notice period. You keep access until the end of your billing period.' },
     { q: 'Which AI platforms are scanned?', a: 'ChatGPT Search, Perplexity, Google AI Mode and Google AI Overviews. All platforms included with every plan, no extra costs per platform.' },
-    { q: 'What is automatic keyword tracking?', a: 'You set your keywords once. Teun.ai automatically checks your positions on all AI platforms weekly and shows trends over time. Free users can scan manually 3 times per week.' },
+    { q: 'What is automatic keyword tracking?', a: 'You set your keywords once. Teun.ai automatically checks your positions on all AI platforms weekly and shows trends over time. Free users can scan manually 2 times per week.' },
     { q: 'Is there a free trial?', a: 'All 6 tools are free to use with limits. Experience exactly what Teun.ai can do. No trial needed, just try it.' },
     { q: 'Can I upgrade from Lite to Pro?', a: 'Yes, you can upgrade at any time. You pay the difference immediately and get instant access to 50 keywords and unlimited GEO Analysis prompts.' },
   ];
