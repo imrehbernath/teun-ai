@@ -71,7 +71,8 @@ export default function BrandCheckPage() {
   const [openFaq, setOpenFaq] = useState(0)
   const resultsRef = useRef(null)
 
-  const MAX_FREE_SCANS = 2
+  const MAX_ANON_SCANS = 1    // 1 scan totaal (lifetime) voor anoniem
+  const MAX_FREE_SCANS = 1    // 1 scan per week voor gratis accounts
   const ADMIN_EMAILS = ['imre@onlinelabs.nl', 'hallo@onlinelabs.nl']
   const [scanCount, setScanCount] = useState(0)
   const [limitReached, setLimitReached] = useState(false)
@@ -90,13 +91,13 @@ export default function BrandCheckPage() {
 
   const faqItems = locale === 'en' ? [
     { q: 'What is an AI Brand Check?', a: 'An AI Brand Check analyzes what AI platforms like ChatGPT and Perplexity say about your business. We check sentiment, reputation signals and whether your brand is actually mentioned in AI-generated answers.' },
-    { q: 'Is the AI Brand Check free?', a: 'Yes, you can run 2 brand checks per day for free. No credit card needed.' },
+    { q: 'Is the AI Brand Check free?', a: 'Yes, you can try 1 brand check for free without an account. With a free account you get 1 check per week. Upgrade to Lite or Pro for unlimited brand checks.' },
     { q: 'Which AI platforms are checked?', a: 'We test your brand on both Perplexity and ChatGPT with 3 different commercial queries about experiences, reviews and service quality. That is 6 AI checks in total. We also pull your Google Reviews to compare AI perception with reality.' },
     { q: 'What if my brand is not mentioned by AI?', a: 'That means AI platforms don\'t yet associate your brand with your industry. The tool gives you concrete recommendations to improve this, such as publishing more reviews, case studies and expertise content.' },
     { q: 'How can I improve my AI brand perception?', a: 'Focus on Google Reviews, publish case studies and customer stories, ensure consistent NAP data, and create content that explicitly mentions your brand name with your expertise and location.' },
   ] : [
     { q: 'Wat is een AI Brand Check?', a: 'Een AI Brand Check analyseert wat AI-platformen zoals ChatGPT en Perplexity over jouw bedrijf zeggen. We checken sentiment, reputatiesignalen en of jouw merk daadwerkelijk wordt genoemd in AI-antwoorden.' },
-    { q: 'Is de AI Brand Check gratis?', a: 'Ja, je kunt 2 brand checks per dag gratis uitvoeren. Geen creditcard nodig.' },
+    { q: 'Is de AI Brand Check gratis?', a: 'Ja, je kunt 1 brand check gratis uitvoeren zonder account. Met een gratis account krijg je 1 check per week. Upgrade naar Lite of Pro voor onbeperkte brand checks.' },
     { q: 'Welke AI-platformen worden gecheckt?', a: 'We testen je merk op zowel Perplexity als ChatGPT met 3 verschillende commerciele zoekvragen over ervaringen, reviews en servicekwaliteit. Dat zijn 6 AI-checks in totaal. We halen ook je Google Reviews op om AI-perceptie met de werkelijkheid te vergelijken.' },
     { q: 'Wat als mijn merk niet wordt genoemd door AI?', a: 'Dan associeren AI-platformen je merk nog niet met je branche. De tool geeft je concrete aanbevelingen om dit te verbeteren, zoals meer reviews, case studies en expertcontent publiceren.' },
     { q: 'Hoe verbeter ik mijn AI-merkperceptie?', a: 'Focus op Google Reviews, publiceer case studies en klantverhalen, zorg voor consistente bedrijfsgegevens, en maak content die expliciet je merknaam koppelt aan je expertise en locatie.' },
@@ -150,12 +151,14 @@ export default function BrandCheckPage() {
 
       try {
         if (session?.user) {
-          const today = new Date().toISOString().split('T')[0]
-          const stored = localStorage.getItem(`brand_check_${today}`)
+          // Weekly reset: use ISO week number
+          const now = new Date()
+          const weekKey = `brand_check_${now.getFullYear()}_W${Math.ceil(((now - new Date(now.getFullYear(),0,1)) / 86400000 + new Date(now.getFullYear(),0,1).getDay() + 1) / 7)}`
+          const stored = localStorage.getItem(weekKey)
           if (stored) { setScanCount(parseInt(stored)); setLimitReached(parseInt(stored) >= MAX_FREE_SCANS) }
         } else {
           const stored = localStorage.getItem('brand_check_count')
-          if (stored) { setScanCount(parseInt(stored)); setLimitReached(parseInt(stored) >= MAX_FREE_SCANS) }
+          if (stored) { setScanCount(parseInt(stored)); setLimitReached(parseInt(stored) >= MAX_ANON_SCANS) }
         }
       } catch (e) {}
     })
@@ -248,13 +251,15 @@ export default function BrandCheckPage() {
         setScanCount(newCount)
         try {
           if (user) {
-            const today = new Date().toISOString().split('T')[0]
-            localStorage.setItem(`brand_check_${today}`, newCount.toString())
+            const now = new Date()
+            const weekKey = `brand_check_${now.getFullYear()}_W${Math.ceil(((now - new Date(now.getFullYear(),0,1)) / 86400000 + new Date(now.getFullYear(),0,1).getDay() + 1) / 7)}`
+            localStorage.setItem(weekKey, newCount.toString())
           } else {
             localStorage.setItem('brand_check_count', newCount.toString())
           }
         } catch (e) {}
-        if (newCount >= MAX_FREE_SCANS) setLimitReached(true)
+        const limit = user ? MAX_FREE_SCANS : MAX_ANON_SCANS
+        if (newCount >= limit) setLimitReached(true)
       }
 
       // Small delay for last animation frame
@@ -432,15 +437,23 @@ export default function BrandCheckPage() {
 
         {limitReached && !isAdmin && !isPro && authChecked ? (
           <div className="bg-white rounded-xl shadow-lg shadow-slate-200/50 border border-slate-200 p-8 text-center">
-            <p className="text-xl font-bold text-slate-900 mb-2">{user ? t('dailyLimitTitle') : t('freeLimitTitle', { count: MAX_FREE_SCANS })}</p>
-            <p className="text-slate-500 text-sm mb-6 max-w-md mx-auto">{user ? t('dailyLimitDesc', { count: MAX_FREE_SCANS }) : t('freeLimitDesc', { count: MAX_FREE_SCANS })}</p>
+            <p className="text-xl font-bold text-slate-900 mb-2">
+              {user 
+                ? (locale === 'en' ? 'Weekly limit reached' : 'Wekelijks limiet bereikt')
+                : (locale === 'en' ? 'Free check used' : 'Gratis check gebruikt')}
+            </p>
+            <p className="text-slate-500 text-sm mb-6 max-w-md mx-auto">
+              {user 
+                ? (locale === 'en' ? 'You can check again next week, or upgrade to Lite for unlimited brand checks.' : 'Je kunt volgende week weer checken, of upgrade naar Lite voor onbeperkte brand checks.')
+                : (locale === 'en' ? 'Create a free account for 1 brand check per week.' : 'Maak een gratis account aan voor 1 brand check per week.')}
+            </p>
             {user ? (
               <Link href={locale === 'en' ? '/en/pricing' : '/pricing'} className="bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white font-semibold px-8 py-3 rounded-lg hover:shadow-lg transition-all inline-flex items-center gap-2 cursor-pointer">
-                {locale === 'en' ? 'Upgrade to Pro for unlimited scans' : 'Upgrade naar Pro voor onbeperkt scannen'} <ArrowRight className="w-4 h-4" />
+                {locale === 'en' ? 'Upgrade to Lite for unlimited' : 'Upgrade naar Lite voor onbeperkt'} <ArrowRight className="w-4 h-4" />
               </Link>
             ) : (
-              <Link href="/signup" className="bg-[#292956] text-white font-semibold px-8 py-3 rounded-lg hover:bg-[#1e1e45] transition-all inline-flex items-center gap-2 cursor-pointer">
-                {t('createFreeAccount')} <ArrowRight className="w-4 h-4" />
+              <Link href={locale === 'en' ? '/en/signup' : '/signup'} className="bg-[#292956] text-white font-semibold px-8 py-3 rounded-lg hover:bg-[#1e1e45] transition-all inline-flex items-center gap-2 cursor-pointer">
+                {locale === 'en' ? 'Create free account' : 'Gratis account aanmaken'} <ArrowRight className="w-4 h-4" />
               </Link>
             )}
           </div>
