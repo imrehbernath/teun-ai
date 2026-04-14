@@ -71,8 +71,8 @@ export default function PricingPage() {
     {
       name: 'AI Rank Tracker',
       free: isNL ? '2x per week handmatig' : '2x per week manual',
-      lite: isNL ? '20 keywords auto' : '20 keywords auto',
-      pro: isNL ? '50 keywords auto' : '50 keywords auto',
+      lite: isNL ? 'Onbeperkt' : 'Unlimited',
+      pro: isNL ? 'Onbeperkt' : 'Unlimited',
       freeStatus: 'limited',
       liteStatus: 'check',
       proStatus: 'check',
@@ -97,10 +97,10 @@ export default function PricingPage() {
     },
     {
       name: 'AI Prompt Discovery',
-      free: isNL ? 'Inbegrepen' : 'Included',
+      free: isNL ? 'Beperkt' : 'Limited',
       lite: isNL ? 'Inbegrepen' : 'Included',
       pro: isNL ? 'Inbegrepen' : 'Included',
-      freeStatus: 'check',
+      freeStatus: 'limited',
       liteStatus: 'check',
       proStatus: 'check',
     },
