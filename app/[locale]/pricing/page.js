@@ -7,12 +7,10 @@ import { useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Check, X, Minus, ArrowRight, Zap, Crown, Sparkles, TrendingUp, Phone, Mail } from 'lucide-react';
-import { getGrowingStats } from '@/lib/stats';
 
 export default function PricingPage() {
   const locale = useLocale();
   const isNL = locale === 'nl';
-  const stats = getGrowingStats();
   const router = useRouter();
   const supabase = createClient();
   const [annual, setAnnual] = useState(false);
@@ -207,15 +205,6 @@ export default function PricingPage() {
     { q: 'Can I upgrade from Lite to Pro?', a: 'Yes, you can upgrade at any time. You pay the difference immediately and get instant access to 50 keywords and unlimited GEO Analysis prompts.' },
   ];
 
-  const platforms = [
-    { name: 'ChatGPT Search', active: true },
-    { name: 'Perplexity', active: true },
-    { name: 'Google AI Mode', active: true },
-    { name: 'Google AI Overviews', active: true },
-    { name: isNL ? 'Gemini (binnenkort)' : 'Gemini (coming soon)', active: false },
-    { name: isNL ? 'Claude (binnenkort)' : 'Claude (coming soon)', active: false },
-  ];
-
   function StatusIcon({ status }) {
     if (status === 'check') return <Check className="w-4 h-4 text-green-500" />;
     if (status === 'cross') return <X className="w-4 h-4 text-slate-300" />;
@@ -233,7 +222,7 @@ export default function PricingPage() {
           <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-100 rounded-full blur-3xl"></div>
         </div>
 
-        <div className="relative max-w-4xl mx-auto px-5 sm:px-6 lg:px-8 pt-16 lg:pt-24 pb-16 text-center">
+        <div className="relative max-w-4xl mx-auto px-5 sm:px-6 lg:px-8 pt-12 lg:pt-16 pb-10 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-600 shadow-sm mb-6">
             <Crown className="w-3.5 h-3.5 text-amber-500" />
             Pricing
@@ -276,34 +265,10 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* ====== STATS BAR ====== */}
-      <section className="bg-gradient-to-r from-[#1E1E3F] via-[#2D2D5F] to-[#1E1E3F] py-8">
-        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center items-center">
-            <div>
-              <div className="text-3xl md:text-4xl font-bold text-white mb-1">{stats.scans}</div>
-              <div className="text-sm text-white/70">{isNL ? 'AI scans uitgevoerd' : 'AI scans completed'}</div>
-            </div>
-            <div>
-              <div className="text-3xl md:text-4xl font-bold text-white mb-1">{stats.companies}</div>
-              <div className="text-sm text-white/70">{isNL ? 'Bedrijven aangesloten' : 'Businesses connected'}</div>
-            </div>
-            <div>
-              <div className="text-3xl md:text-4xl font-bold text-white mb-1">6</div>
-              <div className="text-sm text-white/70">{isNL ? 'Gratis tools' : 'Free tools'}</div>
-            </div>
-            <div>
-              <div className="text-3xl md:text-4xl font-bold text-green-400 mb-1">4</div>
-              <div className="text-sm text-white/70">{isNL ? 'AI-platformen' : 'AI platforms'}</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ====== PRICING CARDS ====== */}
-      <section className="py-20">
+      <section className="pt-12 pb-20">
         <div className="max-w-6xl mx-auto px-5 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+          <div className="grid md:grid-cols-3 gap-6 lg:gap-8 items-start">
 
             {/* FREE CARD */}
             <div className="bg-white rounded-2xl border border-slate-200 p-8 hover:shadow-md transition-shadow">
@@ -369,11 +334,9 @@ export default function PricingPage() {
                 <Zap className="w-4 h-4" />
                 {loadingTier === 'lite' ? (isNL ? 'Laden...' : 'Loading...') : (isNL ? 'Start met Lite' : 'Start with Lite')}
               </button>
-              <div className="flex items-center justify-center gap-3 text-xs text-emerald-600 font-medium mb-8 mt-2">
-                <span className="flex items-center gap-1"><Check className="w-3 h-3" /> {isNL ? 'Maandelijks opzegbaar' : 'Cancel anytime'}</span>
-                <span className="text-slate-300">|</span>
-                <span className="flex items-center gap-1"><Check className="w-3 h-3" /> {isNL ? 'Geen verborgen kosten' : 'No hidden costs'}</span>
-              </div>
+              <p className="text-center text-xs text-slate-400 mb-8">
+                {isNL ? 'Maandelijks opzegbaar, excl. BTW' : 'Cancel anytime, excl. VAT'}
+              </p>
 
               <div className="space-y-0">
                 {features.map((f, i) => (
@@ -429,11 +392,9 @@ export default function PricingPage() {
                 <Zap className="w-4 h-4" />
                 {loadingTier === 'pro' ? (isNL ? 'Laden...' : 'Loading...') : (isNL ? 'Start met Pro' : 'Start with Pro')}
               </button>
-              <div className="flex items-center justify-center gap-3 text-xs text-emerald-600 font-medium mb-8 mt-2">
-                <span className="flex items-center gap-1"><Check className="w-3 h-3" /> {isNL ? 'Maandelijks opzegbaar' : 'Cancel anytime'}</span>
-                <span className="text-slate-300">|</span>
-                <span className="flex items-center gap-1"><Check className="w-3 h-3" /> {isNL ? 'Geen verborgen kosten' : 'No hidden costs'}</span>
-              </div>
+              <p className="text-center text-xs text-slate-400 mb-8">
+                {isNL ? 'Maandelijks opzegbaar, excl. BTW' : 'Cancel anytime, excl. VAT'}
+              </p>
 
               <div className="space-y-0">
                 {features.map((f, i) => (
@@ -557,18 +518,17 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* ====== PLATFORMS ====== */}
-      <section className="py-20">
+      {/* ====== TOOLS LINK ====== */}
+      <section className="py-12">
         <div className="max-w-3xl mx-auto px-5 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4">
-            {isNL ? (<>Alle platforms <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">inbegrepen</span></>) : (<>All platforms <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">included</span></>)}
-          </h2>
-          <p className="text-slate-600 mb-10 max-w-xl mx-auto">{isNL ? 'Geen extra kosten per platform. Scan op alle grote AI zoekmachines.' : 'No extra costs per platform. Scan on all major AI search engines.'}</p>
-          <div className="flex flex-wrap justify-center gap-3">
-            {platforms.map((p, i) => (
-              <span key={i} className={`px-4 py-2 rounded-full text-sm font-medium ${p.active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{p.name}</span>
-            ))}
-          </div>
+          <p className="text-slate-500 mb-4">
+            {isNL
+              ? 'Alle tools werken op ChatGPT, Perplexity, Google AI Mode en AI Overviews.'
+              : 'All tools work on ChatGPT, Perplexity, Google AI Mode and AI Overviews.'}
+          </p>
+          <Link href="/tools/ai-visibility" className="text-blue-600 hover:text-blue-700 font-medium text-sm">
+            {isNL ? 'Bekijk alle tools' : 'View all tools'} →
+          </Link>
         </div>
       </section>
 
@@ -641,14 +601,14 @@ export default function PricingPage() {
                 <button onClick={() => handleCheckout('lite')} disabled={loading} className="inline-flex items-center gap-2 px-8 py-4 bg-white text-[#1E1E3F] rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer disabled:opacity-60">
                   {isNL ? `Lite, €${litePrice.toFixed(2).replace('.', ',')}/mnd` : `Lite, €${litePrice.toFixed(2).replace('.', ',')}/mo`}
                 </button>
-                <button onClick={() => handleCheckout('pro')} disabled={loading} className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold text-lg hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg shadow-green-500/25 hover:shadow-green-500/40 cursor-pointer disabled:opacity-60">
+                <button onClick={() => handleCheckout('pro')} disabled={loading} className="inline-flex items-center gap-2 px-8 py-4 bg-white/10 border-2 border-white text-white rounded-xl font-bold text-lg hover:bg-white/20 transition-all cursor-pointer disabled:opacity-60">
                   <Zap className="w-5 h-5" />
                   {isNL ? `Pro, €${proPrice.toFixed(2).replace('.', ',')}/mnd` : `Pro, €${proPrice.toFixed(2).replace('.', ',')}/mo`}
                 </button>
               </div>
               <div className="flex flex-wrap justify-center gap-6 mt-6">
                 <Link href="/tools/ai-visibility" className="text-white/60 hover:text-white/90 text-sm transition-colors">{isNL ? 'Gratis uitproberen' : 'Try free'} →</Link>
-                <a href="https://onlinelabs.nl" target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-white/90 text-sm transition-colors">{isNL ? 'GEO door OnlineLabs' : 'GEO by OnlineLabs'} →</a>
+                <a href="https://www.onlinelabs.nl/skills/geo-optimalisatie" target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-white/90 text-sm transition-colors">{isNL ? 'GEO door OnlineLabs' : 'GEO by OnlineLabs'} →</a>
               </div>
               <p className="text-white/40 text-xs mt-6">{isNL ? 'Geen creditcard nodig voor gratis account. Beide pakketten maandelijks opzegbaar. Prijzen excl. BTW.' : 'No credit card needed for free account. Both plans can be cancelled monthly. Prices excl. VAT.'}</p>
             </div>
@@ -684,7 +644,7 @@ export default function PricingPage() {
               </div>
             </div>
             <div className="hidden lg:flex justify-center items-end relative">
-              <div className="translate-y-20">
+              <div className="translate-y-20" style={{ marginTop: '94px' }}>
                 <Image src="/teun-ai-mascotte.png" alt={isNL ? 'Teun helpt je' : 'Teun helps you'} width={420} height={530} className="drop-shadow-xl" />
               </div>
             </div>

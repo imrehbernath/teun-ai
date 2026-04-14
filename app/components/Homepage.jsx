@@ -1024,15 +1024,26 @@ export default function Homepage() {
 
           {/* CTA */}
           <div className="text-center">
-            <Link 
-              href="/signup"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold text-lg hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg shadow-green-500/25 hover:shadow-green-500/40"
-            >
-              {t('cta.button')}
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </Link>
+            <div className="flex flex-wrap justify-center gap-4">
+              <Link 
+                href="/signup"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all"
+              >
+                {t('cta.button')}
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </Link>
+              <Link
+                href="/pricing"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-lg hover:shadow-md hover:border-slate-300 transition-all"
+              >
+                {locale === 'nl' ? 'Vanaf €29,95/mnd' : 'From €29.95/mo'}
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </Link>
+            </div>
             <p className="text-slate-400 text-sm mt-4">
               {t('cta.subtext')}
             </p>
@@ -1079,10 +1090,10 @@ export default function Homepage() {
             </div>
 
             <div className="hidden lg:flex justify-center items-end relative">
-              <div className="translate-y-20">
+              <div className="translate-y-20" style={{ marginTop: '94px' }}>
                 <Image
                   src="/teun-ai-mascotte.png"
-                  alt="Teun helpt je"
+                  alt={locale === 'nl' ? 'Teun helpt je' : 'Teun helps you'}
                   width={420}
                   height={530}
                   className="drop-shadow-xl"
