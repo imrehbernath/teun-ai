@@ -168,6 +168,43 @@ export default function Homepage() {
 
   return (
     <div className="bg-white">
+      {/* ====== HERO ANIMATION STYLES ====== */}
+      <style>{`
+        @keyframes hero-float-slow {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -25px) scale(1.08); }
+          66% { transform: translate(-25px, 15px) scale(0.95); }
+        }
+        @keyframes hero-float-medium {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(-40px, 30px) scale(1.1); }
+        }
+        @keyframes hero-circle-1 {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-14px); }
+        }
+        @keyframes hero-circle-2 {
+          0%, 100% { transform: translateY(0) scale(1); }
+          50% { transform: translateY(-18px) scale(1.05); }
+        }
+        @keyframes hero-circle-3 {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        .hero-orb-1 { animation: hero-float-slow 22s ease-in-out infinite; }
+        .hero-orb-2 { animation: hero-float-medium 18s ease-in-out infinite; animation-delay: -4s; }
+        .hero-orb-3 { animation: hero-float-slow 26s ease-in-out infinite reverse; animation-delay: -8s; }
+        .hero-circle-1 { animation: hero-circle-1 5s ease-in-out infinite; }
+        .hero-circle-2 { animation: hero-circle-2 7s ease-in-out infinite; animation-delay: -2s; }
+        .hero-circle-3 { animation: hero-circle-3 6s ease-in-out infinite; animation-delay: -3s; }
+        .hero-circle-4 { animation: hero-circle-1 8s ease-in-out infinite; animation-delay: -1s; }
+        @media (prefers-reduced-motion: reduce) {
+          .hero-orb-1, .hero-orb-2, .hero-orb-3,
+          .hero-circle-1, .hero-circle-2, .hero-circle-3, .hero-circle-4 {
+            animation: none;
+          }
+        }
+      `}</style>
       {/* ====== HERO + STATS WRAPPER ====== */}
       <div className="relative overflow-hidden">
         {/* Hero Mascotte */}
@@ -184,9 +221,35 @@ export default function Homepage() {
 
         {/* ====== HERO SECTION ====== */}
         <section className="relative bg-gradient-to-br from-slate-50 via-white to-blue-50 overflow-hidden">
-          <div className="absolute inset-0 opacity-30">
-            <div className="absolute top-20 left-10 w-72 h-72 bg-blue-100 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-100 rounded-full blur-3xl"></div>
+          {/* Animated gradient orbs */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div 
+              className="hero-orb-1 absolute -top-32 -right-32 lg:top-[-10%] lg:right-[5%] w-[300px] h-[300px] lg:w-[450px] lg:h-[450px] rounded-full"
+              style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 40%, transparent 70%)' }}
+            />
+            <div 
+              className="hero-orb-2 absolute -bottom-24 -left-24 lg:bottom-[-15%] lg:left-[-5%] w-[250px] h-[250px] lg:w-[400px] lg:h-[400px] rounded-full"
+              style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.10) 0%, rgba(139, 92, 246, 0.03) 40%, transparent 70%)' }}
+            />
+            <div 
+              className="hero-orb-3 absolute top-[50%] right-[8%] w-[120px] h-[120px] lg:w-[180px] lg:h-[180px] rounded-full hidden lg:block"
+              style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 60%)' }}
+            />
+          </div>
+
+          {/* Decorative floating circles - left */}
+          <div className="absolute left-[6%] lg:left-[8%] top-[20%] hidden lg:block pointer-events-none">
+            <div className="hero-circle-1 absolute w-14 h-14 rounded-full border-2 border-blue-500/10" />
+            <div className="hero-circle-2 absolute top-20 left-12 w-7 h-7 rounded-full bg-purple-500/8" />
+            <div className="hero-circle-3 absolute top-8 left-20 w-3 h-3 rounded-full bg-blue-500/20" />
+            <div className="hero-circle-4 absolute top-28 left-4 w-2 h-2 rounded-full bg-blue-500/25" />
+          </div>
+
+          {/* Decorative floating circles - right (below mascotte) */}
+          <div className="absolute right-[6%] lg:right-[8%] bottom-[35%] hidden lg:block pointer-events-none">
+            <div className="hero-circle-2 absolute w-16 h-16 rounded-full border border-purple-500/10" />
+            <div className="hero-circle-3 absolute -top-6 -left-8 w-5 h-5 rounded-full bg-blue-500/10" />
+            <div className="hero-circle-1 absolute top-14 left-14 w-3 h-3 rounded-full bg-purple-500/15" />
           </div>
 
           <div className="relative max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 pt-12 lg:pt-20">
@@ -474,6 +537,18 @@ export default function Homepage() {
                   <p className="text-xs text-slate-500 text-center">
                     {t('form.submitInfo')}
                   </p>
+
+                  {/* Tool count + pricing upsell */}
+                  <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
+                    <span>{locale === 'nl' ? '1 van 6 gratis tools' : '1 of 6 free tools'}</span>
+                    <span className="text-slate-300">·</span>
+                    <Link 
+                      href="/pricing"
+                      className="text-blue-500 hover:text-blue-700 font-medium transition-colors"
+                    >
+                      {locale === 'nl' ? 'Lite vanaf €29,95/mnd' : 'Lite from €29.95/mo'}
+                    </Link>
+                  </div>
                   
                   <div className="text-center mt-2">
                     <Link 
