@@ -113,8 +113,8 @@ export default function OverOnsPage() {
 
         <p className="text-base sm:text-lg text-slate-600 sm:max-w-2xl sm:mx-auto mb-4">
           {isNL
-            ? 'Teun.ai is geen startup-experiment. Het is het resultaat van 25 jaar SEO-ervaring, 750+ projecten en de overtuiging dat AI-zoekmachines de toekomst van online marketing bepalen.'
-            : 'Teun.ai is not a startup experiment. It\'s the result of 25 years of SEO experience, 750+ projects and the conviction that AI search engines define the future of online marketing.'}
+            ? 'Teun.ai is geen startup-experiment. Het is het resultaat van 25 jaar online ervaring, 750+ projecten en de overtuiging dat AI-zoekmachines de toekomst van online marketing bepalen.'
+            : 'Teun.ai is not a startup experiment. It\'s the result of 25 years of online experience, 750+ projects and the conviction that AI search engines define the future of online marketing.'}
         </p>
 
         <p className="text-sm text-slate-400 mb-10 lg:mb-12">
