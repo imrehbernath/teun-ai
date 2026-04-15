@@ -345,19 +345,16 @@ export default async function BlogPost({ params }) {
             </div>
           </div>
 
-          {/* Rechts: Featured Image - full cover */}
-          <div className="rounded-3xl overflow-hidden relative min-h-[300px] bg-slate-100">
-            <div className="absolute inset-0">
-              <ServerResponsiveImage
-                desktopImage={post.featuredImage?.node}
-                mobileImage={post.mobileImageData}
-                alt={post.featuredImage?.node?.altText || post.title}
-                priority={true}
-                fetchPriority="high"
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover w-full h-full"
-              />
-            </div>
+          {/* Rechts: Featured Image - RESPONSIVE met fetchPriority */}
+          <div className="rounded-3xl overflow-hidden bg-slate-100">
+            <ServerResponsiveImage
+              desktopImage={post.featuredImage?.node}
+              mobileImage={post.mobileImageData}
+              alt={post.featuredImage?.node?.altText || post.title}
+              priority={true}
+              fetchPriority="high"
+              sizes="(max-width: 1024px) 100vw, 50vw"
+            />
           </div>
 
         </div>
