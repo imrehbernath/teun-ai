@@ -38,7 +38,7 @@ export default function OverOnsPage() {
       description: isNL
         ? 'Sanne combineert technische expertise met een scherp oog voor design. Ze ontwikkelt de interfaces die complexe AI-data vertalen naar bruikbare inzichten. Van het dashboard tot de Chrome extensie, elke pixel is doordacht.'
         : 'Sanne combines technical expertise with a sharp eye for design. She develops the interfaces that translate complex AI data into actionable insights. From the dashboard to the Chrome extension, every pixel is intentional.',
-      linkedin: 'https://www.linkedin.com/in/sanneverschoor/',
+      linkedin: 'https://www.linkedin.com/in/sanne-verschoor-380bab267',
       highlight: isNL ? 'Code + design = Teun.ai UX' : 'Code + design = Teun.ai UX',
     },
     {
@@ -46,15 +46,15 @@ export default function OverOnsPage() {
       role: isNL ? 'Online Marketeer & Data Analyst' : 'Online Marketer & Data Analyst',
       photo: '/Adrian-Enders.webp',
       credentials: [
-        isNL ? 'Universiteit van Groningen' : 'University of Groningen',
-        isNL ? 'Master Finance & Economie' : 'Master Finance & Economics',
+        isNL ? 'Rijksuniversiteit Groningen' : 'University of Groningen',
         isNL ? 'Google Ads & SEO specialist' : 'Google Ads & SEO specialist',
+        isNL ? 'Master Economie & Bedrijfskunde' : 'Master Economics & Business',
       ],
       description: isNL
-        ? 'Adrian brengt een analytische blik mee vanuit zijn achtergrond in Finance aan de Rijksuniversiteit Groningen. Hij vertaalt data naar strategie en zorgt ervoor dat onze klanten niet alleen zichtbaar zijn, maar ook meetbaar groeien.'
-        : 'Adrian brings an analytical perspective from his Finance background at the University of Groningen. He translates data into strategy and ensures our clients don\'t just gain visibility, but measurably grow.',
-      linkedin: 'https://www.linkedin.com/in/adrianenders/',
-      highlight: isNL ? 'RUG Finance → data-driven SEO' : 'RUG Finance → data-driven SEO',
+        ? 'Adrian studeerde aan de Rijksuniversiteit Groningen en brengt een analytische blik mee naar online marketing. Hij vertaalt data naar strategie en zorgt ervoor dat onze klanten niet alleen zichtbaar zijn, maar ook meetbaar groeien.'
+        : 'Adrian studied at the University of Groningen and brings an analytical perspective to online marketing. He translates data into strategy and ensures our clients don\'t just gain visibility, but measurably grow.',
+      linkedin: 'https://www.linkedin.com/in/adrian-fa-enders/',
+      highlight: isNL ? 'Universiteit van Groningen' : 'University of Groningen',
     },
   ];
 
