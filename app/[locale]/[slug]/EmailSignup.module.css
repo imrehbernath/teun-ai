@@ -1,9 +1,9 @@
 .emailSignup {
-  background: linear-gradient(135deg, #7C3AED 0%, #6366F1 100%);
+  background: linear-gradient(135deg, #1E1E3F 0%, #2D2D5F 100%);
   border-radius: 24px;
   padding: 32px 28px;
   margin: 24px 0;
-  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.15);
+  box-shadow: 0 8px 24px rgba(30, 30, 63, 0.15);
 }
 
 .compact {

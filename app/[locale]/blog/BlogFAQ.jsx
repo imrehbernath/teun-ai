@@ -72,7 +72,7 @@ export default function BlogFAQ() {
 
           {/* Right: Mascotte (zoekende Teun) - overlapping footer like homepage */}
           <div className="hidden lg:flex justify-center items-end relative">
-            <div className="translate-y-24">
+            <div className="translate-y-20" style={{ marginTop: '94px' }}>
               <Image
                 src="/teun-ai-mascotte.png"
                 alt="Teun zoekt voor je"

@@ -7,41 +7,14 @@ import Image from 'next/image';
 
 const POSTS_PER_PAGE = 6;
 
-export default function BlogOverviewClient({ posts, categories, locale }) {
+export default function BlogOverviewClient({ posts, locale }) {
   const t = useTranslations('blog');
-  const [activeFilter, setActiveFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Main categories mapping (translated names, WP slugs stay the same)
-  const mainCategories = [
-    { name: t('catAll'), slug: 'all', icon: '📚' },
-    { name: t('catGeo'), slug: 'geo-ai-zichtbaarheid', icon: '🤖' },
-    { name: t('catSeo'), slug: 'seo-techniek', icon: '⚙️' },
-    { name: t('catTools'), slug: 'tools-analyses', icon: '🔧' },
-    { name: t('catCases'), slug: 'cases-experimenten', icon: '🧪' },
-    { name: t('catStrategy'), slug: 'toekomst-strategie', icon: '🚀' },
-    { name: 'Academy', slug: 'academy', icon: '🎓' },
-  ];
-
-  // Filter posts based on active category
-  const filteredPosts = activeFilter === 'all' 
-    ? posts 
-    : posts.filter(post => 
-        post.categories?.nodes?.some(cat => cat.slug === activeFilter)
-      );
-
   // Pagination
-  const totalPages = Math.ceil(filteredPosts.length / POSTS_PER_PAGE);
+  const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
   const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
-  const paginatedPosts = filteredPosts.slice(startIndex, startIndex + POSTS_PER_PAGE);
-
-  // Check which categories have content
-  const hasContent = (slug) => {
-    if (slug === 'all') return true;
-    return posts.some(post => 
-      post.categories?.nodes?.some(cat => cat.slug === slug)
-    );
-  };
+  const paginatedPosts = posts.slice(startIndex, startIndex + POSTS_PER_PAGE);
 
   // Strip HTML from excerpt
   const stripHtml = (html) => {
@@ -64,11 +37,6 @@ export default function BlogOverviewClient({ posts, categories, locale }) {
     return [...new Set(pages)];
   };
 
-  const handleFilterChange = (slug) => {
-    setActiveFilter(slug);
-    setCurrentPage(1);
-  };
-
   const handlePageChange = (page) => {
     setCurrentPage(page);
     document.getElementById('blog-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -78,66 +46,13 @@ export default function BlogOverviewClient({ posts, categories, locale }) {
 
   return (
     <>
-      {/* Category Filters */}
-      <div className="flex flex-wrap gap-2 justify-start items-center mb-8" id="blog-grid">
-        {mainCategories.map((category) => {
-          const categoryHasContent = hasContent(category.slug);
-          
-          if (categoryHasContent) {
-            return (
-              <button
-                key={category.slug}
-                onClick={() => handleFilterChange(category.slug)}
-                className={`group flex items-center gap-2 px-4 py-2 rounded-full border transition-all font-medium text-sm ${
-                  activeFilter === category.slug
-                    ? 'bg-slate-900 border-slate-900 text-white'
-                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400 hover:text-slate-900'
-                }`}
-              >
-                <span className="text-base">{category.icon}</span>
-                <span>{category.name}</span>
-              </button>
-            );
-          }
-          
-          return (
-            <div
-              key={category.slug}
-              className="group relative flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-full border border-slate-100 cursor-not-allowed text-sm"
-              title={t('comingSoon')}
-            >
-              <span className="text-base grayscale opacity-40">{category.icon}</span>
-              <span className="text-slate-300">{category.name}</span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Active filter indicator */}
-      {activeFilter !== 'all' && (
-        <div className="mb-6 flex items-center justify-between">
-          <p className="text-slate-500 text-sm">
-            {t('articlesInCategory', { count: filteredPosts.length, category: mainCategories.find(c => c.slug === activeFilter)?.name })}
-          </p>
-          <button
-            onClick={() => handleFilterChange('all')}
-            className="text-slate-500 hover:text-slate-900 font-medium text-sm flex items-center gap-1.5 transition-colors"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            {t('clearFilter')}
-          </button>
-        </div>
-      )}
-
       {/* Blog Cards Grid */}
-      {filteredPosts.length === 0 ? (
+      {posts.length === 0 ? (
         <div className="text-center py-16">
           <p className="text-slate-400 text-lg">{t('noArticles')}</p>
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-7">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-7" id="blog-grid">
           {paginatedPosts.map((post, index) => {
             const isAboveFold = index < 3 && currentPage === 1;
             
@@ -186,17 +101,17 @@ export default function BlogOverviewClient({ posts, categories, locale }) {
                     </span>
                   </div>
 
-                  {/* Title (from WP, not translated) */}
+                  {/* Title */}
                   <h2 className="text-base lg:text-[17px] font-semibold text-slate-900 leading-snug mb-2 group-hover:text-slate-700 transition-colors line-clamp-2">
                     {post.title}
                   </h2>
 
-                  {/* Excerpt (from WP, not translated) */}
+                  {/* Excerpt */}
                   <p className="text-sm text-slate-500 leading-relaxed line-clamp-2 mb-4 flex-grow">
                     {stripHtml(post.excerpt)}
                   </p>
 
-                  {/* Category Tag (from WP) */}
+                  {/* Category Tag */}
                   {post.categories?.nodes?.[0] && (
                     <span className="inline-block text-xs font-medium text-slate-500 bg-slate-100 rounded-full px-3 py-1 self-start">
                       {post.categories.nodes[0].name}

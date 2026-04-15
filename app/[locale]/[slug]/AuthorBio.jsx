@@ -30,7 +30,7 @@ export default function AuthorBio() {
       <div className="flex flex-col md:flex-row gap-6">
         {/* Avatar */}
         <Link href="/auteur/imre" className="flex-shrink-0 group">
-          <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-2xl overflow-hidden ring-4 ring-white shadow-lg group-hover:ring-purple-500 transition-all duration-300">
+          <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-2xl overflow-hidden ring-4 ring-white shadow-lg group-hover:ring-blue-500 transition-all duration-300">
             <Image
               src="/Imre-Bernath-oprichter-Teun.ai.webp"
               alt={t('authorImageAlt')}
@@ -44,11 +44,11 @@ export default function AuthorBio() {
         {/* Bio Content */}
         <div className="flex-1">
           <Link href="/auteur/imre" className="group">
-            <p className="text-xl font-bold text-gray-900 mb-1 group-hover:text-purple-600 transition-colors">
+            <p className="text-xl font-bold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">
               Imre Bernáth
             </p>
           </Link>
-          <p className="text-sm text-purple-600 font-semibold mb-4">
+          <p className="text-sm text-blue-600 font-semibold mb-4">
             {t('authorRole')}
           </p>
           
@@ -60,7 +60,7 @@ export default function AuthorBio() {
           <div>
             <Link 
               href="/auteur/imre"
-              className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-700 font-semibold text-sm group"
+              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold text-sm group"
             >
               {t('readMore')}
               <span className="group-hover:translate-x-1 transition-transform">→</span>

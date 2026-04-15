@@ -284,86 +284,80 @@ export default async function BlogPost({ params }) {
         <div className="grid lg:grid-cols-2 gap-8 max-w-[1400px] mx-auto items-stretch">
           
           {/* Links: Titel + Intro Card */}
-          <div className="bg-gradient-to-br from-purple-700 via-purple-600 to-indigo-700 text-white rounded-3xl p-8 lg:p-12">
+          <div className="bg-gradient-to-br from-[#2D2D5F] via-[#353570] to-[#3D3D7A] text-white rounded-3xl p-8 lg:p-12 flex flex-col justify-center">
             <h1 className="text-3xl lg:text-4xl font-bold mb-6 leading-tight">
               {post.title}
             </h1>
             
-            <div className="text-lg text-purple-100 mb-8 leading-relaxed">
+            <p className="text-lg text-slate-300 mb-8 leading-relaxed">
               {cleanExcerpt}
-            </div>
+            </p>
 
-           {/* Meta info met Reading Time */}
-              <div className="flex flex-wrap items-center gap-4 text-sm text-purple-200 mb-6">
-                {post.author?.node?.avatar && (
-                  <Link 
-                    href="/auteur/imre" 
-                    className="flex items-center gap-2 hover:text-white transition-colors"
+            {/* Meta info */}
+            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-400">
+              {post.author?.node?.avatar && (
+                <Link 
+                  href="/auteur/imre" 
+                  className="flex items-center gap-2 hover:text-white transition-colors"
+                >
+                  <Image
+                    src={post.author.node.avatar.url}
+                    alt={`Foto van ${post.author.node.name}, auteur van dit artikel`}
+                    width={32}
+                    height={32}
+                    className="rounded-full"
+                    loading="lazy"
+                  />
+                  <span>{post.author.node.name}</span>
+                </Link>
+              )}
+              
+              {/* Published date */}
+              <time dateTime={post.date}>
+                {new Date(post.date).toLocaleDateString('nl-NL', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric'
+                })}
+              </time>
+
+              {/* Modified date */}
+              {post.modified && new Date(post.modified).getTime() !== new Date(post.date).getTime() && (
+                <span className="text-xs text-white bg-white/25 px-3 py-1 rounded-full font-semibold">
+                  <time 
+                    dateTime={post.modified}
+                    title={`Laatst bijgewerkt: ${new Date(post.modified).toLocaleDateString('nl-NL', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    })}`}
                   >
-                    <Image
-                      src={post.author.node.avatar.url}
-                      alt={`Foto van ${post.author.node.name}, auteur van dit artikel`}
-                      width={32}
-                      height={32}
-                      className="rounded-full"
-                      loading="lazy"
-                    />
-                    <span>{post.author.node.name}</span>
-                  </Link>
-                )}
-                
-                {/* Published date */}
-                <time dateTime={post.date}>
-                  {new Date(post.date).toLocaleDateString('nl-NL', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  })}
-                </time>
+                    ↻ Bijgewerkt {new Date(post.modified).toLocaleDateString('nl-NL', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric'
+                    })}
+                  </time>
+                </span>
+              )}
 
-                {/* Modified date - ZICHTBAAR met volledige datum */}
-                {post.modified && new Date(post.modified).getTime() !== new Date(post.date).getTime() && (
-                  <span className="text-xs text-white bg-white/25 px-3 py-1 rounded-full font-semibold">
-                    <time 
-                      dateTime={post.modified}
-                      title={`Laatst bijgewerkt: ${new Date(post.modified).toLocaleDateString('nl-NL', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric'
-                      })}`}
-                    >
-                      ↻ Bijgewerkt {new Date(post.modified).toLocaleDateString('nl-NL', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric'
-                      })}
-                    </time>
-                  </span>
-                )}
-
-                <ReadingTime content={post.content} />
-              </div>
-
-            {/* Social Share Buttons */}
-            <div className="pt-6 border-t border-purple-400/30">
-              <SocialShareButtons 
-                title={post.title}
-                url={currentUrl}
-              />
+              <ReadingTime content={post.content} />
             </div>
           </div>
 
-          {/* Rechts: Featured Image Card - RESPONSIVE met fetchPriority */}
-          <div className="bg-gradient-to-br from-indigo-900 via-blue-900 to-indigo-800 rounded-3xl overflow-hidden h-full min-h-[300px] lg:min-h-[400px] relative">
-            <ServerResponsiveImage
-              desktopImage={post.featuredImage?.node}
-              mobileImage={post.mobileImageData}
-              alt={post.featuredImage?.node?.altText || post.title}
-              priority={true}
-              fetchPriority="high"
-              sizes="(max-width: 1024px) 100vw, 50vw"
-              className="object-cover w-full h-full"
-            />
+          {/* Rechts: Featured Image - full cover */}
+          <div className="rounded-3xl overflow-hidden relative min-h-[300px] bg-slate-100">
+            <div className="absolute inset-0">
+              <ServerResponsiveImage
+                desktopImage={post.featuredImage?.node}
+                mobileImage={post.mobileImageData}
+                alt={post.featuredImage?.node?.altText || post.title}
+                priority={true}
+                fetchPriority="high"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                className="object-cover w-full h-full"
+              />
+            </div>
           </div>
 
         </div>
@@ -427,7 +421,7 @@ export default async function BlogPost({ params }) {
               <div className="mt-12 text-center">
                 <Link 
                   href="/blog"
-                  className="inline-flex items-center gap-2 text-purple-600 hover:text-purple-700 font-semibold text-lg group"
+                  className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold text-lg group"
                 >
                   <span className="group-hover:-translate-x-1 transition-transform">←</span>
                   Terug naar blogoverzicht
