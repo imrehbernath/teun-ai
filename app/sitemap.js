@@ -46,48 +46,18 @@ export default async function sitemap() {
     },
   });
 
-  // Static pages — both languages
+  // Static pages — both NL + EN (same slug)
   const multiLangPages = [
     { path: '', changeFrequency: 'weekly', priority: 1.0 },
+    { path: '/tools', changeFrequency: 'weekly', priority: 0.8 },
     { path: '/tools/ai-visibility', changeFrequency: 'weekly', priority: 0.8 },
     { path: '/tools/ai-rank-tracker', changeFrequency: 'weekly', priority: 0.8 },
     { path: '/tools/geo-audit', changeFrequency: 'weekly', priority: 0.8 },
     { path: '/tools/brand-check', changeFrequency: 'weekly', priority: 0.8 },
     { path: '/tools/ai-prompt-explorer', changeFrequency: 'weekly', priority: 0.8 },
-    { path: '/tools', changeFrequency: 'weekly', priority: 0.8 },
     { path: '/tools/ai-prompt-discovery', changeFrequency: 'weekly', priority: 0.8 },
     { path: '/wordpress-plugin', changeFrequency: 'monthly', priority: 0.7 },
     { path: '/pricing', changeFrequency: 'weekly', priority: 0.7 },
-  ];
-
-  // Privacy page has different slugs per language
-  const privacyPages = [
-    {
-      url: `${siteUrl}/privacyverklaring`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.3,
-      alternates: {
-        languages: {
-          nl: `${siteUrl}/privacyverklaring`,
-          en: `${siteUrl}/en/privacy`,
-          'x-default': `${siteUrl}/privacyverklaring`,
-        },
-      },
-    },
-    {
-      url: `${siteUrl}/en/privacy`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.3,
-      alternates: {
-        languages: {
-          nl: `${siteUrl}/privacyverklaring`,
-          en: `${siteUrl}/en/privacy`,
-          'x-default': `${siteUrl}/privacyverklaring`,
-        },
-      },
-    },
   ];
 
   const staticPages = multiLangPages.flatMap((page) => [
@@ -107,7 +77,49 @@ export default async function sitemap() {
     },
   ]);
 
-  // NL-only static pages (blog, author) — in root
+  // Pages with different NL/EN slugs
+  const differentSlugPages = [
+    {
+      nl: '/privacyverklaring',
+      en: '/en/privacy',
+      changeFrequency: 'monthly',
+      priority: 0.3,
+    },
+    {
+      nl: '/over-ons',
+      en: '/en/about-us',
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    },
+  ];
+
+  const diffSlugEntries = differentSlugPages.flatMap((page) => {
+    const alternates = {
+      languages: {
+        nl: `${siteUrl}${page.nl}`,
+        en: `${siteUrl}${page.en}`,
+        'x-default': `${siteUrl}${page.nl}`,
+      },
+    };
+    return [
+      {
+        url: `${siteUrl}${page.nl}`,
+        lastModified: new Date(),
+        changeFrequency: page.changeFrequency,
+        priority: page.priority,
+        alternates,
+      },
+      {
+        url: `${siteUrl}${page.en}`,
+        lastModified: new Date(),
+        changeFrequency: page.changeFrequency,
+        priority: page.priority,
+        alternates,
+      },
+    ];
+  });
+
+  // NL-only static pages (blog, author, GEO info page)
   const nlOnlyPages = [
     {
       url: `${siteUrl}/blog`,
@@ -115,6 +127,13 @@ export default async function sitemap() {
       changeFrequency: 'daily',
       priority: 0.9,
       alternates: nlOnlyAlternates('/blog'),
+    },
+    {
+      url: `${siteUrl}/wat-is-generative-engine-optimisation-geo`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.7,
+      alternates: nlOnlyAlternates('/wat-is-generative-engine-optimisation-geo'),
     },
     {
       url: `${siteUrl}/auteur/imre`,
@@ -125,7 +144,7 @@ export default async function sitemap() {
     },
   ];
 
-  // Dynamic blog post pages — NL only, in root
+  // Dynamic blog post pages — NL only
   const blogPages = posts.map((post) => ({
     url: `${siteUrl}/${post.slug}`,
     lastModified: new Date(post.modified),
@@ -134,5 +153,5 @@ export default async function sitemap() {
     alternates: nlOnlyAlternates(`/${post.slug}`),
   }));
 
-  return [...staticPages, ...privacyPages, ...nlOnlyPages, ...blogPages];
+  return [...staticPages, ...diffSlugEntries, ...nlOnlyPages, ...blogPages];
 }
