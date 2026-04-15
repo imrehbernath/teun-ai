@@ -54,7 +54,7 @@ export default function OverOnsPage() {
         ? 'Adrian studeerde aan de Rijksuniversiteit Groningen en brengt een analytische blik mee naar online marketing. Hij vertaalt data naar strategie en zorgt ervoor dat onze klanten niet alleen zichtbaar zijn, maar ook meetbaar groeien.'
         : 'Adrian studied at the University of Groningen and brings an analytical perspective to online marketing. He translates data into strategy and ensures our clients don\'t just gain visibility, but measurably grow.',
       linkedin: 'https://www.linkedin.com/in/adrian-fa-enders/',
-      highlight: isNL ? 'Universiteit van Groningen' : 'University of Groningen',
+      highlight: isNL ? 'Data-driven AI marketing' : 'Data-driven AI marketing',
     },
   ];
 
