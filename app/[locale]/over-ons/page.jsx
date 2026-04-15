@@ -103,7 +103,7 @@ export default function OverOnsPage() {
           {isNL ? 'Over Teun.ai' : 'About Teun.ai'}
         </div>
 
-        <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-slate-900 leading-tight mb-6">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 leading-tight mb-6">
           {isNL ? (
             <>Gebouwd door mensen die {' '}<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">AI-zichtbaarheid</span> begrijpen</>
           ) : (
@@ -117,22 +117,18 @@ export default function OverOnsPage() {
             : 'Teun.ai is not a startup experiment. It\'s the result of 25 years of SEO experience, 750+ projects and the conviction that AI search engines define the future of online marketing.'}
         </p>
 
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-slate-400 mb-10 lg:mb-12">
           {isNL ? 'Door het team van OnlineLabs, Amsterdam' : 'By the team at OnlineLabs, Amsterdam'}
         </p>
-      </section>
 
-      {/* ══ STATS ══ */}
-      <section className="relative bg-gradient-to-r from-[#1E1E3F] via-[#2D2D5F] to-[#1E1E3F] py-8">
-        <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            {stats.map((stat, i) => (
-              <div key={i}>
-                <div className="text-3xl md:text-4xl font-bold text-white mb-1">{stat.value}</div>
-                <div className="text-sm text-white/70">{stat.label}</div>
-              </div>
-            ))}
-          </div>
+        {/* Stats inline */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-8 border-t border-slate-200">
+          {stats.map((stat, i) => (
+            <div key={i} className="text-center">
+              <div className="text-2xl sm:text-3xl font-bold text-slate-900">{stat.value}</div>
+              <div className="text-sm text-slate-500 mt-1">{stat.label}</div>
+            </div>
+          ))}
         </div>
       </section>
 
