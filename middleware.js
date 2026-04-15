@@ -25,6 +25,7 @@ const knownEnglishPaths = [
   '/en/dashboard',
   '/en/pricing',
   '/en/wordpress-plugin',
+  '/en/about-us',
 ];
 
 export default function middleware(request) {
@@ -59,6 +60,20 @@ export default function middleware(request) {
   if (pathname === '/en/blog' || pathname.startsWith('/en/blog/')) {
     const url = request.nextUrl.clone();
     url.pathname = pathname.replace('/en/', '/');
+    return NextResponse.redirect(url, 301);
+  }
+
+  // /en/over-ons → /en/about-us
+  if (pathname === '/en/over-ons') {
+    const url = request.nextUrl.clone();
+    url.pathname = '/en/about-us';
+    return NextResponse.redirect(url, 301);
+  }
+
+  // /about-us → /over-ons (NL only)
+  if (pathname === '/about-us') {
+    const url = request.nextUrl.clone();
+    url.pathname = '/over-ons';
     return NextResponse.redirect(url, 301);
   }
 

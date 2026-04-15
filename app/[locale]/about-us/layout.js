@@ -1,0 +1,46 @@
+// app/[locale]/about-us/layout.js
+
+export async function generateMetadata({ params }) {
+  const { locale } = await params;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://teun.ai';
+
+  if (locale === 'en') {
+    return {
+      title: 'About us – SEO and AI Visibility Specialists',
+      description: 'Meet the team behind Teun.ai: 25+ years of SEO expertise, 750+ projects and 3 specialists building the AI visibility platform for businesses.',
+      keywords: 'Teun.ai team, AI visibility platform, OnlineLabs Amsterdam, Imre Bernath, SEO expertise, GEO optimization team',
+      alternates: {
+        canonical: `${siteUrl}/en/about-us`,
+        languages: {
+          'nl': `${siteUrl}/over-ons`,
+          'en': `${siteUrl}/en/about-us`,
+          'x-default': `${siteUrl}/over-ons`,
+        },
+      },
+      openGraph: {
+        title: 'About us – The Team Behind Teun.ai | AI Visibility Platform',
+        description: 'Meet the team behind Teun.ai: 25+ years of SEO expertise, 750+ projects and 3 specialists.',
+        type: 'website',
+        url: `${siteUrl}/en/about-us`,
+        locale: 'en_US',
+        alternateLocale: 'nl_NL',
+        images: [{ url: '/og-over-ons.jpg', width: 1200, height: 630, alt: 'Teun.ai Team' }],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: 'About us – The Team Behind Teun.ai',
+        description: 'Meet the team behind Teun.ai: 25+ years of SEO expertise and 750+ projects.',
+        images: ['/og-over-ons.jpg'],
+      },
+    };
+  }
+
+  return {
+    title: 'Over ons – SEO en AI-zichtbaarheid specialisten',
+    alternates: { canonical: `${siteUrl}/over-ons` },
+  };
+}
+
+export default function AboutUsLayout({ children }) {
+  return children;
+}

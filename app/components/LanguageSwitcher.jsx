@@ -7,14 +7,19 @@ import { useRouter, usePathname } from '@/i18n/navigation';
 // NL-only paden waar geen taalswitch nodig is
 const nlOnlyPrefixes = ['/blog', '/auteur'];
 
+// Paden die per taal verschillen: NL → EN
+const pathMapping = {
+  '/over-ons': '/about-us',
+  '/about-us': '/over-ons',
+};
+
 export default function LanguageSwitcher() {
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
 
   // Verberg switcher op NL-only pagina's (blog, auteur, blog post slugs)
-  // Blog post slugs staan in de root, check of het geen bekende path is
-  const knownMultiLangPaths = ['/', '/tools', '/login', '/signup', '/privacyverklaring', '/privacy', '/dashboard', '/wordpress-plugin', '/pricing'];
+  const knownMultiLangPaths = ['/', '/tools', '/login', '/signup', '/privacyverklaring', '/privacy', '/dashboard', '/wordpress-plugin', '/pricing', '/over-ons', '/about-us'];
   const isNlOnlyPage = nlOnlyPrefixes.some((prefix) => pathname.startsWith(prefix));
   const isKnownPath = knownMultiLangPaths.some(
     (path) => pathname === path || pathname.startsWith(path + '/')
@@ -27,7 +32,8 @@ export default function LanguageSwitcher() {
   }
 
   const switchLocale = (newLocale) => {
-    router.replace(pathname, { locale: newLocale });
+    const targetPath = pathMapping[pathname] || pathname;
+    router.replace(targetPath, { locale: newLocale });
   };
 
   return (
