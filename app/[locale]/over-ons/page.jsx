@@ -97,21 +97,21 @@ export default function OverOnsPage() {
       </div>
 
       {/* ══ HERO ══ */}
-      <section className="relative max-w-4xl mx-auto px-5 sm:px-6 lg:px-8 pt-12 lg:pt-20 pb-10 text-center">
+      <section className="relative max-w-4xl mx-auto px-5 sm:px-6 lg:px-8 pt-10 lg:pt-20 pb-10 text-left sm:text-center">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 border border-blue-200 rounded-full text-blue-700 text-sm font-medium mb-6">
           <Sparkles className="w-3.5 h-3.5" />
           {isNL ? 'Over Teun.ai' : 'About Teun.ai'}
         </div>
 
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 leading-tight mb-6">
+        <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-slate-900 leading-tight mb-6">
           {isNL ? (
-            <>Gebouwd door mensen die<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">AI-zichtbaarheid leven en ademen</span></>
+            <>Gebouwd door mensen die {' '}<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">AI-zichtbaarheid</span> begrijpen</>
           ) : (
-            <>Built by people who<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">live and breathe AI visibility</span></>
+            <>Built by people who understand {' '}<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">AI visibility</span></>
           )}
         </h1>
 
-        <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto mb-4">
+        <p className="text-base sm:text-lg text-slate-600 sm:max-w-2xl sm:mx-auto mb-4">
           {isNL
             ? 'Teun.ai is geen startup-experiment. Het is het resultaat van 25 jaar SEO-ervaring, 750+ projecten en de overtuiging dat AI-zoekmachines de toekomst van online marketing bepalen.'
             : 'Teun.ai is not a startup experiment. It\'s the result of 25 years of SEO experience, 750+ projects and the conviction that AI search engines define the future of online marketing.'}
@@ -142,9 +142,9 @@ export default function OverOnsPage() {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
               {isNL ? (
-                <>Het team achter <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Teun.ai</span></>
+                <>Het team achter <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Teun.ai</span></>
               ) : (
-                <>The team behind <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Teun.ai</span></>
+                <>The team behind <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Teun.ai</span></>
               )}
             </h2>
             <p className="text-slate-500 max-w-xl mx-auto">
@@ -219,9 +219,9 @@ export default function OverOnsPage() {
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
               {isNL ? (
-                <>Waarom we <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Teun.ai</span> bouwden</>
+                <>Waarom we <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Teun.ai</span> bouwden</>
               ) : (
-                <>Why we built <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Teun.ai</span></>
+                <>Why we built <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Teun.ai</span></>
               )}
             </h2>
           </div>
