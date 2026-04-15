@@ -262,8 +262,8 @@ export default async function BlogPost({ params }) {
     }
   );
 
-  // Clean excerpt for display
-  const cleanExcerpt = post.excerpt?.replace(/<[^>]*>/g, '') || '';
+  // Clean excerpt for display - strip HTML tags AND decode entities
+  const cleanExcerpt = he.decode(post.excerpt?.replace(/<[^>]*>/g, '') || '');
 
   // Transform all WordPress URLs to assets.teun.ai in content
   const transformedContent = contentWithIds.replace(
@@ -281,7 +281,7 @@ export default async function BlogPost({ params }) {
 
       {/* Hero Section */}
       <div className="bg-white py-16 lg:py-24 px-4 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-8 max-w-[1400px] mx-auto">
+        <div className="grid lg:grid-cols-2 gap-8 max-w-[1400px] mx-auto items-stretch">
           
           {/* Links: Titel + Intro Card */}
           <div className="bg-gradient-to-br from-purple-700 via-purple-600 to-indigo-700 text-white rounded-3xl p-8 lg:p-12">
@@ -354,7 +354,7 @@ export default async function BlogPost({ params }) {
           </div>
 
           {/* Rechts: Featured Image Card - RESPONSIVE met fetchPriority */}
-          <div className="bg-gradient-to-br from-indigo-900 via-blue-900 to-indigo-800 rounded-3xl overflow-hidden">
+          <div className="bg-gradient-to-br from-indigo-900 via-blue-900 to-indigo-800 rounded-3xl overflow-hidden h-full min-h-[300px] lg:min-h-[400px] relative">
             <ServerResponsiveImage
               desktopImage={post.featuredImage?.node}
               mobileImage={post.mobileImageData}
@@ -362,6 +362,7 @@ export default async function BlogPost({ params }) {
               priority={true}
               fetchPriority="high"
               sizes="(max-width: 1024px) 100vw, 50vw"
+              className="object-cover w-full h-full"
             />
           </div>
 
