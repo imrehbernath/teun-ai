@@ -280,25 +280,25 @@ export default async function BlogPost({ params }) {
       <ReadingProgressBar />
 
       {/* Hero Section */}
-      <div className="bg-white py-16 lg:py-24 px-4 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-8 max-w-[1400px] mx-auto items-stretch">
+      <div className="bg-white pt-8 pb-4 lg:py-24 px-4 lg:px-8">
+        <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 max-w-[1400px] mx-auto items-stretch">
           
-          {/* Links: Titel + Intro Card */}
-          <div className="bg-gradient-to-br from-[#2D2D5F] via-[#353570] to-[#3D3D7A] text-white rounded-3xl p-8 lg:p-12 flex flex-col justify-center">
-            <h1 className="text-3xl lg:text-4xl font-bold mb-6 leading-tight">
+          {/* Links: Titel + Intro - Mobile: white, Desktop: dark card */}
+          <div className="lg:bg-gradient-to-br lg:from-[#2D2D5F] lg:via-[#353570] lg:to-[#3D3D7A] lg:text-white lg:rounded-3xl lg:p-12 flex flex-col justify-center">
+            <h1 className="text-3xl lg:text-4xl font-bold mb-4 lg:mb-6 leading-tight text-slate-900 lg:text-white">
               {post.title}
             </h1>
             
-            <p className="text-lg text-slate-300 mb-8 leading-relaxed">
+            <p className="text-base lg:text-lg text-slate-600 lg:text-slate-300 mb-6 lg:mb-8 leading-relaxed">
               {cleanExcerpt}
             </p>
 
             {/* Meta info */}
-            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-400">
+            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500 lg:text-slate-400">
               {post.author?.node?.avatar && (
                 <Link 
                   href="/auteur/imre" 
-                  className="flex items-center gap-2 hover:text-white transition-colors"
+                  className="flex items-center gap-2 hover:text-slate-900 lg:hover:text-white transition-colors"
                 >
                   <Image
                     src={post.author.node.avatar.url}
@@ -323,7 +323,7 @@ export default async function BlogPost({ params }) {
 
               {/* Modified date */}
               {post.modified && new Date(post.modified).getTime() !== new Date(post.date).getTime() && (
-                <span className="text-xs text-white bg-white/25 px-3 py-1 rounded-full font-semibold">
+                <span className="text-xs text-slate-600 lg:text-white bg-slate-100 lg:bg-white/25 px-3 py-1 rounded-full font-semibold">
                   <time 
                     dateTime={post.modified}
                     title={`Laatst bijgewerkt: ${new Date(post.modified).toLocaleDateString('nl-NL', {
@@ -346,7 +346,7 @@ export default async function BlogPost({ params }) {
           </div>
 
           {/* Rechts: Featured Image - RESPONSIVE met fetchPriority */}
-          <div className="rounded-3xl overflow-hidden bg-slate-100">
+          <div className="rounded-2xl lg:rounded-3xl overflow-hidden bg-slate-100">
             <ServerResponsiveImage
               desktopImage={post.featuredImage?.node}
               mobileImage={post.mobileImageData}
