@@ -4,6 +4,7 @@ import { getMessages, setRequestLocale } from 'next-intl/server';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Nunito, Montserrat } from 'next/font/google';
+import Script from 'next/script';
 import { routing } from '@/i18n/routing';
 import GoogleTagManager from '../components/GoogleTagManager';
 import LanguageBanner from '../components/LanguageBanner';
@@ -141,6 +142,25 @@ export default async function LocaleLayout({ children, params }) {
 
         <Analytics />
         <SpeedInsights />
+
+        {/* Crisp Chat */}
+        <Script
+          id="crisp-chat"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.$crisp=[];
+              window.CRISP_WEBSITE_ID="6723e01a-7dd8-47bd-a2a2-9fb7a74fc48e";
+              (function(){
+                d=document;
+                s=d.createElement("script");
+                s.src="https://client.crisp.chat/l.js";
+                s.async=1;
+                d.getElementsByTagName("head")[0].appendChild(s);
+              })();
+            `,
+          }}
+        />
       </body>
     </html>
   );
