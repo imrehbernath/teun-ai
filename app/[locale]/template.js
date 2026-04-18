@@ -386,8 +386,8 @@ function Footer() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/wat-is-generative-engine-optimisation-geo" className="text-white/70 hover:text-white text-sm transition-colors">
-                    {t('whatIsGeo')}
+                  <Link href="/geo-optimalisatie" className="text-white/70 hover:text-white text-sm transition-colors">
+                  GEO optimalisatie
                   </Link>
                 </li>
               </ul>

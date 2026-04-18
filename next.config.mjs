@@ -46,26 +46,30 @@ const nextConfig = {
 },
   // Redirect www to non-www
   async redirects() {
-    return [
-      {
-        source: '/geo-audit',
-        destination: '/tools/geo-audit',
-        permanent: true,
-      },
-      {
-        source: '/:path*',
-        has: [
-          {
-            type: 'host',
-            value: 'www.teun.ai',
-          },
-        ],
-        destination: 'https://teun.ai/:path*',
-        permanent: true,
-      },
-    ];
-  },
-
+  return [
+    {
+      source: '/geo-audit',
+      destination: '/tools/geo-audit',
+      permanent: true,
+    },
+    {
+      source: '/wat-is-generative-engine-optimisation-geo',
+      destination: '/geo-optimalisatie',
+      permanent: true,
+    },
+    {
+      source: '/:path*',
+      has: [
+        {
+          type: 'host',
+          value: 'www.teun.ai',
+        },
+      ],
+      destination: 'https://teun.ai/:path*',
+      permanent: true,
+    },
+  ];
+},
   // Headers voor security & performance
   async headers() {
     return [

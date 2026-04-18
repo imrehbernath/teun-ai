@@ -128,12 +128,12 @@ export default async function sitemap() {
       priority: 0.9,
       alternates: nlOnlyAlternates('/blog'),
     },
-    {
-      url: `${siteUrl}/wat-is-generative-engine-optimisation-geo`,
+      {
+      url: `${siteUrl}/geo-optimalisatie`,
       lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.7,
-      alternates: nlOnlyAlternates('/wat-is-generative-engine-optimisation-geo'),
+      changeFrequency: 'weekly',
+      priority: 0.9,
+      alternates: nlOnlyAlternates('/geo-optimalisatie'),
     },
     {
       url: `${siteUrl}/auteur/imre`,
