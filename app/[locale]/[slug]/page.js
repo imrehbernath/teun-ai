@@ -554,4 +554,4 @@ export default async function BlogPost({ params }) {
   );
 }
 
-export const revalidate = 60; // TIJDELIJK - terugzetten naar 3600 na fix
+export const revalidate = 60; // 24 uur cache
