@@ -5,17 +5,19 @@ export async function generateMetadata() {
   const isEn = locale === 'en';
 
   const title = isEn
-    ? 'AI Prompt Discovery - Which AI prompts already find your business?'
-    : 'AI Prompt Discovery - Op welke AI-prompts word je al gevonden?';
+    ? 'AI Prompt Discovery: find your AI prompts in Search Console'
+    : 'AI Prompt Discovery: vind je AI-prompts in Search Console';
   const description = isEn
-    ? 'Connect Google Search Console and automatically discover which AI prompts your business is already visible for. Filter commercial prompts and AI Overview queries. Free tool by Teun.ai.'
-    : 'Koppel Google Search Console en ontdek automatisch op welke AI-prompts je al zichtbaar bent. Filter commerciele prompts en AI Overview queries. Gratis tool van Teun.ai.';
+    ? 'Connect Google Search Console and find in 30 seconds which commercial and AI Overview prompts already lead to your website. Free tool by Teun.ai.'
+    : 'Koppel Google Search Console en vind in 30 seconden welke commerciele en AI Overview prompts al naar je website leiden. Gratis tool van Teun.ai.';
   const url = isEn
     ? 'https://teun.ai/en/tools/ai-prompt-discovery'
     : 'https://teun.ai/tools/ai-prompt-discovery';
 
   return {
-    title,
+    title: {
+      absolute: title,
+    },
     description,
     keywords: isEn
       ? ['AI prompt discovery', 'AI prompts Google Search Console', 'AI Mode queries', 'Google AI Overview prompts', 'AI visibility prompts', 'GEO prompt tracking', 'conversational search queries', 'AI search visibility']
