@@ -554,4 +554,4 @@ export default async function BlogPost({ params }) {
   );
 }
 
-export const revalidate = 60; // 24 uur cache
+export const revalidate = 86400; // 24 uur cache
