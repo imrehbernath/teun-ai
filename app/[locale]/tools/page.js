@@ -10,14 +10,15 @@ export async function generateMetadata() {
   const locale = await getLocale()
   const isEn = locale === 'en'
   const title = isEn
-    ? '7 Free AI Visibility Tools - Teun.ai'
-    : '7 Gratis AI-zichtbaarheid Tools - Teun.ai'
+    ? '7 Free AI Visibility Tools for ChatGPT & Google AI'
+    : '7 Gratis AI-zichtbaarheid Tools voor ChatGPT & Google AI'
   const description = isEn
-    ? 'Free tools to measure and improve your visibility in ChatGPT, Perplexity, Google AI Mode and AI Overviews.'
-    : 'Gratis tools om je zichtbaarheid te meten en verbeteren in ChatGPT, Perplexity, Google AI Mode en AI Overviews.'
+    ? 'Free tools to measure and improve your visibility in ChatGPT, Perplexity, Google AI Mode and AI Overviews. No account needed.'
+    : 'Gratis tools om je zichtbaarheid te meten en verbeteren in ChatGPT, Perplexity, Google AI Mode en AI Overviews. Geen account nodig.'
   const url = isEn ? 'https://teun.ai/en/tools' : 'https://teun.ai/tools'
   return {
-    title, description,
+    title: { absolute: title },
+    description,
     openGraph: { title, description, url, siteName: 'Teun.ai', type: 'website', locale: isEn ? 'en_GB' : 'nl_NL' },
     alternates: { canonical: url, languages: { nl: 'https://teun.ai/tools', en: 'https://teun.ai/en/tools' } },
     robots: { index: true, follow: true },
