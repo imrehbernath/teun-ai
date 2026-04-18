@@ -60,8 +60,10 @@ async function getAuthorPosts() {
 }
 
 export const metadata = {
-  title: 'Imre Bernáth - AI-strateeg & oprichter Teun.ai',
-  description: 'Imre Bernáth bouwt al 25 jaar aan online zichtbaarheid. Oprichter van OnlineLabs (2008) en bouwer van Teun.ai, het eerste Nederlandse GEO-platform. 750+ projecten, van SEO-pionier tot AI-strateeg.',
+  title: {
+    absolute: 'Imre Bernáth - AI-strateeg & SEO-expert sinds 2008',
+  },
+  description: 'Imre Bernáth bouwt al 25 jaar aan online zichtbaarheid. Oprichter OnlineLabs (2008), bouwer Teun.ai. 750+ projecten, van SEO-pionier tot AI-strateeg.',
   alternates: {
     canonical: 'https://teun.ai/auteur/imre',
     languages: {
@@ -71,8 +73,8 @@ export const metadata = {
   },
   openGraph: {
     type: 'profile',
-    title: 'Imre Bernáth - AI-strateeg & oprichter Teun.ai',
-    description: 'Imre Bernáth bouwt al 25 jaar aan online zichtbaarheid. Oprichter van OnlineLabs (2008) en bouwer van Teun.ai, het eerste Nederlandse GEO-platform.',
+    title: 'Imre Bernáth - AI-strateeg & SEO-expert sinds 2008',
+    description: 'Imre Bernáth bouwt al 25 jaar aan online zichtbaarheid. Oprichter OnlineLabs (2008), bouwer Teun.ai. 750+ projecten, van SEO-pionier tot AI-strateeg.',
     url: 'https://teun.ai/auteur/imre',
     siteName: 'Teun.ai',
     locale: 'nl_NL',
@@ -87,8 +89,8 @@ export const metadata = {
   },
   twitter: {
     card: 'summary',
-    title: 'Imre Bernáth - AI-strateeg & oprichter Teun.ai',
-    description: 'Imre Bernáth bouwt al 25 jaar aan online zichtbaarheid. Oprichter van OnlineLabs (2008) en bouwer van Teun.ai.',
+    title: 'Imre Bernáth - AI-strateeg & SEO-expert sinds 2008',
+    description: 'Imre Bernáth bouwt al 25 jaar aan online zichtbaarheid. Oprichter OnlineLabs (2008), bouwer Teun.ai.',
     images: ['https://teun.ai/Imre-Bernath-oprichter-Teun.ai.webp'],
   },
 };
