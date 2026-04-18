@@ -11,8 +11,8 @@ export async function generateMetadata({ params }) {
 
   if (locale === 'en') {
     return {
-      title: 'Teun.ai | Is your business mentioned in ChatGPT? Check for free',
-      description: 'Free GEO analysis: see who AI recommends in your industry + get tips to rank higher. Scan ChatGPT, Perplexity & Claude in 30 sec.',
+      title: 'Teun.ai - Get visible in ChatGPT & AI search',
+      description: 'Free GEO scan: check if ChatGPT, Perplexity and Google AI recommend your business. Result in 60 seconds, no account needed. Join 240+ brands.',
       alternates: {
         canonical: `${siteUrl}/en`,
         languages: {
@@ -22,8 +22,8 @@ export async function generateMetadata({ params }) {
         },
       },
       openGraph: {
-        title: 'Teun.ai | Is your business mentioned in ChatGPT? Check for free',
-        description: 'Free GEO analysis: see who AI recommends in your industry + get tips to rank higher. Scan ChatGPT, Perplexity & Claude in 30 sec.',
+        title: 'Teun.ai - Get visible in ChatGPT & AI search',
+        description: 'Free GEO scan: check if ChatGPT, Perplexity and Google AI recommend your business. Result in 60 seconds, no account needed. Join 240+ brands.',
         images: ['/og-image-teun-ai.webp'],
         type: 'website',
         locale: 'en_US',
@@ -34,8 +34,8 @@ export async function generateMetadata({ params }) {
 
   // Nederlands (default)
   return {
-    title: 'Teun.ai | Word jij genoemd in ChatGPT? Check het gratis',
-    description: 'Gratis GEO analyse: zie wie AI aanbeveelt in jouw branche + krijg advies om hoger te scoren. Scan ChatGPT, Perplexity & Claude in 30 sec.',
+    title: 'Teun.ai - Word zichtbaar in ChatGPT & AI-zoekmachines',
+    description: 'Gratis GEO-scan: check of ChatGPT, Perplexity en Google AI jouw bedrijf aanbevelen. Resultaat in 1 minuut, geen account nodig. Start direct.',
     alternates: {
       canonical: siteUrl,
       languages: {
@@ -45,8 +45,8 @@ export async function generateMetadata({ params }) {
       },
     },
     openGraph: {
-      title: 'Teun.ai | Word jij genoemd in ChatGPT? Check het gratis',
-      description: 'Gratis GEO analyse: zie wie AI aanbeveelt in jouw branche + krijg advies om hoger te scoren. Scan ChatGPT, Perplexity & Claude in 30 sec.',
+      title: 'Teun.ai - Word zichtbaar in ChatGPT & AI-zoekmachines',
+      description: 'Gratis GEO-scan: check of ChatGPT, Perplexity en Google AI jouw bedrijf aanbevelen. Resultaat in 1 minuut, geen account nodig. Start direct.',
       images: ['/og-image-teun-ai.webp'],
       type: 'website',
       locale: 'nl_NL',
@@ -64,8 +64,8 @@ export default async function Home({ params }) {
   // Structured Data (JSON-LD) — taal-aware
   const inLanguage = locale === 'nl' ? 'nl-NL' : 'en-US';
   const description = locale === 'nl'
-    ? 'Teun.ai is de eerste AI visibility scanner voor de Nederlandse markt. Ontdek hoe zichtbaar jouw bedrijf is in ChatGPT, Perplexity, Claude en Gemini.'
-    : 'Teun.ai is the first AI visibility scanner. Discover how visible your business is in ChatGPT, Perplexity, Claude, and Gemini.';
+    ? 'Teun.ai is de eerste AI visibility scanner voor de Nederlandse markt. Ontdek hoe zichtbaar jouw bedrijf is in ChatGPT, Perplexity, Google AI Mode en AI Overviews.'
+    : 'Teun.ai is the first AI visibility scanner. Discover how visible your business is in ChatGPT, Perplexity, Google AI Mode and AI Overviews.';
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -153,8 +153,8 @@ export default async function Home({ params }) {
         "@id": `${siteUrl}/#webpage`,
         "url": locale === 'en' ? `${siteUrl}/en` : siteUrl,
         "name": locale === 'nl'
-          ? "Teun.ai | Word jij genoemd in ChatGPT? Check het gratis"
-          : "Teun.ai | Is your business mentioned in ChatGPT? Check for free",
+          ? "Teun.ai - Word zichtbaar in ChatGPT & AI-zoekmachines"
+          : "Teun.ai - Get visible in ChatGPT & AI search",
         "datePublished": "2025-10-01T00:00:00+00:00",
         "dateModified": new Date().toISOString(),
         "about": { "@id": `${siteUrl}/#organization` },
@@ -175,8 +175,8 @@ export default async function Home({ params }) {
             : "2 free scans per month"
         },
         "description": locale === 'nl'
-          ? "Scan hoe zichtbaar jouw bedrijf is in AI-zoekmachines zoals ChatGPT, Perplexity, Claude en Gemini."
-          : "Scan how visible your business is in AI search engines like ChatGPT, Perplexity, Claude, and Gemini.",
+          ? "Scan hoe zichtbaar jouw bedrijf is in AI-zoekmachines zoals ChatGPT, Perplexity, Google AI Mode en AI Overviews."
+          : "Scan how visible your business is in AI search engines like ChatGPT, Perplexity, Google AI Mode and AI Overviews.",
         "provider": { "@id": `${siteUrl}/#organization` }
       },
       {
