@@ -5,17 +5,17 @@ export async function generateMetadata() {
   const isEn = locale === 'en';
 
   const title = isEn
-    ? 'AI Brand Check - What does AI say about your business?'
-    : 'AI Brand Check - Wat zegt AI over jouw bedrijf?';
+    ? 'AI Brand Check: what does AI say about your business?'
+    : 'AI Brand Check: wat zegt AI over jouw bedrijf?';
   const description = isEn
-    ? 'Check for free what ChatGPT and Perplexity say about your brand. 6 AI checks, sentiment analysis, Google Reviews reality check and concrete improvement tips.'
-    : 'Check gratis wat ChatGPT en Perplexity over jouw merk zeggen. 6 AI-checks, sentimentanalyse, Google Reviews reality check en concrete verbeterpunten.';
+    ? 'Free check of what ChatGPT and Perplexity say about your brand. 6 AI checks, sentiment analysis and concrete tips to improve your AI reputation.'
+    : 'Gratis check van wat ChatGPT en Perplexity over jouw merk zeggen. 6 AI-checks, sentimentanalyse en concrete tips om je AI-reputatie te verbeteren.';
   const url = isEn
     ? 'https://teun.ai/en/tools/brand-check'
     : 'https://teun.ai/tools/brand-check';
 
   return {
-    title,
+    title: { absolute: title },
     description,
     keywords: isEn
       ? ['AI brand check', 'brand mentions AI', 'AI reputation check', 'AI brand perception', 'ChatGPT brand perception', 'AI sentiment analysis', 'what does ChatGPT say about my business', 'brand visibility AI', 'AI reputation management', 'Google Reviews AI']
