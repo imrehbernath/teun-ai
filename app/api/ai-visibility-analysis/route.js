@@ -503,20 +503,71 @@ export async function POST(request) {
       )
     }
 
-    // ✅ Valideer domein-extensie (TLD moet minimaal 2 tekens zijn, bijv. .nl of .com)
+      // ✅ Valideer domein-extensie
     const urlForTldCheck = websiteUrl.trim()
-      .replace(/^https?:\/\//i, '')  // Alleen voor validatie, websiteUrl blijft ongewijzigd
+      .replace(/^https?:\/\//i, '')
       .replace(/^www\./i, '')
       .split('/')[0]
       .split('?')[0]
-    const tld = urlForTldCheck.split('.').pop()
-    if (!tld || tld.length < 2) {
+      .toLowerCase()
+
+    // Check basic structure
+    const tldParts = urlForTldCheck.split('.')
+    if (tldParts.length < 2) {
       return NextResponse.json(
-        { error: isNL ? 'Vul een geldige website URL in met een correcte domeinextensie (bijv. .nl of .com)' : 'Enter a valid website URL with a correct domain extension (e.g. .com or .co.uk)' },
+        { error: isNL ? 'Vul een geldige website URL in (bijv. voorbeeld.nl)' : 'Enter a valid website URL (e.g. example.com)' },
         { status: 400 }
       )
     }
 
+    const tld = tldParts.pop()
+
+    // Lijst met geldige TLDs (relevant voor NL/EN markt + internationale bedrijven)
+    const VALID_TLDS = new Set([
+      // Nederlandse + Belgische markt
+      'nl', 'be', 'lu',
+      // Internationale/algemeen
+      'com', 'org', 'net', 'info', 'biz', 'io', 'co', 'me', 'eu',
+      // Europese landen
+      'de', 'fr', 'es', 'it', 'pt', 'pl', 'se', 'no', 'dk', 'fi', 'at', 'ch', 'ie', 'cz', 'gr', 'hu', 'ro', 'sk', 'si', 'hr', 'bg', 'lt', 'lv', 'ee',
+      // UK varianten (in dit geval werkt tldParts, zie check hieronder)
+      'uk',
+      // Engelssprekende landen
+      'us', 'ca', 'au', 'nz',
+      // Tech/business
+      'app', 'dev', 'tech', 'ai', 'design', 'digital', 'online', 'shop', 'store', 'blog', 'site', 'website', 'agency', 'studio', 'works', 'cloud', 'email', 'media', 'news',
+      // Gov/edu
+      'gov', 'edu', 'ac',
+    ])
+
+    // Check voor multi-part TLDs zoals .co.uk
+    const lastTwo = tldParts.length >= 1 ? `${tldParts[tldParts.length - 1]}.${tld}` : ''
+    const isValidTld = VALID_TLDS.has(tld) || 
+                      (lastTwo === 'co.uk') || 
+                      (lastTwo === 'org.uk') || 
+                      (lastTwo === 'ac.uk') ||
+                      (lastTwo === 'com.au') ||
+                      (lastTwo === 'co.nz')
+
+    if (!isValidTld) {
+      return NextResponse.json(
+        { 
+          error: isNL 
+            ? `De domeinextensie .${tld} wordt niet ondersteund of bestaat niet. Controleer de URL en probeer opnieuw.`
+            : `The domain extension .${tld} is not supported or does not exist. Please check the URL and try again.`
+        },
+        { status: 400 }
+      )
+    }
+
+    // Extra check: domeinnaam moet minimaal 1 karakter hebben voor de TLD
+    const domainName = tldParts[tldParts.length - 1]
+    if (!domainName || domainName.length < 1) {
+      return NextResponse.json(
+        { error: isNL ? 'Vul een geldige website URL in (bijv. voorbeeld.nl)' : 'Enter a valid website URL (e.g. example.com)' },
+        { status: 400 }
+      )
+    }
     // 🌐 Language guard: block non-NL/EN websites and non-Latin input
     if (isBlockedUrl(websiteUrl)) {
       return NextResponse.json({ error: getLanguageBlockError(locale) }, { status: 400 })
