@@ -285,8 +285,11 @@ async function fetchViaScraperApi(url, { ultra = false } = {}) {
   if (ultra) {
     // Max-quality config — residential IPs, advanced bypass, full JS rendering.
     // Costs 75 credits per request. Use only when basic fails.
+    // follow_redirect=false is needed to bypass DDoS-Guard challenges that
+    // otherwise redirect into an infinite "One moment, please..." loop.
     params.set('premium', 'true')
     params.set('ultra_premium', 'true')
+    params.set('follow_redirect', 'false')
   }
 
   const scraperUrl = `https://api.scraperapi.com/?${params.toString()}`

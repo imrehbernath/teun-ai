@@ -251,6 +251,7 @@ async function fetchViaScraperApi(url, { ultra = false } = {}) {
   if (ultra) {
     params.set('premium', 'true')
     params.set('ultra_premium', 'true')
+    params.set('follow_redirect', 'false')
   }
 
   const scraperUrl = `https://api.scraperapi.com/?${params.toString()}`
