@@ -343,6 +343,7 @@ Geef je analyse in EXACT dit JSON-formaat:
   "services": ["dienst1", "dienst2", "dienst3"],
   "usps": ["usp1", "usp2"],
   "location": "locatie of regio focus (of null)",
+  "locationExclusive": true,
   "targetAudience": "beschrijving doelgroep",
   "businessType": "winkel|dienstverlener|ambacht|fabrikant|horeca|zorg|juridisch|financieel|onderwijs|overig",
   "audienceType": "B2C|B2B|both",
@@ -357,6 +358,8 @@ BELANGRIJKE REGELS:
 - Mix korte (1-2 woorden) en langere (2-4 woorden) zoekwoorden
 - services: concrete diensten/producten die het bedrijf aanbiedt (haal uit nav en H2/H3)
 - usps: unieke verkoopargumenten
+- location: waar opereert dit bedrijf? (stad, regio, land, of null als landelijk/internationaal)
+- locationExclusive: true als het bedrijf ALLEEN in die locatie opereert (bijv. zeilvakantie Griekenland, loodgieter Amsterdam, advocatenkantoor Den Haag). false als het bedrijf ook elders werkt of landelijk opereert. Bij twijfel: true als de website duidelijk één regio benadrukt in H1/H2/navigatie.
 - businessType: kies het MEEST passende type (winkel als ze producten verkopen, dienstverlener als ze diensten leveren, etc.)
 - audienceType: B2C als gericht op consumenten, B2B als gericht op bedrijven, both als beide
 - coreActivity: wat DOET het bedrijf primair? Een lampenwinkel VERKOOPT, een installateur INSTALLEERT, een advocaat ADVISEERT
@@ -390,6 +393,7 @@ Provide your analysis in EXACTLY this JSON format:
   "services": ["service1", "service2", "service3"],
   "usps": ["usp1", "usp2"],
   "location": "location or region focus (or null)",
+  "locationExclusive": true,
   "targetAudience": "target audience description",
   "businessType": "shop|service_provider|craft|manufacturer|hospitality|healthcare|legal|financial|education|other",
   "audienceType": "B2C|B2B|both",
@@ -404,6 +408,8 @@ IMPORTANT RULES:
 - Mix short (1-2 words) and longer (2-4 words) keywords
 - services: concrete services/products the company offers (extract from nav and H2/H3)
 - usps: unique selling points
+- location: where does this company operate? (city, region, country, or null if nationwide/international)
+- locationExclusive: true if the company ONLY operates in that location (e.g. sailing holidays Greece, plumber Amsterdam, law firm The Hague). false if the company also works elsewhere or operates nationally. When in doubt: true if the website clearly emphasizes one region in H1/H2/navigation.
 - businessType: choose the MOST fitting type
 - audienceType: B2C if consumer-facing, B2B if business-facing, both if applicable
 - coreActivity: what does the company primarily DO? A lamp shop SELLS, an installer INSTALLS, a lawyer ADVISES
@@ -432,6 +438,7 @@ Return ONLY the JSON, no additional text.`
       services: analysis.services || [],
       usps: analysis.usps || [],
       location: analysis.location,
+      locationExclusive: analysis.locationExclusive === true,
       targetAudience: analysis.targetAudience,
       businessType: analysis.businessType || 'overig',
       audienceType: analysis.audienceType || 'B2B',
@@ -638,7 +645,7 @@ export async function POST(request) {
       ]
       generatedPrompts = onlinelabsPrompts.slice(0, numberOfPrompts)
       enhancedKeywords = ['SEO bureau Amsterdam', 'GEO optimalisatie', 'AI-zichtbaarheid', 'WordPress optimalisatie']
-      websiteAnalysis = { success: true, keywords: enhancedKeywords, services: ['SEO', 'GEO', 'Webdesign', 'Google Ads'], usps: ['17 jaar ervaring', 'Teun.ai platform'], location: 'Amsterdam', businessType: 'dienstverlener', audienceType: 'B2B', coreActivity: 'adviseert' }
+      websiteAnalysis = { success: true, keywords: enhancedKeywords, services: ['SEO', 'GEO', 'Webdesign', 'Google Ads'], usps: ['17 jaar ervaring', 'Teun.ai platform'], location: 'Amsterdam', locationExclusive: false, businessType: 'dienstverlener', audienceType: 'B2B', coreActivity: 'adviseert' }
     }
     
     // ✨ Analyze website if URL provided (ScraperAPI + Claude)
@@ -1168,7 +1175,11 @@ VERPLICHTE REGELS:
    FOUT: "een specialist voor wandafwerking in Amsterdam in mijn appartement"
    GOED: "een specialist voor naadloze wandafwerking in mijn appartement in Amsterdam"
 
-11. LOCATIE: Als de gebruiker een servicegebied heeft opgegeven, als de website-analyse een locatie-focus detecteert, of als de zoekwoorden een plaatsnaam bevatten, gebruik die locatie in precies 5 van de 10 prompts (de andere 5 zonder). Als er GEEN locatie bekend is uit geen enkele bron, gebruik dan GEEN plaatsnamen in de prompts.
+11. LOCATIE: Als de gebruiker een servicegebied heeft opgegeven, als de website-analyse een locatie-focus detecteert, of als de zoekwoorden een plaatsnaam bevatten, gebruik die locatie als volgt:
+${websiteAnalysis?.locationExclusive 
+  ? `   DIT BEDRIJF OPEREERT UITSLUITEND IN "${websiteAnalysis.location}". Gebruik deze locatie (of directe varianten/deelgebieden zoals wijken/eilanden) in MINSTENS 8 van de 10 prompts. Prompts zonder locatie leveren voor dit bedrijf bijna nooit een match op en zijn zonde van de meting.`
+  : `   Gebruik die locatie in precies 5 van de 10 prompts (de andere 5 zonder).`}
+   Als er GEEN locatie bekend is uit geen enkele bron, gebruik dan GEEN plaatsnamen in de prompts.
 
 ${customTermsInstruction}`
         : `You generate 10 search queries that real people would type into ChatGPT or Perplexity.
@@ -1250,7 +1261,11 @@ REQUIRED RULES:
    BAD: "a specialist for wall finishing in Amsterdam in my apartment"
    GOOD: "a specialist for seamless wall finishing in my apartment in Amsterdam"
 
-11. LOCATION: If the user provided a service area, if the website analysis detected a location focus, or if the keywords contain a city/region name, use that location in exactly 5 of 10 prompts (the other 5 without). If NO location is known from any source, do NOT use any city or region names in the prompts.
+11. LOCATION: If the user provided a service area, if the website analysis detected a location focus, or if the keywords contain a city/region name, use that location as follows:
+${websiteAnalysis?.locationExclusive 
+  ? `   THIS BUSINESS OPERATES EXCLUSIVELY IN "${websiteAnalysis.location}". Use this location (or direct variants/sub-areas such as districts/islands) in AT LEAST 8 of 10 prompts. Prompts without location rarely yield a match for this business and waste the scan.`
+  : `   Use that location in exactly 5 of 10 prompts (the other 5 without).`}
+   If NO location is known from any source, do NOT use any city or region names in the prompts.
 
 ${customTermsInstruction}`,
       messages: [{
