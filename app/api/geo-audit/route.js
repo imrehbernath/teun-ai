@@ -209,9 +209,13 @@ const MIN_HTML_LENGTH = 2000
 const CHALLENGE_SIGNATURES = [
   'cf-browser-verification',
   'just a moment',
+  'one moment, please',
+  'one moment please',
   'attention required',
   'access denied',
   'wordfence',
+  'ddos-guard',
+  'ddos guard',
   'please turn javascript on',
   'enable javascript and cookies',
   'checking your browser'
@@ -222,6 +226,26 @@ function looksBroken(html) {
   if (html.length < MIN_HTML_LENGTH) return `too-short-${html.length}`
   if (!/<\/html>/i.test(html)) return 'no-closing-html'
   if (!/<title[^>]*>[^<]+<\/title>/i.test(html)) return 'no-title-tag'
+
+  // Title-based challenge detection (DDoS-Guard, Cloudflare, etc.)
+  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
+  if (titleMatch) {
+    const title = titleMatch[1].trim().toLowerCase()
+    const challengeTitles = [
+      'one moment, please...',
+      'one moment please',
+      'just a moment',
+      'just a moment...',
+      'attention required',
+      'access denied',
+      'please wait',
+      'checking your browser'
+    ]
+    if (challengeTitles.some(t => title === t || title.startsWith(t))) {
+      return `challenge-title-${title.slice(0, 30).replace(/\s+/g, '-')}`
+    }
+  }
+
   const low = html.toLowerCase().slice(0, 10000)
   for (const sig of CHALLENGE_SIGNATURES) {
     if (low.includes(sig)) return `challenge-${sig.replace(/\s+/g, '-')}`
