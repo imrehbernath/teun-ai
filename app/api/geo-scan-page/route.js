@@ -243,15 +243,18 @@ async function fetchViaScraperApi(url, { ultra = false } = {}) {
   const params = new URLSearchParams({
     api_key: SCRAPER_API_KEY,
     url,
-    render: 'true',
     country_code: pickCountryCode(url),
     device_type: 'desktop'
   })
 
   if (ultra) {
+    // Max-quality config — residential IPs + ultra_premium bypass.
+    // No render: DDoS-Guard's JS challenge loops infinitely with rendering on.
     params.set('premium', 'true')
     params.set('ultra_premium', 'true')
     params.set('follow_redirect', 'false')
+  } else {
+    params.set('render', 'true')
   }
 
   const scraperUrl = `https://api.scraperapi.com/?${params.toString()}`
