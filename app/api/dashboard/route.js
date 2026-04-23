@@ -599,7 +599,7 @@ export async function GET(request) {
     return NextResponse.json({
       user: { id: user.id, email: user.email, fullName: profile?.full_name || null, companyName: profile?.company_name || null },
       companies: uniqueCompanies,
-      activeCompany: activeCompanyName ? { name: activeCompanyName, website: activeWebsite, category: latestScan?.company_category || null } : null,
+      activeCompany: activeCompanyName ? { id: latestScan?.id || null, name: activeCompanyName, website: activeWebsite, category: latestScan?.company_category || null } : null,
       visibility: adjustedVisibility,
       avgMentions,
       topCompetitor,
@@ -650,6 +650,12 @@ export async function GET(request) {
         scanIntegrationId: pd.scan_integration_id,
         createdAt: pd.created_at,
       })),
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     })
 
   } catch (err) {

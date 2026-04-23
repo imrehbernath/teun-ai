@@ -165,28 +165,128 @@ function detectPageLanguage(html, url) {
 }
 
 
-async function scrapeWebsite(url) {
+// ============================================
+// ROBUST PAGE SCRAPER (identiek aan /api/geo-audit)
+// ============================================
+// Two-step strategy:
+//   1. 'basic': render=true + country_code + desktop (~5 credits)
+//   2. 'ultra': basic + premium + ultra_premium (75 credits)
+//
+// Returns: { html, method, warnings, success, reason, length }
+// Caller MUST check success before using html.
+
+const MIN_HTML_LENGTH = 2000
+const CHALLENGE_SIGNATURES = [
+  'cf-browser-verification',
+  'just a moment',
+  'attention required',
+  'access denied',
+  'wordfence',
+  'please turn javascript on',
+  'enable javascript and cookies',
+  'checking your browser'
+]
+
+function looksBroken(html) {
+  if (!html || typeof html !== 'string') return 'empty-body'
+  if (html.length < MIN_HTML_LENGTH) return `too-short-${html.length}`
+  if (!/<\/html>/i.test(html)) return 'no-closing-html'
+  if (!/<title[^>]*>[^<]+<\/title>/i.test(html)) return 'no-title-tag'
+  const low = html.toLowerCase().slice(0, 10000)
+  for (const sig of CHALLENGE_SIGNATURES) {
+    if (low.includes(sig)) return `challenge-${sig.replace(/\s+/g, '-')}`
+  }
+  return null
+}
+
+function pickCountryCode(url) {
   try {
-    let normalizedUrl = url.trim()
-    if (!normalizedUrl.startsWith('http')) {
-      normalizedUrl = 'https://' + normalizedUrl
+    const host = new URL(url).hostname.toLowerCase()
+    const euTlds = new Set([
+      'nl', 'be', 'de', 'at', 'ch', 'fr', 'es', 'it',
+      'uk', 'ie', 'eu', 'pt', 'dk', 'se', 'no', 'fi',
+      'pl', 'cz', 'gr', 'lu'
+    ])
+    if (host.endsWith('.co.uk')) return 'eu'
+    const tld = host.split('.').pop()
+    return euTlds.has(tld) ? 'eu' : 'us'
+  } catch {
+    return 'us'
+  }
+}
+
+async function fetchViaScraperApi(url, { ultra = false } = {}) {
+  const params = new URLSearchParams({
+    api_key: SCRAPER_API_KEY,
+    url,
+    render: 'true',
+    country_code: pickCountryCode(url),
+    device_type: 'desktop'
+  })
+
+  if (ultra) {
+    params.set('premium', 'true')
+    params.set('ultra_premium', 'true')
+  }
+
+  const scraperUrl = `https://api.scraperapi.com/?${params.toString()}`
+  const timeout = ultra ? 70000 : 45000
+
+  const res = await fetch(scraperUrl, {
+    method: 'GET',
+    signal: AbortSignal.timeout(timeout)
+  })
+
+  if (!res.ok) {
+    throw new Error(`ScraperAPI ${res.status} (ultra=${ultra})`)
+  }
+
+  return await res.text()
+}
+
+async function scrapeWebsite(url) {
+  let normalizedUrl = url.trim()
+  if (!normalizedUrl.startsWith('http')) {
+    normalizedUrl = 'https://' + normalizedUrl
+  }
+
+  const attempts = [
+    { ultra: false, label: 'basic' },
+    { ultra: true,  label: 'ultra' }
+  ]
+
+  const warnings = []
+  let lastHtml = null
+  let lastReason = null
+
+  for (const attempt of attempts) {
+    try {
+      console.log(`[GEO Scan] scrape ${attempt.label} → ${normalizedUrl}`)
+      const html = await fetchViaScraperApi(normalizedUrl, attempt)
+      const reason = looksBroken(html)
+
+      if (!reason) {
+        console.log(`[GEO Scan] ✅ scrape ${attempt.label} ok (${html.length} chars)`)
+        return { html, method: attempt.label, warnings, success: true, length: html.length }
+      }
+
+      warnings.push(`${attempt.label}: ${reason} (${html?.length || 0} chars)`)
+      console.warn(`[GEO Scan] scrape ${attempt.label} broken: ${reason}`)
+      lastHtml = html
+      lastReason = reason
+    } catch (err) {
+      warnings.push(`${attempt.label}: ${err.message}`)
+      console.warn(`[GEO Scan] scrape ${attempt.label} threw: ${err.message}`)
     }
-    
-    const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(normalizedUrl)}&render=false`
-    
-    const response = await fetch(scraperUrl, {
-      method: 'GET',
-      signal: AbortSignal.timeout(25000)
-    })
-    
-    if (!response.ok) {
-      throw new Error(`Scraper error: ${response.status}`)
-    }
-    
-    return await response.text()
-  } catch (error) {
-    console.error('Scrape error:', error)
-    return null
+  }
+
+  return {
+    html: lastHtml,
+    method: 'failed',
+    warnings,
+    success: false,
+    reason: lastReason || 'all-attempts-failed',
+    length: lastHtml?.length || 0
   }
 }
 
@@ -668,13 +768,18 @@ export async function POST(request) {
     }
     
     // Start both requests in parallel
-    const [html, coreWebVitals] = await Promise.all([
+    const [scrape, coreWebVitals] = await Promise.all([
       scrapeWebsite(url),
       getCoreWebVitals(url)
     ])
-    
-    if (!html) {
-      return NextResponse.json({ 
+
+    if (!scrape.success) {
+      console.error('[GEO Scan] ❌ scrape failed:', {
+        url,
+        reason: scrape.reason,
+        attempts: scrape.warnings
+      })
+      return NextResponse.json({
         checklist: {},
         score: 0,
         scoreLabel: getMsg(locale).scoreError,
@@ -682,6 +787,9 @@ export async function POST(request) {
         scanned: false
       })
     }
+
+    const html = scrape.html
+    console.log(`[GEO Scan] scraped via ${scrape.method} (${scrape.length} chars)`)
     
     // Detect page language
     const pageLang = detectPageLanguage(html, url)

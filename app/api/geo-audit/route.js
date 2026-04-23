@@ -31,6 +31,8 @@ const MESSAGES = {
   nl: {
     urlRequired: 'URL is verplicht',
     pageLoadFailed: 'Kon de pagina niet laden. Controleer of de URL correct is.',
+    pageBlocked: 'We konden deze pagina niet betrouwbaar ophalen. De site blokkeert mogelijk geautomatiseerde requests (Cloudflare, Wordfence) of vereist JavaScript die wij niet konden uitvoeren. Probeer het later opnieuw of dien de URL handmatig in voor een audit.',
+    pageIncomplete: 'De pagina is onvolledig geladen. Mogelijk heeft de server een gedeeltelijke response gegeven of wordt de content dynamisch geladen. Probeer het opnieuw.',
     languageError: 'De GEO Audit is alleen beschikbaar voor Nederlandstalige websites. Deze pagina lijkt niet in het Nederlands te zijn.',
     pageUnreachable: 'Kon de pagina niet bereiken. Controleer of de URL correct en toegankelijk is.',
     invalidUrl: 'Ongeldige URL. Controleer het formaat (bijv. https://voorbeeld.nl).',
@@ -112,6 +114,8 @@ const MESSAGES = {
   en: {
     urlRequired: 'URL is required',
     pageLoadFailed: 'Could not load the page. Please check if the URL is correct.',
+    pageBlocked: 'We could not reliably fetch this page. The site may block automated requests (Cloudflare, Wordfence) or requires JavaScript we could not execute. Please try again later or submit the URL for a manual audit.',
+    pageIncomplete: 'The page loaded incompletely. The server may have returned a partial response or the content is loaded dynamically. Please try again.',
     languageError: 'The GEO Audit is currently only available for Dutch-language websites.',
     pageUnreachable: 'Could not reach the page. Please check if the URL is correct and accessible.',
     invalidUrl: 'Invalid URL. Please check the format (e.g. https://example.com).',
@@ -189,6 +193,146 @@ const MESSAGES = {
 }
 
 function getMsg(locale) { return MESSAGES[locale] || MESSAGES['nl'] }
+
+// ============================================
+// ROBUST PAGE SCRAPER
+// ============================================
+// Three-step escalation: render=false (cheap) → render=true → render=true + premium
+// Validates every response body before accepting it.
+//
+// Returns:
+//   { html, method, warnings, success, reason, length }
+//
+// The caller MUST check success — do not run analysis on success:false HTML.
+
+const MIN_HTML_LENGTH = 2000
+const CHALLENGE_SIGNATURES = [
+  'cf-browser-verification',
+  'just a moment',
+  'attention required',
+  'access denied',
+  'wordfence',
+  'please turn javascript on',
+  'enable javascript and cookies',
+  'checking your browser'
+]
+
+function looksBroken(html) {
+  if (!html || typeof html !== 'string') return 'empty-body'
+  if (html.length < MIN_HTML_LENGTH) return `too-short-${html.length}`
+  if (!/<\/html>/i.test(html)) return 'no-closing-html'
+  if (!/<title[^>]*>[^<]+<\/title>/i.test(html)) return 'no-title-tag'
+  const low = html.toLowerCase().slice(0, 10000)
+  for (const sig of CHALLENGE_SIGNATURES) {
+    if (low.includes(sig)) return `challenge-${sig.replace(/\s+/g, '-')}`
+  }
+  return null
+}
+
+// Pick a ScraperAPI country_code based on the target URL's TLD.
+// Strategy: 'eu' for European sites (rotating EU proxy pool — more lenient toward
+// local requests, avoids Wordfence/Cloudflare datacenter blocks), 'us' for
+// international/English-speaking sites (ScraperAPI's widest and strongest pool).
+function pickCountryCode(url) {
+  try {
+    const host = new URL(url).hostname.toLowerCase()
+    const euTlds = new Set([
+      'nl', 'be', 'de', 'at', 'ch', 'fr', 'es', 'it',
+      'uk', 'ie', 'eu', 'pt', 'dk', 'se', 'no', 'fi',
+      'pl', 'cz', 'gr', 'lu'
+    ])
+    if (host.endsWith('.co.uk')) return 'eu'
+    const tld = host.split('.').pop()
+    return euTlds.has(tld) ? 'eu' : 'us'
+  } catch {
+    return 'us'
+  }
+}
+
+async function fetchViaScraperApi(url, { ultra = false } = {}) {
+  const params = new URLSearchParams({
+    api_key: SCRAPER_API_KEY,
+    url,
+    render: 'true',
+    country_code: pickCountryCode(url),
+    device_type: 'desktop'
+  })
+
+  if (ultra) {
+    // Max-quality config — residential IPs, advanced bypass, full JS rendering.
+    // Costs 75 credits per request. Use only when basic fails.
+    params.set('premium', 'true')
+    params.set('ultra_premium', 'true')
+  }
+
+  const scraperUrl = `https://api.scraperapi.com/?${params.toString()}`
+  const timeout = ultra ? 70000 : 45000
+
+  const res = await fetch(scraperUrl, {
+    method: 'GET',
+    signal: AbortSignal.timeout(timeout)
+  })
+
+  if (!res.ok) {
+    throw new Error(`ScraperAPI ${res.status} (ultra=${ultra})`)
+  }
+
+  return await res.text()
+}
+
+async function scrapePage(url) {
+  // Two-step strategy:
+  //   1. 'basic': render=true + country_code + desktop (~5 credits)
+  //   2. 'ultra': everything above + premium + ultra_premium (75 credits)
+  //
+  // ~80% of sites succeed at step 1. Step 2 is reserved for sites with
+  // aggressive anti-bot protection (Cloudflare challenges, Wordfence, etc.).
+  const attempts = [
+    { ultra: false, label: 'basic' },
+    { ultra: true,  label: 'ultra' }
+  ]
+
+  const warnings = []
+  let lastHtml = null
+  let lastReason = null
+
+  for (const attempt of attempts) {
+    try {
+      console.log(`[GEO Audit] scrape ${attempt.label} → ${url}`)
+      const html = await fetchViaScraperApi(url, attempt)
+      const reason = looksBroken(html)
+
+      if (!reason) {
+        console.log(`[GEO Audit] ✅ scrape ${attempt.label} ok (${html.length} chars)`)
+        return {
+          html,
+          method: attempt.label,
+          warnings,
+          success: true,
+          length: html.length
+        }
+      }
+
+      warnings.push(`${attempt.label}: ${reason} (${html?.length || 0} chars)`)
+      console.warn(`[GEO Audit] scrape ${attempt.label} broken: ${reason}`)
+      lastHtml = html
+      lastReason = reason
+    } catch (err) {
+      warnings.push(`${attempt.label}: ${err.message}`)
+      console.warn(`[GEO Audit] scrape ${attempt.label} threw: ${err.message}`)
+    }
+  }
+
+  return {
+    html: lastHtml,
+    method: 'failed',
+    warnings,
+    success: false,
+    reason: lastReason || 'all-attempts-failed',
+    length: lastHtml?.length || 0
+  }
+}
+
 
 // ✅ Slack lead notificatie
 async function sendSlackLeadNotification({ url, companyName, score, mentioned }) {
@@ -488,38 +632,34 @@ export async function POST(request) {
     const domain = urlObj.origin
     const hostname = urlObj.hostname.replace(/^www\./, '')
 
-    // STEP 1: SCRAPE THE PAGE
-    let html
-    try {
-      const scrapeResponse = await fetch(
-        `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(normalizedUrl)}&render=true`,
-        { signal: AbortSignal.timeout(45000) }
-      )
-      if (scrapeResponse.ok) {
-        html = await scrapeResponse.text()
-      }
-    } catch (e) {
-      console.warn('[GEO Audit] Render scrape failed, retrying without render:', e.message)
-    }
+    // STEP 1: SCRAPE THE PAGE (robust — 3-step escalation + validation)
+    const scrape = await scrapePage(normalizedUrl)
 
-    // Fallback: zonder render (sneller, werkt voor de meeste sites)
-    if (!html) {
-      try {
-        const scrapeResponse = await fetch(
-          `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(normalizedUrl)}`,
-          { signal: AbortSignal.timeout(30000) }
-        )
-        if (scrapeResponse.ok) {
-          html = await scrapeResponse.text()
+    if (!scrape.success) {
+      console.error('[GEO Audit] ❌ scrape failed:', {
+        url: normalizedUrl,
+        reason: scrape.reason,
+        attempts: scrape.warnings
+      })
+
+      // Reason-specific message — "too-short" / "no-title" / "no-closing-html" → incomplete,
+      // anything else (challenge-*, all-attempts-failed, empty-body) → blocked
+      const isIncomplete = scrape.reason?.startsWith('too-short') ||
+                          scrape.reason === 'no-title-tag' ||
+                          scrape.reason === 'no-closing-html'
+
+      return NextResponse.json({
+        error: isIncomplete ? m.pageIncomplete : m.pageBlocked,
+        debug: {
+          reason: scrape.reason,
+          attempts: scrape.warnings,
+          length: scrape.length
         }
-      } catch (e) {
-        console.warn('[GEO Audit] Non-render scrape also failed:', e.message)
-      }
+      }, { status: 502 })
     }
 
-    if (!html) {
-      return NextResponse.json({ error: m.pageLoadFailed }, { status: 400 })
-    }
+    const html = scrape.html
+    console.log(`[GEO Audit] scraped via ${scrape.method} (${scrape.length} chars)`)
 
     // DETECT PAGE LANGUAGE — use for analysis, not UI locale
     const pageLang = detectPageLanguage(html, normalizedUrl)
@@ -1178,7 +1318,12 @@ Antwoord als JSON array: ["bedrijf1", "bedrijf2"]`
 // ━━━ HELPERS ━━━
 async function fetchTextFile(url) {
   try {
-    const response = await fetch(`http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(8000) })
+    const params = new URLSearchParams({
+      api_key: SCRAPER_API_KEY,
+      url,
+      country_code: pickCountryCode(url)
+    })
+    const response = await fetch(`https://api.scraperapi.com/?${params.toString()}`, { signal: AbortSignal.timeout(8000) })
     if (!response.ok) return null
     const text = await response.text()
     if (text.length > 10000 || text.includes('<!DOCTYPE') || text.includes('<html')) return null

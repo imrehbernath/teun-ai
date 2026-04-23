@@ -447,9 +447,22 @@ export default function GeoAuditPage() {
             </div>
             {scanPhase === 'done' && (
               <p className="text-xs text-slate-400 mt-1.5 text-center">
-                {locale === 'en' 
-                  ? 'Google PageSpeed API is being queried — this can take up to 45 seconds'
-                  : 'Google PageSpeed API wordt bevraagd — dit kan tot 45 seconden duren'}
+                {(() => {
+                  const isEN = locale === 'en'
+                  if (cwvElapsed >= 90) {
+                    return isEN
+                      ? 'Almost there, final check running...'
+                      : 'Bijna klaar, laatste check loopt...'
+                  }
+                  if (cwvElapsed >= 45) {
+                    return isEN
+                      ? 'This site needs extra processing, hang on (up to 90s total)'
+                      : 'Deze site vereist extra verwerking, nog even geduld (tot 90s totaal)'
+                  }
+                  return isEN
+                    ? 'The scan usually takes 30-60 seconds'
+                    : 'De scan duurt meestal 30-60 seconden'
+                })()}
               </p>
             )}
           </div>
@@ -991,8 +1004,8 @@ export default function GeoAuditPage() {
                 </p>
                 <p className="text-slate-600 leading-relaxed">
                   {locale === 'en'
-                    ? 'With this free tool you get instant insight. We scan your page on 20+ signals, and test live on Perplexity whether your business appears. No account needed, result in 60 seconds.'
-                    : 'Met deze gratis tool krijg je direct inzicht. We scannen je pagina op 20+ signalen, en testen live op Perplexity of jouw bedrijf verschijnt. Geen account nodig, resultaat in 60 seconden.'}
+                    ? 'With this free tool you get instant insight. We scan your page on 20+ signals, and test live on Perplexity whether your business appears. No account needed, results within a minute.'
+                    : 'Met deze gratis tool krijg je direct inzicht. We scannen je pagina op 20+ signalen, en testen live op Perplexity of jouw bedrijf verschijnt. Geen account nodig, resultaat binnen een minuut.'}
                 </p>
               </div>
           </section>

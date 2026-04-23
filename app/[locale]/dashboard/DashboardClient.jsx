@@ -1764,6 +1764,23 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
               const total = changedPrompts.length
               setRescanProgress({ current: 0, total, phase: 'ChatGPT & Perplexity' })
 
+              // Phase 0: Update tool_integrations.commercial_prompts FIRST.
+              // Without this, the dashboard API keeps serving old prompts from
+              // tool_integrations even after the scan results are refreshed.
+              const scanId = activeCompany?.id
+              if (scanId) {
+                try {
+                  const allPrompts = editablePrompts.filter(p => p.trim().length > 0)
+                  await fetch('/api/prompts/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ scanId, prompts: allPrompts })
+                  })
+                } catch (err) { console.error('Update prompts error:', err) }
+              } else {
+                console.warn('[rescan] activeCompany.id missing, prompts will rescan but tool_integrations not updated')
+              }
+
               // Phase 1: ChatGPT + Perplexity (alleen gewijzigde prompts)
               for (let i = 0; i < changedPrompts.length; i++) {
                 setRescanProgress({ current: i + 1, total, phase: 'ChatGPT & Perplexity' })
@@ -1785,7 +1802,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                   await fetch('/api/scan-google-ai', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ companyName: company, website, prompts: allPrompts })
+                    body: JSON.stringify({ companyName: company, website, prompts: allPrompts, changedPrompts })
                   })
                 } catch (err) { console.error('Google AI Mode rescan error:', err) }
               }
@@ -1798,7 +1815,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                   await fetch('/api/scan-google-ai-overview', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ companyName: company, website, prompts: allPrompts })
+                    body: JSON.stringify({ companyName: company, website, prompts: allPrompts, changedPrompts })
                   })
                 } catch (err) { console.error('AI Overview rescan error:', err) }
               }
@@ -1809,9 +1826,12 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                 try { localStorage.setItem('teun_prompts_edited_' + userId, 'true') } catch {}
               }
 
+              // Wait briefly for Supabase commit propagation, then refetch
+              // with verse data before exiting rescan mode (prevents stale UI).
+              await new Promise(r => setTimeout(r, 800))
+              await fetchData()
               setRescanning(false)
               setEditMode(false)
-              fetchData()
             }
 
             // Info voor bevestigingsdialoog

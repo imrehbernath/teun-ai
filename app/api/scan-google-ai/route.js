@@ -331,7 +331,7 @@ export async function POST(request) {
     }
 
     const body = await request.json()
-    const { companyName, website, category, prompts, skipSave } = body
+    const { companyName, website, category, prompts, changedPrompts, skipSave } = body
 
     if (!companyName) {
       return NextResponse.json({ error: 'Company name is required' }, { status: 400 })
@@ -351,7 +351,38 @@ export async function POST(request) {
 
     // Detect language from prompt content
     const lang = detectLanguageFromPrompts(prompts)
-    console.log(`Google AI Mode scan: lang=${lang}, ${prompts.length} prompts`)
+
+    // ─── Incremental scan support ───
+    // If frontend sends `changedPrompts`, we only run SerpAPI for those and
+    // reuse existing results for the unchanged prompts.
+    const incrementalMode = Array.isArray(changedPrompts) && changedPrompts.length > 0
+    const changedSet = incrementalMode ? new Set(changedPrompts) : null
+
+    let prevResultsByQuery = new Map()
+    if (incrementalMode) {
+      const { data: prevScan } = await supabase
+        .from('google_ai_scans')
+        .select('prompts, results')
+        .eq('user_id', user.id)
+        .eq('company_name', companyName)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (prevScan?.prompts && Array.isArray(prevScan.results)) {
+        for (let i = 0; i < prevScan.prompts.length; i++) {
+          const p = prevScan.prompts[i]
+          const r = prevScan.results[i]
+          if (p && r) prevResultsByQuery.set(p, r)
+        }
+        console.log(`Google AI Mode: incremental mode, ${prevResultsByQuery.size} previous results loaded, ${changedPrompts.length} prompts to rescan`)
+      } else {
+        console.log('Google AI Mode: incremental requested but no previous scan found, falling back to full scan')
+      }
+    }
+
+    console.log(`Google AI Mode scan: lang=${lang}, ${prompts.length} prompts, incremental=${incrementalMode && prevResultsByQuery.size > 0}`)
 
     // Create scan record (skip if single-prompt sequential mode)
     let scan = null
@@ -377,15 +408,26 @@ export async function POST(request) {
       scan = scanData
     }
 
-    // Process each query
+    // Process each query (skip unchanged in incremental mode)
     const results = []
     let foundCount = 0
     let hasAiResponseCount = 0
+    let scanCount = 0
 
     for (const query of prompts) {
-      if (results.length > 0) {
+      // Incremental: reuse result for unchanged prompts
+      if (incrementalMode && changedSet && !changedSet.has(query) && prevResultsByQuery.has(query)) {
+        const reused = prevResultsByQuery.get(query)
+        results.push({ ...reused, query })
+        if (reused.hasAiResponse) hasAiResponseCount++
+        if (reused.companyMentioned) foundCount++
+        continue
+      }
+
+      if (scanCount > 0) {
         await new Promise(resolve => setTimeout(resolve, 800))
       }
+      scanCount++
 
       const result = await fetchGoogleAIMode(query, companyName, website, lang)
       
@@ -409,6 +451,7 @@ export async function POST(request) {
       
       console.log(`Query "${query}": AI Response=${result.hasAiResponse}, Mentioned=${result.companyMentioned}`)
     }
+    console.log(`Google AI Mode: ran ${scanCount} SerpAPI calls (${results.length - scanCount} reused)`)
 
     // Update scan record with results (skip if single-prompt mode)
     if (!skipSave && scan) {
