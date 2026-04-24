@@ -1181,6 +1181,32 @@ ${websiteAnalysis?.locationExclusive
   : `   Gebruik die locatie in precies 5 van de 10 prompts (de andere 5 zonder).`}
    Als er GEEN locatie bekend is uit geen enkele bron, gebruik dan GEEN plaatsnamen in de prompts.
 
+12. NOOIT TWEE LOCATIES COMBINEREN MET "OF": Een prompt gaat over één plek. Echte zoekers weten al welke locatie ze willen. "Of" tussen locaties signaleert dat de prompt kunstmatig twee keywords probeert te combineren.
+   FOUT: "bareboat charter op Lefkas of Corfu"
+   FOUT: "een advocaat in Amsterdam of Rotterdam"
+   FOUT: "kantoor inrichten in Utrecht of Den Haag"
+   GOED: "bareboat charter op Lefkas" (en als Corfu ook relevant is: aparte prompt)
+   UITZONDERING: "OF" mag wel tussen diensten/producten ("zeilen met of zonder schipper"), alleen niet tussen plaatsen/regio's.
+
+13. GEEN INTERNE USP-WOORDEN EN MARKETING-JARGON: Woorden die alleen op de website van een bedrijf voorkomen horen niet in een zoekvraag. Zoekers beschrijven een BEHOEFTE of SITUATIE, niet de oplossing met marketing-termen.
+   FOUT: "Waar kan ik flexibel een zeilvakantie boeken"
+   FOUT: "Wie biedt innovatieve en duurzame oplossingen voor X"
+   FOUT: "Ik zoek een specialist met jarenlange expertise in Y"
+   FOUT: "Welk toonaangevend bureau is gespecialiseerd in Z"
+   GOED: "Waar kan ik een zeilvakantie boeken waarbij ik zelf de vertrekdatum kies"
+   GOED: "Welk bureau kan mijn webshop hoger in Google krijgen"
+   VERBODEN ZONDER CONTEXT: flexibel, innovatief, duurzaam, premium, professioneel, toonaangevend, vooraanstaand, hoogwaardig, kwalitatief, resultaatgericht, klantgericht, oplossingsgericht.
+   TOEGESTAAN MITS CONCREET: "ervaren" (alleen als concreet getal volgt: "50 jaar ervaring"), "gespecialiseerd in" (alleen als directe specialisatie volgt: "gespecialiseerd in IE-recht").
+
+14. GEOGRAFISCHE HERKENBAARHEID: Gebruik alleen locatie-termen die een gemiddelde consument spontaan in een zoekopdracht typt. Abstracte overkoepelende geografische termen (archipels, zeeen, regio-benamingen, landstreken) worden zelden door consumenten gebruikt — zij noemen concrete plaatsen of landen.
+   FOUT: "zeilvakantie in de Ionische eilanden" (consumenten kennen deze term niet)
+   FOUT: "vakantiehuis in de Benelux" (niemand zoekt zo)
+   FOUT: "restaurant in de Randstad" (regio-term, geen zoekterm)
+   FOUT: "trouwlocatie in het Groene Hart" (regio-term)
+   GOED: "zeilvakantie in Griekenland" of "zeilen bij Lefkas"
+   GOED: "vakantiehuis in Nederland" of "vakantiehuis op Texel"
+   REGEL: Kies altijd tussen LAND-NIVEAU of CONCRETE PLAATS/EILAND. Sla de abstracte tussenlaag over.
+
 ${customTermsInstruction}`
         : `You generate 10 search queries that real people would type into ChatGPT or Perplexity.
 
@@ -1266,6 +1292,31 @@ ${websiteAnalysis?.locationExclusive
   ? `   THIS BUSINESS OPERATES EXCLUSIVELY IN "${websiteAnalysis.location}". Use this location (or direct variants/sub-areas such as districts/islands) in AT LEAST 8 of 10 prompts. Prompts without location rarely yield a match for this business and waste the scan.`
   : `   Use that location in exactly 5 of 10 prompts (the other 5 without).`}
    If NO location is known from any source, do NOT use any city or region names in the prompts.
+
+12. NEVER COMBINE TWO LOCATIONS WITH "OR": A prompt is about one place. Real searchers already know which location they want. "Or" between locations signals an artificial attempt to combine two keywords.
+   BAD: "bareboat charter in Lefkas or Corfu"
+   BAD: "a lawyer in New York or Boston"
+   BAD: "office space in Austin or Dallas"
+   GOOD: "bareboat charter in Lefkas" (and if Corfu is also relevant: separate prompt)
+   EXCEPTION: "OR" is allowed between services/products ("sailing with or without skipper"), just not between places/regions.
+
+13. NO INTERNAL USP WORDS OR MARKETING JARGON: Words that only appear on a company's website don't belong in a search query. Searchers describe a NEED or SITUATION, not the solution with marketing terms.
+   BAD: "Where can I flexibly book a sailing vacation"
+   BAD: "Who offers innovative and sustainable solutions for X"
+   BAD: "I'm looking for a specialist with years of expertise in Y"
+   BAD: "Which leading agency specializes in Z"
+   GOOD: "Where can I book a sailing vacation where I pick my own departure date"
+   GOOD: "Which agency can get my online store ranking higher in Google"
+   FORBIDDEN WITHOUT CONTEXT: flexible, innovative, sustainable, premium, professional, leading, cutting-edge, high-quality, results-driven, client-focused, solution-oriented.
+   ALLOWED IF CONCRETE: "experienced" (only with a concrete number: "50 years of experience"), "specialized in" (only if a direct specialization follows: "specialized in IP law").
+
+14. GEOGRAPHIC RECOGNIZABILITY: Only use location terms that an average consumer would spontaneously type in a search query. Abstract overarching geographic terms (archipelagos, seas, regional labels, landscape areas) are rarely used by consumers — they mention concrete cities or countries.
+   BAD: "sailing vacation in the Ionian Islands" (consumers don't use this term)
+   BAD: "vacation rental in New England" (use specific state instead)
+   BAD: "restaurant in the Bay Area" (if too abstract for the searcher)
+   GOOD: "sailing vacation in Greece" or "sailing near Lefkas"
+   GOOD: "vacation rental in Massachusetts" or "vacation rental on Cape Cod"
+   RULE: Always choose between COUNTRY LEVEL or CONCRETE CITY/ISLAND. Skip the abstract middle layer.
 
 ${customTermsInstruction}`,
       messages: [{
