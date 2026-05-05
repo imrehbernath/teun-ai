@@ -25,7 +25,7 @@ export default function OverOnsPage() {
       description: isNL
         ? 'Imre begon met SEO toen Google nog in de kinderschoenen stond. Na 17+ jaar SEO-expertise en 750+ projecten zag hij als een van de eersten dat AI-zoekmachines de markt fundamenteel veranderen. Alle kennis uit 25 jaar online marketing zit verwerkt in Teun.ai.'
         : 'Imre started with SEO when Google was still in its infancy. After 17+ years of SEO expertise and 750+ projects, he was among the first to see that AI search engines are fundamentally changing the market. All knowledge from 25 years of online marketing is built into Teun.ai.',
-      linkedin: 'https://www.linkedin.com/in/imrebernath/',
+      linkedin: 'https://nl.linkedin.com/in/imrebernath',
       highlight: isNL ? '25 jaar ervaring → Teun.ai' : '25 years experience → Teun.ai',
     },
     {
