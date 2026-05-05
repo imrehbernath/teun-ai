@@ -1,15 +1,21 @@
-'use client'
 // app/[locale]/tools/geo-audit/page.jsx
+// GEO Audit — analyze a page + live Perplexity test
+// Cream/Lora/spark editorial design
+'use client'
 
 import { useState, useRef, useEffect } from 'react'
 import { Link } from '@/i18n/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { useTranslations, useLocale } from 'next-intl'
-import { ArrowRight, CheckCircle2, XCircle, AlertTriangle, Globe, ChevronDown, ChevronUp, Sparkles, Zap, Shield, BarChart3, ExternalLink, Copy, Check, Loader2, Eye, Users, Download } from 'lucide-react'
+import {
+  ArrowRight, CheckCircle2, XCircle, AlertTriangle, Globe, ChevronDown, ChevronUp,
+  Zap, ExternalLink, Copy, Check, Loader2, Users,
+  Download, Search
+} from 'lucide-react'
 
 // ============================================
-// SCAN STEPS — shown during animation (i18n)
+// SCAN STEPS (i18n)
 // ============================================
 function useScanSteps() {
   const t = useTranslations('geoAudit')
@@ -39,13 +45,10 @@ function useScanSteps() {
   ]
 }
 
-// ============================================
-// GEO AUDIT PAGE
-// ============================================
-
 export default function GeoAuditPage() {
   const t = useTranslations('geoAudit')
   const locale = useLocale()
+  const isEn = locale === 'en'
   const SCAN_STEPS = useScanSteps()
 
   const [url, setUrl] = useState('')
@@ -57,11 +60,12 @@ export default function GeoAuditPage() {
   const [showFullSnippet, setShowFullSnippet] = useState(false)
   const [downloadingPdf, setDownloadingPdf] = useState(false)
   const [openFaq, setOpenFaq] = useState(0)
+  const [faqCategory, setFaqCategory] = useState('all')
   const resultsRef = useRef(null)
 
   // Scan limit
-  const MAX_ANON_SCANS = 1   // 1 totaal lifetime voor anoniem
-  const MAX_FREE_SCANS = 1   // 1 per week voor gratis accounts
+  const MAX_ANON_SCANS = 1
+  const MAX_FREE_SCANS = 1
   const ADMIN_EMAILS = ['imre@onlinelabs.nl', 'hallo@onlinelabs.nl']
   const [scanCount, setScanCount] = useState(0)
   const [limitReached, setLimitReached] = useState(false)
@@ -77,7 +81,6 @@ export default function GeoAuditPage() {
   const [scanUrl, setScanUrl] = useState('')
   const [cwvElapsed, setCwvElapsed] = useState(0)
 
-  // CWV elapsed timer — starts when animation done but API still loading
   useEffect(() => {
     if (scanPhase !== 'done' || !loading) { setCwvElapsed(0); return }
     const start = Date.now()
@@ -85,20 +88,30 @@ export default function GeoAuditPage() {
     return () => clearInterval(timer)
   }, [scanPhase, loading])
 
-  // ── FAQ Structured Data ──────────────────────
-  const faqItems = locale === 'en' ? [
-    { q: 'Is the GEO Audit really free?', a: 'Yes, you can try 1 audit for free without an account. With a free account you get 1 audit per week. Upgrade to Lite or Pro for unlimited audits.' },
-    { q: 'What is the difference between GEO and SEO?', a: 'SEO focuses on ranking in Google\'s link-based results. GEO optimizes your content to be cited and recommended by AI platforms like ChatGPT, Perplexity and Google AI Overviews.' },
-    { q: 'Why does AI visibility matter for my business?', a: 'More than 40% of online searches will involve AI by 2026. If your competitors are mentioned and you are not, you lose visibility and potential customers, even if you rank well in Google.' },
-    { q: 'Which AI platforms does the audit test?', a: 'The live test runs on Perplexity. The technical and content analysis covers optimization for ChatGPT, Perplexity, Google AI Overviews and Claude.' },
-    { q: 'How can I improve my GEO Score?', a: 'The audit gives you 3 concrete recommendations. Common improvements include: adding FAQ schema, structuring content with direct answers, implementing JSON-LD structured data, and creating an llms.txt file.' },
+  // FAQ items with category for filter pills
+  const faqItems = isEn ? [
+    { cat: 'pricing', q: 'Is the GEO Audit really free?', a: 'Yes, you can try 1 audit for free without an account. With a free account you get 1 audit per week. Upgrade to Lite or Pro for unlimited audits.' },
+    { cat: 'product', q: 'What is the difference between GEO and SEO?', a: 'SEO focuses on ranking in Google\'s link-based results. GEO optimizes your content to be cited and recommended by AI platforms like ChatGPT, Perplexity and Google AI Overviews.' },
+    { cat: 'product', q: 'Why does AI visibility matter for my business?', a: 'More than 40% of online searches will involve AI by 2026. If your competitors are mentioned and you are not, you lose visibility and potential customers, even if you rank well in Google.' },
+    { cat: 'product', q: 'Which AI platforms does the audit test?', a: 'The live test runs on Perplexity. The technical and content analysis covers optimization for ChatGPT, Perplexity, Google AI Overviews and Claude.' },
+    { cat: 'results', q: 'How can I improve my GEO Score?', a: 'The audit gives you 3 concrete recommendations. Common improvements include: adding FAQ schema, structuring content with direct answers, implementing JSON-LD structured data, and creating an llms.txt file.' },
   ] : [
-    { q: 'Is de GEO Audit echt gratis?', a: 'Ja, je kunt 1 audit gratis uitvoeren zonder account. Met een gratis account krijg je 1 audit per week. Upgrade naar Lite of Pro voor onbeperkte audits.' },
-    { q: 'Wat is het verschil tussen GEO en SEO?', a: 'SEO richt zich op ranken in Google\'s linkgebaseerde resultaten. GEO optimaliseert je content om geciteerd en aanbevolen te worden door AI-platformen zoals ChatGPT, Perplexity en Google AI Overviews.' },
-    { q: 'Waarom is AI-zichtbaarheid belangrijk voor mijn bedrijf?', a: 'Meer dan 40% van online zoekopdrachten gaat in 2026 via AI. Als jouw concurrenten wél genoemd worden en jij niet, verlies je zichtbaarheid en potentiële klanten, zelfs als je goed rankt in Google.' },
-    { q: 'Welke AI-platformen test de audit?', a: 'De live test draait op Perplexity. De technische en content-analyse dekt optimalisatie voor ChatGPT, Perplexity, Google AI Overviews en Claude.' },
-    { q: 'Hoe verbeter ik mijn GEO Score?', a: 'De audit geeft je 3 concrete aanbevelingen. Veelvoorkomende verbeteringen zijn: FAQ-schema toevoegen, content structureren met directe antwoorden, JSON-LD structured data implementeren, en een llms.txt bestand aanmaken.' },
+    { cat: 'pricing', q: 'Is de GEO Audit echt gratis?', a: 'Ja, je kunt 1 audit gratis uitvoeren zonder account. Met een gratis account krijg je 1 audit per week. Upgrade naar Lite of Pro voor onbeperkte audits.' },
+    { cat: 'product', q: 'Wat is het verschil tussen GEO en SEO?', a: 'SEO richt zich op ranken in Google\'s linkgebaseerde resultaten. GEO optimaliseert je content om geciteerd en aanbevolen te worden door AI-platformen zoals ChatGPT, Perplexity en Google AI Overviews.' },
+    { cat: 'product', q: 'Waarom is AI-zichtbaarheid belangrijk voor mijn bedrijf?', a: 'Meer dan 40% van online zoekopdrachten gaat in 2026 via AI. Als jouw concurrenten wél genoemd worden en jij niet, verlies je zichtbaarheid en potentiële klanten, zelfs als je goed rankt in Google.' },
+    { cat: 'product', q: 'Welke AI-platformen test de audit?', a: 'De live test draait op Perplexity. De technische en content-analyse dekt optimalisatie voor ChatGPT, Perplexity, Google AI Overviews en Claude.' },
+    { cat: 'results', q: 'Hoe verbeter ik mijn GEO Score?', a: 'De audit geeft je 3 concrete aanbevelingen. Veelvoorkomende verbeteringen zijn: FAQ-schema toevoegen, content structureren met directe antwoorden, JSON-LD structured data implementeren, en een llms.txt bestand aanmaken.' },
   ]
+  const catLabels = isEn
+    ? { all: 'All', product: 'Product', pricing: 'Pricing', results: 'Results' }
+    : { all: 'Alles', product: 'Product', pricing: 'Prijzen', results: 'Resultaten' }
+  const faqCounts = {
+    all: faqItems.length,
+    product: faqItems.filter(i => i.cat === 'product').length,
+    pricing: faqItems.filter(i => i.cat === 'pricing').length,
+    results: faqItems.filter(i => i.cat === 'results').length,
+  }
+  const filteredFaq = faqCategory === 'all' ? faqItems : faqItems.filter(i => i.cat === faqCategory)
 
   useEffect(() => {
     const faqData = {
@@ -120,23 +133,18 @@ export default function GeoAuditPage() {
     return () => { const el = document.getElementById('faq-schema'); if (el) el.remove() }
   }, [locale])
 
-  // ── Check auth + load scan count ──────────────
+  // Auth + scan count
   useEffect(() => {
     const supabase = createClient()
-    
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       const currentUser = session?.user ?? null
       setUser(currentUser)
       setAuthChecked(true)
 
       if (currentUser && ADMIN_EMAILS.includes(currentUser.email)) {
-        setLimitReached(false)
-        setScanCount(0)
-        setIsPro(true)
-        return
+        setLimitReached(false); setScanCount(0); setIsPro(true); return
       }
 
-      // Check Pro subscription
       if (currentUser) {
         try {
           const { data: profile } = await supabase
@@ -145,10 +153,7 @@ export default function GeoAuditPage() {
             .eq('id', currentUser.id)
             .single()
           if (['active', 'canceling'].includes(profile?.subscription_status)) {
-            setIsPro(true)
-            setLimitReached(false)
-            setScanCount(0)
-            return
+            setIsPro(true); setLimitReached(false); setScanCount(0); return
           }
         } catch {}
       }
@@ -171,10 +176,9 @@ export default function GeoAuditPage() {
     })
   }, [])
 
-  // ── Scan step animation ─────────────────────────
+  // Scan step animation
   useEffect(() => {
     if (!loading) return
-
     setScanPhase('fetching')
     setCurrentStepIndex(0)
     setCompletedSteps([])
@@ -184,11 +188,9 @@ export default function GeoAuditPage() {
       if (stepIdx < SCAN_STEPS.length) {
         const step = SCAN_STEPS[stepIdx]
         setCurrentStepIndex(stepIdx)
-        
         if (step.id === 'ai_content') setScanPhase('analyzing')
         else if (step.id === 'perplexity') setScanPhase('testing')
         else if (step.id === 'score') setScanPhase('done')
-
         if (stepIdx > 0) {
           setCompletedSteps(prev => [...prev, SCAN_STEPS[stepIdx - 1]])
         }
@@ -198,20 +200,14 @@ export default function GeoAuditPage() {
         clearInterval(interval)
       }
     }, 1400)
-
     return () => clearInterval(interval)
   }, [loading])
 
-  // ── Handle audit ────────────────────────────────
   async function handleAudit(e) {
     e.preventDefault()
     if (!url.trim()) return
-
-    setLoading(true)
-    setError('')
-    setResults(null)
-    setExpandedCategory(null)
-    setShowFullSnippet(false)
+    setLoading(true); setError(''); setResults(null)
+    setExpandedCategory(null); setShowFullSnippet(false)
     setScanUrl(url.trim())
 
     try {
@@ -220,18 +216,15 @@ export default function GeoAuditPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url.trim(), locale })
       })
-
       const data = await response.json()
-
       if (!response.ok) {
         setError(data.error || t('somethingWentWrong'))
         return
       }
-
       setCompletedSteps([...SCAN_STEPS])
       setCurrentStepIndex(SCAN_STEPS.length - 1)
       setScanPhase('done')
-      
+
       if (!isAdmin) {
         const newCount = scanCount + 1
         setScanCount(newCount)
@@ -250,11 +243,9 @@ export default function GeoAuditPage() {
 
       await new Promise(r => setTimeout(r, 600))
       setResults(data)
-
       setTimeout(() => {
         resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }, 200)
-
     } catch (err) {
       setError(t('connectionError'))
     } finally {
@@ -282,8 +273,7 @@ export default function GeoAuditPage() {
       const downloadUrl = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = downloadUrl
-      const prefix = locale === 'en' ? 'GEO-Audit' : 'GEO-Audit'
-      a.download = `${prefix}-${(results.analysis?.companyName || results.domain || 'report').replace(/[^a-zA-Z0-9-]/g, '-')}.pdf`
+      a.download = `GEO-Audit-${(results.analysis?.companyName || results.domain || 'report').replace(/[^a-zA-Z0-9-]/g, '-')}.pdf`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -299,645 +289,561 @@ export default function GeoAuditPage() {
   const progress = Math.round((completedSteps.length / SCAN_STEPS.length) * 100)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 relative overflow-hidden">
-      {/* Animation styles */}
-      <style>{`
-        @keyframes tool-float-slow {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -25px) scale(1.08); }
-          66% { transform: translate(-25px, 15px) scale(0.95); }
-        }
-        @keyframes tool-float-medium {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(-40px, 30px) scale(1.1); }
-        }
-        .tool-orb-1 { animation: tool-float-slow 22s ease-in-out infinite; }
-        .tool-orb-2 { animation: tool-float-medium 18s ease-in-out infinite; animation-delay: -4s; }
-        .tool-orb-3 { animation: tool-float-slow 26s ease-in-out infinite reverse; animation-delay: -8s; }
-        @media (prefers-reduced-motion: reduce) {
-          .tool-orb-1, .tool-orb-2, .tool-orb-3 { animation: none; }
-        }
-      `}</style>
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="tool-orb-1 absolute -top-32 -right-32 lg:top-[-10%] lg:right-[5%] w-[300px] h-[300px] lg:w-[450px] lg:h-[450px] rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 40%, transparent 70%)' }} />
-        <div className="tool-orb-2 absolute -bottom-24 -left-24 lg:bottom-[-15%] lg:left-[-5%] w-[250px] h-[250px] lg:w-[400px] lg:h-[400px] rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.10) 0%, rgba(139, 92, 246, 0.03) 40%, transparent 70%)' }} />
-        <div className="tool-orb-3 absolute top-[50%] right-[8%] w-[120px] h-[120px] lg:w-[180px] lg:h-[180px] rounded-full hidden lg:block"
-          style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 60%)' }} />
-      </div>
+    <div className="tool-page gea-page">
+      <div className="gea-wrap">
 
-      {/* ── HERO + FORM ────────────────────────────── */}
-      <section className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
-        <div className="text-center mb-8 sm:mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-700 text-sm font-medium mb-4">
-            <Zap className="w-4 h-4" />
-            GEO Audit Tool
-          </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 text-slate-900 leading-tight px-4">
-            {t('heroTitle')}
+        {/* HERO */}
+        <div className="tool-hero">
+          <div className="tool-eyebrow">{t.has('eyebrow') ? t('eyebrow') : 'GEO AUDIT TOOL'}</div>
+          <h1>
+            {isEn ? (
+              <>How <em>AI-ready</em> is your page?</>
+            ) : (
+              <>Hoe <em>AI-ready</em> is je pagina?</>
+            )}
           </h1>
-          <p className="text-base sm:text-lg md:text-xl text-slate-600 px-4 mb-4" dangerouslySetInnerHTML={{ __html: t.raw('heroSubtitle') }} />
+          <p className="tool-hero-sub">
+            {isEn ? (
+              <>We analyse your page and test <strong>live on Perplexity</strong> if you can be found.</>
+            ) : (
+              <>We analyseren je pagina én testen <strong>live op Perplexity</strong> of je gevonden wordt.</>
+            )}
+          </p>
+          <div className="tool-trust-pills">
+            <span className="tool-trust-pill"><span className="pulse-dot" style={{ background: '#10B981' }} />Perplexity</span>
+            <span className="tool-trust-pill"><span className="pulse-dot" style={{ background: '#6366F1' }} />ChatGPT</span>
+            <span className="tool-trust-pill"><span className="pulse-dot" style={{ background: '#3B82F6' }} />Google AI Overviews</span>
+          </div>
         </div>
 
-        {/* ── FORM or SIGNUP WALL ────────────────────── */}
+        {/* FORM or SIGNUP WALL */}
         {limitReached && !isAdmin && !isPro && !loading && !results ? (
-          <div className="bg-white rounded-xl shadow-lg shadow-slate-200/50 border border-slate-200 p-8 text-center">
-            <div className="w-14 h-14 bg-gradient-to-br from-violet-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Zap className="w-7 h-7 text-white" />
-            </div>
+          <div className="gea-limit-card">
+            <div className="gea-limit-icon"><Zap className="gea-icon-md" /></div>
             {user ? (
               <>
-                <p className="text-xl font-bold text-slate-900 mb-2">{t('dailyLimitTitle')}</p>
-                <p className="text-slate-500 text-sm mb-6 max-w-md mx-auto">{t('dailyLimitDesc', { count: MAX_FREE_SCANS })}</p>
-                <Link href={locale === 'en' ? '/en/pricing' : '/pricing'} className="bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white font-semibold px-8 py-3 rounded-lg hover:shadow-lg transition-all inline-flex items-center gap-2 cursor-pointer">
-                  {locale === 'en' ? 'Upgrade to Pro for unlimited scans' : 'Upgrade naar Pro voor onbeperkt scannen'} <ArrowRight className="w-4 h-4" />
+                <h2 className="gea-limit-title">{t('dailyLimitTitle')}</h2>
+                <p className="gea-limit-desc">{t('dailyLimitDesc', { count: MAX_FREE_SCANS })}</p>
+                <Link href={isEn ? '/en/pricing' : '/pricing'} className="teun-scan-btn gea-limit-btn">
+                  {isEn ? 'Upgrade to Pro for unlimited scans' : 'Upgrade naar Pro voor onbeperkt scannen'} <ArrowRight className="gea-icon-sm" />
                 </Link>
               </>
             ) : (
               <>
-                <p className="text-xl font-bold text-slate-900 mb-2">{t('freeLimitTitle', { count: MAX_FREE_SCANS })}</p>
-                <p className="text-slate-500 text-sm mb-6 max-w-md mx-auto">{t('freeLimitDesc', { count: MAX_FREE_SCANS })}</p>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                  <Link href="/signup" className="bg-[#292956] text-white font-semibold px-8 py-3 rounded-lg hover:bg-[#1e1e45] transition-all inline-flex items-center gap-2 cursor-pointer">
-                    {t('createFreeAccount')} <ArrowRight className="w-4 h-4" />
+                <h2 className="gea-limit-title">{t('freeLimitTitle', { count: MAX_FREE_SCANS })}</h2>
+                <p className="gea-limit-desc">{t('freeLimitDesc', { count: MAX_FREE_SCANS })}</p>
+                <div className="gea-limit-actions">
+                  <Link href="/signup" className="teun-scan-btn gea-limit-btn">
+                    {t('createFreeAccount')} <ArrowRight className="gea-icon-sm" />
                   </Link>
-                  <Link href="/login" className="text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors">
-                    {t('alreadyHaveAccount')}
-                  </Link>
+                  <Link href="/login" className="gea-limit-secondary">{t('alreadyHaveAccount')}</Link>
                 </div>
               </>
             )}
-            <p className="text-xs text-slate-400 mt-4">{user ? t('scansPerDay', { count: MAX_FREE_SCANS }) : t('noCreditCard')}</p>
+            <p className="gea-limit-hint">{user ? t('scansPerDay', { count: MAX_FREE_SCANS }) : t('noCreditCard')}</p>
           </div>
         ) : (
-          <>
-          <form onSubmit={handleAudit} className="relative">
-            <div className="bg-white rounded-xl shadow-lg shadow-slate-200/50 border border-slate-200 p-2 flex items-center gap-2">
-            <div className="flex items-center gap-2 flex-1 pl-3">
-              <Globe className="w-5 h-5 text-slate-400 flex-shrink-0" />
+          <form onSubmit={handleAudit} className="gea-form" id="gea-form">
+            <div className="gea-input-row">
+              <Globe className="gea-input-icon" />
               <input
                 type="text"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder={t('placeholder')}
-                className="w-full py-2.5 text-base text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent"
+                className="gea-input"
                 disabled={loading}
               />
             </div>
-            <button
-              type="submit"
-              disabled={loading || !url.trim()}
-              className="bg-[#292956] text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-[#1e1e45] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 flex-shrink-0 cursor-pointer"
-            >
+            <button type="submit" disabled={loading} className="teun-scan-btn gea-submit">
               {loading ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /><span className="hidden sm:inline">{t('analyzing')}</span></>
+                <><Loader2 className="gea-icon-md gea-spin" /> {t('analyzing')}</>
               ) : (
-                <>{t('analyze')}<ArrowRight className="w-4 h-4" /></>
+                <><Search className="gea-icon-md" /> {t('analyze')}</>
               )}
             </button>
-          </div>
-        </form>
-        <p className="text-xs text-slate-400 mt-2 text-center">
-          {loading ? t('scanDurationLoading') : t('scanDuration')}
-        </p>
-        </>
+            <p className="gea-form-hint">
+              {loading ? t('scanDurationLoading') : t('scanDuration')}
+            </p>
+          </form>
         )}
 
-        {!limitReached && authChecked && !isAdmin && !isPro && (
-          <p className="text-center text-xs text-slate-400 mt-3">
-            {t('free')} &middot; {user ? '' : `${t('noAccountNeeded')} · `}{t('scansAvailable', { remaining: MAX_FREE_SCANS - scanCount, total: MAX_FREE_SCANS })}{user ? ` ${t('today')}` : ''}
+        {!limitReached && authChecked && !isAdmin && !isPro && !loading && !results && (
+          <p className="gea-scans-line">
+            {t('free')} · {user ? '' : `${t('noAccountNeeded')} · `}
+            {t('scansAvailable', { remaining: MAX_FREE_SCANS - scanCount, total: MAX_FREE_SCANS })}
+            {user ? ` ${t('today')}` : ''}
           </p>
         )}
 
-        {/* ── ERROR ─────────────────────────────────── */}
+        {/* ERROR */}
         {error && !loading && (
-          <div className="mt-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
-            <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div className="tool-error gea-error">
+            <XCircle className="gea-icon-md gea-error-icon" />
             <div>
-              <p className="text-sm font-medium text-red-800">{error}</p>
-              <p className="text-xs text-red-600 mt-1">{t('checkUrl')}</p>
+              <strong>{error}</strong>
+              <p>{t('checkUrl')}</p>
             </div>
           </div>
         )}
-      </section>
 
-      {/* ── SCAN ANIMATION ─────────────────────────── */}
-      {loading && (
-        <section className="max-w-4xl mx-auto px-4 sm:px-6 pb-8">
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-sm font-medium text-slate-700">
-                {scanPhase === 'fetching' && t('phaseFetching')}
-                {scanPhase === 'analyzing' && t('phaseAnalyzing')}
-                {scanPhase === 'testing' && `🔥 ${t('phaseTesting')}`}
-                {scanPhase === 'done' && (locale === 'en' ? 'Loading Core Web Vitals...' : 'Core Web Vitals laden...')}
-              </span>
-              <span className="text-sm text-slate-400">
-                {scanPhase === 'done' 
-                  ? (cwvElapsed > 0 ? `${cwvElapsed}s` : '100%')
-                  : `${progress}%`}
-              </span>
-            </div>
-            <div className="bg-slate-100 rounded-full h-2.5 overflow-hidden">
-              <div 
-                className={`h-full bg-gradient-to-r from-violet-500 via-cyan-500 to-emerald-500 transition-all duration-700 ease-out ${scanPhase === 'done' ? 'animate-pulse' : ''}`}
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            {scanPhase === 'done' && (
-              <p className="text-xs text-slate-400 mt-1.5 text-center">
-                {(() => {
-                  const isEN = locale === 'en'
-                  if (cwvElapsed >= 90) {
-                    return isEN
-                      ? 'Almost there, final check running...'
-                      : 'Bijna klaar, laatste check loopt...'
-                  }
-                  if (cwvElapsed >= 45) {
-                    return isEN
-                      ? 'This site needs extra processing, hang on (up to 90s total)'
-                      : 'Deze site vereist extra verwerking, nog even geduld (tot 90s totaal)'
-                  }
-                  return isEN
-                    ? 'The scan usually takes 30-60 seconds'
-                    : 'De scan duurt meestal 30-60 seconden'
-                })()}
-              </p>
-            )}
-          </div>
-
-          <div className="grid lg:grid-cols-5 gap-5">
-            {/* ── Left: Browser Window (3/5) ─────────── */}
-            <div className="lg:col-span-3 bg-slate-900 rounded-2xl p-4 relative overflow-hidden">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-500" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                  <div className="w-3 h-3 rounded-full bg-green-500" />
-                </div>
-                <div className="flex-1 bg-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-400 truncate font-mono">
-                  {scanUrl.replace(/^https?:\/\//, '')}
-                </div>
+        {/* SCAN ANIMATION */}
+        {loading && (
+          <div className="gea-scan">
+            {/* Top progress bar */}
+            <div className="gea-scan-progress">
+              <div className="gea-scan-progress-head">
+                <span className="gea-scan-phase">
+                  {scanPhase === 'fetching' && t('phaseFetching')}
+                  {scanPhase === 'analyzing' && t('phaseAnalyzing')}
+                  {scanPhase === 'testing' && t('phaseTesting')}
+                  {scanPhase === 'done' && (isEn ? 'Loading Core Web Vitals...' : 'Core Web Vitals laden...')}
+                </span>
+                <span className="gea-scan-pct">
+                  {scanPhase === 'done' ? (cwvElapsed > 0 ? `${cwvElapsed}s` : '100%') : `${progress}%`}
+                </span>
               </div>
-              
-              <div className="relative bg-white rounded-lg overflow-hidden" style={{ height: '300px' }}>
-                <div className="p-4 space-y-3 opacity-60">
-                  <div className="h-8 bg-slate-200 rounded w-3/4" />
-                  <div className="h-4 bg-slate-100 rounded w-full" />
-                  <div className="h-4 bg-slate-100 rounded w-5/6" />
-                  <div className="h-4 bg-slate-100 rounded w-4/6" />
-                  <div className="h-20 bg-slate-50 rounded mt-4" />
-                  <div className="h-4 bg-slate-100 rounded w-full" />
-                  <div className="h-4 bg-slate-100 rounded w-3/4" />
-                  <div className="grid grid-cols-3 gap-2 mt-4">
-                    <div className="h-16 bg-slate-100 rounded" />
-                    <div className="h-16 bg-slate-100 rounded" />
-                    <div className="h-16 bg-slate-100 rounded" />
-                  </div>
-                </div>
-                
-                <div className="absolute bottom-16 right-2 z-10 animate-bounce" style={{ animationDuration: '2s' }}>
-                  <Image 
-                    src="/images/teun-met-vergrootglas.png" 
-                    alt="Teun"
-                    width={90} 
-                    height={117} 
-                    className="drop-shadow-lg"
-                  />
-                </div>
-                
-                <div 
-                  className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent scan-line-animation"
-                  style={{ boxShadow: '0 0 20px 5px rgba(34, 211, 238, 0.4)' }}
+              <div className="gea-scan-bar">
+                <div
+                  className={`gea-scan-bar-fill${scanPhase === 'done' ? ' gea-pulse' : ''}`}
+                  style={{ width: `${progress}%` }}
                 />
-                
-                <div 
-                  className="absolute inset-0 pointer-events-none pulse-animation"
-                  style={{ background: 'linear-gradient(180deg, rgba(34,211,238,0.1) 0%, transparent 50%, rgba(34,211,238,0.1) 100%)' }}
-                />
-                
-                <div className="absolute bottom-3 left-3 right-14">
-                  <div className={`px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 ${
-                    scanPhase === 'fetching' ? 'bg-blue-500 text-white' :
-                    scanPhase === 'analyzing' ? 'bg-purple-500 text-white' :
-                    scanPhase === 'testing' ? 'bg-orange-500 text-white' :
-                    'bg-green-500 text-white'
-                  }`}>
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    {scanPhase === 'fetching' && t('phaseScanning')}
-                    {scanPhase === 'analyzing' && t('phaseAnalyzing')}
-                    {scanPhase === 'testing' && t('phasePerplexity')}
-                    {scanPhase === 'done' && (locale === 'en' 
-                      ? `Core Web Vitals${cwvElapsed > 0 ? ` · ${cwvElapsed}s` : '...'}`
-                      : `Core Web Vitals${cwvElapsed > 0 ? ` · ${cwvElapsed}s` : '...'}`)}
-                  </div>
-                </div>
               </div>
-            </div>
-
-            {/* ── Right: Scan Progress (2/5) ────────────── */}
-            <div className="lg:col-span-2 bg-slate-50 rounded-2xl p-5 flex flex-col items-center justify-center text-center">
-              <div className="relative mb-5">
-                <svg className="w-32 h-32 -rotate-90" viewBox="0 0 120 120">
-                  <circle cx="60" cy="60" r="52" fill="none" stroke="#e2e8f0" strokeWidth="6" />
-                  <circle 
-                    cx="60" cy="60" r="52" fill="none" 
-                    stroke={scanPhase === 'done' ? '#06b6d4' : scanPhase === 'testing' ? '#f97316' : scanPhase === 'analyzing' ? '#8b5cf6' : '#06b6d4'} 
-                    strokeWidth="6" strokeLinecap="round"
-                    strokeDasharray={`${(progress / 100) * 327} 327`}
-                    className={`transition-all duration-700 ease-out ${scanPhase === 'done' ? 'animate-pulse' : ''}`}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-bold text-slate-800">
-                    {scanPhase === 'done' && cwvElapsed > 0 ? `${cwvElapsed}s` : `${progress}%`}
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-medium">
-                    {scanPhase === 'done' ? 'PageSpeed' : `${completedSteps.length}/${SCAN_STEPS.length}`}
-                  </span>
-                </div>
-              </div>
-
-              {scanPhase === 'done' ? (
-                <div className="w-full">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-1 text-cyan-500">
-                    Google PageSpeed
-                  </p>
-                  <p className="text-sm font-medium text-slate-700 leading-snug min-h-[40px] flex items-center justify-center">
-                    {locale === 'en' 
-                      ? 'Fetching performance data...' 
-                      : 'Prestatiedata ophalen...'}
-                  </p>
-                </div>
-              ) : currentStepIndex < SCAN_STEPS.length && (
-                <div className="w-full">
-                  <p className={`text-[10px] font-semibold uppercase tracking-widest mb-1 transition-colors duration-500 ${
-                    scanPhase === 'testing' ? 'text-orange-500' : scanPhase === 'analyzing' ? 'text-purple-500' : 'text-cyan-500'
-                  }`}>{SCAN_STEPS[currentStepIndex].section}</p>
-                  <p className="text-sm font-medium text-slate-700 leading-snug min-h-[40px] flex items-center justify-center">
-                    {SCAN_STEPS[currentStepIndex].label}
-                  </p>
-                </div>
-              )}
-
-              {completedSteps.length > 0 && (
-                <p className="text-xs text-emerald-500 mt-4 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  {completedSteps[completedSteps.length - 1].label}
+              {scanPhase === 'done' && (
+                <p className="gea-scan-cwv-hint">
+                  {(() => {
+                    if (cwvElapsed >= 90) return isEn ? 'Almost there, final check running...' : 'Bijna klaar, laatste check loopt...'
+                    if (cwvElapsed >= 45) return isEn ? 'This site needs extra processing, hang on (up to 90s total)' : 'Deze site vereist extra verwerking, nog even geduld (tot 90s totaal)'
+                    return isEn ? 'The scan usually takes 30-60 seconds' : 'De scan duurt meestal 30-60 seconden'
+                  })()}
                 </p>
               )}
             </div>
-          </div>
-        </section>
-      )}
 
-      {/* ── FEATURES (before results, when idle) ──── */}
-      {!results && !loading && !error && (
-        <section className="max-w-3xl mx-auto px-4 sm:px-6 pb-16">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[
-              { icon: <BarChart3 className="w-5 h-5" />, title: t('feat1Title'), desc: t('feat1Desc') },
-              { icon: <Shield className="w-5 h-5" />, title: t('feat2Title'), desc: t('feat2Desc') },
-              { icon: <Sparkles className="w-5 h-5" />, title: t('feat3Title'), desc: t('feat3Desc') },
-              { icon: <Eye className="w-5 h-5" />, title: t('feat4Title'), desc: t('feat4Desc') },
-            ].map((f, i) => (
-              <div key={i} className="bg-white rounded-xl border border-slate-200 p-5 hover:border-slate-300 transition-colors">
-                <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-600 mb-3">{f.icon}</div>
-                <p className="font-semibold text-slate-900 text-sm mb-1">{f.title}</p>
-                <p className="text-slate-500 text-sm leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── RESULTS ────────────────────────────────── */}
-      {results && (
-        <section ref={resultsRef} className="max-w-3xl mx-auto px-4 sm:px-6 pb-20">
-
-          {/* ━━━ LIVE TEST RESULT ━━━ */}
-          {results.liveTest && (
-            <div className={`rounded-xl border-2 p-6 mb-6 ${
-              results.liveTest.mentioned ? 'bg-emerald-50 border-emerald-300' : 'bg-red-50 border-red-300'
-            }`}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl ${
-                  results.liveTest.mentioned ? 'bg-emerald-200' : 'bg-red-200'
-                }`}>
-                  {results.liveTest.mentioned ? '✅' : '❌'}
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900">
-                    {results.liveTest.mentioned
-                      ? t('liveTestFound', { company: results.analysis.companyName })
-                      : t('liveTestNotFound', { company: results.analysis.companyName })
-                    }
-                  </h2>
-                  <p className="text-sm text-slate-500">
-                    {t('liveTestedOn')} <span className="font-semibold text-purple-600">Perplexity</span>
-                    {results.liveTest.mentioned && results.liveTest.mentionCount > 0 && (
-                      <span className="ml-1">— {t('timesMentioned', { count: results.liveTest.mentionCount })}</span>
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-white/70 rounded-lg p-4 mb-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1">
-                    <p className="text-xs font-semibold text-purple-600 uppercase tracking-wide mb-1">💬 {t('testedPrompt')}</p>
-                    <p className="text-sm text-slate-800 font-medium leading-relaxed">&ldquo;{results.liveTest.prompt}&rdquo;</p>
+            {/* Scan visual */}
+            <div className="gea-scan-grid">
+              {/* Browser mockup */}
+              <div className="gea-browser">
+                <div className="gea-browser-bar">
+                  <div className="gea-browser-dots">
+                    <span className="gea-browser-dot gea-browser-dot-r" />
+                    <span className="gea-browser-dot gea-browser-dot-y" />
+                    <span className="gea-browser-dot gea-browser-dot-g" />
                   </div>
-                  <button onClick={() => copyPrompt(results.liveTest.prompt)} className="flex-shrink-0 p-2 rounded-lg hover:bg-white transition-colors cursor-pointer">
-                    {copiedPrompt ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-slate-400" />}
+                  <div className="gea-browser-url">{scanUrl.replace(/^https?:\/\//, '')}</div>
+                </div>
+                <div className="gea-browser-body">
+                  <div className="gea-skeleton gea-skeleton-h2" />
+                  <div className="gea-skeleton gea-skeleton-line" />
+                  <div className="gea-skeleton gea-skeleton-line short" />
+                  <div className="gea-skeleton gea-skeleton-line shorter" />
+                  <div className="gea-skeleton gea-skeleton-block" />
+                  <div className="gea-skeleton gea-skeleton-line" />
+                  <div className="gea-skeleton-grid">
+                    <div className="gea-skeleton gea-skeleton-card" />
+                    <div className="gea-skeleton gea-skeleton-card" />
+                    <div className="gea-skeleton gea-skeleton-card" />
+                  </div>
+
+                  <div className="gea-browser-mascot gea-bounce">
+                    <Image src="/images/teun-met-vergrootglas.png" alt="Teun" width={90} height={117} />
+                  </div>
+
+                  <div className="gea-scan-line" />
+
+                  <div className="gea-browser-status">
+                    <Loader2 className="gea-icon-xs gea-spin" />
+                    {scanPhase === 'fetching' && t('phaseScanning')}
+                    {scanPhase === 'analyzing' && t('phaseAnalyzing')}
+                    {scanPhase === 'testing' && t('phasePerplexity')}
+                    {scanPhase === 'done' && (
+                      <>Core Web Vitals{cwvElapsed > 0 ? ` · ${cwvElapsed}s` : '...'}</>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Circle with current step */}
+              <div className="gea-scan-side">
+                <div className="gea-scan-circle">
+                  <svg viewBox="0 0 120 120">
+                    <circle cx="60" cy="60" r="52" fill="none" stroke="var(--bg-2)" strokeWidth="6" />
+                    <circle
+                      cx="60" cy="60" r="52" fill="none"
+                      stroke="var(--spark)"
+                      strokeWidth="6" strokeLinecap="round"
+                      strokeDasharray={`${(progress / 100) * 327} 327`}
+                      transform="rotate(-90 60 60)"
+                      className={scanPhase === 'done' ? 'gea-pulse' : ''}
+                    />
+                  </svg>
+                  <div className="gea-scan-circle-text">
+                    <span className="gea-scan-circle-num">
+                      {scanPhase === 'done' && cwvElapsed > 0 ? `${cwvElapsed}s` : `${progress}%`}
+                    </span>
+                    <span className="gea-scan-circle-sub">
+                      {scanPhase === 'done' ? 'PageSpeed' : `${completedSteps.length}/${SCAN_STEPS.length}`}
+                    </span>
+                  </div>
+                </div>
+
+                {scanPhase === 'done' ? (
+                  <div className="gea-scan-step">
+                    <p className="gea-scan-step-section">Google PageSpeed</p>
+                    <p className="gea-scan-step-label">
+                      {isEn ? 'Fetching performance data...' : 'Prestatiedata ophalen...'}
+                    </p>
+                  </div>
+                ) : currentStepIndex < SCAN_STEPS.length && (
+                  <div className="gea-scan-step">
+                    <p className="gea-scan-step-section">{SCAN_STEPS[currentStepIndex].section}</p>
+                    <p className="gea-scan-step-label">{SCAN_STEPS[currentStepIndex].label}</p>
+                  </div>
+                )}
+
+                {completedSteps.length > 0 && (
+                  <p className="gea-scan-completed">
+                    <CheckCircle2 className="gea-icon-xs" />
+                    {completedSteps[completedSteps.length - 1].label}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* RESULTS */}
+        {results && (
+          <div ref={resultsRef} className="gea-results">
+
+            {/* Live test result */}
+            {results.liveTest && (
+              <div className={`gea-livetest gea-livetest-${results.liveTest.mentioned ? 'success' : 'fail'}`}>
+                <div className="gea-livetest-head">
+                  <div className="gea-livetest-icon">
+                    {results.liveTest.mentioned ? <CheckCircle2 /> : <XCircle />}
+                  </div>
+                  <div>
+                    <h2 className="gea-livetest-title">
+                      {results.liveTest.mentioned
+                        ? t('liveTestFound', { company: results.analysis.companyName })
+                        : t('liveTestNotFound', { company: results.analysis.companyName })}
+                    </h2>
+                    <p className="gea-livetest-meta">
+                      {t('liveTestedOn')} <strong>Perplexity</strong>
+                      {results.liveTest.mentioned && results.liveTest.mentionCount > 0 && (
+                        <> — {t('timesMentioned', { count: results.liveTest.mentionCount })}</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="gea-livetest-prompt">
+                  <div>
+                    <p className="gea-livetest-label">💬 {t('testedPrompt')}</p>
+                    <p className="gea-livetest-prompt-text">&ldquo;{results.liveTest.prompt}&rdquo;</p>
+                  </div>
+                  <button onClick={() => copyPrompt(results.liveTest.prompt)} className="gea-livetest-copy" title="Copy prompt">
+                    {copiedPrompt ? <Check className="gea-icon-sm" /> : <Copy className="gea-icon-sm" />}
                   </button>
                 </div>
+
+                {results.liveTest.snippet && (
+                  <div className="gea-livetest-snippet">
+                    <p className="gea-livetest-label">🤖 {t('perplexityResponse')}</p>
+                    <div className="gea-livetest-snippet-body">
+                      <p className={!showFullSnippet ? 'gea-clamp-4' : ''}>{results.liveTest.snippet}</p>
+                      {results.liveTest.snippet.length > 300 && (
+                        <button onClick={() => setShowFullSnippet(!showFullSnippet)} className="gea-livetest-toggle">
+                          {showFullSnippet ? t('showLess') : t('showFullResponse')}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {results.liveTest.competitors?.length > 0 && (
+                  <div className="gea-livetest-competitors">
+                    <p className="gea-livetest-label">
+                      <Users className="gea-icon-xs" /> {t('competitorsInResponse')}
+                    </p>
+                    <div className="gea-livetest-tags">
+                      {results.liveTest.competitors.map((comp, i) => (
+                        <span key={i} className="gea-livetest-tag">{comp}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {!results.liveTest.mentioned && (
+                  <div className="gea-livetest-cta">
+                    <p>
+                      <strong>{t('whatNow')}</strong> {t('notFoundCta')}
+                    </p>
+                    <Link href="/signup" className="gea-livetest-cta-link">
+                      {t('startFullAnalysis')} <ArrowRight className="gea-icon-xs" />
+                    </Link>
+                  </div>
+                )}
               </div>
+            )}
 
-              {results.liveTest.snippet && (
-                <div className="mb-4">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">🤖 {t('perplexityResponse')}</p>
-                  <div className="bg-white/70 rounded-lg p-4 text-sm text-slate-700 leading-relaxed">
-                    <p className={!showFullSnippet ? 'line-clamp-4' : ''}>{results.liveTest.snippet}</p>
-                    {results.liveTest.snippet.length > 300 && (
-                      <button onClick={() => setShowFullSnippet(!showFullSnippet)} className="text-xs text-purple-600 font-medium mt-2 hover:underline cursor-pointer">
-                        {showFullSnippet ? t('showLess') : t('showFullResponse')}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {results.liveTest.competitors?.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-                    <Users className="w-3 h-3 inline mr-1" />{t('competitorsInResponse')}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {results.liveTest.competitors.map((comp, i) => (
-                      <span key={i} className="bg-amber-100 text-amber-800 border border-amber-200 text-xs font-medium px-2.5 py-1 rounded-full">{comp}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {!results.liveTest.mentioned && (
-                <div className="mt-4 pt-4 border-t border-red-200">
-                  <p className="text-sm text-slate-700">
-                    <strong>{t('whatNow')}</strong> {t('notFoundCta')}
-                  </p>
-                  <Link href="/signup" className="inline-flex items-center gap-1.5 mt-2 text-sm font-semibold text-red-700 hover:text-red-800">
-                    {t('startFullAnalysis')} <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ━━━ OVERALL SCORE ━━━ */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 sm:p-8 mb-6">
-            <div className="flex flex-col sm:flex-row items-center gap-6">
-              <div className="relative">
-                <svg className="w-32 h-32 -rotate-90" viewBox="0 0 120 120">
-                  <circle cx="60" cy="60" r="52" fill="none" stroke="#f1f5f9" strokeWidth="8" />
-                  <circle cx="60" cy="60" r="52" fill="none" stroke={getScoreColor(results.analysis.overallScore)} strokeWidth="8" strokeLinecap="round" strokeDasharray={`${(results.analysis.overallScore / 100) * 327} 327`} />
+            {/* Overall score */}
+            <div className="gea-score">
+              <div className="gea-score-circle">
+                <svg viewBox="0 0 120 120">
+                  <circle cx="60" cy="60" r="52" fill="none" stroke="var(--bg-2)" strokeWidth="8" />
+                  <circle
+                    cx="60" cy="60" r="52" fill="none"
+                    stroke={getScoreColor(results.analysis.overallScore)}
+                    strokeWidth="8" strokeLinecap="round"
+                    strokeDasharray={`${(results.analysis.overallScore / 100) * 327} 327`}
+                    transform="rotate(-90 60 60)"
+                  />
                 </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-3xl font-bold text-slate-900">{results.analysis.overallScore}</span>
-                  <span className="text-xs text-slate-500">/ 100</span>
+                <div className="gea-score-circle-text">
+                  <span className="gea-score-circle-num">{results.analysis.overallScore}</span>
+                  <span className="gea-score-circle-sub">/ 100</span>
                 </div>
               </div>
-              <div className="text-center sm:text-left flex-1">
-                <h2 className="text-xl font-bold text-slate-900 mb-1">GEO Score</h2>
-                <p className="text-sm text-slate-500 mb-3">{results.domain} · {getScoreLabel(results.analysis.overallScore, t)}</p>
-                <div className="space-y-2">
+              <div className="gea-score-body">
+                <h2 className="gea-score-title">GEO Score</h2>
+                <p className="gea-score-meta">{results.domain} · {getScoreLabel(results.analysis.overallScore, t)}</p>
+                <div className="gea-score-bars">
                   {results.analysis.categories.map((cat) => (
-                    <div key={cat.slug} className="flex items-center gap-3">
-                      <span className="text-xs text-slate-500 w-40 truncate">{cat.icon} {cat.name}</span>
-                      <div className="flex-1 bg-slate-100 rounded-full h-2">
-                        <div className="h-2 rounded-full transition-all duration-700" style={{ width: `${cat.score}%`, backgroundColor: getScoreColor(cat.score) }} />
+                    <div key={cat.slug} className="gea-score-bar-row">
+                      <span className="gea-score-bar-label">{cat.icon} {cat.name}</span>
+                      <div className="gea-score-bar-track">
+                        <div className="gea-score-bar-fill" style={{ width: `${cat.score}%`, backgroundColor: getScoreColor(cat.score) }} />
                       </div>
-                      <span className="text-xs font-semibold text-slate-700 w-8 text-right">{cat.score}</span>
+                      <span className="gea-score-bar-num">{cat.score}</span>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* ━━━ ACTIONS BAR ━━━ */}
-          <div className="flex items-center justify-end gap-3 mb-6">
-            <button
-              onClick={handleDownloadPdf}
-              disabled={downloadingPdf}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-            >
-              {downloadingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              {downloadingPdf ? t('pdfGenerating') : t('downloadPdf')}
-            </button>
-          </div>
-
-          {/* ━━━ TOP RECOMMENDATIONS ━━━ */}
-          {results.analysis.topRecommendations?.length > 0 && (
-            <div className="bg-amber-50 rounded-xl border border-amber-200 p-5 mb-6">
-              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-3">⚡ {t('topRecommendations')}</p>
-              <ol className="space-y-2">
-                {results.analysis.topRecommendations.map((rec, i) => (
-                  <li key={i} className="flex items-start gap-2.5">
-                    <span className="flex-shrink-0 w-5 h-5 bg-amber-200 text-amber-800 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">{i + 1}</span>
-                    <span className="text-sm text-slate-800 leading-relaxed">{rec}</span>
-                  </li>
-                ))}
-              </ol>
+            {/* Actions: PDF download */}
+            <div className="gea-actions">
+              <button onClick={handleDownloadPdf} disabled={downloadingPdf} className="gea-action-btn">
+                {downloadingPdf ? <Loader2 className="gea-icon-sm gea-spin" /> : <Download className="gea-icon-sm" />}
+                {downloadingPdf ? t('pdfGenerating') : t('downloadPdf')}
+              </button>
             </div>
-          )}
 
-          {/* ━━━ CATEGORY DETAILS ━━━ */}
-          <div className="space-y-3">
-            {results.analysis.categories.map((cat) => (
-              <div key={cat.slug} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                <button onClick={() => setExpandedCategory(expandedCategory === cat.slug ? null : cat.slug)} className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-colors cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg" style={{ backgroundColor: getScoreColor(cat.score) + '18' }}>{cat.icon}</div>
-                    <div className="text-left">
-                      <p className="font-semibold text-slate-900 text-sm">{cat.name}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{cat.summary}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {cat.checks.length > 0 && (
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-emerald-600 font-medium">{cat.checks.filter(c => c.status === 'good').length}</span>
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                        {cat.checks.filter(c => c.status !== 'good').length > 0 && (
-                          <>
-                            <span className="text-xs text-red-500 font-medium ml-1">{cat.checks.filter(c => c.status !== 'good').length}</span>
-                            <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
-                          </>
-                        )}
+            {/* Top recommendations */}
+            {results.analysis.topRecommendations?.length > 0 && (
+              <div className="gea-recommendations">
+                <p className="gea-recommendations-eyebrow">⚡ {t('topRecommendations')}</p>
+                <ol className="gea-recommendations-list">
+                  {results.analysis.topRecommendations.map((rec, i) => (
+                    <li key={i} className="gea-recommendation">
+                      <span className="gea-recommendation-num">{i + 1}</span>
+                      <span>{rec}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {/* Category accordion */}
+            <div className="gea-categories">
+              {results.analysis.categories.map((cat) => (
+                <div key={cat.slug} className="gea-category">
+                  <button
+                    onClick={() => setExpandedCategory(expandedCategory === cat.slug ? null : cat.slug)}
+                    className="gea-category-head"
+                  >
+                    <div className="gea-category-meta">
+                      <span className="gea-category-icon" style={{ backgroundColor: getScoreColor(cat.score) + '18' }}>{cat.icon}</span>
+                      <div className="gea-category-text">
+                        <p className="gea-category-name">{cat.name}</p>
+                        <p className="gea-category-summary">{cat.summary}</p>
                       </div>
-                    )}
-                    <span className="text-lg font-bold" style={{ color: getScoreColor(cat.score) }}>{cat.score}</span>
-                    {expandedCategory === cat.slug ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                  </div>
-                </button>
-                {expandedCategory === cat.slug && cat.checks.length > 0 && (
-                  <div className="border-t border-slate-100 px-5 pb-4">
-                    <div className="divide-y divide-slate-50">
+                    </div>
+                    <div className="gea-category-right">
+                      {cat.checks.length > 0 && (
+                        <div className="gea-category-counts">
+                          <span className="gea-category-count-good">{cat.checks.filter(c => c.status === 'good').length}</span>
+                          <CheckCircle2 className="gea-icon-xs gea-text-success" />
+                          {cat.checks.filter(c => c.status !== 'good').length > 0 && (
+                            <>
+                              <span className="gea-category-count-bad">{cat.checks.filter(c => c.status !== 'good').length}</span>
+                              <AlertTriangle className="gea-icon-xs gea-text-warn" />
+                            </>
+                          )}
+                        </div>
+                      )}
+                      <span className="gea-category-score" style={{ color: getScoreColor(cat.score) }}>{cat.score}</span>
+                      {expandedCategory === cat.slug ? <ChevronUp className="gea-icon-sm" /> : <ChevronDown className="gea-icon-sm" />}
+                    </div>
+                  </button>
+                  {expandedCategory === cat.slug && cat.checks.length > 0 && (
+                    <div className="gea-category-body">
                       {cat.checks.map((check, i) => (
-                        <div key={i} className="py-3 flex items-start gap-3">
-                          {check.status === 'good' ? <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" /> : check.status === 'warning' ? <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" /> : <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-slate-800">{check.name}</span>
-                              <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${check.priority === 'kritiek' || check.priority === 'critical' ? 'bg-red-100 text-red-700' : check.priority === 'hoog' || check.priority === 'high' ? 'bg-orange-100 text-orange-700' : check.priority === 'middel' || check.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-500'}`}>{check.priority}</span>
+                        <div key={i} className="gea-check">
+                          {check.status === 'good'
+                            ? <CheckCircle2 className="gea-icon-md gea-text-success" />
+                            : check.status === 'warning'
+                              ? <AlertTriangle className="gea-icon-md gea-text-warn" />
+                              : <XCircle className="gea-icon-md gea-text-danger" />}
+                          <div className="gea-check-body">
+                            <div className="gea-check-head">
+                              <span className="gea-check-name">{check.name}</span>
+                              <span className={`gea-check-priority gea-check-priority-${
+                                check.priority === 'kritiek' || check.priority === 'critical' ? 'critical'
+                                : check.priority === 'hoog' || check.priority === 'high' ? 'high'
+                                : check.priority === 'middel' || check.priority === 'medium' ? 'medium'
+                                : 'low'
+                              }`}>{check.priority}</span>
                             </div>
-                            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{check.detail}</p>
+                            <p className="gea-check-detail">{check.detail}</p>
                           </div>
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* ━━━ EXTRACTED META ━━━ */}
-          <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 mt-6">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">{t('foundOnPage')}</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-              {[
-                { label: t('words'), value: results.extracted.wordCount },
-                { label: 'Headings', value: results.extracted.headingCount },
-                { label: t('images'), value: results.extracted.imageCount },
-                { label: 'Schema types', value: results.extracted.structuredDataTypes?.length || 0 },
-              ].map((stat, i) => (
-                <div key={i} className="bg-white rounded-lg p-3 border border-slate-100">
-                  <p className="text-lg font-bold text-slate-900">{stat.value}</p>
-                  <p className="text-xs text-slate-500">{stat.label}</p>
+                  )}
                 </div>
               ))}
             </div>
-            <div className="flex flex-wrap gap-2 mt-3">
-              {results.extracted.hasStructuredData && <Badge color="green" label="Structured Data" />}
-              {results.extracted.hasFAQ && <Badge color="green" label="FAQ" />}
-              {results.extracted.hasRobotsTxt && <Badge color="green" label="robots.txt" />}
-              {results.extracted.hasLlmsTxt && <Badge color="green" label="llms.txt" />}
-              {!results.extracted.hasStructuredData && <Badge color="red" label={t('noStructuredData')} />}
-              {!results.extracted.hasRobotsTxt && <Badge color="amber" label={t('noRobotsTxt')} />}
-              {!results.extracted.hasLlmsTxt && <Badge color="amber" label={t('noLlmsTxt')} />}
-              {results.extracted.richSnippets?.eligible?.length > 0 && 
-                <Badge color="green" label={`Rich Snippets: ${results.extracted.richSnippets.eligible.join(', ')}`} />}
-              {results.extracted.richSnippets?.eligible?.length === 0 && results.extracted.richSnippets?.suggestedTypes?.length > 0 &&
-                <Badge color="red" label={t('noRichSnippets')} />}
-            </div>
-            {/* Core Web Vitals */}
-            {results.extracted.coreWebVitals && (
-              <div className="mt-3 pt-3 border-t border-slate-200">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Core Web Vitals</p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                  <div className="bg-white rounded-lg p-3 border border-slate-100">
-                    <p className={`text-lg font-bold ${results.extracted.coreWebVitals.performanceScore >= 90 ? 'text-green-600' : results.extracted.coreWebVitals.performanceScore >= 50 ? 'text-orange-500' : 'text-red-500'}`}>
-                      {results.extracted.coreWebVitals.performanceScore}
-                    </p>
-                    <p className="text-xs text-slate-500">Performance</p>
+
+            {/* Extracted meta + Core Web Vitals */}
+            <div className="gea-meta">
+              <p className="gea-meta-eyebrow">{t('foundOnPage')}</p>
+              <div className="gea-meta-grid">
+                {[
+                  { label: t('words'), value: results.extracted.wordCount },
+                  { label: 'Headings', value: results.extracted.headingCount },
+                  { label: t('images'), value: results.extracted.imageCount },
+                  { label: 'Schema', value: results.extracted.structuredDataTypes?.length || 0 },
+                ].map((stat, i) => (
+                  <div key={i} className="gea-meta-stat">
+                    <p className="gea-meta-stat-num">{stat.value}</p>
+                    <p className="gea-meta-stat-label">{stat.label}</p>
                   </div>
-                  {results.extracted.coreWebVitals.lcp && (
-                    <div className="bg-white rounded-lg p-3 border border-slate-100">
-                      <p className={`text-lg font-bold ${results.extracted.coreWebVitals.lcp <= 2500 ? 'text-green-600' : results.extracted.coreWebVitals.lcp <= 4000 ? 'text-orange-500' : 'text-red-500'}`}>
-                        {(results.extracted.coreWebVitals.lcp / 1000).toFixed(1)}s
-                      </p>
-                      <p className="text-xs text-slate-500">LCP</p>
-                    </div>
-                  )}
-                  {results.extracted.coreWebVitals.cls !== null && results.extracted.coreWebVitals.cls !== undefined && (
-                    <div className="bg-white rounded-lg p-3 border border-slate-100">
-                      <p className={`text-lg font-bold ${results.extracted.coreWebVitals.cls <= 0.1 ? 'text-green-600' : results.extracted.coreWebVitals.cls <= 0.25 ? 'text-orange-500' : 'text-red-500'}`}>
-                        {results.extracted.coreWebVitals.cls}
-                      </p>
-                      <p className="text-xs text-slate-500">CLS</p>
-                    </div>
-                  )}
-                  {results.extracted.coreWebVitals.inp != null && (
-                    <div className="bg-white rounded-lg p-3 border border-slate-100">
-                      <p className={`text-lg font-bold ${results.extracted.coreWebVitals.inp <= 200 ? 'text-green-600' : results.extracted.coreWebVitals.inp <= 500 ? 'text-orange-500' : 'text-red-500'}`}>
-                        {results.extracted.coreWebVitals.inp}ms
-                      </p>
-                      <p className="text-xs text-slate-500">INP</p>
-                    </div>
-                  )}
-                </div>
+                ))}
               </div>
-            )}
-          </div>
+              <div className="gea-badges">
+                {results.extracted.hasStructuredData && <Badge color="success" label="Structured Data" />}
+                {results.extracted.hasFAQ && <Badge color="success" label="FAQ" />}
+                {results.extracted.hasRobotsTxt && <Badge color="success" label="robots.txt" />}
+                {results.extracted.hasLlmsTxt && <Badge color="success" label="llms.txt" />}
+                {!results.extracted.hasStructuredData && <Badge color="danger" label={t('noStructuredData')} />}
+                {!results.extracted.hasRobotsTxt && <Badge color="warn" label={t('noRobotsTxt')} />}
+                {!results.extracted.hasLlmsTxt && <Badge color="warn" label={t('noLlmsTxt')} />}
+                {results.extracted.richSnippets?.eligible?.length > 0 &&
+                  <Badge color="success" label={`Rich Snippets: ${results.extracted.richSnippets.eligible.join(', ')}`} />}
+                {results.extracted.richSnippets?.eligible?.length === 0 && results.extracted.richSnippets?.suggestedTypes?.length > 0 &&
+                  <Badge color="danger" label={t('noRichSnippets')} />}
+              </div>
 
-          {/* ━━━ CTA — Dynamisch op basis van audit resultaat ━━━ */}
-          <div className="mt-8 bg-white border border-slate-200 rounded-xl p-6 text-center">
-            {(() => {
-              const score = results.analysis?.overallScore || 0;
-              const mentioned = results.liveTest?.mentioned || false;
-              const competitors = results.liveTest?.competitors || [];
-              const companyName = results.analysis?.companyName || results.domain || '';
-              const topCompetitor = competitors.length > 0 ? competitors[0] : null;
+              {results.extracted.coreWebVitals && (
+                <div className="gea-cwv">
+                  <p className="gea-meta-eyebrow">Core Web Vitals</p>
+                  <div className="gea-meta-grid">
+                    <div className="gea-meta-stat">
+                      <p className="gea-meta-stat-num" style={{ color: results.extracted.coreWebVitals.performanceScore >= 90 ? 'var(--success)' : results.extracted.coreWebVitals.performanceScore >= 50 ? '#f59e0b' : 'var(--danger)' }}>
+                        {results.extracted.coreWebVitals.performanceScore}
+                      </p>
+                      <p className="gea-meta-stat-label">Performance</p>
+                    </div>
+                    {results.extracted.coreWebVitals.lcp && (
+                      <div className="gea-meta-stat">
+                        <p className="gea-meta-stat-num" style={{ color: results.extracted.coreWebVitals.lcp <= 2500 ? 'var(--success)' : results.extracted.coreWebVitals.lcp <= 4000 ? '#f59e0b' : 'var(--danger)' }}>
+                          {(results.extracted.coreWebVitals.lcp / 1000).toFixed(1)}s
+                        </p>
+                        <p className="gea-meta-stat-label">LCP</p>
+                      </div>
+                    )}
+                    {results.extracted.coreWebVitals.cls != null && (
+                      <div className="gea-meta-stat">
+                        <p className="gea-meta-stat-num" style={{ color: results.extracted.coreWebVitals.cls <= 0.1 ? 'var(--success)' : results.extracted.coreWebVitals.cls <= 0.25 ? '#f59e0b' : 'var(--danger)' }}>
+                          {results.extracted.coreWebVitals.cls}
+                        </p>
+                        <p className="gea-meta-stat-label">CLS</p>
+                      </div>
+                    )}
+                    {results.extracted.coreWebVitals.inp != null && (
+                      <div className="gea-meta-stat">
+                        <p className="gea-meta-stat-num" style={{ color: results.extracted.coreWebVitals.inp <= 200 ? 'var(--success)' : results.extracted.coreWebVitals.inp <= 500 ? '#f59e0b' : 'var(--danger)' }}>
+                          {results.extracted.coreWebVitals.inp}ms
+                        </p>
+                        <p className="gea-meta-stat-label">INP</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
-              const title = !mentioned
-                ? (locale === 'en'
-                    ? `${companyName} is invisible on Perplexity${topCompetitor ? ` — ${topCompetitor} is recommended` : ''}`
-                    : `${companyName} is onzichtbaar op Perplexity${topCompetitor ? ` — ${topCompetitor} wordt wél aanbevolen` : ''}`)
-                : score < 60
-                  ? (locale === 'en'
-                      ? `GEO Score ${score}/100 — AI finds your page hard to recommend`
-                      : `GEO Score ${score}/100 — AI vindt je pagina lastig om aan te bevelen`)
-                  : score < 80
-                    ? (locale === 'en'
-                        ? `GEO Score ${score}/100 — good, but ${competitors.length} competitors also appear`
-                        : `GEO Score ${score}/100 — goed, maar ${competitors.length} concurrenten staan er ook bij`)
-                    : (locale === 'en'
-                        ? `GEO Score ${score}/100 — strong! But this is just 1 page and 1 prompt`
-                        : `GEO Score ${score}/100 — sterk! Maar dit is slechts 1 pagina en 1 prompt`);
+            {/* Dynamic CTA based on result */}
+            <div className="gea-result-cta">
+              {(() => {
+                const score = results.analysis?.overallScore || 0
+                const mentioned = results.liveTest?.mentioned || false
+                const competitors = results.liveTest?.competitors || []
+                const companyName = results.analysis?.companyName || results.domain || ''
+                const topCompetitor = competitors.length > 0 ? competitors[0] : null
 
-              const description = !mentioned
-                ? (locale === 'en'
-                    ? `${competitors.length} competitors appear in the AI answer for your prompt. Create a free account and scan your visibility across 10 prompts on 4 AI platforms.`
-                    : `${competitors.length} concurrenten staan wél in het AI-antwoord op jouw prompt. Maak een gratis account aan en scan je zichtbaarheid op 10 prompts op 4 AI-platforms.`)
-                : (locale === 'en'
-                    ? 'This audit checked 1 page on 1 prompt. Create a free account and get a full analysis: 10 prompts, 4 platforms, all your important pages.'
-                    : 'Deze audit checkte 1 pagina op 1 prompt. Maak een gratis account aan en krijg een volledige analyse: 10 prompts, 4 platforms, al je belangrijke pagina\'s.');
+                const titlePre = !mentioned
+                  ? (isEn ? `${companyName} is invisible on` : `${companyName} is onzichtbaar op`)
+                  : score < 60
+                    ? (isEn ? `GEO Score ${score}/100 — AI finds your page hard to` : `GEO Score ${score}/100 — AI vindt je pagina lastig om aan te`)
+                    : score < 80
+                      ? (isEn ? `GEO Score ${score}/100 — good, but` : `GEO Score ${score}/100 — goed, maar`)
+                      : (isEn ? `GEO Score ${score}/100 — strong! But this is just` : `GEO Score ${score}/100 — sterk! Maar dit is slechts`)
 
-              return (
-                <>
-                  <p className="text-lg font-bold text-slate-900 mb-2">{title}</p>
-                  <p className="text-slate-600 text-sm max-w-md mx-auto mb-5">{description}</p>
-                  {!user ? (
-                    <Link href="/signup" className="inline-flex items-center gap-2 bg-[#292956] text-white font-semibold px-6 py-3 rounded-lg hover:bg-[#1e1e45] transition-colors cursor-pointer">
-                      {locale === 'en' ? 'Create free account' : 'Gratis account aanmaken'} <ArrowRight className="w-4 h-4" />
-                    </Link>
-                  ) : (
-                    <Link href="/dashboard" className="inline-flex items-center gap-2 bg-[#292956] text-white font-semibold px-6 py-3 rounded-lg hover:bg-[#1e1e45] transition-colors cursor-pointer">
-                      {locale === 'en' ? 'Go to dashboard' : 'Ga naar dashboard'} <ArrowRight className="w-4 h-4" />
-                    </Link>
-                  )}
-                </>
-              );
-            })()}
-          </div>
+                const titleEm = !mentioned
+                  ? 'Perplexity'
+                  : score < 60
+                    ? (isEn ? 'recommend' : 'bevelen')
+                    : score < 80
+                      ? `${competitors.length} ${isEn ? 'competitors also appear' : 'concurrenten staan er ook bij'}`
+                      : (isEn ? '1 page and 1 prompt' : '1 pagina en 1 prompt')
 
-          {/* ━━━ WordPress Plugin CTA ━━━ */}
-          <div className="mt-4 bg-white border border-slate-200 rounded-xl p-6">
-            <div className="flex flex-col sm:flex-row items-center gap-5">
-              <div className="flex-shrink-0 w-14 h-14 bg-[#21759b]/10 rounded-xl flex items-center justify-center">
+                const titlePost = !mentioned && topCompetitor
+                  ? (isEn ? ` — ${topCompetitor} is recommended` : ` — ${topCompetitor} wordt wél aanbevolen`)
+                  : ''
+
+                const description = !mentioned
+                  ? (isEn
+                      ? `${competitors.length} competitors appear in the AI answer for your prompt. Create a free account and scan your visibility across 10 prompts on 4 AI platforms.`
+                      : `${competitors.length} concurrenten staan wél in het AI-antwoord op jouw prompt. Maak een gratis account aan en scan je zichtbaarheid op 10 prompts op 4 AI-platforms.`)
+                  : (isEn
+                      ? 'This audit checked 1 page on 1 prompt. Create a free account and get a full analysis: 10 prompts, 4 platforms, all your important pages.'
+                      : 'Deze audit checkte 1 pagina op 1 prompt. Maak een gratis account aan en krijg een volledige analyse: 10 prompts, 4 platforms, al je belangrijke pagina\'s.')
+
+                return (
+                  <>
+                    <h2 className="gea-result-cta-title">
+                      {titlePre} <em>{titleEm}</em>{titlePost}
+                    </h2>
+                    <p className="gea-result-cta-desc">{description}</p>
+                    {!user ? (
+                      <Link href="/signup" className="teun-scan-btn gea-result-cta-btn">
+                        {isEn ? 'Create free account' : 'Gratis account aanmaken'} <ArrowRight className="gea-icon-sm" />
+                      </Link>
+                    ) : (
+                      <Link href="/dashboard" className="teun-scan-btn gea-result-cta-btn">
+                        {isEn ? 'Go to dashboard' : 'Ga naar dashboard'} <ArrowRight className="gea-icon-sm" />
+                      </Link>
+                    )}
+                  </>
+                )
+              })()}
+            </div>
+
+            {/* WordPress plugin */}
+            <div className="gea-wp">
+              <div className="gea-wp-icon">
                 <Image src="/images/wordpress-icon.svg" alt="WordPress" width={32} height={32} />
               </div>
-              <div className="flex-1 text-center sm:text-left">
-                <p className="font-bold text-slate-900 mb-1">
-                  {locale === 'en' 
-                    ? 'WordPress user? Scan all your pages for free' 
-                    : 'WordPress gebruiker? Scan al je pagina\'s gratis'}
-                </p>
-                <p className="text-sm text-slate-500">
-                  {locale === 'en'
+              <div className="gea-wp-body">
+                <h3>
+                  {isEn ? <>WordPress user? <em>Scan all your pages for free</em></> : <>WordPress gebruiker? <em>Scan al je pagina&rsquo;s gratis</em></>}
+                </h3>
+                <p>
+                  {isEn
                     ? 'Install the free Teun.ai GEO plugin and get a GEO Score with recommendations for every page — directly in your WordPress editor. No account needed.'
                     : 'Installeer de gratis Teun.ai GEO plugin en krijg een GEO Score met aanbevelingen per pagina — direct in je WordPress editor. Geen account nodig.'}
                 </p>
@@ -946,313 +852,290 @@ export default function GeoAuditPage() {
                 href="https://wordpress.org/plugins/teunai-geo/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-colors text-sm cursor-pointer"
+                className="gea-wp-btn"
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-                {locale === 'en' ? 'Install plugin' : 'Plugin installeren'}
+                <ExternalLink className="gea-icon-sm" />
+                {isEn ? 'Install plugin' : 'Plugin installeren'}
               </a>
             </div>
-          </div>
 
-          {/* Scan another */}
-          <div className="mt-6 text-center">
-            {limitReached && !isAdmin && !isPro ? (
-              <div className="bg-slate-50 rounded-xl border border-slate-200 p-5">
-                <p className="text-sm text-slate-600 mb-3">
-                  {user ? t('usedTodayScans', { count: MAX_FREE_SCANS }) : t('usedFreeScans', { count: MAX_FREE_SCANS })}
-                </p>
-                {user ? (
-                  <Link
-                    href={locale === 'en' ? '/en/pricing' : '/pricing'}
-                    className="bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white font-semibold px-6 py-2.5 rounded-lg hover:shadow-lg transition-all inline-flex items-center gap-2 cursor-pointer text-sm"
-                  >
-                    {locale === 'en' ? 'Upgrade to Pro for unlimited scans' : 'Upgrade naar Pro voor onbeperkt scannen'} <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                ) : (
-                  <Link
-                    href="/signup"
-                    className="bg-[#292956] text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-[#1e1e45] transition-all inline-flex items-center gap-2 cursor-pointer text-sm"
-                  >
-                    {t('createFreeAccount')} <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                )}
-              </div>
-            ) : (
-              <button onClick={() => { setResults(null); setUrl(''); window.scrollTo({ top: 0, behavior: 'smooth' }) }} className="text-sm text-slate-500 hover:text-slate-700 font-medium inline-flex items-center gap-1 cursor-pointer">
-                ← {t('analyzeAnother')}
-              </button>
-            )}
+            {/* Scan another / limit reached */}
+            <div className="gea-bottom">
+              {limitReached && !isAdmin && !isPro ? (
+                <div className="gea-bottom-limit">
+                  <p>{user ? t('usedTodayScans', { count: MAX_FREE_SCANS }) : t('usedFreeScans', { count: MAX_FREE_SCANS })}</p>
+                  {user ? (
+                    <Link href={isEn ? '/en/pricing' : '/pricing'} className="teun-scan-btn gea-bottom-btn">
+                      {isEn ? 'Upgrade to Pro for unlimited scans' : 'Upgrade naar Pro voor onbeperkt scannen'} <ArrowRight className="gea-icon-sm" />
+                    </Link>
+                  ) : (
+                    <Link href="/signup" className="teun-scan-btn gea-bottom-btn">
+                      {t('createFreeAccount')} <ArrowRight className="gea-icon-sm" />
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setResults(null); setUrl(''); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                  className="gea-bottom-link"
+                >
+                  ← {t('analyzeAnother')}
+                </button>
+              )}
+            </div>
           </div>
-        </section>
-      )}
+        )}
+      </div>
 
-      {/* ── SEO CONTENT ────────────────────────────── */}
+      {/* SEO content (idle) */}
       {!results && !loading && (
         <>
-          {/* Wat is een GEO Audit */}
-          <section className="max-w-3xl mx-auto px-4 sm:px-6 pt-20 pb-16">
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 leading-tight">
-                  {locale === 'en'
-                    ? <>What does ChatGPT say<br /><span className="text-[#4F46E5]">when someone searches for your business?</span></>
-                    : <>Wat zegt ChatGPT<br /><span className="text-[#4F46E5]">als iemand naar jouw bedrijf zoekt?</span></>}
-                </h2>
-                <p className="text-slate-600 leading-relaxed mb-4">
-                  {locale === 'en'
-                    ? 'A GEO audit measures something different than traditional SEO. Not your Google position, but whether AI platforms like ChatGPT, Perplexity and Google AI Overviews actually recommend your business when someone asks a question.'
-                    : 'Een GEO audit meet iets anders dan traditionele SEO. Niet je Google-positie, maar of AI-platformen zoals ChatGPT, Perplexity en Google AI Overviews jouw bedrijf daadwerkelijk aanbevelen als iemand een vraag stelt.'}
-                </p>
-                <p className="text-slate-600 leading-relaxed">
-                  {locale === 'en'
-                    ? 'With this free tool you get instant insight. We scan your page on 20+ signals, and test live on Perplexity whether your business appears. No account needed, results within a minute.'
-                    : 'Met deze gratis tool krijg je direct inzicht. We scannen je pagina op 20+ signalen, en testen live op Perplexity of jouw bedrijf verschijnt. Geen account nodig, resultaat binnen een minuut.'}
-                </p>
-              </div>
+          {/* Intro */}
+          <section className="tool-seo-intro">
+            <div className="tool-wrap" style={{ paddingTop: 0, paddingBottom: 0 }}>
+              <h2>
+                {isEn ? <>20+ signals for your <em>AI findability</em>.</> : <>20+ signalen voor je <em>AI-vindbaarheid</em>.</>}
+              </h2>
+              <p>
+                {isEn
+                  ? 'A GEO audit measures something different than traditional SEO. Not your Google position, but whether AI platforms like ChatGPT, Perplexity and Google AI Overviews actually recommend your business when someone asks a question.'
+                  : 'Een GEO audit meet iets anders dan traditionele SEO. Niet je Google-positie, maar of AI-platformen zoals ChatGPT, Perplexity en Google AI Overviews jouw bedrijf daadwerkelijk aanbevelen als iemand een vraag stelt.'}
+              </p>
+              <p>
+                {isEn
+                  ? 'With this free tool you get instant insight. We scan your page on 20+ signals, and test live on Perplexity whether your business appears. No account needed, results within a minute.'
+                  : 'Met deze gratis tool krijg je direct inzicht. We scannen je pagina op 20+ signalen, en testen live op Perplexity of jouw bedrijf verschijnt. Geen account nodig, resultaat binnen een minuut.'}
+              </p>
+            </div>
           </section>
 
-          {/* Wat wordt er getest — stijl zoals "Hoe het werkt" op homepage */}
-          <section className="bg-slate-50 py-16">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6">
-              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 text-center mb-4">
-                {locale === 'en' ? 'What do we check?' : 'Wat checken we?'}
+          {/* What we check — 4 grid */}
+          <section className="tool-seo-how">
+            <div className="tool-seo-how-wrap">
+              <h2>
+                {isEn ? <>What do we <em>check?</em></> : <>Wat <em>checken</em> we?</>}
               </h2>
-              <p className="text-slate-500 text-center mb-10 max-w-2xl mx-auto">
-                {locale === 'en'
-                  ? 'The GEO Audit analyzes four areas that determine whether AI cites your content.'
+              <p className="tool-seo-how-sub">
+                {isEn
+                  ? 'The GEO Audit analyses four areas that determine whether AI cites your content.'
                   : 'De GEO Audit analyseert vier gebieden die bepalen of AI jouw content citeert.'}
               </p>
-              <div className="grid sm:grid-cols-2 gap-6">
+              <div className="tool-seo-how-grid gea-how-4">
                 {[
                   {
-                    num: '1',
-                    title: locale === 'en' ? 'Content Quality' : 'Content Kwaliteit',
-                    desc: locale === 'en'
-                      ? 'Does your text contain direct answers that AI can extract? We check structure, word count, FAQ presence and whether your content is citation-ready.'
+                    title: isEn ? 'Content Quality' : 'Content Kwaliteit',
+                    desc: isEn
+                      ? 'Does your text contain direct answers that AI can extract? We check structure, word count, FAQ presence and citation-readiness.'
                       : 'Bevat je tekst directe antwoorden die AI kan extraheren? We checken structuur, woordaantal, FAQ-aanwezigheid en of je content citeerbaar is.'
                   },
                   {
-                    num: '2',
-                    title: locale === 'en' ? 'Technical Setup' : 'Technische Setup',
-                    desc: locale === 'en'
+                    title: isEn ? 'Technical Setup' : 'Technische Setup',
+                    desc: isEn
                       ? 'Can AI bots reach your page? We verify robots.txt, llms.txt, structured data, Core Web Vitals and schema markup.'
                       : 'Kunnen AI-bots je pagina bereiken? We controleren robots.txt, llms.txt, structured data, Core Web Vitals en schema markup.'
                   },
                   {
-                    num: '3',
-                    title: locale === 'en' ? 'Citation Potential' : 'Citatie-potentieel',
-                    desc: locale === 'en'
+                    title: isEn ? 'Citation Potential' : 'Citatie-potentieel',
+                    desc: isEn
                       ? 'How likely is AI to cite you as a source? We look at unique data, expert signals, factual density and what competitors AI already mentions.'
                       : 'Hoe groot is de kans dat AI jou als bron citeert? We kijken naar unieke data, expertise-signalen, feitelijke dichtheid en welke concurrenten AI al noemt.'
                   },
                   {
-                    num: '4',
-                    title: locale === 'en' ? 'E-E-A-T Signals' : 'E-E-A-T Signalen',
-                    desc: locale === 'en'
-                      ? 'AI prioritizes trusted sources. We evaluate the same Experience, Expertise, Authority and Trust signals that Google and AI use.'
+                    title: 'E-E-A-T',
+                    desc: isEn
+                      ? 'AI prioritises trusted sources. We evaluate the same Experience, Expertise, Authority and Trust signals that Google and AI use.'
                       : 'AI geeft voorrang aan betrouwbare bronnen. We beoordelen dezelfde Ervaring, Expertise, Autoriteit en Betrouwbaarheid signalen die Google en AI gebruiken.'
                   }
                 ].map((item, i) => (
-                  <div key={i} className="bg-white rounded-xl p-6 border border-slate-200">
-                    <div className="w-8 h-8 rounded-full bg-[#292956] text-white flex items-center justify-center text-sm font-bold mb-3">{item.num}</div>
-                    <h3 className="font-semibold text-slate-900 mb-2">{item.title}</h3>
-                    <p className="text-sm text-slate-600 leading-relaxed">{item.desc}</p>
+                  <div key={i} className="tool-seo-how-card">
+                    <div className="tool-seo-how-card-head">
+                      <span className="num">{String(i + 1).padStart(2, '0')}</span>
+                    </div>
+                    <h3>{item.title}</h3>
+                    <p>{item.desc}</p>
                   </div>
                 ))}
               </div>
             </div>
           </section>
 
-          {/* Live test uitleg - light style */}
-          <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 text-center">
-              {locale === 'en'
-                ? <>Not just analysis.<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">a real AI test</span></>
-                : <>Niet alleen analyse.<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">een échte AI-test</span></>}
-            </h2>
-            <p className="text-slate-600 leading-relaxed text-center mb-8 max-w-2xl mx-auto">
-              {locale === 'en'
-                ? 'What makes this GEO audit unique: we generate a commercial prompt based on your page, send it to Perplexity in real-time, and check if your business is actually mentioned in the answer.'
-                : 'Wat deze GEO audit uniek maakt: we genereren een commerciële prompt op basis van je pagina, sturen die real-time naar Perplexity, en controleren of jouw bedrijf daadwerkelijk in het antwoord staat.'}
-            </p>
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
-              <div className="space-y-5">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                  </div>
-                  <div className="bg-slate-50 rounded-xl rounded-tl-sm px-4 py-3 text-sm text-slate-700 border border-slate-100">
-                    {locale === 'en'
-                      ? '"Can you recommend a good [your industry] in [your city]?"'
-                      : '"Kun je een goede [jouw branche] in [jouw stad] aanbevelen?"'}
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Zap className="w-4 h-4 text-emerald-500" />
-                  </div>
-                  <div className="bg-slate-50 rounded-xl rounded-tl-sm px-4 py-3 border border-slate-100">
-                    <p className="text-sm text-slate-700">
-                      {locale === 'en'
-                        ? '"Here are some options I can recommend..."'
-                        : '"Hier zijn enkele opties die ik kan aanbevelen..."'}
-                    </p>
-                    <p className="text-sm text-emerald-600 font-medium mt-1">
-                      {locale === 'en' ? 'Does your business appear? Or only your competitors?' : 'Staat jouw bedrijf erbij? Of alleen je concurrenten?'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* SEO vs GEO */}
-          <section className="bg-slate-50 py-16">
-            <div className="max-w-3xl mx-auto px-4 sm:px-6">
-              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 text-center">
-                {locale === 'en' ? 'SEO Audit vs GEO Audit' : 'SEO Audit vs GEO Audit'}
+          {/* SEO vs GEO comparison table */}
+          <section className="gea-compare-section">
+            <div className="gea-compare-wrap">
+              <h2 className="gea-compare-title">
+                {isEn ? <>SEO Audit vs <em>GEO Audit</em></> : <>SEO Audit vs <em>GEO Audit</em></>}
               </h2>
-              <p className="text-slate-500 text-center mb-8 max-w-2xl mx-auto">
-                {locale === 'en'
-                  ? 'A GEO audit complements your SEO. Pages that rank well are more likely to be cited by AI, but only if the content is structured for it.'
-                  : 'Een GEO audit is een aanvulling op je SEO. Pagina\'s die goed ranken worden vaker geciteerd door AI, maar alleen als de content ervoor gestructureerd is.'}
+              <p className="gea-compare-sub">
+                {isEn
+                  ? 'Two different goals, two different methods. GEO complements your SEO strategy.'
+                  : 'Twee verschillende doelen, twee verschillende methoden. GEO is een aanvulling op je SEO strategie.'}
               </p>
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200">
-                      <th className="text-left p-4 font-semibold text-slate-700"></th>
-                      <th className="text-left p-4 font-semibold text-slate-700">SEO Audit</th>
-                      <th className="text-left p-4 font-semibold text-[#4F46E5]">GEO Audit</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {[
-                      { label: locale === 'en' ? 'Goal' : 'Doel', seo: locale === 'en' ? 'Rank higher in Google' : 'Hoger ranken in Google', geo: locale === 'en' ? 'Get cited by AI' : 'Geciteerd worden door AI' },
-                      { label: locale === 'en' ? 'Measures' : 'Meet', seo: locale === 'en' ? 'Position, clicks' : 'Positie, klikken', geo: locale === 'en' ? 'Mentions, recommendations' : 'Vermeldingen, aanbevelingen' },
-                      { label: 'Focus', seo: locale === 'en' ? 'Keywords & backlinks' : 'Zoekwoorden & backlinks', geo: locale === 'en' ? 'Content structure & authority' : 'Contentstructuur & autoriteit' },
-                      { label: 'Test', seo: 'Google SERP', geo: locale === 'en' ? 'Live Perplexity check' : 'Live Perplexity check' },
-                      { label: locale === 'en' ? 'Technical' : 'Technisch', seo: 'robots.txt, sitemap', geo: 'llms.txt, JSON-LD, FAQ schema' },
-                    ].map((row, i) => (
-                      <tr key={i}>
-                        <td className="p-4 font-medium text-slate-700">{row.label}</td>
-                        <td className="p-4 text-slate-500">{row.seo}</td>
-                        <td className="p-4 text-slate-900">{row.geo}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="gea-compare-table">
+                <div className="gea-compare-row gea-compare-head">
+                  <div></div>
+                  <div className="gea-compare-col-seo">SEO Audit</div>
+                  <div className="gea-compare-col-geo">GEO Audit</div>
+                </div>
+                {[
+                  { label: isEn ? 'Goal' : 'Doel', seo: isEn ? 'Rank higher in Google' : 'Hoger ranken in Google', geo: isEn ? 'Get cited by AI' : 'Geciteerd worden door AI' },
+                  { label: isEn ? 'Measures' : 'Meet', seo: isEn ? 'Position, clicks' : 'Positie, klikken', geo: isEn ? 'Mentions, recommendations' : 'Vermeldingen, aanbevelingen' },
+                  { label: 'Focus', seo: isEn ? 'Keywords & backlinks' : 'Zoekwoorden & backlinks', geo: isEn ? 'Content structure & authority' : 'Contentstructuur & autoriteit' },
+                  { label: 'Test', seo: 'Google SERP', geo: 'Live Perplexity' },
+                  { label: isEn ? 'Technical' : 'Technisch', seo: 'robots.txt, sitemap', geo: 'llms.txt, JSON-LD, FAQ schema' },
+                ].map((row, i) => (
+                  <div key={i} className="gea-compare-row">
+                    <div className="gea-compare-label">{row.label}</div>
+                    <div className="gea-compare-seo">{row.seo}</div>
+                    <div className="gea-compare-geo">{row.geo}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </section>
 
-          {/* Pricing CTA */}
-          <section className="py-16 bg-white">
-            <div className="max-w-3xl mx-auto px-5 sm:px-6 lg:px-8 text-center">
-              <p className="text-slate-500 mb-6">
-                {locale === 'en'
-                  ? 'All tools are free to use. Upgrade to Lite or Pro for automatic tracking and unlimited use.'
-                  : 'Alle tools zijn gratis te gebruiken. Upgrade naar Lite of Pro voor automatische tracking en onbeperkt gebruik.'}
+          {/* Final CTA */}
+          <section className="teun-final" aria-labelledby="gea-final-heading">
+            <div className="wrap">
+              <h2 id="gea-final-heading">
+                {isEn ? (
+                  <>Be in the <em>answer</em>.<br />Not just the index.</>
+                ) : (
+                  <>Sta in het <em>antwoord</em>.<br />Niet alleen in de index.</>
+                )}
+              </h2>
+              <p>
+                {isEn
+                  ? 'Google rewards rankings. AI rewards citations. The GEO Audit shows you exactly where you stand on both.'
+                  : 'Google beloont rankings. AI beloont citaties. De GEO Audit laat zien hoe je ervoor staat op beide.'}
               </p>
-              <div className="flex flex-wrap justify-center gap-4">
-                <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer">
-                  {locale === 'en' ? 'Start free GEO Audit' : 'Gratis GEO Audit starten'} <ArrowRight className="w-5 h-5" />
+              <div className="btns">
+                <button
+                  onClick={() => document.getElementById('gea-form')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="btn-primary"
+                >
+                  {isEn ? 'Start free GEO Audit' : 'Gratis GEO Audit starten'} <span aria-hidden="true">→</span>
                 </button>
-                <Link href="/pricing" className="inline-flex items-center gap-2 px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-lg hover:shadow-md hover:border-slate-300 transition-all">
-                  {locale === 'en' ? 'View Lite & Pro' : 'Bekijk Lite & Pro'} <ArrowRight className="w-5 h-5" />
+                <Link href={isEn ? '/en/pricing' : '/pricing'} className="btn-secondary">
+                  {isEn ? 'View Lite & Pro' : 'Bekijk Lite & Pro'}
                 </Link>
               </div>
-              <p className="text-slate-400 text-xs mt-3">
-                {locale === 'en' ? 'From €29.95/mo excl. VAT' : 'Vanaf €29,95/mnd excl. BTW'}
-              </p>
             </div>
           </section>
 
-          {/* FAQ with Teun */}
-          <section className="py-20 bg-slate-50 relative overflow-visible">
-            <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
-              <div className="grid lg:grid-cols-2 gap-12 items-start">
-                <div>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-6">
-                    {locale === 'en' ? 'Frequently asked questions' : 'Veelgestelde vragen'}
-                  </h2>
-                  <div className="space-y-4">
-                    {faqItems.map((item, i) => (
-                      <div key={i} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                        <button
-                          onClick={() => setOpenFaq(openFaq === i ? -1 : i)}
-                          className="w-full flex items-center justify-between p-6 text-left cursor-pointer"
-                        >
-                          <div className="flex items-center gap-4">
-                            <span className="text-slate-400 font-mono text-sm">{String(i + 1).padStart(2, '0')}</span>
-                            <span className="font-semibold text-slate-900">{item.q}</span>
-                          </div>
-                          <svg className={`w-5 h-5 text-slate-400 transition-transform flex-shrink-0 ml-2 ${openFaq === i ? 'rotate-45' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                        </button>
-                        {openFaq === i && (
-                          <div className="px-6 pb-6 pt-0">
-                            <p className="text-slate-600 pl-10">{item.a}</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+          {/* FAQ */}
+          <section className="teun-faq" id="faq" aria-labelledby="gea-faq-heading">
+            <div className="wrap">
+              <div className="teun-faq-head">
+                <div className="teun-faq-eyebrow">
+                  {isEn ? 'QUESTIONS & ANSWERS' : 'VRAGEN & ANTWOORDEN'}
                 </div>
-                <div className="hidden lg:flex justify-center items-end relative">
-                  <div className="translate-y-20" style={{ marginTop: '5px' }}>
-                    <Image src="/teun-ai-mascotte.png" alt={locale === 'en' ? 'Teun helps you' : 'Teun helpt je'} width={420} height={530} className="drop-shadow-xl" />
-                  </div>
+                <h2 id="gea-faq-heading">
+                  {isEn ? <>Everything you want to know<br /><em>before you scan.</em></> : <>Alles wat je wilt weten<br /><em>voor je scant.</em></>}
+                </h2>
+                <p className="sub">
+                  {isEn
+                    ? 'No bot answers, no marketing speak. Real explanations, written by our team.'
+                    : 'Geen bot-antwoorden, geen marketingpraat. De echte uitleg, geschreven door ons team.'}
+                </p>
+              </div>
+
+              <div className="teun-faq-cats" role="tablist">
+                {[
+                  { id: 'all',     count: faqCounts.all },
+                  { id: 'product', count: faqCounts.product },
+                  { id: 'pricing', count: faqCounts.pricing },
+                  { id: 'results', count: faqCounts.results }
+                ].map(({ id, count }) => (
+                  <button
+                    key={id}
+                    className={faqCategory === id ? 'active' : ''}
+                    onClick={() => { setFaqCategory(id); setOpenFaq(0) }}
+                    role="tab"
+                    aria-selected={faqCategory === id}
+                  >
+                    {catLabels[id]}
+                    <span className="count">{count}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="teun-faq-list">
+                {filteredFaq.map((item, i) => (
+                  <details
+                    key={`${faqCategory}-${i}`}
+                    className="teun-faq-item"
+                    open={openFaq === i}
+                    onToggle={(e) => { if (e.target.open) setOpenFaq(i) }}
+                  >
+                    <summary>
+                      <span className="num">{String(i + 1).padStart(2, '0')}</span>
+                      <h3 className="q">{item.q}</h3>
+                      <span className="cat-chip">{catLabels[item.cat]}</span>
+                      <span className="toggle" aria-hidden="true">
+                        <svg viewBox="0 0 12 12" fill="none">
+                          <path d="M2 6h8M6 2v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                      </span>
+                    </summary>
+                    <div className="answer-wrap">
+                      <div className="answer">{item.a}</div>
+                    </div>
+                  </details>
+                ))}
+              </div>
+
+              <div className="teun-faq-help">
+                <div>
+                  <h3>
+                    {isEn ? <>Still got questions? <em>We&rsquo;re here.</em></> : <>Nog vragen? <em>We helpen je.</em></>}
+                  </h3>
+                  <p>
+                    {isEn
+                      ? 'Reach us by email or book a 15-minute call. No sales pitch, just answers.'
+                      : 'Stuur ons een mail of plan een gesprek van 15 minuten. Geen verkooppraat, gewoon antwoorden.'}
+                  </p>
+                </div>
+                <div className="teun-faq-help-actions">
+                  <a href="mailto:hallo@teun.ai" className="teun-faq-help-btn primary">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                      <path d="M2 3h10v8H2z M2 3l5 4 5-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    hallo@teun.ai
+                  </a>
+                  <a
+                    href="https://calendly.com/imre-onlinelabs/teun-ai-demo"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="teun-faq-help-btn secondary"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                      <rect x="2" y="3" width="10" height="9" rx="1" stroke="currentColor" strokeWidth="1.5" />
+                      <path d="M2 6h10M5 1v3M9 1v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                    {isEn ? 'Book a call' : 'Plan een gesprek'}
+                  </a>
                 </div>
               </div>
             </div>
           </section>
         </>
       )}
-
-      {/* ── CSS Animations ─────────────────────────── */}
-      <style>{`
-        @keyframes scanLine {
-          0% { top: 0; opacity: 1; }
-          45% { top: calc(100% - 4px); opacity: 1; }
-          50% { top: calc(100% - 4px); opacity: 0.5; }
-          55% { top: calc(100% - 4px); opacity: 1; }
-          100% { top: 0; opacity: 1; }
-        }
-        @keyframes slideIn {
-          from { opacity: 0; transform: translateX(-20px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 0.6; }
-        }
-        .scan-line-animation { animation: scanLine 2s ease-in-out infinite; }
-        .slide-in-animation { animation: slideIn 0.3s ease-out; }
-        .pulse-animation { animation: pulse 2s ease-in-out infinite; }
-      `}</style>
     </div>
   )
 }
 
-
-// ── Components ────────────────────────────────
-
+// ============================================
+// HELPERS
+// ============================================
 function Badge({ color, label }) {
-  const colors = { green: 'bg-emerald-50 text-emerald-700', red: 'bg-red-50 text-red-600', amber: 'bg-amber-50 text-amber-600' }
-  const Icon = color === 'green' ? CheckCircle2 : color === 'red' ? XCircle : AlertTriangle
-  return (
-    <span className={`inline-flex items-center gap-1 ${colors[color]} text-xs px-2 py-1 rounded-full`}>
-      <Icon className="w-3 h-3" /> {label}
-    </span>
-  )
+  return <span className={`gea-badge gea-badge-${color}`}>{label}</span>
 }
 
 function getScoreColor(score) {
-  if (score >= 80) return '#10b981'
-  if (score >= 60) return '#f59e0b'
-  if (score >= 40) return '#f97316'
-  return '#ef4444'
+  if (score >= 80) return '#10B981'
+  if (score >= 60) return '#3B82F6'
+  if (score >= 40) return '#F59E0B'
+  return '#EF4444'
 }
 
 function getScoreLabel(score, t) {

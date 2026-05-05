@@ -82,13 +82,21 @@
   },
   "home": {
     "hero": {
-      "title": "Hoe zichtbaar is jouw merk",
-      "titleHighlight": "in AI-zoekmachines?",
-      "subtitle": "Check of jouw bedrijf wordt aanbevolen door ChatGPT, Perplexity en Google.",
-      "subtitleBold": "Gratis scan in 1 minuut.",
+      "title": "Hoe zichtbaar is",
+      "titleLine2": "jouw merk in",
+      "titleHighlight": "AI-zoekmachines?",
+      "subtitle": "Check of je bedrijf wordt aanbevolen door <b>ChatGPT, Perplexity</b> en Google AI, en wat ze precies over je zeggen. Gratis scan in 1 minuut, zonder account.",
+      "subtitleBold": "Gratis scan in 1 minuut, zonder account.",
       "aiModeLabel": "account",
       "aiOverviewsLabel": "account",
-      "platformInfo": "10 prompts per scan • 1x gratis zonder account • AI Modus & AI Overviews met gratis account"
+      "platformInfo": "10 prompts per scan • 2x gratis zonder account • AI Modus & AI Overviews met gratis account",
+      "floatCard1Label": "ChatGPT zegt",
+      "floatCard1Value": "genoemd",
+      "floatCard1Position": "positie 2",
+      "floatCard2Label": "GEO score",
+      "floatCard2Value": "goed",
+      "floatCard3Label": "Scan klaar",
+      "floatCard3Value": "vermeldingen"
     },
     "form": {
       "companyName": "Bedrijfsnaam",
@@ -110,7 +118,10 @@
       "clearAll": "Alles wissen",
       "addKeyword": "+ Toevoegen",
       "keywordPlaceholder": "Zoekwoord toevoegen...",
-      "englishWarning": "Dit lijkt Engels. Gebruik een <strong>Nederlandse branchenaam</strong> voor betere AI-resultaten."
+      "englishWarning": "Dit lijkt Engels. Gebruik een <strong>Nederlandse branchenaam</strong> voor betere AI-resultaten.",
+      "freeToolPill": "1 van 6 gratis tools",
+      "litePricing": "Lite vanaf €29,95/mnd",
+      "extracting": "Zoekwoorden ophalen..."
     },
     "stats": {
       "scansCount": "2,847",
@@ -120,19 +131,29 @@
       "platformsCount": "4",
       "platformsLabel": "AI-platforms gescand",
       "freeLabel": "Gratis",
-      "freeDescription": "2x scannen zonder account"
+      "freeDescription": "2x scannen zonder account",
+      "companiesLabel": "Bedrijven aangesloten"
     },
     "socialProof": {
       "title": "Merken die ons vertrouwen"
     },
     "howItWorks": {
-      "title": "Hoe het werkt",
-      "step1Title": "Vul je gegevens in",
-      "step1Text": "Bedrijfsnaam, branche en website. Wij halen automatisch zoekwoorden op en maken de prompts.",
-      "step2Title": "We scannen 3 AI's",
-      "step2Text": "ChatGPT, Perplexity, AI Modus en AI Overviews worden realtime bevraagd.",
-      "step3Title": "Ontvang je rapport",
-      "step3Text": "Zie welke prompts potentiële klanten gebruiken. Zie precies waar je wel en niet genoemd wordt, of je concurrentie."
+      "title": "Vier stappen,",
+      "titleHighlight": "2 minuten,",
+      "titleEnd": "één duidelijk beeld.",
+      "subtitle": "Geen complex dashboard, geen sales-call. Gewoon het antwoord waar je naar zocht.",
+      "step1Title": "Website analyseren",
+      "step1Text": "Voer je URL in en onze AI haalt automatisch je zoekwoorden, branche en bedrijfsnaam op. Of vul ze handmatig in.",
+      "step1Time": "00:10",
+      "step2Title": "Prompts genereren",
+      "step2Text": "10 commerciële prompts worden gegenereerd op basis van jouw branche, zoekwoorden en servicegebied.",
+      "step2Time": "00:30",
+      "step3Title": "Live AI scannen",
+      "step3Text": "Elke prompt wordt live bevraagd bij ChatGPT Search, Perplexity en Google AI voor actuele resultaten.",
+      "step3Time": "01:30",
+      "step4Title": "Resultaat ontvangen",
+      "step4Text": "Zie per prompt of je genoemd wordt, welke concurrenten scoren en waar je kansen liggen.",
+      "step4Time": "02:00"
     },
     "chatDemo": {
       "title": "Wat antwoordt ChatGPT",
@@ -158,14 +179,38 @@
       "subtext": "Geen creditcard • Volledig gratis • Direct inzicht"
     },
     "faq": {
-      "q1": "Hoe werkt Teun.AI precies?",
-      "a1": "Teun.AI scant hoe zichtbaar jouw bedrijf is in AI-zoekmachines zoals ChatGPT, Perplexity en Google. Je voert je bedrijfsgegevens in, wij genereren tot 10 commerciële prompts, en je ziet direct of je wordt aanbevolen.",
-      "q2": "Wat kost Teun.AI?",
-      "a2": "Alle 6 tools zijn gratis te gebruiken met limieten. Lite kost €29,95/mnd en geeft onbeperkt toegang tot alle tools, 20 keywords automatische tracking en 10 GEO Analyse prompts. Pro kost €49,95/mnd met 50 keywords, onbeperkte GEO Analyse prompts en telefonische support. Beide pakketten zijn maandelijks opzegbaar. Prijzen excl. BTW.",
-      "q3": "Is Teun.AI geschikt voor mijn bedrijf?",
-      "a3": "Teun.AI is geschikt voor elk bedrijf dat online zichtbaar wil zijn. Of je nu een MKB-bedrijf, startup of enterprise bent - als je klanten je via AI-zoekmachines moeten kunnen vinden, is Teun.AI voor jou.",
-      "q4": "Hoe lang duurt het voordat ik resultaten zie?",
-      "a4": "Je scan resultaten zijn direct beschikbaar. Het verbeteren van je AI-zichtbaarheid is een proces dat tijd kost, maar met onze concrete tips kun je direct aan de slag."
+      "eyebrow": "Vragen & antwoorden",
+      "title": "Alles wat je wilt weten",
+      "titleHighlight": "voor je klikt.",
+      "subtitle": "Geen bot-antwoorden, geen marketingpraat. De echte uitleg, geschreven door ons team.",
+      "categories": {
+        "all": "Alles",
+        "product": "Product",
+        "pricing": "Prijzen",
+        "technical": "Technisch"
+      },
+      "q1": "Hoe werkt teun.ai precies?",
+      "a1": "Je vult je bedrijfsnaam, branche en website in. Wij genereren <strong>10 commerciële prompts</strong> die echte klanten aan AI stellen, en vragen ze namens jou aan ChatGPT, Perplexity en Google AI. Binnen 60 seconden krijg je een rapport met:<ul><li>Of je bij naam genoemd wordt</li><li>Welke concurrenten wél genoemd worden</li><li>De letterlijke AI-antwoorden ter verificatie</li></ul>",
+      "q2": "Wat kost teun.ai?",
+      "a2": "Alle <strong>zes gratis tools</strong> gebruik je onbeperkt zonder account. Voor serieuze tracking:<ul><li><strong>Lite</strong> · €29,95/mnd · 20 keywords, 10 GEO-prompts</li><li><strong>Pro</strong> · €49,95/mnd · 50 keywords, onbeperkt GEO, bel-support</li></ul>Maandelijks opzegbaar. Prijzen excl. BTW.",
+      "q3": "Is teun.ai geschikt voor mijn bedrijf?",
+      "a3": "Als je klanten jou via zoekmachines moeten vinden: ja. We zien sterke resultaten bij MKB-bedrijven, SaaS-startups, webshops, zzp'ers en bureaus. Teun werkt minder goed voor bedrijven die puur via netwerk en warme leads draaien.",
+      "q4": "Hoe lang duurt het voor ik resultaat zie?",
+      "a4": "<strong>Scan-resultaten:</strong> direct, binnen 60 seconden op je scherm.<br/><strong>Impact op AI-zichtbaarheid:</strong> meestal 2–8 weken na implementatie van de adviezen. AI-modellen hebben tijd nodig om nieuwe content op te nemen.",
+      "q5": "Is dit niet gewoon SEO met een nieuw jasje?",
+      "a5": "Nee. SEO optimaliseert voor <strong>tien blauwe links</strong>. AI laat geen tien links zien. Het geeft <strong>één antwoord</strong>, en noemt je wel of niet. Andere tactieken: duidelijke claims, gestructureerde data, citeerbare content, en aanwezigheid in bronnen die AI wél leest (Reddit, G2, Trustpilot, vakmedia).",
+      "q6": "Hoe kan ChatGPT een merk \"noemen\"?",
+      "a6": "Vraagt iemand \"wat is de beste X in Nederland?\" dan geeft het model een kort lijstje. Je staat erop, of je staat er niet op. Onze scanner stelt honderden van deze prompts en kijkt <strong>hoe vaak</strong> je genoemd wordt, <strong>in welke context</strong>, en <strong>naast welke concurrenten</strong>.",
+      "q7": "Heb ik een account nodig voor de gratis scan?",
+      "a7": "Nee. Drie velden invullen en je krijgt direct je resultaat in beeld. Voor dagelijkse tracking over meer prompts maak je een account aan. De eerste scan is volledig gratis en anoniem.",
+      "q8": "Waarom zou ik jullie data vertrouwen?",
+      "a8": "We laten de <strong>ruwe AI-output</strong> zien: letterlijk wat ChatGPT en Perplexity zeiden, inclusief tijdstempel. Elke vermelding is zelf te controleren. Geen \"vertrouw ons\"-black-box.",
+      "q9": "Hoe vaak moet ik scannen?",
+      "a9": "Voor een eerste beeld: één scan. Voor serieuze tracking: <strong>wekelijks</strong>. AI-antwoorden veranderen sneller dan Google-rankings. Wat vandaag klopt, is volgende maand soms anders. Pro-pakketten doen dit automatisch.",
+      "helpTitle": "Staat je vraag er niet",
+      "helpTitleEm": "tussen?",
+      "helpText": "Mail ons of plan een korte demo. Je krijgt antwoord van een mens, niet van een bot. Meestal binnen een werkdag.",
+      "helpCta": "Plan een demo"
     },
     "urlModal": {
       "title": "Vul je website URL in",
@@ -177,13 +222,168 @@
       "scanItem4": "Pagina-inhoud & USP's",
       "scanWithAnalysis": "Scan met website-analyse →",
       "continueWithout": "Toch doorgaan zonder URL"
+    },
+    "tools": {
+      "heroTitle": "Zes gratis tools",
+      "heroSubline": "voor de",
+      "heroTitleHighlight": "nieuwe zoekmachine.",
+      "subtitle": "Elke tool beantwoordt één concrete AI-zichtbaarheidsvraag. Zes zijn gratis, zonder account. Alleen Pro voor als je structureel wilt werken aan GEO.",
+      "filters": {
+        "all": "Alle tools",
+        "measure": "Meten",
+        "discover": "Ontdekken",
+        "optimize": "Optimaliseren",
+        "pro": "Pro"
+      },
+      "viewAll": "Bekijk alle tools",
+      "items": {
+        "aiVisibility": {
+          "badge1": "Meest gebruikt",
+          "badge2": "Gratis",
+          "title": "AI Zichtbaarheid Scan",
+          "lede": "Scan 4 AI-platformen tegelijk.",
+          "body": "Binnen 60 seconden: 10 commerciële prompts gescand op 4 AI-platformen, met concurrentie-overzicht.",
+          "stat": "4 platformen · ≤60 sec",
+          "cta": "Start gratis scan"
+        },
+        "promptDiscovery": {
+          "badge1": "Nieuw",
+          "badge2": "Gratis",
+          "title": "AI Prompt Discovery",
+          "lede": "Welke AI-prompts leiden al naar jouw site?",
+          "body": "Koppel Search Console en zie automatisch op welke AI-queries je al zichtbaar bent.",
+          "stat": "Search Console · auto",
+          "cta": "Koppel Search Console"
+        },
+        "rankTracker": {
+          "badge1": "Live",
+          "badge2": "Gratis",
+          "title": "AI Rank Tracker",
+          "lede": "Waar sta je in ChatGPT en Perplexity?",
+          "body": "Zoekwoord + servicegebied → zie direct je positie in beide platformen.",
+          "stat": "ChatGPT · Perplexity",
+          "cta": "Check je ranking"
+        },
+        "brandCheck": {
+          "badge1": "Populair",
+          "badge2": "Gratis",
+          "title": "AI Brand Check",
+          "lede": "Wat zegt AI over jouw bedrijf?",
+          "body": "3 commerciële vragen op ChatGPT en Perplexity, met sentimentanalyse en verbeterpunten.",
+          "stat": "3 vragen · sentiment",
+          "cta": "Check je merk"
+        },
+        "geoAudit": {
+          "badge1": "42 checks",
+          "badge2": "Gratis",
+          "title": "GEO Audit",
+          "lede": "Hoe AI-klaar is jouw pagina?",
+          "body": "URL invoeren → score op techniek, content, schema en live Perplexity-test.",
+          "stat": "4 categorieën · live test",
+          "cta": "Audit je pagina"
+        },
+        "promptExplorer": {
+          "badge1": "Beta",
+          "badge2": "Gratis",
+          "title": "AI Prompt Explorer",
+          "lede": "Ontdek 50+ prompts met zoekvolumes.",
+          "body": "50+ natuurlijke zoekvragen die mensen typen in AI, inclusief maandelijks volume per prompt.",
+          "stat": "50+ prompts · volumes",
+          "cta": "Ontdek prompts"
+        }
+      }
+    },
+    "proShowcase": {
+      "badge": "Vanaf €29,95/mnd",
+      "title": "Het volledige",
+      "titleHighlight": "GEO-platform.",
+      "lede": "Alle gratis tools onbeperkt, plus een dashboard met Search Console-koppeling, AI-advies per pagina en automatische tracking.",
+      "feature1Title": "Onbeperkt scannen",
+      "feature1Desc": "alle tools zonder dagelijkse limiet",
+      "feature2Title": "Search Console-koppeling",
+      "feature2Desc": "zie automatisch op welke AI-prompts je al rankt",
+      "feature3Title": "AI-advies per pagina",
+      "feature3Desc": "concrete optimalisatietips, niet generiek",
+      "feature4Title": "Automatische keyword tracking",
+      "feature4Desc": "50 zoekwoorden, wekelijkse check",
+      "feature5Title": "Chrome extensie + WordPress plugin",
+      "feature5Desc": "GEO-checks tijdens het schrijven",
+      "feature6Title": "Persoonlijke onboarding",
+      "feature6Desc": "30 min met een specialist",
+      "ctaPrimary": "Bekijk prijzen",
+      "ctaSecondary": "Plan een demo",
+      "trust1": "Geen creditcard nodig",
+      "trust2": "Maandelijks opzegbaar",
+      "trust3": "Setup in 5 min",
+      "mockTitle": "AI-zichtbaarheid deze week",
+      "mockTrackedKeywords": "Getrackte zoekwoorden",
+      "mockMore": "meer"
+    },
+    "platforms": {
+      "eyebrow": "Wat we scannen",
+      "title": "Vier AI-zoekplekken.",
+      "titleHighlight": "Één overzicht.",
+      "videoCaption": "Bekijk de scan in actie",
+      "videoSpeed": "2,5× versneld",
+      "videoPlay": "Speel de demo af",
+      "scope": {
+        "chatgpt": "GPT-5 Search",
+        "perplexity": "Sonar Pro",
+        "googleAiOverview": "Bovenaan SERP",
+        "googleAiMode": "Chat-interface"
+      }
+    },
+    "quote": {
+      "bodyStart": "We ontdekten dat ChatGPT een concurrent aanbeval bij",
+      "bodyHighlight": "17 van de 20 vragen",
+      "bodyEnd": "in onze categorie. Zes weken na de fix met teun.ai zaten we op 14/20. Dat is een resultaat dat je kunt meten.",
+      "name": "Enzo van Bambost",
+      "title": "CEO, Hettema & van Bambost Juristen · van 3/20 naar 14/20 vermeldingen in Q1",
+      "heading": "Klantverhaal"
+    },
+    "finalCta": {
+      "titleStart": "Word het",
+      "titleHighlight": "antwoord.",
+      "titleEnd": "Niet een voetnoot.",
+      "body": "Start je eerste scan in 2 minuten. Geen account, geen creditcard. Gewoon het antwoord waar je al een tijdje nieuwsgierig naar bent.",
+      "ctaPrimary": "Start gratis scan",
+      "ctaSecondary": "Plan een demo"
+    },
+    "demo": {
+      "kicker": "§ 03 · Live experiment · probeer direct",
+      "titleStart": "Wat zegt",
+      "titleEm": "AI",
+      "titleEnd": "over jouw merk?",
+      "subtitle": "Typ een merknaam. We stellen ChatGPT en Perplexity een echte vraag, live op deze pagina. Geen mockup.",
+      "inputLabel": "Vraag een AI over een merk",
+      "inputPlaceholder": "Typ een merknaam",
+      "chipsLabel": "Kies een vraag",
+      "askButton": "Stel de vraag aan 2 AI's",
+      "askingButton": "Bezig...",
+      "disclaimerStart": "Echte AI-call · ~6 seconden · Vermeldingen worden",
+      "disclaimerMark": "groen gemarkeerd",
+      "statusWaiting": "Wachten",
+      "statusLoading": "Bezig...",
+      "statusMentioned": "✓ Genoemd",
+      "statusMissing": "Niet genoemd",
+      "statusPreview": "Pro feature",
+      "placeholder": "Klik op \"Stel de vraag\" om een échte query te starten. Je ziet het antwoord woord voor woord.",
+      "previewText": "In de volledige Brand Check vergelijken we AI-perceptie met je echte Google Reviews-rating. Zien AI's je net zo positief als klanten?",
+      "previewCta": "Bekijk Brand Check",
+      "afterCta": "De volledige Brand Check stelt 6 commerciële vragen aan ChatGPT en Perplexity, plus reality check tegen je Google Reviews.",
+      "afterCtaButton": "Account aanmaken",
+      "signupButton": "Account aanmaken",
+      "usedNote": "Je gratis demo-scan is gebruikt. Met een account scan je 10 prompts × 4 platformen.",
+      "afterCtaTitle": "Dit was 1 vraag op 2 AI's.",
+      "afterCtaSecondary": "Bekijk Brand Check",
+      "previewCardTitle": "Google Reviews Reality Check"
     }
   },
   "aiVisibility": {
     "badge": "AI Zichtbaarheid Scan",
     "title": "AI Zichtbaarheidsanalyse",
     "subtitle": "Hoe vermelden AI-modellen jouw bedrijf bij commerciële zoekvragen?",
-    "platformInfo": "10 prompts per scan • 1x gratis zonder account • AI Modus & AI Overviews met gratis account",
+    "platformInfo": "10 prompts per scan • 2x gratis zonder account • AI Modus & AI Overviews met gratis account",
     "aiMode": "AI Modus",
     "aiOverviews": "AI Overviews",
     "accountTag": "account",

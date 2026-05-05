@@ -82,13 +82,21 @@
   },
   "home": {
     "hero": {
-      "title": "How visible is your brand",
-      "titleHighlight": "in AI search engines?",
-      "subtitle": "Check if your business is recommended by ChatGPT, Perplexity and Google.",
-      "subtitleBold": "Free scan in 1 minute.",
+      "title": "How visible is",
+      "titleLine2": "your brand in",
+      "titleHighlight": "AI search engines?",
+      "subtitle": "Check whether your business is recommended by <b>ChatGPT, Perplexity</b> and Google AI, and what they say about you. Free scan in 1 minute, no account.",
+      "subtitleBold": "Free scan in 1 minute, no account needed.",
       "aiModeLabel": "account",
       "aiOverviewsLabel": "account",
-      "platformInfo": "10 prompts per scan • 1x free without account • AI Mode & AI Overviews with free account"
+      "platformInfo": "10 prompts per scan • 2x free without account • AI Mode & AI Overviews with free account",
+      "floatCard1Label": "ChatGPT says",
+      "floatCard1Value": "mentioned",
+      "floatCard1Position": "pos 2",
+      "floatCard2Label": "GEO score",
+      "floatCard2Value": "good",
+      "floatCard3Label": "Scan ready",
+      "floatCard3Value": "mentions"
     },
     "form": {
       "companyName": "Company name",
@@ -101,7 +109,7 @@
       "websitePlaceholder": "yourwebsite.com",
       "required": "*",
       "submit": "Start Free Scan →",
-      "submitInfo": "No registration needed • 10 prompts per scan • Results in ±2 min",
+      "submitInfo": "No registration needed • 10 prompts per scan • Result in ±2 min",
       "advancedOptions": "Advanced options",
       "websiteRequired": "Website URL is needed for accurate results",
       "analyzing": "Analyzing website...",
@@ -110,7 +118,10 @@
       "clearAll": "Clear all",
       "addKeyword": "+ Add",
       "keywordPlaceholder": "Add keyword...",
-      "englishWarning": "For best results in AI search, use a specific <strong>industry term</strong> instead of a generic one."
+      "englishWarning": "For best results in AI search, use a specific <strong>industry term</strong> instead of a generic one.",
+      "freeToolPill": "1 of 6 free tools",
+      "litePricing": "Lite from €29.95/mo",
+      "extracting": "Extracting keywords..."
     },
     "stats": {
       "scansCount": "2,847",
@@ -120,19 +131,29 @@
       "platformsCount": "4",
       "platformsLabel": "AI platforms scanned",
       "freeLabel": "Free",
-      "freeDescription": "2x scan without account"
+      "freeDescription": "2x scan without account",
+      "companiesLabel": "Companies onboard"
     },
     "socialProof": {
       "title": "Trusted by leading brands"
     },
     "howItWorks": {
-      "title": "How it works",
-      "step1Title": "Enter your details",
-      "step1Text": "Company name, industry and website. We automatically extract keywords and create the prompts.",
-      "step2Title": "We scan 3 AI engines",
-      "step2Text": "ChatGPT, Perplexity, AI Mode and AI Overviews are queried in real-time.",
-      "step3Title": "Get your report",
-      "step3Text": "See which prompts potential customers use. See exactly where you are and aren't mentioned — or your competitors."
+      "title": "Four steps,",
+      "titleHighlight": "2 minutes,",
+      "titleEnd": "one clear picture.",
+      "subtitle": "No complex dashboard, no sales call. Just the answer you were looking for.",
+      "step1Title": "Analyze website",
+      "step1Text": "Enter your URL and our AI automatically retrieves your keywords, industry and company name. Or fill them in manually.",
+      "step1Time": "00:10",
+      "step2Title": "Generate prompts",
+      "step2Text": "10 commercial prompts are generated based on your industry, keywords and service area.",
+      "step2Time": "00:30",
+      "step3Title": "Live AI scanning",
+      "step3Text": "Every prompt is queried live at ChatGPT Search, Perplexity and Google AI for actual, real results.",
+      "step3Time": "01:30",
+      "step4Title": "Receive your result",
+      "step4Text": "See per prompt whether you are mentioned, which competitors score and where your opportunities lie.",
+      "step4Time": "02:00"
     },
     "chatDemo": {
       "title": "What does ChatGPT answer",
@@ -158,14 +179,38 @@
       "subtext": "No credit card • Completely free • Instant insights"
     },
     "faq": {
-      "q1": "How does Teun.AI work exactly?",
-      "a1": "Teun.AI scans how visible your business is in AI search engines like ChatGPT, Perplexity and Google. You enter your business details, we generate up to 10 commercial prompts, and you instantly see if you're being recommended.",
-      "q2": "What does Teun.AI cost?",
-      "a2": "All 6 tools are free to use with limits. Lite costs €29.95/mo and gives unlimited access to all tools, 20 keywords automatic tracking and 10 GEO Analysis prompts. Pro costs €49.95/mo with 50 keywords, unlimited GEO Analysis prompts and phone support. Both plans can be cancelled monthly. Prices excl. VAT.",
-      "q3": "Is Teun.AI right for my business?",
-      "a3": "Teun.AI is suitable for any business that wants to be visible online. Whether you're an SMB, startup or enterprise — if your customers need to find you via AI search engines, Teun.AI is for you.",
+      "eyebrow": "Q & A",
+      "title": "Everything you want to know",
+      "titleHighlight": "before you click.",
+      "subtitle": "No bot answers, no marketing speak. Real explanations, written by our team.",
+      "categories": {
+        "all": "All",
+        "product": "Product",
+        "pricing": "Pricing",
+        "technical": "Technical"
+      },
+      "q1": "How does teun.ai work exactly?",
+      "a1": "You enter your company name, industry and website. We generate <strong>10 commercial prompts</strong> that real customers ask AI, and put them to ChatGPT, Perplexity and Google AI on your behalf. Within 60 seconds you get a report with:<ul><li>Whether you're mentioned by name</li><li>Which competitors are mentioned</li><li>The literal AI answers for verification</li></ul>",
+      "q2": "What does teun.ai cost?",
+      "a2": "All <strong>six free tools</strong> are unlimited without an account. For serious tracking:<ul><li><strong>Lite</strong> · €29.95/mo · 20 keywords, 10 GEO prompts</li><li><strong>Pro</strong> · €49.95/mo · 50 keywords, unlimited GEO, phone support</li></ul>Cancel monthly. Prices exclude VAT.",
+      "q3": "Is teun.ai suitable for my business?",
+      "a3": "If your customers need to find you through search engines: yes. We see strong results with SMBs, SaaS startups, webshops, freelancers and agencies. Teun works less well for businesses that run purely on network and warm leads.",
       "q4": "How long until I see results?",
-      "a4": "Your scan results are available immediately. Improving your AI visibility is a process that takes time, but with our actionable tips you can start right away."
+      "a4": "<strong>Scan results:</strong> immediately, within 60 seconds on screen.<br/><strong>Impact on AI visibility:</strong> usually 2–8 weeks after implementing the advice. AI models need time to absorb new content.",
+      "q5": "Isn't this just SEO with a new coat of paint?",
+      "a5": "No. SEO optimizes for <strong>ten blue links</strong>. AI doesn't show ten links. It gives <strong>one answer</strong>, and either mentions you or doesn't. Other tactics matter: clear claims, structured data, citable content, and presence in sources AI does read (Reddit, G2, Trustpilot, trade media).",
+      "q6": "How can ChatGPT \"mention\" a brand?",
+      "a6": "If someone asks \"what's the best X in the Netherlands?\" the model gives a short list. You're on it, or you're not. Our scanner asks hundreds of these prompts and tracks <strong>how often</strong> you're mentioned, <strong>in what context</strong>, and <strong>alongside which competitors</strong>.",
+      "q7": "Do I need an account for the free scan?",
+      "a7": "No. Fill in three fields and you get your result on screen immediately. For daily tracking across more prompts, you create an account. The first scan is completely free and anonymous.",
+      "q8": "Why should I trust your data?",
+      "a8": "We show the <strong>raw AI output</strong>: literally what ChatGPT and Perplexity said, with timestamp. Every mention is self-verifiable. No \"trust us\" black box.",
+      "q9": "How often should I scan?",
+      "a9": "For a first impression: one scan. For serious tracking: <strong>weekly</strong>. AI answers change faster than Google rankings. What's true today is sometimes different next month. Pro packages do this automatically.",
+      "helpTitle": "Question not",
+      "helpTitleEm": "answered?",
+      "helpText": "Email us or book a short demo. You'll get an answer from a human, not a bot. Usually within one business day.",
+      "helpCta": "Book a demo"
     },
     "urlModal": {
       "title": "Enter your website URL",
@@ -177,13 +222,168 @@
       "scanItem4": "Page content & USPs",
       "scanWithAnalysis": "Scan with website analysis →",
       "continueWithout": "Continue without URL"
+    },
+    "tools": {
+      "heroTitle": "Six free tools",
+      "heroSubline": "for the",
+      "heroTitleHighlight": "new search engine.",
+      "subtitle": "Every tool answers one concrete AI visibility question. Six are free, without an account. Only Pro if you want to work on GEO structurally.",
+      "filters": {
+        "all": "All tools",
+        "measure": "Measure",
+        "discover": "Discover",
+        "optimize": "Optimize",
+        "pro": "Pro"
+      },
+      "viewAll": "View all tools",
+      "items": {
+        "aiVisibility": {
+          "badge1": "Most used",
+          "badge2": "Free",
+          "title": "AI Visibility Scan",
+          "lede": "Scan 4 AI platforms at once.",
+          "body": "Within 60 seconds: 10 commercial prompts scanned across 4 AI platforms with competitor overview.",
+          "stat": "4 platforms · ≤60 sec",
+          "cta": "Start free scan"
+        },
+        "promptDiscovery": {
+          "badge1": "New",
+          "badge2": "Free",
+          "title": "AI Prompt Discovery",
+          "lede": "Which AI prompts already lead to your site?",
+          "body": "Connect Search Console and see which AI queries you already rank for, automatically.",
+          "stat": "Search Console · auto",
+          "cta": "Connect Search Console"
+        },
+        "rankTracker": {
+          "badge1": "Live",
+          "badge2": "Free",
+          "title": "AI Rank Tracker",
+          "lede": "Where do you rank in ChatGPT and Perplexity?",
+          "body": "Keyword + service area → see your position in both platforms instantly.",
+          "stat": "ChatGPT · Perplexity",
+          "cta": "Check your ranking"
+        },
+        "brandCheck": {
+          "badge1": "Popular",
+          "badge2": "Free",
+          "title": "AI Brand Check",
+          "lede": "What does AI say about your brand?",
+          "body": "3 commercial questions on ChatGPT and Perplexity, with sentiment analysis and improvement points.",
+          "stat": "3 questions · sentiment",
+          "cta": "Check your brand"
+        },
+        "geoAudit": {
+          "badge1": "42 checks",
+          "badge2": "Free",
+          "title": "GEO Audit",
+          "lede": "How AI-ready is your page?",
+          "body": "Enter URL → score on technique, content, schema and live Perplexity test.",
+          "stat": "4 categories · live test",
+          "cta": "Audit your page"
+        },
+        "promptExplorer": {
+          "badge1": "Beta",
+          "badge2": "Free",
+          "title": "AI Prompt Explorer",
+          "lede": "Discover 50+ prompts with search volumes.",
+          "body": "50+ natural search questions people type into AI, including monthly volume per prompt.",
+          "stat": "50+ prompts · volumes",
+          "cta": "Explore prompts"
+        }
+      }
+    },
+    "proShowcase": {
+      "badge": "From €29.95/mo",
+      "title": "The complete",
+      "titleHighlight": "GEO platform.",
+      "lede": "All free tools unlimited, plus a dashboard with Search Console connection, AI advice per page and automatic tracking.",
+      "feature1Title": "Unlimited scanning",
+      "feature1Desc": "all tools without daily limit",
+      "feature2Title": "Search Console integration",
+      "feature2Desc": "see automatically which AI prompts you rank for",
+      "feature3Title": "AI advice per page",
+      "feature3Desc": "concrete optimization tips, not generic",
+      "feature4Title": "Automatic keyword tracking",
+      "feature4Desc": "50 keywords, weekly check",
+      "feature5Title": "Chrome extension + WordPress plugin",
+      "feature5Desc": "GEO checks while writing",
+      "feature6Title": "Personal onboarding",
+      "feature6Desc": "30 min with a specialist",
+      "ctaPrimary": "View pricing",
+      "ctaSecondary": "Book a demo",
+      "trust1": "No credit card required",
+      "trust2": "Cancel monthly",
+      "trust3": "Setup in 5 min",
+      "mockTitle": "AI visibility this week",
+      "mockTrackedKeywords": "Tracked keywords",
+      "mockMore": "more"
+    },
+    "platforms": {
+      "eyebrow": "What we scan",
+      "title": "Four AI search places.",
+      "titleHighlight": "One overview.",
+      "videoCaption": "See the scan in action",
+      "videoSpeed": "2.5× sped up",
+      "videoPlay": "Play the demo",
+      "scope": {
+        "chatgpt": "GPT-5 Search",
+        "perplexity": "Sonar Pro",
+        "googleAiOverview": "Top of SERP",
+        "googleAiMode": "Chat interface"
+      }
+    },
+    "quote": {
+      "bodyStart": "We discovered that ChatGPT recommended a competitor in",
+      "bodyHighlight": "17 out of 20 questions",
+      "bodyEnd": "in our category. Six weeks after the fix with teun.ai we were at 14/20. That's a result you can measure.",
+      "name": "Enzo van Bambost",
+      "title": "CEO, Hettema & van Bambost · from 3/20 to 14/20 mentions in Q1",
+      "heading": "Customer story"
+    },
+    "finalCta": {
+      "titleStart": "Be the",
+      "titleHighlight": "answer.",
+      "titleEnd": "Not a footnote.",
+      "body": "Start your first scan in 2 minutes. No account, no credit card. Just the answer you've been curious about for a while.",
+      "ctaPrimary": "Start free scan",
+      "ctaSecondary": "Book a demo"
+    },
+    "demo": {
+      "kicker": "§ 03 · Live experiment · try it now",
+      "titleStart": "What does",
+      "titleEm": "AI",
+      "titleEnd": "say about your brand?",
+      "subtitle": "Type a brand name. We ask ChatGPT and Perplexity a real question, live on this page. No mockup.",
+      "inputLabel": "Ask an AI about a brand",
+      "inputPlaceholder": "Type a brand name",
+      "chipsLabel": "Pick a question",
+      "askButton": "Ask 2 AIs",
+      "askingButton": "Loading...",
+      "disclaimerStart": "Real AI call · ~6 seconds · Mentions are",
+      "disclaimerMark": "highlighted in green",
+      "statusWaiting": "Waiting",
+      "statusLoading": "Loading...",
+      "statusMentioned": "✓ Mentioned",
+      "statusMissing": "Not mentioned",
+      "statusPreview": "Pro feature",
+      "placeholder": "Click \"Ask the question\" to start a real query. You'll see the answer word by word.",
+      "previewText": "In the full Brand Check we compare AI perception with your real Google Reviews rating. Do AIs see you as positively as your customers do?",
+      "previewCta": "View Brand Check",
+      "afterCta": "The full Brand Check asks 6 commercial questions to ChatGPT and Perplexity, plus a reality check against your Google Reviews.",
+      "afterCtaButton": "Create account",
+      "signupButton": "Create account",
+      "usedNote": "Your free demo scan is used. With an account you scan 10 prompts × 4 platforms.",
+      "afterCtaTitle": "That was 1 question on 2 AIs.",
+      "afterCtaSecondary": "View Brand Check",
+      "previewCardTitle": "Google Reviews Reality Check"
     }
   },
   "aiVisibility": {
     "badge": "AI Visibility Scan",
     "title": "AI Visibility Analysis",
     "subtitle": "How do AI models mention your business for commercial search queries?",
-    "platformInfo": "10 prompts per scan • 1x free without account • AI Mode & AI Overviews with free account",
+    "platformInfo": "10 prompts per scan • 2x free without account • AI Mode & AI Overviews with free account",
     "aiMode": "AI Mode",
     "aiOverviews": "AI Overviews",
     "accountTag": "account",

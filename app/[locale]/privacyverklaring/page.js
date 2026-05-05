@@ -46,14 +46,15 @@ export async function generateMetadata() {
 function PrivacyNL() {
   return (
     <>
-      <header className="mb-12">
-        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-[#1A7DFF] to-[#6C3FF2] bg-clip-text text-transparent">
-          Privacyverklaring
+      <header className="prv-header">
+        <div className="tool-eyebrow">PRIVACY</div>
+        <h1 className="prv-h1">
+          Privacy<em>verklaring</em>
         </h1>
-        <p className="text-gray-600">Laatst bijgewerkt: 27 oktober 2025</p>
+        <p className="prv-updated">Laatst bijgewerkt: 27 oktober 2025</p>
       </header>
 
-      <article className="legal-content">
+      <article className="prv-content legal-content">
         <p>
           Teun.ai (onderdeel van OnlineLabs) respecteert je privacy en gaat zorgvuldig om met je persoonsgegevens.
           In deze privacyverklaring leggen we uit welke gegevens we verzamelen, waarom we dat doen en wat je rechten zijn.
@@ -398,14 +399,15 @@ function PrivacyNL() {
 function PrivacyEN() {
   return (
     <>
-      <header className="mb-12">
-        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-[#1A7DFF] to-[#6C3FF2] bg-clip-text text-transparent">
-          Privacy Policy
+      <header className="prv-header">
+        <div className="tool-eyebrow">PRIVACY</div>
+        <h1 className="prv-h1">
+          Privacy <em>Policy</em>
         </h1>
-        <p className="text-gray-600">Last updated: 27 October 2025</p>
+        <p className="prv-updated">Last updated: 27 October 2025</p>
       </header>
 
-      <article className="legal-content">
+      <article className="prv-content legal-content">
         <p>
           Teun.ai (part of OnlineLabs) respects your privacy and handles your personal data with care.
           In this privacy policy, we explain what data we collect, why we do so and what your rights are.
@@ -751,111 +753,182 @@ export default async function PrivacyPolicyPage() {
   const locale = await getLocale();
 
   return (
-    <div className="container mx-auto px-4 py-16 max-w-4xl">
-      {locale === 'en' ? <PrivacyEN /> : <PrivacyNL />}
+    <div className="tool-page prv-page">
+      <div className="prv-wrap">
+        {locale === 'en' ? <PrivacyEN /> : <PrivacyNL />}
 
-      {/* Scoped styles for legal content — replaces the broken CSS module */}
+      {/* Scoped styles for legal content - cream/Lora/spark themed */}
       <style>{`
-        .legal-content h2 {
-          font-size: 1.5rem;
-          font-weight: 700;
-          margin-top: 2.5rem;
-          margin-bottom: 1rem;
-          color: #1e293b;
-          padding-bottom: 0.5rem;
-          border-bottom: 2px solid #e2e8f0;
+        .prv-content h2 {
+          font-family: var(--font-lora), serif;
+          font-weight: 500;
+          font-size: clamp(22px, 2.6vw, 28px);
+          letter-spacing: -0.01em;
+          margin-top: 56px;
+          margin-bottom: 16px;
+          color: var(--ink);
+          padding-bottom: 12px;
+          border-bottom: 1px solid var(--line);
         }
-        .legal-content h3 {
-          font-size: 1.2rem;
-          font-weight: 600;
-          margin-top: 1.75rem;
-          margin-bottom: 0.75rem;
-          color: #334155;
+        .prv-content h3 {
+          font-family: var(--font-lora), serif;
+          font-weight: 500;
+          font-size: 19px;
+          margin-top: 32px;
+          margin-bottom: 10px;
+          color: var(--ink);
+          letter-spacing: -0.005em;
         }
-        .legal-content p {
-          margin-bottom: 1rem;
+        .prv-content p {
+          margin-bottom: 16px;
           line-height: 1.7;
-          color: #475569;
+          color: var(--ink-2);
+          font-size: 15.5px;
         }
-        .legal-content a {
-          color: #1A7DFF;
-          text-decoration: underline;
-          text-underline-offset: 2px;
+        .prv-content a {
+          color: var(--spark);
+          font-weight: 600;
+          text-decoration: none;
+          border-bottom: 1px solid rgba(232, 98, 58, 0.3);
+          transition: border-color 0.15s, background 0.15s;
         }
-        .legal-content a:hover {
-          color: #6C3FF2;
+        .prv-content a:hover {
+          border-bottom-color: var(--spark);
+          background: rgba(232, 98, 58, 0.06);
         }
-        .legal-content ul,
-        .legal-content ol {
-          margin-bottom: 1rem;
-          padding-left: 1.5rem;
-        }
-        .legal-content ul {
-          list-style-type: disc;
-        }
-        .legal-content ol {
-          list-style-type: decimal;
-        }
-        .legal-content li {
-          margin-bottom: 0.5rem;
-          line-height: 1.6;
-          color: #475569;
-        }
-        .legal-content ul.list-check {
+        .prv-content ul,
+        .prv-content ol {
+          margin-bottom: 18px;
+          padding-left: 0;
           list-style: none;
+        }
+        .prv-content ul li,
+        .prv-content ol li {
+          position: relative;
+          padding-left: 22px;
+          margin-bottom: 8px;
+          line-height: 1.65;
+          color: var(--ink-2);
+          font-size: 15px;
+        }
+        .prv-content ul li::before {
+          content: '';
+          position: absolute;
+          left: 4px;
+          top: 0.7em;
+          width: 8px;
+          height: 2px;
+          background: var(--spark);
+          border-radius: 0;
+        }
+        .prv-content ol {
+          counter-reset: item;
+        }
+        .prv-content ol li {
+          counter-increment: item;
+          padding-left: 32px;
+        }
+        .prv-content ol li::before {
+          content: counter(item) ".";
+          position: absolute;
+          left: 0;
+          top: 0;
+          font-family: var(--font-mono), monospace;
+          font-weight: 700;
+          color: var(--spark);
+          font-size: 14px;
+        }
+        .prv-content ul.list-check {
           padding-left: 0;
         }
-        .legal-content ul.list-check li::before {
-          content: "✅ ";
+        .prv-content ul.list-check li {
+          padding-left: 26px;
         }
-        .legal-content ul.list-cross {
-          list-style: none;
+        .prv-content ul.list-check li::before {
+          content: '✓';
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: auto;
+          height: auto;
+          background: transparent;
+          color: var(--success);
+          font-weight: 700;
+          font-size: 14px;
+        }
+        .prv-content ul.list-cross {
           padding-left: 0;
         }
-        .legal-content ul.list-cross li::before {
-          content: "❌ ";
+        .prv-content ul.list-cross li {
+          padding-left: 26px;
         }
-        .legal-content table {
+        .prv-content ul.list-cross li::before {
+          content: '✕';
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: auto;
+          height: auto;
+          background: transparent;
+          color: var(--danger);
+          font-weight: 700;
+          font-size: 14px;
+        }
+        .prv-content table {
           width: 100%;
           border-collapse: collapse;
-          margin-bottom: 1.5rem;
-          font-size: 0.9rem;
+          margin: 22px 0;
+          font-size: 14px;
+          background: #fff;
+          border: 1px solid var(--line);
+          border-radius: 12px;
+          overflow: hidden;
         }
-        .legal-content th {
-          background: #f1f5f9;
-          padding: 0.75rem 1rem;
+        .prv-content th {
+          background: var(--bg-2);
+          padding: 12px 16px;
           text-align: left;
-          font-weight: 600;
-          color: #1e293b;
-          border-bottom: 2px solid #e2e8f0;
+          font-family: var(--font-mono), monospace;
+          font-weight: 700;
+          color: var(--ink-3);
+          font-size: 11.5px;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          border-bottom: 1px solid var(--line);
         }
-        .legal-content td {
-          padding: 0.75rem 1rem;
-          border-bottom: 1px solid #e2e8f0;
-          color: #475569;
+        .prv-content td {
+          padding: 12px 16px;
+          border-bottom: 1px solid var(--bg-2);
+          color: var(--ink-2);
         }
-        .legal-content code {
-          background: #f1f5f9;
-          padding: 0.15rem 0.4rem;
-          border-radius: 0.25rem;
+        .prv-content tr:last-child td { border-bottom: none; }
+        .prv-content code {
+          background: var(--bg-2);
+          padding: 2px 6px;
+          border-radius: 4px;
           font-size: 0.85em;
-          color: #6C3FF2;
+          color: var(--spark);
+          font-family: var(--font-mono), monospace;
         }
-        .legal-content blockquote {
-          margin: 1.5rem 0;
-          padding: 1.25rem 1.5rem;
-          background: linear-gradient(135deg, #f0f4ff 0%, #f5f0ff 100%);
-          border-left: 4px solid #6C3FF2;
-          border-radius: 0 0.75rem 0.75rem 0;
-          color: #334155;
+        .prv-content blockquote {
+          margin: 24px 0;
+          padding: 18px 22px;
+          background: rgba(232, 98, 58, 0.06);
+          border-left: 3px solid var(--spark);
+          border-radius: 0 12px 12px 0;
+          color: var(--ink-2);
+          font-size: 15px;
+          line-height: 1.6;
         }
-        .legal-content blockquote a {
-          color: #6C3FF2;
+        .prv-content blockquote a {
+          color: var(--spark);
         }
-        .legal-content strong {
-          color: #1e293b;
+        .prv-content strong {
+          color: var(--ink);
+          font-weight: 600;
         }
       `}</style>
+      </div>
     </div>
   );
 }

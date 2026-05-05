@@ -117,17 +117,86 @@ function isGarbagePage(html) {
   return false
 }
 
+// ============================================
+// COUNTRY CODE PICKER for ScraperAPI proxy pool
+// EU pool voor European TLDs (.nl, .be, .de etc) — meer lenient voor lokale sites
+// US pool voor international (.com, .net etc) — wijdste pool
+// ============================================
+function pickCountryCode(url) {
+  try {
+    const host = new URL(url).hostname.toLowerCase()
+    const euTlds = new Set([
+      'nl', 'be', 'de', 'at', 'ch', 'fr', 'es', 'it',
+      'uk', 'ie', 'eu', 'pt', 'dk', 'se', 'no', 'fi',
+      'pl', 'cz', 'gr', 'lu'
+    ])
+    if (host.endsWith('.co.uk')) return 'eu'
+    const tld = host.split('.').pop()
+    return euTlds.has(tld) ? 'eu' : 'us'
+  } catch {
+    return 'us'
+  }
+}
+
+// ============================================
+// SCRAPER API CALL (basic of ultra mode)
+// ============================================
+async function fetchViaScraperApi(url, { ultra = false } = {}) {
+  const params = new URLSearchParams({
+    api_key: SCRAPER_API_KEY,
+    url,
+    country_code: pickCountryCode(url),
+    device_type: 'desktop'
+  })
+
+  if (ultra) {
+    // Max-quality config — residential IPs + ultra_premium bypass.
+    // Costs 75 credits per request. Use only when basic fails.
+    // follow_redirect=false + NO render: needed to bypass DDoS-Guard.
+    // DDoS-Guard's JS challenge loops infinitely with rendering on.
+    params.set('premium', 'true')
+    params.set('ultra_premium', 'true')
+    params.set('follow_redirect', 'false')
+  } else {
+    // Basic tier uses JS rendering for SPA/client-rendered sites
+    params.set('render', 'true')
+    params.set('premium', 'true')
+  }
+
+  const scraperUrl = `https://api.scraperapi.com/?${params.toString()}`
+  const timeout = ultra ? 70000 : 45000
+
+  const response = await fetch(scraperUrl, {
+    method: 'GET',
+    signal: AbortSignal.timeout(timeout)
+  })
+
+  if (!response.ok) {
+    throw new Error(`ScraperAPI ${response.status} (ultra=${ultra})`)
+  }
+
+  return await response.text()
+}
+
+// ============================================
+// SCRAPE WEBSITE — 3-staps fallback strategie
+//   1. Direct fetch  (FREE, snel, ~50% sites werken)
+//   2. ScraperAPI basic (premium + render, ~5 credits)
+//   3. ScraperAPI ultra (residential + bypass, 75 credits — laatste redmiddel)
+// ============================================
 async function scrapeWebsite(url) {
   let normalizedUrl = url.trim()
   if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
     normalizedUrl = 'https://' + normalizedUrl
   }
-  
+
   const urlObj = new URL(normalizedUrl)
   const hasWww = urlObj.hostname.startsWith('www.')
   const wwwUrl = hasWww ? normalizedUrl : normalizedUrl.replace('://', '://www.')
 
-  // ── Attempt 1: Direct fetch (FREE, no ScraperAPI credits) ──
+  const warnings = []
+
+  // ── Attempt 1: Direct fetch (FREE) ──
   for (const tryUrl of [normalizedUrl, wwwUrl]) {
     try {
       console.log(`🌐 Direct fetch: ${tryUrl}`)
@@ -146,42 +215,63 @@ async function scrapeWebsite(url) {
         const html = await response.text()
         if (!isGarbagePage(html) && html.length > 500) {
           console.log(`✅ Direct fetch OK: ${tryUrl} (${html.length} chars)`)
-          return { success: true, html }
+          return { success: true, html, method: 'direct' }
         }
+        warnings.push(`direct (${tryUrl}): garbage or too short (${html.length} chars)`)
+      } else {
+        warnings.push(`direct (${tryUrl}): HTTP ${response.status}`)
       }
     } catch (error) {
+      warnings.push(`direct (${tryUrl}): ${error.message}`)
       console.log(`⚠️ Direct fetch failed for ${tryUrl}: ${error.message}`)
     }
   }
 
-  // ── Attempt 2: ScraperAPI premium directly (25 credits, highest success rate) ──
+  // ── Attempt 2: ScraperAPI basic (render + premium) ──
+  if (!SCRAPER_API_KEY) {
+    console.log(`❌ No SCRAPER_API_KEY configured`)
+    return { success: false, error: 'Website kon niet gescraped worden (mogelijk sterke bot-protectie)', warnings }
+  }
+
   for (const tryUrl of [normalizedUrl, wwwUrl]) {
     try {
-      console.log(`🔗 ScraperAPI premium: ${tryUrl}`)
-      const scraperUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(tryUrl)}&render=true&premium=true&country_code=nl`
-      
-      const response = await fetch(scraperUrl, {
-        method: 'GET',
-        headers: { 'Accept': 'text/html' },
-        signal: AbortSignal.timeout(30000)
-      })
-      
-      if (response.ok) {
-        const html = await response.text()
-        if (!isGarbagePage(html)) {
-          console.log(`✅ ScraperAPI premium OK: ${tryUrl} (${html.length} chars)`)
-          return { success: true, html }
-        }
-      } else {
-        console.log(`⚠️ ScraperAPI premium HTTP ${response.status} for ${tryUrl}`)
+      console.log(`🔗 ScraperAPI basic: ${tryUrl}`)
+      const html = await fetchViaScraperApi(tryUrl, { ultra: false })
+      if (!isGarbagePage(html) && html.length > 500) {
+        console.log(`✅ ScraperAPI basic OK: ${tryUrl} (${html.length} chars)`)
+        return { success: true, html, method: 'basic' }
       }
+      warnings.push(`basic (${tryUrl}): garbage or too short (${html.length} chars)`)
     } catch (error) {
-      console.log(`⚠️ ScraperAPI premium failed for ${tryUrl}: ${error.message}`)
+      warnings.push(`basic (${tryUrl}): ${error.message}`)
+      console.log(`⚠️ ScraperAPI basic failed for ${tryUrl}: ${error.message}`)
+    }
+  }
+
+  // ── Attempt 3: ScraperAPI ultra (75 credits) — laatste redmiddel ──
+  // Reserved voor sites met aggressieve protection (DDoS-Guard, Cloudflare challenge loops, Wordfence)
+  for (const tryUrl of [normalizedUrl, wwwUrl]) {
+    try {
+      console.log(`🚀 ScraperAPI ultra: ${tryUrl}`)
+      const html = await fetchViaScraperApi(tryUrl, { ultra: true })
+      if (!isGarbagePage(html) && html.length > 500) {
+        console.log(`✅ ScraperAPI ultra OK: ${tryUrl} (${html.length} chars)`)
+        return { success: true, html, method: 'ultra' }
+      }
+      warnings.push(`ultra (${tryUrl}): garbage or too short (${html.length} chars)`)
+    } catch (error) {
+      warnings.push(`ultra (${tryUrl}): ${error.message}`)
+      console.log(`⚠️ ScraperAPI ultra failed for ${tryUrl}: ${error.message}`)
     }
   }
 
   console.log(`❌ All scrape attempts failed for ${normalizedUrl}`)
-  return { success: false, error: 'Website kon niet gescraped worden' }
+  console.log(`Warnings:`, warnings)
+  return {
+    success: false,
+    error: 'Website kon niet gescraped worden (mogelijk sterke bot-protectie)',
+    warnings
+  }
 }
 
 // ============================================

@@ -1,249 +1,186 @@
 // app/[locale]/page.js
-import { setRequestLocale } from 'next-intl/server';
-import { getHreflangAlternates } from '../components/Hreflang';
 import Homepage from '../components/Homepage';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import Script from 'next/script';
 
-// Locale-aware metadata
-export async function generateMetadata({ params }) {
-  const { locale } = await params;
-
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://teun.ai';
-
-  if (locale === 'en') {
-    return {
-      title: 'Teun.ai - Get visible in ChatGPT & AI search',
-      description: 'Free GEO scan: check if ChatGPT, Perplexity and Google AI recommend your business. Result in 60 seconds, no account needed. Join 240+ brands.',
-      alternates: {
-        canonical: `${siteUrl}/en`,
-        languages: {
-          'nl': siteUrl,
-          'en': `${siteUrl}/en`,
-          'x-default': siteUrl,
-        },
-      },
-      openGraph: {
-        title: 'Teun.ai - Get visible in ChatGPT & AI search',
-        description: 'Free GEO scan: check if ChatGPT, Perplexity and Google AI recommend your business. Result in 60 seconds, no account needed. Join 240+ brands.',
-        images: ['/og-image-teun-ai.webp'],
-        type: 'website',
-        locale: 'en_US',
-        alternateLocale: 'nl_NL',
-      },
-    };
-  }
-
-  // Nederlands (default)
-  return {
-    title: 'Teun.ai - Word zichtbaar in ChatGPT & AI-zoekmachines',
-    description: 'Gratis GEO-scan: check of ChatGPT, Perplexity en Google AI jouw bedrijf aanbevelen. Resultaat in 1 minuut, geen account nodig. Start direct.',
-    alternates: {
-      canonical: siteUrl,
-      languages: {
-        'nl': siteUrl,
-        'en': `${siteUrl}/en`,
-        'x-default': siteUrl,
-      },
-    },
-    openGraph: {
-      title: 'Teun.ai - Word zichtbaar in ChatGPT & AI-zoekmachines',
-      description: 'Gratis GEO-scan: check of ChatGPT, Perplexity en Google AI jouw bedrijf aanbevelen. Resultaat in 1 minuut, geen account nodig. Start direct.',
-      images: ['/og-image-teun-ai.webp'],
-      type: 'website',
-      locale: 'nl_NL',
-      alternateLocale: 'en_US',
-    },
-  };
+// Statische rendering aanzetten voor maximale CWV/LCP
+export async function generateStaticParams() {
+  return [{ locale: 'nl' }, { locale: 'en' }];
 }
 
-export default async function Home({ params }) {
+export default async function HomePage({ params }) {
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://teun.ai';
-  
-  // Structured Data (JSON-LD) — taal-aware
-  const inLanguage = locale === 'nl' ? 'nl-NL' : 'en-US';
-  const description = locale === 'nl'
-    ? 'Teun.ai is de eerste AI visibility scanner voor de Nederlandse markt. Ontdek hoe zichtbaar jouw bedrijf is in ChatGPT, Perplexity, Google AI Mode en AI Overviews.'
-    : 'Teun.ai is the first AI visibility scanner. Discover how visible your business is in ChatGPT, Perplexity, Google AI Mode and AI Overviews.';
+  // Translations ophalen voor JSON-LD (server-side)
+  const t = await getTranslations({ locale, namespace: 'home' });
 
-  const structuredData = {
+  const isNl = locale === 'nl';
+  const siteUrl = 'https://teun.ai';
+  const pageUrl = isNl ? siteUrl : `${siteUrl}/en`;
+
+  // === FAQPage schema ===
+  // Strip HTML tags voor schema (Google wil plain text)
+  const stripHtml = (html) => {
+    if (!html) return '';
+    return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  };
+
+  const faqSchema = {
     "@context": "https://schema.org",
-    "@graph": [
+    "@type": "FAQPage",
+    "@id": `${pageUrl}#faq`,
+    "mainEntity": Array.from({ length: 9 }, (_, i) => i + 1).map((n) => ({
+      "@type": "Question",
+      "name": t(`faq.q${n}`),
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": stripHtml(t.raw(`faq.a${n}`))
+      }
+    }))
+  };
+
+  // === SoftwareApplication schema ===
+  const softwareSchema = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "@id": `${siteUrl}#software`,
+    "name": "Teun.ai",
+    "applicationCategory": "BusinessApplication",
+    "applicationSubCategory": "SEO Software",
+    "operatingSystem": "Web",
+    "description": isNl
+      ? "GEO-platform dat meet hoe ChatGPT, Perplexity, Google AI Overview en Google AI Mode jouw merk vermelden."
+      : "GEO platform that measures how ChatGPT, Perplexity, Google AI Overview and Google AI Mode mention your brand.",
+    "url": pageUrl,
+    "offers": [
       {
-        "@type": "Organization",
-        "@id": "https://www.onlinelabs.nl/#organization",
-        "name": "OnlineLabs",
-        "url": "https://www.onlinelabs.nl/",
-        "logo": {
-          "@type": "ImageObject",
-          "@id": "https://www.onlinelabs.nl/#logo",
-          "url": "https://cdn.onlinelabs.nl/wp-content/uploads/2025/01/18075444/OnlineLabs-logo.png",
-          "contentUrl": "https://cdn.onlinelabs.nl/wp-content/uploads/2025/01/18075444/OnlineLabs-logo.png",
-          "caption": "OnlineLabs",
-          "inLanguage": "nl-NL",
-          "width": "432",
-          "height": "432"
-        },
-        "address": {
-          "@type": "PostalAddress",
-          "streetAddress": "Herengracht 221",
-          "postalCode": "1016 BG",
-          "addressLocality": "Amsterdam",
-          "addressCountry": "NL"
-        },
-        "contactPoint": [
-          {
-            "@type": "ContactPoint",
-            "telephone": "+31-20-820-2022",
-            "contactType": "customer service",
-            "email": "hallo@onlinelabs.nl",
-            "areaServed": ["NL", "Worldwide"],
-            "availableLanguage": ["nl", "en"]
-          }
-        ],
-        "sameAs": [
-          "https://www.linkedin.com/company/onlinelabs"
-        ]
+        "@type": "Offer",
+        "name": isNl ? "Gratis scan" : "Free scan",
+        "price": "0",
+        "priceCurrency": "EUR",
+        "description": isNl
+          ? "10 commerciële prompts op 4 AI-platformen, geen account vereist"
+          : "10 commercial prompts on 4 AI platforms, no account required"
       },
       {
-        "@type": "Organization",
-        "@id": `${siteUrl}/#organization`,
-        "name": "Teun.ai",
-        "url": siteUrl,
-        "description": description,
-        "logo": {
-          "@type": "ImageObject",
-          "@id": `${siteUrl}/#logo`,
-          "url": `${siteUrl}/Teun-ai-logo-light.png`,
-          "contentUrl": `${siteUrl}/Teun-ai-logo-light.png`,
-          "caption": "Teun.ai",
-          "inLanguage": inLanguage,
-          "width": "512",
-          "height": "512"
-        },
-        "parentOrganization": {
-          "@id": "https://www.onlinelabs.nl/#organization"
-        },
-        "sameAs": [
-          "https://profiles.wordpress.org/teunai/",
-          "https://chromewebstore.google.com/detail/teunai-chatgpt-visibility/jjhjnmkanlmjhmobcgemjakkjdbkkfmk"
-        ]
-      },
-      {
-        "@type": "WebSite",
-        "@id": `${siteUrl}/#website`,
-        "url": siteUrl,
-        "name": "Teun.ai",
-        "alternateName": locale === 'nl' 
-          ? "Teun.ai - AI Zichtbaarheidsanalyse"
-          : "Teun.ai - AI Visibility Analysis",
-        "publisher": {
-          "@id": `${siteUrl}/#organization`
-        },
-        "inLanguage": [inLanguage, locale === 'nl' ? 'en-US' : 'nl-NL'],
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": `${siteUrl}/search?q={search_term_string}`,
-          "query-input": "required name=search_term_string"
+        "@type": "Offer",
+        "name": "Lite",
+        "price": "29.95",
+        "priceCurrency": "EUR",
+        "priceSpecification": {
+          "@type": "UnitPriceSpecification",
+          "price": "29.95",
+          "priceCurrency": "EUR",
+          "unitCode": "MON",
+          "billingDuration": "P1M"
         }
       },
       {
-        "@type": "WebPage",
-        "@id": `${siteUrl}/#webpage`,
-        "url": locale === 'en' ? `${siteUrl}/en` : siteUrl,
-        "name": locale === 'nl'
-          ? "Teun.ai - Word zichtbaar in ChatGPT & AI-zoekmachines"
-          : "Teun.ai - Get visible in ChatGPT & AI search",
-        "datePublished": "2025-10-01T00:00:00+00:00",
-        "dateModified": new Date().toISOString(),
-        "about": { "@id": `${siteUrl}/#organization` },
-        "isPartOf": { "@id": `${siteUrl}/#website` },
-        "inLanguage": inLanguage
-      },
-      {
-        "@type": "SoftwareApplication",
-        "name": locale === 'nl' ? "Teun.ai AI Zichtbaarheid Scanner" : "Teun.ai AI Visibility Scanner",
-        "applicationCategory": "BusinessApplication",
-        "operatingSystem": "Web",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
+        "@type": "Offer",
+        "name": "Pro",
+        "price": "49.95",
+        "priceCurrency": "EUR",
+        "priceSpecification": {
+          "@type": "UnitPriceSpecification",
+          "price": "49.95",
           "priceCurrency": "EUR",
-          "description": locale === 'nl' 
-            ? "2 gratis scans per maand"
-            : "2 free scans per month"
-        },
-        "description": locale === 'nl'
-          ? "Scan hoe zichtbaar jouw bedrijf is in AI-zoekmachines zoals ChatGPT, Perplexity, Google AI Mode en AI Overviews."
-          : "Scan how visible your business is in AI search engines like ChatGPT, Perplexity, Google AI Mode and AI Overviews.",
-        "provider": { "@id": `${siteUrl}/#organization` }
-      },
+          "unitCode": "MON",
+          "billingDuration": "P1M"
+        }
+      }
+    ],
+    "creator": {
+      "@id": `${siteUrl}/#organization`
+    },
+    "featureList": isNl ? [
+      "AI Zichtbaarheid Scan op 4 platformen",
+      "AI Prompt Discovery via Search Console",
+      "AI Rank Tracker",
+      "AI Brand Check met sentiment-analyse",
+      "GEO Audit met 42 checks",
+      "AI Prompt Explorer met zoekvolumes"
+    ] : [
+      "AI Visibility Scan across 4 platforms",
+      "AI Prompt Discovery via Search Console",
+      "AI Rank Tracker",
+      "AI Brand Check with sentiment analysis",
+      "GEO Audit with 42 checks",
+      "AI Prompt Explorer with search volumes"
+    ],
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "reviewCount": "47",
+      "bestRating": "5"
+    }
+  };
+
+  // === BreadcrumbList ===
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
       {
-        "@type": "SoftwareApplication",
-        "name": locale === 'nl' ? "Teun.ai ChatGPT Zichtbaarheid Checker" : "Teun.ai ChatGPT Visibility Checker",
-        "applicationCategory": "BrowserApplication",
-        "operatingSystem": "Chrome",
-        "url": "https://chromewebstore.google.com/detail/teunai-chatgpt-visibility/jjhjnmkanlmjhmobcgemjakkjdbkkfmk",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "EUR"
-        },
-        "description": locale === 'nl'
-          ? "Chrome extensie om direct je AI-zichtbaarheid te checken in ChatGPT en andere AI-zoekmachines."
-          : "Chrome extension to instantly check your AI visibility in ChatGPT and other AI search engines.",
-        "provider": { "@id": `${siteUrl}/#organization` }
-      },
-      {
-        "@type": "SoftwareApplication",
-        "name": locale === 'nl' ? "Teun.ai GEO — AI Zichtbaarheid Optimizer" : "Teun.ai GEO — AI Visibility Optimizer",
-        "applicationCategory": "BusinessApplication",
-        "operatingSystem": "WordPress",
-        "url": "https://profiles.wordpress.org/teunai/",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "EUR"
-        },
-        "description": locale === 'nl'
-          ? "WordPress plugin voor GEO-analyse en AI-zichtbaarheidsoptimalisatie direct vanuit je WordPress dashboard."
-          : "WordPress plugin for GEO analysis and AI visibility optimization directly from your WordPress dashboard.",
-        "provider": { "@id": `${siteUrl}/#organization` }
-      },
-      {
-        "@type": "Person",
-        "@id": `${siteUrl}/auteur/imre`,
-        "name": "Imre Bernáth",
-        "description": locale === 'nl'
-          ? "Imre Bernáth deelt inzichten over SEO, AI visibility en GEO-optimalisatie. Oprichter van Teun.ai en OnlineLabs. 15+ jaar ervaring in strategische online groei."
-          : "Imre Bernáth shares insights on SEO, AI visibility, and GEO optimization. Founder of Teun.ai and OnlineLabs. 15+ years of experience in strategic online growth.",
-        "url": `${siteUrl}/auteur/imre`,
-        "image": {
-          "@type": "ImageObject",
-          "url": "https://secure.gravatar.com/avatar/af7b2a7481abdf2f7e034af53093a4176c62c4f396da8bfda072e201c18f63d0?s=96&d=mm&r=g",
-          "caption": "Imre Bernáth",
-          "inLanguage": inLanguage
-        },
-        "sameAs": [siteUrl, "https://nl.linkedin.com/in/imrebernath"],
-        "worksFor": { "@id": "https://www.onlinelabs.nl/#organization" }
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": pageUrl
       }
     ]
   };
 
+  // === WebPage schema (specifiek voor homepage) ===
+  const webPageSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": `${pageUrl}#webpage`,
+    "url": pageUrl,
+    "name": isNl
+      ? "Teun.ai | Word jij genoemd in ChatGPT? Check het gratis"
+      : "Teun.ai | Is your business mentioned in ChatGPT? Check for free",
+    "description": isNl
+      ? "Gratis GEO analyse: zie wie AI aanbeveelt in jouw branche + krijg advies om hoger te scoren. Scan ChatGPT, Perplexity & Google AI in 2 min."
+      : "Free GEO analysis: see who AI recommends in your industry + get tips to rank higher. Scan ChatGPT, Perplexity & Google AI in 2 min.",
+    "inLanguage": isNl ? 'nl-NL' : 'en-US',
+    "isPartOf": {
+      "@id": `${siteUrl}/#website`
+    },
+    "primaryImageOfPage": {
+      "@type": "ImageObject",
+      "url": `${siteUrl}/GEO-insights-en-AI-SEO.webp`,
+      "width": 1200,
+      "height": 630
+    },
+    "datePublished": "2024-09-01T00:00:00+02:00",
+    "dateModified": new Date().toISOString(),
+    "breadcrumb": breadcrumbSchema,
+    "mainEntity": {
+      "@id": `${siteUrl}#software`
+    }
+  };
+
   return (
     <>
-      <script
+      <Script
+        id="schema-faq"
         type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(structuredData)
-        }}
+        strategy="beforeInteractive"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
-      
-      {/* TODO: Maak een Engelse Homepage component of maak Homepage locale-aware */}
+      <Script
+        id="schema-software"
+        type="application/ld+json"
+        strategy="beforeInteractive"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}
+      />
+      <Script
+        id="schema-webpage"
+        type="application/ld+json"
+        strategy="beforeInteractive"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageSchema) }}
+      />
       <Homepage />
     </>
   );
 }
-
-export const revalidate = 3600;

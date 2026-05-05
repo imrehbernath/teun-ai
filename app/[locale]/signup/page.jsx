@@ -1,42 +1,43 @@
-'use client';
+// app/[locale]/signup/page.jsx
+'use client'
 
-import { useState, useEffect, Suspense } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { useRouter, Link } from '@/i18n/navigation';
-import { useSearchParams } from 'next/navigation';
-import Image from 'next/image';
-import { Mail, Lock, Loader2, AlertCircle, CheckCircle2, User } from 'lucide-react';
-import { useTranslations, useLocale } from 'next-intl';
+import { useState, useEffect, Suspense } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter, Link } from '@/i18n/navigation'
+import { useSearchParams } from 'next/navigation'
+import Image from 'next/image'
+import { useTranslations, useLocale } from 'next-intl'
 
 function SignupContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const t = useTranslations('auth');
-  const locale = useLocale();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [sessionToken, setSessionToken] = useState(null);
-  const tierParam = searchParams?.get('tier') // 'lite' or 'pro'
-  const isProFlow = tierParam === 'pro' || searchParams?.get('pro') === '1' // backwards compatible
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const t = useTranslations('auth')
+  const locale = useLocale()
+  const isNL = locale === 'nl'
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+  const [sessionToken, setSessionToken] = useState(null)
+
+  // Tier detection: support both ?tier= (pricing-page redirect)
+  // and ?plan= (Stripe API redirect for unauthenticated users)
+  const tierParam = searchParams?.get('tier') || searchParams?.get('plan')
+  const isProFlow = tierParam === 'pro' || searchParams?.get('pro') === '1'
   const isLiteFlow = tierParam === 'lite'
   const isPaidFlow = isProFlow || isLiteFlow
   const tierLabel = isProFlow ? 'Pro' : 'Lite'
-  const redirectUrl = searchParams?.get('redirect');
+  const redirectUrl = searchParams?.get('redirect')
 
-  // ── Fetch session token: URL param > localStorage > cookie ──
+  // Fetch session token: URL param > localStorage > cookie
   useEffect(() => {
-    // 1. Check URL param (cross-browser: from scan page link)
     const stParam = searchParams?.get('st')
     if (stParam) {
       setSessionToken(stParam)
       try { localStorage.setItem('teun_claim_token', stParam) } catch {}
       return
     }
-
-    // 2. Check localStorage (set by scan page in same browser)
     try {
       const stored = localStorage.getItem('teun_claim_token')
       if (stored) {
@@ -44,269 +45,256 @@ function SignupContent() {
         return
       }
     } catch {}
-
-    // 3. Fallback: read httpOnly cookie via API
     fetch('/api/session-token')
       .then(res => res.json())
       .then(data => {
-        if (data.sessionToken) setSessionToken(data.sessionToken);
+        if (data.sessionToken) setSessionToken(data.sessionToken)
       })
-      .catch(() => {});
-  }, [searchParams]);
+      .catch(() => {})
+  }, [searchParams])
 
   const handleSignup = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+    e.preventDefault()
+    setLoading(true)
+    setError('')
 
     if (password.length < 6) {
-      setError(t('signup.passwordTooShort'));
-      setLoading(false);
-      return;
+      setError(t('signup.passwordTooShort'))
+      setLoading(false)
+      return
     }
 
-    const supabase = createClient();
+    const supabase = createClient()
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${redirectUrl || (locale === 'nl' ? '/dashboard' : '/en/dashboard')}`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${redirectUrl || (isNL ? '/dashboard' : '/en/dashboard')}`,
         data: {
           locale,
-          // Persist session token in user_metadata for cross-browser claim
           ...(sessionToken ? { session_token: sessionToken } : {})
         }
       },
-    });
+    })
 
     if (error) {
-      setError(error.message);
-      setLoading(false);
+      setError(error.message)
+      setLoading(false)
     } else if (data.user) {
-      setSuccess(true);
-      setLoading(false);
+      setSuccess(true)
+      setLoading(false)
     }
-  };
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-30 pointer-events-none">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-100 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-100 rounded-full blur-3xl"></div>
-        </div>
-
-        <div className="relative flex items-center justify-center min-h-screen px-4">
-          <div className="max-w-md w-full">
-            <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center shadow-sm">
-              <div className="flex justify-center mb-4">
-                <Image
-                  src="/Teun-ai-blij-met-resultaat.png"
-                  alt={t('signup.teunHappyAlt')}
-                  width={120}
-                  height={150}
-                  className="drop-shadow-xl"
-                />
-              </div>
-
-              <div className="w-16 h-16 bg-green-50 border border-green-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle2 className="w-8 h-8 text-green-600" />
-              </div>
-              
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                {t('signup.almostDone')}
-              </h2>
-              
-              <p className="text-slate-600 mb-4">
-                {t('signup.confirmationSent')}
-              </p>
-              
-              <p className="text-blue-600 font-semibold mb-6 text-lg">
-                {email}
-              </p>
-              
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 text-left">
-                <p className="text-sm font-semibold text-blue-800">{t('signup.nextStep')}</p>
-                <ol className="text-sm text-blue-700 mt-2 space-y-1 list-decimal list-inside">
-                  <li>{t('signup.step1')}</li>
-                  <li>{t('signup.step2')}</li>
-                  <li>{t('signup.step3')}</li>
-                </ol>
-              </div>
-
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-6 text-left">
-                <p className="text-sm text-amber-800">
-                  💡 <strong>{t('signup.tipLabel')}</strong> {t('signup.tipText')}
-                </p>
-              </div>
-
-              <Link
-                href="/login"
-                className="inline-flex items-center justify-center px-7 py-3.5 rounded-xl bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white font-semibold text-sm hover:shadow-lg hover:scale-[1.02] transition-all"
-              >
-                {t('signup.toLogin')}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 relative overflow-hidden">
-      {/* Subtle background blobs */}
-      <div className="absolute inset-0 opacity-30 pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-100 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-100 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-50 rounded-full blur-3xl"></div>
-      </div>
+  // ============================================
+  // SUCCESS STATE
+  // ============================================
+  if (success) {
+    return (
+      <div className="tool-page sgn-page sgn-success-page">
+        <div className="sgn-success-card">
+          <div className="sgn-success-mascot">
+            <Image
+              src="/Teun-ai-blij-met-resultaat.png"
+              alt={t('signup.teunHappyAlt')}
+              width={140}
+              height={175}
+              priority
+            />
+          </div>
 
-      <div className="relative flex items-center justify-center min-h-screen px-4 py-12">
-        <div className="max-w-5xl w-full grid lg:grid-cols-2 gap-12 items-center">
-          
-          {/* Left: Teun + benefits */}
-          <div className="hidden lg:flex flex-col items-center text-center">
+          <div className="sgn-success-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+
+          <h2 className="sgn-success-title">
+            {t('signup.almostDone')}
+          </h2>
+
+          <p className="sgn-success-desc">
+            {t('signup.confirmationSent')}
+          </p>
+
+          <p className="sgn-success-email">{email}</p>
+
+          <div className="sgn-success-steps">
+            <p className="sgn-success-steps-title">{t('signup.nextStep')}</p>
+            <ol>
+              <li>{t('signup.step1')}</li>
+              <li>{t('signup.step2')}</li>
+              <li>{t('signup.step3')}</li>
+            </ol>
+          </div>
+
+          <div className="sgn-success-tip">
+            <span className="sgn-success-tip-icon">💡</span>
+            <p>
+              <strong>{t('signup.tipLabel')}</strong> {t('signup.tipText')}
+            </p>
+          </div>
+
+          <Link href="/login" className="sgn-btn sgn-btn-primary">
+            {t('signup.toLogin')}
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  // ============================================
+  // FORM STATE
+  // ============================================
+  return (
+    <div className="tool-page sgn-page">
+      <div className="sgn-wrap">
+        <div className="sgn-grid">
+
+          {/* Left column: Teun + benefits (desktop only) */}
+          <div className="sgn-left">
             <Image
               src="/Teun-ai-blij-met-resultaat.png"
               alt={t('signup.teunAlt')}
-              width={320}
-              height={400}
-              className="drop-shadow-2xl mb-6"
+              width={300}
+              height={375}
+              className="sgn-mascot-img"
               priority
             />
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">
-              {t('signup.heroTitle')}{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-                {t('signup.heroHighlight')}
-              </span>
+            <h2 className="sgn-left-title">
+              {t('signup.heroTitle')} <em>{t('signup.heroHighlight')}</em>
             </h2>
-            <p className="text-slate-500 max-w-xs mb-6">
-              {t('signup.heroDesc')}
-            </p>
+            <p className="sgn-left-desc">{t('signup.heroDesc')}</p>
 
-            {/* Benefits list - hide in paid flow */}
             {!isPaidFlow && (
-            <div className="bg-white border border-slate-200 rounded-xl p-5 text-left w-full max-w-xs shadow-sm">
-              <p className="text-sm font-semibold text-slate-900 mb-3">{t('signup.benefitsTitle')}</p>
-              <ul className="text-sm text-slate-600 space-y-2">
-                <li className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-purple-50 border border-purple-200 flex items-center justify-center flex-shrink-0">
-                    <span className="text-purple-600 text-xs">✓</span>
-                  </span>
-                  {t('signup.benefit1')}
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-green-50 border border-green-200 flex items-center justify-center flex-shrink-0">
-                    <span className="text-green-600 text-xs">✓</span>
-                  </span>
-                  <span><strong className="text-slate-900">{t('signup.benefit2Bold')}</strong> {t('signup.benefit2')}</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center flex-shrink-0">
-                    <span className="text-blue-600 text-xs">✓</span>
-                  </span>
-                  {t('signup.benefit3')}
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center flex-shrink-0">
-                    <span className="text-emerald-600 text-xs">✓</span>
-                  </span>
-                  {t('signup.benefit4')}
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-indigo-50 border border-indigo-200 flex items-center justify-center flex-shrink-0">
-                    <span className="text-indigo-600 text-xs">✓</span>
-                  </span>
-                  {t('signup.benefit5')}
-                </li>
-              </ul>
-            </div>
+              <div className="sgn-benefits">
+                <p className="sgn-benefits-title">{t('signup.benefitsTitle')}</p>
+                <ul className="sgn-benefits-list">
+                  <li>
+                    <span className="sgn-benefit-check"><CheckIcon /></span>
+                    {t('signup.benefit1')}
+                  </li>
+                  <li>
+                    <span className="sgn-benefit-check"><CheckIcon /></span>
+                    <span><strong>{t('signup.benefit2Bold')}</strong> {t('signup.benefit2')}</span>
+                  </li>
+                  <li>
+                    <span className="sgn-benefit-check"><CheckIcon /></span>
+                    {t('signup.benefit3')}
+                  </li>
+                  <li>
+                    <span className="sgn-benefit-check"><CheckIcon /></span>
+                    {t('signup.benefit4')}
+                  </li>
+                  <li>
+                    <span className="sgn-benefit-check"><CheckIcon /></span>
+                    {t('signup.benefit5')}
+                  </li>
+                </ul>
+              </div>
             )}
           </div>
 
-          {/* Right: Signup form */}
-          <div className="w-full max-w-md mx-auto">
-            
-            {/* Mobile Teun */}
-            <div className="lg:hidden flex justify-center mb-6">
+          {/* Right column: Form */}
+          <div className="sgn-right">
+
+            {/* Mobile mascot */}
+            <div className="sgn-mobile-mascot">
               <Image
                 src="/Teun-ai-blij-met-resultaat.png"
                 alt={t('signup.teunAlt')}
-                width={160}
-                height={200}
-                className="drop-shadow-xl"
+                width={140}
+                height={175}
+                priority
               />
             </div>
 
             {/* Header */}
-            <div className="text-center mb-8">
-              <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-2">
+            <div className="sgn-header">
+              <div className="tool-eyebrow">
                 {isPaidFlow
-                  ? (locale === 'nl' ? `Nog één stap naar ${tierLabel}` : `One step to ${tierLabel}`)
-                  : t('signup.title')}
+                  ? (isNL ? `${tierLabel.toUpperCase()} ABONNEMENT` : `${tierLabel.toUpperCase()} SUBSCRIPTION`)
+                  : (isNL ? 'GRATIS ACCOUNT' : 'FREE ACCOUNT')}
+              </div>
+              <h1 className="sgn-h1">
+                {isPaidFlow ? (
+                  isNL
+                    ? <>Nog één stap naar <em>{tierLabel}</em></>
+                    : <>One step to <em>{tierLabel}</em></>
+                ) : (
+                  isNL
+                    ? <>Maak een <em>gratis</em> account</>
+                    : <>Create a <em>free</em> account</>
+                )}
               </h1>
-              <p className="text-slate-500">
+              <p className="sgn-sub">
                 {isPaidFlow
-                  ? (locale === 'nl' ? `Maak een account aan en activeer daarna ${tierLabel}.` : `Create an account and then activate ${tierLabel}.`)
+                  ? (isNL ? `Maak een account aan en activeer daarna ${tierLabel}.` : `Create an account and then activate ${tierLabel}.`)
                   : t('signup.subtitle')}
               </p>
             </div>
 
             {/* Tier FOMO banner */}
             {isPaidFlow && (
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-5 mb-6">
-                <div className="flex items-start gap-3">
-                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-blue-100 flex-shrink-0 mt-0.5">
-                    <CheckCircle2 className="w-5 h-5 text-blue-600" />
-                  </span>
-                  <div>
-                    <p className="font-bold text-sm text-slate-900 mb-1">{locale === 'nl' ? `Je ${tierLabel} abonnement staat klaar` : `Your ${tierLabel} subscription is ready`}</p>
-                    <ul className="text-xs text-slate-600 space-y-1">
-                      <li>{locale === 'nl' ? '✓ Onbeperkte scans op alle 6 tools' : '✓ Unlimited scans on all 6 tools'}</li>
-                      {isLiteFlow && <li>{locale === 'nl' ? '✓ 20 keywords automatische tracking' : '✓ 20 keywords automatic tracking'}</li>}
-                      {isProFlow && <li>{locale === 'nl' ? '✓ 50 keywords automatische tracking' : '✓ 50 keywords automatic tracking'}</li>}
-                      <li>{locale === 'nl' ? '✓ GEO Optimalisatie DIY' : '✓ GEO Optimization DIY'}</li>
-                      {isProFlow && <li>{locale === 'nl' ? '✓ Telefonische support' : '✓ Phone support'}</li>}
-                      <li>{locale === 'nl' ? '✓ Maandelijks opzegbaar' : '✓ Cancel anytime'}</li>
-                    </ul>
-                    <p className="text-[10px] text-slate-400 mt-2">{locale === 'nl' ? 'Na registratie word je teruggestuurd om af te rekenen.' : 'After signup you\'ll be redirected to complete payment.'}</p>
-                  </div>
+              <div className="sgn-tier-banner">
+                <div className="sgn-tier-banner-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                </div>
+                <div>
+                  <p className="sgn-tier-banner-title">
+                    {isNL ? `Je ${tierLabel} abonnement staat klaar` : `Your ${tierLabel} subscription is ready`}
+                  </p>
+                  <ul className="sgn-tier-banner-list">
+                    <li>{isNL ? 'Onbeperkte scans op alle 6 tools' : 'Unlimited scans on all 6 tools'}</li>
+                    {isLiteFlow && <li>{isNL ? '20 keywords automatische tracking' : '20 keywords automatic tracking'}</li>}
+                    {isProFlow && <li>{isNL ? '50 keywords automatische tracking' : '50 keywords automatic tracking'}</li>}
+                    <li>{isNL ? 'GEO Optimalisatie DIY' : 'GEO Optimization DIY'}</li>
+                    {isProFlow && <li>{isNL ? 'Telefonische support' : 'Phone support'}</li>}
+                    <li>{isNL ? 'Maandelijks opzegbaar' : 'Cancel anytime'}</li>
+                  </ul>
+                  <p className="sgn-tier-banner-meta">
+                    {isNL ? 'Na registratie word je teruggestuurd om af te rekenen.' : 'After signup you\'ll be redirected to complete payment.'}
+                  </p>
                 </div>
               </div>
             )}
             {isPaidFlow && (
-              <p className="text-center text-xs text-slate-400 -mt-3 mb-4">
-                {locale === 'nl' ? 'Of ' : 'Or '}
-                <a href={locale === 'nl' ? '/signup' : '/en/signup'} className="text-blue-500 hover:underline">
-                  {locale === 'nl' ? 'maak een gratis account aan' : 'create a free account'}
+              <p className="sgn-tier-fallback">
+                {isNL ? 'Of ' : 'Or '}
+                <a href={isNL ? '/signup' : '/en/signup'}>
+                  {isNL ? 'maak een gratis account aan' : 'create a free account'}
                 </a>
-                {locale === 'nl' ? ` zonder ${tierLabel}.` : ` without ${tierLabel}.`}
+                {isNL ? ` zonder ${tierLabel}.` : ` without ${tierLabel}.`}
               </p>
             )}
 
-            {/* Error Message */}
+            {/* Error */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-semibold text-red-800">{t('signup.errorTitle')}</p>
-                  <p className="text-red-700 mt-1">{error}</p>
+              <div className="sgn-error">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" x2="12" y1="8" y2="12"/>
+                  <line x1="12" x2="12.01" y1="16" y2="16"/>
+                </svg>
+                <div>
+                  <p className="sgn-error-title">{t('signup.errorTitle')}</p>
+                  <p className="sgn-error-msg">{error}</p>
                 </div>
               </div>
             )}
 
-            {/* Signup Card */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
-              <form onSubmit={handleSignup} className="space-y-5">
-                
-                {/* Email Input */}
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
-                    {t('emailLabel')} *
+            {/* Form card */}
+            <div className="sgn-form-card">
+              <form onSubmit={handleSignup} className="sgn-form">
+
+                <div className="sgn-field">
+                  <label htmlFor="email" className="sgn-label">
+                    {t('emailLabel')} <span className="sgn-required">*</span>
                   </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <div className="sgn-input-row">
+                    <MailIcon />
                     <input
                       id="email"
                       type="email"
@@ -314,18 +302,17 @@ function SignupContent() {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder={t('emailPlaceholder')}
                       required
-                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-white text-slate-900 placeholder-slate-400 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                      className="sgn-input"
                     />
                   </div>
                 </div>
 
-                {/* Password Input */}
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
-                    {t('passwordLabel')} *
+                <div className="sgn-field">
+                  <label htmlFor="password" className="sgn-label">
+                    {t('passwordLabel')} <span className="sgn-required">*</span>
                   </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <div className="sgn-input-row">
+                    <LockIcon />
                     <input
                       id="password"
                       type="password"
@@ -333,42 +320,55 @@ function SignupContent() {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder={t('signup.passwordPlaceholder')}
                       required
-                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-white text-slate-900 placeholder-slate-400 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                      className="sgn-input"
                     />
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">{t('signup.passwordHint')}</p>
+                  <p className="sgn-hint">{t('signup.passwordHint')}</p>
                 </div>
 
                 {/* Mobile benefits - hide in paid flow */}
                 {!isPaidFlow && (
-                <div className="lg:hidden bg-slate-50 border border-slate-200 rounded-xl p-4">
-                  <p className="text-sm font-semibold text-slate-900 mb-2">{t('signup.benefitsTitle')}</p>
-                  <ul className="text-sm text-slate-600 space-y-1">
-                    <li>🟣 {t('signup.benefit1')}</li>
-                    <li>🟢 <strong>{t('signup.benefit2Bold')}</strong> {t('signup.benefit2')}</li>
-                    <li>🔵 {t('signup.benefit3')}</li>
-                    <li>🟢 {t('signup.benefit4')}</li>
-                    <li>📊 {t('signup.benefit5')}</li>
-                  </ul>
-                </div>
+                  <div className="sgn-mobile-benefits">
+                    <p className="sgn-benefits-title">{t('signup.benefitsTitle')}</p>
+                    <ul className="sgn-benefits-list">
+                      <li>
+                        <span className="sgn-benefit-check"><CheckIcon /></span>
+                        {t('signup.benefit1')}
+                      </li>
+                      <li>
+                        <span className="sgn-benefit-check"><CheckIcon /></span>
+                        <span><strong>{t('signup.benefit2Bold')}</strong> {t('signup.benefit2')}</span>
+                      </li>
+                      <li>
+                        <span className="sgn-benefit-check"><CheckIcon /></span>
+                        {t('signup.benefit3')}
+                      </li>
+                      <li>
+                        <span className="sgn-benefit-check"><CheckIcon /></span>
+                        {t('signup.benefit4')}
+                      </li>
+                      <li>
+                        <span className="sgn-benefit-check"><CheckIcon /></span>
+                        {t('signup.benefit5')}
+                      </li>
+                    </ul>
+                  </div>
                 )}
 
-                {/* Signup Button */}
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full px-6 py-3.5 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white font-semibold rounded-xl hover:shadow-lg hover:scale-[1.01] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                  className="sgn-btn sgn-btn-primary sgn-submit"
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      {t('signup.creating')}
+                      <SpinnerIcon /> {t('signup.creating')}
                     </>
                   ) : (
                     <>
-                      <User className="w-5 h-5" />
+                      <UserIcon />
                       {isPaidFlow
-                        ? (locale === 'nl' ? `Account aanmaken en doorgaan naar ${tierLabel}` : `Create account and continue to ${tierLabel}`)
+                        ? (isNL ? `Account aanmaken en doorgaan naar ${tierLabel}` : `Create account and continue to ${tierLabel}`)
                         : t('signup.title')}
                     </>
                   )}
@@ -376,29 +376,67 @@ function SignupContent() {
               </form>
             </div>
 
-            {/* Login Link */}
-            <p className="text-center text-slate-500 mt-6">
+            <p className="sgn-login-link">
               {t('signup.hasAccount')}{' '}
-              <Link href="/login" className="text-blue-600 hover:text-blue-700 font-semibold">
-                {t('signup.loginLink')}
-              </Link>
+              <Link href="/login">{t('signup.loginLink')}</Link>
             </p>
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-// Wrapper with Suspense for useSearchParams
 export default function SignupPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center">
-        <Loader2 className="w-12 h-12 text-slate-300 animate-spin" />
+      <div className="tool-page sgn-page sgn-loading">
+        <SpinnerIcon />
       </div>
     }>
       <SignupContent />
     </Suspense>
-  );
+  )
+}
+
+// ============================================
+// ICONS (inline SVG, geen lucide imports)
+// ============================================
+function CheckIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  )
+}
+function MailIcon() {
+  return (
+    <svg className="sgn-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect width="20" height="16" x="2" y="4" rx="2"/>
+      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+    </svg>
+  )
+}
+function LockIcon() {
+  return (
+    <svg className="sgn-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+  )
+}
+function UserIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+      <circle cx="12" cy="7" r="4"/>
+    </svg>
+  )
+}
+function SpinnerIcon() {
+  return (
+    <svg className="sgn-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+    </svg>
+  )
 }

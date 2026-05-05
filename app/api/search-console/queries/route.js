@@ -2,6 +2,16 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 
+// Vercel: max 60s op Pro, 10s op Hobby. Verhoog hier als je zware fetches doet.
+export const maxDuration = 60
+
+// Google Search Console levert max 25.000 rows per call.
+const GSC_PAGE_SIZE = 25000
+// Default cap op 150 rijen — ruim genoeg voor de meeste klanten,
+// snel response, geen Vercel timeout-risico.
+// Frontend kan dit overrulen via rowLimit in de body.
+const DEFAULT_MAX_ROWS = 150
+
 // Helper to get valid access token (supports user_id OR session_token)
 async function getValidAccessToken(supabase, userId, sessionToken) {
   let integration = null
@@ -72,6 +82,53 @@ async function getValidAccessToken(supabase, userId, sessionToken) {
   }
 }
 
+/**
+ * Haalt ALLE rows op uit Search Console via pagination (startRow).
+ * Stopt zodra Google minder dan GSC_PAGE_SIZE terugstuurt of we maxRows raken.
+ */
+async function fetchAllRows({ accessToken, siteUrl, startDate, endDate, dimensions, maxRows }) {
+  const url = `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`
+  const allRows = []
+  let startRow = 0
+
+  while (allRows.length < maxRows) {
+    const remaining = maxRows - allRows.length
+    const pageSize = Math.min(GSC_PAGE_SIZE, remaining)
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        startDate,
+        endDate,
+        dimensions,
+        rowLimit: pageSize,
+        startRow,
+        dimensionFilterGroups: []
+      })
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      throw new Error(`GSC API error (${response.status}): ${JSON.stringify(error)}`)
+    }
+
+    const data = await response.json()
+    const rows = data.rows || []
+    allRows.push(...rows)
+
+    // Geen volgende pagina als Google minder dan een volle pagina teruggaf
+    if (rows.length < pageSize) break
+
+    startRow += rows.length
+  }
+
+  return allRows
+}
+
 // POST /api/search-console/queries
 export async function POST(request) {
   const supabase = await createClient()
@@ -91,7 +148,15 @@ export async function POST(request) {
   }
 
   const body = await request.json()
-  const { siteUrl, startDate, endDate, rowLimit = 500 } = body
+  const {
+    siteUrl,
+    startDate,
+    endDate,
+    // Backwards compatible: rowLimit blijft werken, maar default is nu hoger
+    rowLimit = DEFAULT_MAX_ROWS,
+    // Optioneel: aparte cap voor de pages-call (default = zelfde als rowLimit)
+    maxPages
+  } = body
 
   if (!siteUrl) {
     return NextResponse.json({ error: 'siteUrl required' }, { status: 400 })
@@ -101,55 +166,33 @@ export async function POST(request) {
   const start = startDate || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
   try {
-    const queryPageResponse = await fetch(
-      `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          startDate: start,
-          endDate: end,
-          dimensions: ['query', 'page'],
-          rowLimit: rowLimit,
-          dimensionFilterGroups: []
-        })
-      }
-    )
+    // Query + Page combinaties (voor mapping van zoektermen naar landingspagina's)
+    const queryPageRows = await fetchAllRows({
+      accessToken,
+      siteUrl,
+      startDate: start,
+      endDate: end,
+      dimensions: ['query', 'page'],
+      maxRows: rowLimit
+    })
 
-    if (!queryPageResponse.ok) {
-      const error = await queryPageResponse.json()
-      console.error('Search Console queries error:', error)
-      return NextResponse.json({ error: 'Failed to fetch queries' }, { status: 500 })
+    // Pure pages-call (voor de pagina-overzichtslijst — was hardcoded op 100)
+    let pageRows = []
+    try {
+      pageRows = await fetchAllRows({
+        accessToken,
+        siteUrl,
+        startDate: start,
+        endDate: end,
+        dimensions: ['page'],
+        maxRows: maxPages || rowLimit
+      })
+    } catch (err) {
+      // Pages-call faalt soms terwijl query-call wel werkt; logging voor debug
+      console.error('Search Console pages fetch error:', err.message)
     }
 
-    const queryPageData = await queryPageResponse.json()
-
-    const pagesResponse = await fetch(
-      `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          startDate: start,
-          endDate: end,
-          dimensions: ['page'],
-          rowLimit: 100
-        })
-      }
-    )
-
-    let pagesData = { rows: [] }
-    if (pagesResponse.ok) {
-      pagesData = await pagesResponse.json()
-    }
-
-    const queries = (queryPageData.rows || []).map(row => ({
+    const queries = queryPageRows.map(row => ({
       query: row.keys[0],
       page: row.keys[1],
       clicks: row.clicks,
@@ -158,7 +201,7 @@ export async function POST(request) {
       position: row.position
     }))
 
-    const pages = (pagesData.rows || []).map(row => ({
+    const pages = pageRows.map(row => ({
       page: row.keys[0],
       clicks: row.clicks,
       impressions: row.impressions,
@@ -188,6 +231,6 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('Search Console queries error:', error)
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+    return NextResponse.json({ error: 'Internal error', detail: error.message }, { status: 500 })
   }
 }

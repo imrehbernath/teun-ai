@@ -8,15 +8,14 @@
   font-size: 17px;
   line-height: 1.75em;
   margin-bottom: 20px;
-  color: #1f2937;
+  color: var(--ink);
 }
 
 .blogContent p:first-of-type {
-  font-family: var(--font-nunito), sans-serif;
-  font-weight: 600;
+  font-weight: 500;
   font-size: 19px;
   line-height: 1.65em;
-  color: #111827;
+  color: var(--ink);
   margin-bottom: 24px;
 }
 
@@ -25,9 +24,10 @@
    ============================================ */
 
 .blogContent h2 {
-  font-size: 28px;
-  font-weight: 700;
-  color: #111827;
+  font-family: var(--font-lora), serif;
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 500;
+  color: var(--ink);
   margin-top: 56px;
   margin-bottom: 20px;
   letter-spacing: -0.02em;
@@ -35,36 +35,37 @@
 }
 
 .blogContent h3 {
-  font-size: 20px;
-  font-weight: 700;
-  color: #111827;
+  font-family: var(--font-lora), serif;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink);
   margin-top: 36px;
   margin-bottom: 14px;
   line-height: 1.35;
   letter-spacing: -0.01em;
   /* Subtiele accent-streep links, Stripe-style */
   padding-left: 14px;
-  border-left: 3px solid #292956;
+  border-left: 3px solid var(--spark);
 }
 
 /* Links - Navy ipv paars */
 .blogContent a {
-  color: #292956;
+  color: var(--spark);
   text-decoration: none;
   font-weight: 600;
-  border-bottom: 1px solid rgba(41, 41, 86, 0.3);
+  border-bottom: 1px solid rgba(232, 98, 58, 0.3);
   transition: all 0.15s ease;
 }
 
 .blogContent a:hover {
-  border-bottom-color: #292956;
-  background-color: rgba(41, 41, 86, 0.05);
+  border-bottom-color: var(--spark);
+  background-color: rgba(232, 98, 58, 0.06);
 }
 
 /* Text formatting */
 .blogContent strong {
   font-weight: 700;
-  color: #111827;
+  color: var(--ink);
 }
 
 /* ============================================
@@ -83,7 +84,7 @@
   font-size: 17px;
   line-height: 1.75em;
   margin-bottom: 10px;
-  color: #1f2937;
+  color: var(--ink);
 }
 
 .blogContent ul li::before {
@@ -93,7 +94,7 @@
   top: 0.75em;
   width: 10px;
   height: 2px;
-  background: #292956;
+  background: var(--spark);
   border-radius: 0;
 }
 
@@ -114,7 +115,7 @@
   font-size: 17px;
   line-height: 1.75em;
   margin-bottom: 16px;
-  color: #1f2937;
+  color: var(--ink);
   counter-increment: item;
 }
 
@@ -126,7 +127,7 @@
   width: 32px;
   font-size: 17px;
   font-weight: 700;
-  color: #292956;
+  color: var(--spark);
   line-height: 1.75em;
   text-align: left;
 }
@@ -147,7 +148,7 @@
 .blogContent ol ol li::before {
   content: counter(item) "." counter(subitem);
   font-size: 15px;
-  color: #6b7280;
+  color: var(--ink-3);
   font-weight: 600;
   background: none;
   width: auto;
@@ -175,7 +176,7 @@
   font-size: 17px !important;
   line-height: 1.75em !important;
   margin-bottom: 12px !important;
-  color: #1f2937 !important;
+  color: var(--ink) !important;
 }
 
 .blogContent ul:global(.wp-block-list):global(.checklist) li::before,
@@ -221,7 +222,7 @@
   font-size: 17px !important;
   line-height: 1.75em !important;
   margin-bottom: 12px !important;
-  color: #1f2937 !important;
+  color: var(--ink) !important;
 }
 
 .blogContent ul:global(.wp-block-list):global(.fail) li::before,
@@ -270,7 +271,7 @@
 .blogContent :global(.wp-element-caption) {
   font-size: 14px;
   font-style: italic;
-  color: #6b7280;
+  color: var(--ink-3);
   text-align: left;
   margin: 10px 0 0 0;
   padding: 0;
@@ -287,12 +288,12 @@
    ============================================ */
 
 .blogContent blockquote {
-  border-left: 3px solid #292956;
+  border-left: 3px solid var(--spark);
   padding: 4px 0 4px 24px;
   margin: 32px 0;
   font-size: 19px;
   line-height: 1.65;
-  color: #374151;
+  color: var(--ink-2);
   font-style: normal;
   font-weight: 500;
 }
@@ -313,8 +314,8 @@
   white-space: pre-wrap;
   word-wrap: break-word;
   -webkit-overflow-scrolling: touch;
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background-color: var(--bg);
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 1rem 1.25rem;
   color: #1e293b;
@@ -334,13 +335,13 @@
 .blogContent :not(pre) > code {
   white-space: normal;
   word-break: break-word;
-  background-color: #f1f5f9;
+  background-color: var(--bg-2);
   padding: 0.125rem 0.4rem;
   border-radius: 4px;
   font-size: 0.875em;
-  color: #292956;
+  color: var(--spark);
   font-weight: 500;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--line);
 }
 
 /* ============================================
@@ -348,7 +349,7 @@
    ============================================ */
 
 .toc-heading {
-  --toc-text: #111827;
+  --toc-text: var(--ink);
   
   display: inline;
   color: var(--toc-text) !important;
@@ -361,23 +362,23 @@
 .tocWrapper :global(.toc-heading-underline) {
   font-size: 18px;
   font-weight: 700;
-  color: #111827;
+  color: var(--ink);
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--line);
   letter-spacing: -0.01em;
 }
 
 .tocWrapper :global(.toc-container) {
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line);
   border-radius: 10px;
   padding: 1.5rem;
   box-shadow: none;
 }
 
 .tocWrapper :global(.toc-link) {
-  color: #374151;
+  color: var(--ink-2);
   text-decoration: none;
   padding: 6px 10px;
   border-radius: 6px;
@@ -396,17 +397,17 @@
 
 .tocWrapper :global(.toc-link.level-3) {
   padding-left: 26px;
-  color: #6b7280;
+  color: var(--ink-3);
   font-size: 13px;
 }
 
 .tocWrapper :global(.toc-link:hover) {
-  background-color: #f3f4f6;
-  color: #292956;
+  background-color: var(--bg-2);
+  color: var(--spark);
 }
 
 .tocWrapper :global(.toc-link.active) {
-  background-color: #292956;
+  background-color: var(--spark);
   color: white !important;
 }
 
@@ -439,7 +440,7 @@
   -webkit-overflow-scrolling: touch;
   border-radius: 10px;
   box-shadow: none;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--line);
   display: block;
 }
 
@@ -460,7 +461,7 @@
 }
 
 .blogContent table thead {
-  background: #292956;
+  background: var(--spark);
 }
 
 .blogContent table thead th {
@@ -476,7 +477,7 @@
 }
 
 .blogContent table tbody tr {
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--line);
   transition: background-color 0.15s ease;
 }
 
@@ -485,27 +486,27 @@
 }
 
 .blogContent table tbody tr:hover {
-  background-color: #f9fafb;
+  background-color: var(--bg);
 }
 
 .blogContent table tbody td {
   padding: 14px 20px;
   font-size: 15px;
-  color: #374151;
+  color: var(--ink-2);
   line-height: 1.6;
 }
 
 .blogContent table tbody td:first-child {
   font-weight: 600;
-  color: #111827;
+  color: var(--ink);
 }
 
 .blogContent :global(table.striped) tbody tr:nth-child(even) {
-  background-color: #f9fafb;
+  background-color: var(--bg);
 }
 
 .blogContent :global(table.striped) tbody tr:hover {
-  background-color: #f3f4f6;
+  background-color: var(--bg-2);
 }
 
 /* ============================================
@@ -664,7 +665,7 @@
     -webkit-overflow-scrolling: touch !important;
     display: block !important;
     scrollbar-width: thin !important;
-    scrollbar-color: #292956 #f1f5f9 !important;
+    scrollbar-color: var(--spark) var(--bg-2) !important;
   }
   
   .blogContent :global(.wp-block-table)::-webkit-scrollbar,
@@ -675,15 +676,15 @@
   
   .blogContent :global(.wp-block-table)::-webkit-scrollbar-track,
   .blogContent :global(figure.wp-block-table)::-webkit-scrollbar-track {
-    background: #f1f5f9;
+    background: var(--bg-2);
     border-radius: 4px;
   }
   
   .blogContent :global(.wp-block-table)::-webkit-scrollbar-thumb,
   .blogContent :global(figure.wp-block-table)::-webkit-scrollbar-thumb {
-    background: #292956;
+    background: var(--spark);
     border-radius: 4px;
-    border: 2px solid #f1f5f9;
+    border: 2px solid var(--bg-2);
   }
   
   .blogContent > table {
@@ -793,16 +794,16 @@
   .blogContent :global(.wp-block-code) pre {
     background-color: #1e293b;
     border-color: #334155;
-    color: #e2e8f0;
+    color: var(--line);
   }
 
   .blogContent code {
-    color: #e2e8f0;
+    color: var(--line);
   }
 
   .blogContent :not(pre) > code {
     background-color: #334155;
-    color: #e2e8f0;
+    color: var(--line);
     border-color: #475569;
   }
 }

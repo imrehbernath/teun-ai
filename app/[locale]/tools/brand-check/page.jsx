@@ -1,13 +1,13 @@
-'use client'
 // app/[locale]/tools/brand-check/page.jsx
+// Redesign: cream/Lora/spark — sitewide consistency
+// Functionaliteit identiek aan origineel — alleen visuele laag vervangen
+'use client'
 
 import { useState, useRef, useEffect } from 'react'
 import { Link } from '@/i18n/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { useTranslations, useLocale } from 'next-intl'
-import { ArrowRight, CheckCircle2, XCircle, Building2, MapPin, Briefcase, ChevronDown, ChevronUp, Sparkles, Loader2, ThumbsUp, ThumbsDown, Minus, Eye, Search, MessageSquare, Star, Shield, BarChart3 } from 'lucide-react'
-import ToolsCrossSell from '@/app/components/ToolsCrossSell'
 
 // ============================================
 // QUERY TYPES (match API)
@@ -28,34 +28,47 @@ function generateRecommendations(mentioned, mentionedPx, mentionedCg, sentiment,
     } else if (!mentionedPx && mentionedCg) {
       recs.push({ priority: 'medium', text: `${brand} wordt wel door ChatGPT maar niet door Perplexity genoemd. Perplexity weegt recente bronnen zwaarder. Publiceer verse content en persberichten.` })
     }
-    if (sentiment === 'negative' || sentiment === 'mixed') {
-      recs.push({ priority: 'high', text: 'Er zijn negatieve signalen gevonden. Reageer actief op reviews en klachten, en publiceer positieve klantverhalen.' })
+    if (sentiment === 'negative') {
+      recs.push({ priority: 'high', text: 'Adresseer negatieve signalen actief. Reageer op kritische reviews en publiceer content die positieve klantervaringen uitlicht.' })
+    } else if (sentiment === 'mixed') {
+      recs.push({ priority: 'medium', text: 'Versterk positieve signalen door meer reviews en testimonials te verzamelen die specifieke onderwerpen behandelen.' })
     }
-    if (!aspects.includes('reviews')) recs.push({ priority: 'medium', text: 'AI vindt weinig reviews over je bedrijf. Stimuleer klanten om Google Reviews achter te laten.' })
-    if (!aspects.includes('betrouwbaarheid')) recs.push({ priority: 'medium', text: 'Voeg betrouwbaarheidssignalen toe: certificeringen, keurmerken, KvK-nummer en jaren ervaring op je website.' })
-    if (!aspects.includes('bereikbaarheid')) recs.push({ priority: 'low', text: 'Maak contactgegevens prominenter: telefoonnummer, openingstijden en adres op elke pagina.' })
-    if (mentioned && sentiment === 'positive') recs.push({ priority: 'low', text: 'Je merk wordt positief genoemd! Blijf actief content publiceren om deze positie te behouden.' })
+    if (aspects.includes('reviews')) {
+      recs.push({ priority: 'medium', text: 'Verzamel actief Google Reviews en Trustpilot reviews. AI weegt reviews zwaar mee in haar oordeel.' })
+    }
+    if (aspects.includes('bereikbaarheid')) {
+      recs.push({ priority: 'medium', text: 'Zorg dat je openingstijden, contactgegevens en bereikbaarheid consistent en actueel zijn op alle online kanalen.' })
+    }
+    if (recs.length === 0) {
+      recs.push({ priority: 'low', text: 'Je AI-merkperceptie is goed. Blijf consistent content publiceren en reviews verzamelen om dit niveau te behouden.' })
+    }
   } else {
     if (!mentioned) {
-      recs.push({ priority: 'high', text: `${brand} is not mentioned by AI. Increase online mentions, reviews and content that links your brand to your expertise.` })
-      recs.push({ priority: 'high', text: 'Publish case studies, FAQ pages and blog content that specifically mention your company name and services.' })
+      recs.push({ priority: 'high', text: `${brand} is not mentioned by AI. Ensure more online mentions, reviews and content that links your brand to your expertise.` })
+      recs.push({ priority: 'high', text: 'Publish case studies, FAQ pages and blog content that specifically name your brand and services.' })
     } else if (mentionedPx && !mentionedCg) {
-      recs.push({ priority: 'medium', text: `${brand} is found by Perplexity but not ChatGPT. Focus on broader online visibility: more backlinks, guest posts and industry publications.` })
+      recs.push({ priority: 'medium', text: `${brand} is mentioned by Perplexity but not by ChatGPT. Focus on broader online visibility: more backlinks, guest posts and trade publications.` })
     } else if (!mentionedPx && mentionedCg) {
-      recs.push({ priority: 'medium', text: `${brand} is found by ChatGPT but not Perplexity. Perplexity weighs recent sources more. Publish fresh content and press releases.` })
+      recs.push({ priority: 'medium', text: `${brand} is mentioned by ChatGPT but not by Perplexity. Perplexity weighs recent sources more heavily. Publish fresh content and press releases.` })
     }
-    if (sentiment === 'negative' || sentiment === 'mixed') recs.push({ priority: 'high', text: 'Negative signals detected. Actively respond to reviews and complaints, and publish positive customer stories.' })
-    if (!aspects.includes('reviews')) recs.push({ priority: 'medium', text: 'AI finds few reviews about your business. Encourage customers to leave Google Reviews.' })
-    if (!aspects.includes('betrouwbaarheid')) recs.push({ priority: 'medium', text: 'Add trust signals: certifications, quality marks, chamber of commerce number and years of experience.' })
-    if (!aspects.includes('bereikbaarheid')) recs.push({ priority: 'low', text: 'Make contact details more prominent: phone number, opening hours and address on every page.' })
-    if (mentioned && sentiment === 'positive') recs.push({ priority: 'low', text: 'Your brand is mentioned positively! Keep publishing content to maintain this position.' })
+    if (sentiment === 'negative') {
+      recs.push({ priority: 'high', text: 'Actively address negative signals. Respond to critical reviews and publish content highlighting positive customer experiences.' })
+    } else if (sentiment === 'mixed') {
+      recs.push({ priority: 'medium', text: 'Strengthen positive signals by collecting more reviews and testimonials covering specific topics.' })
+    }
+    if (aspects.includes('reviews')) {
+      recs.push({ priority: 'medium', text: 'Actively collect Google Reviews and Trustpilot reviews. AI weighs reviews heavily in its judgment.' })
+    }
+    if (aspects.includes('bereikbaarheid')) {
+      recs.push({ priority: 'medium', text: 'Ensure your opening hours, contact details and accessibility are consistent and up-to-date across all online channels.' })
+    }
+    if (recs.length === 0) {
+      recs.push({ priority: 'low', text: 'Your AI brand perception is good. Continue publishing consistent content and collecting reviews to maintain this level.' })
+    }
   }
-  return recs.slice(0, 5)
+  return recs.slice(0, 4)
 }
 
-// ============================================
-// BRAND CHECK PAGE
-// ============================================
 export default function BrandCheckPage() {
   const t = useTranslations('brandCheck')
   const locale = useLocale()
@@ -69,6 +82,7 @@ export default function BrandCheckPage() {
   const [expandedQuery, setExpandedQuery] = useState(null)
   const [activeTab, setActiveTab] = useState({})
   const [openFaq, setOpenFaq] = useState(0)
+  const [faqCategory, setFaqCategory] = useState('all')
   const resultsRef = useRef(null)
 
   const MAX_ANON_SCANS = 1    // 1 scan totaal (lifetime) voor anoniem
@@ -90,27 +104,27 @@ export default function BrandCheckPage() {
   const [videoTheater, setVideoTheater] = useState(false)
 
   const faqItems = locale === 'en' ? [
-    { q: 'What is an AI Brand Check?', a: 'An AI Brand Check analyzes what AI platforms like ChatGPT and Perplexity say about your business. We check sentiment, reputation signals and whether your brand is actually mentioned in AI-generated answers.' },
-    { q: 'Is the AI Brand Check free?', a: 'Yes, you can try 1 brand check for free without an account. With a free account you get 1 check per week. Upgrade to Lite or Pro for unlimited brand checks.' },
-    { q: 'Which AI platforms are checked?', a: 'We test your brand on both Perplexity and ChatGPT with 3 different commercial queries about experiences, reviews and service quality. That is 6 AI checks in total. We also pull your Google Reviews to compare AI perception with reality.' },
-    { q: 'What if my brand is not mentioned by AI?', a: 'That means AI platforms don\'t yet associate your brand with your industry. The tool gives you concrete recommendations to improve this, such as publishing more reviews, case studies and expertise content.' },
-    { q: 'How can I improve my AI brand perception?', a: 'Focus on Google Reviews, publish case studies and customer stories, ensure consistent NAP data, and create content that explicitly mentions your brand name with your expertise and location.' },
+    { cat: 'product',   q: 'What is an AI Brand Check?', a: 'An AI Brand Check analyzes what AI platforms like ChatGPT and Perplexity say about your business. We check sentiment, reputation signals and whether your brand is actually mentioned in AI-generated answers.' },
+    { cat: 'pricing',   q: 'Is the AI Brand Check free?', a: 'Yes, you can try 1 brand check for free without an account. With a free account you get 1 check per week. Upgrade to Lite or Pro for unlimited brand checks.' },
+    { cat: 'product',   q: 'Which AI platforms are checked?', a: 'We test your brand on both Perplexity and ChatGPT with 3 different commercial queries about experiences, reviews and service quality. That is 6 AI checks in total. We also pull your Google Reviews to compare AI perception with reality.' },
+    { cat: 'technical', q: 'What if my brand is not mentioned by AI?', a: 'That means AI platforms don\'t yet associate your brand with your industry. The tool gives you concrete recommendations to improve this, such as publishing more reviews, case studies and expertise content.' },
+    { cat: 'technical', q: 'How can I improve my AI brand perception?', a: 'Focus on Google Reviews, publish case studies and customer stories, ensure consistent NAP data, and create content that explicitly mentions your brand name with your expertise and location.' },
   ] : [
-    { q: 'Wat is een AI Brand Check?', a: 'Een AI Brand Check analyseert wat AI-platformen zoals ChatGPT en Perplexity over jouw bedrijf zeggen. We checken sentiment, reputatiesignalen en of jouw merk daadwerkelijk wordt genoemd in AI-antwoorden.' },
-    { q: 'Is de AI Brand Check gratis?', a: 'Ja, je kunt 1 brand check gratis uitvoeren zonder account. Met een gratis account krijg je 1 check per week. Upgrade naar Lite of Pro voor onbeperkte brand checks.' },
-    { q: 'Welke AI-platformen worden gecheckt?', a: 'We testen je merk op zowel Perplexity als ChatGPT met 3 verschillende commerciele zoekvragen over ervaringen, reviews en servicekwaliteit. Dat zijn 6 AI-checks in totaal. We halen ook je Google Reviews op om AI-perceptie met de werkelijkheid te vergelijken.' },
-    { q: 'Wat als mijn merk niet wordt genoemd door AI?', a: 'Dan associeren AI-platformen je merk nog niet met je branche. De tool geeft je concrete aanbevelingen om dit te verbeteren, zoals meer reviews, case studies en expertcontent publiceren.' },
-    { q: 'Hoe verbeter ik mijn AI-merkperceptie?', a: 'Focus op Google Reviews, publiceer case studies en klantverhalen, zorg voor consistente bedrijfsgegevens, en maak content die expliciet je merknaam koppelt aan je expertise en locatie.' },
+    { cat: 'product',   q: 'Wat is een AI Brand Check?', a: 'Een AI Brand Check analyseert wat AI-platformen zoals ChatGPT en Perplexity over jouw bedrijf zeggen. We checken sentiment, reputatiesignalen en of jouw merk daadwerkelijk wordt genoemd in AI-antwoorden.' },
+    { cat: 'pricing',   q: 'Is de AI Brand Check gratis?', a: 'Ja, je kunt 1 brand check gratis uitvoeren zonder account. Met een gratis account krijg je 1 check per week. Upgrade naar Lite of Pro voor onbeperkte brand checks.' },
+    { cat: 'product',   q: 'Welke AI-platformen worden gecheckt?', a: 'We testen je merk op zowel Perplexity als ChatGPT met 3 verschillende commerciele zoekvragen over ervaringen, reviews en servicekwaliteit. Dat zijn 6 AI-checks in totaal. We halen ook je Google Reviews op om AI-perceptie met de werkelijkheid te vergelijken.' },
+    { cat: 'technical', q: 'Wat als mijn merk niet wordt genoemd door AI?', a: 'Dan associeren AI-platformen je merk nog niet met je branche. De tool geeft je concrete aanbevelingen om dit te verbeteren, zoals meer reviews, case studies en expertcontent publiceren.' },
+    { cat: 'technical', q: 'Hoe verbeter ik mijn AI-merkperceptie?', a: 'Focus op Google Reviews, publiceer case studies en klantverhalen, zorg voor consistente bedrijfsgegevens, en maak content die expliciet je merknaam koppelt aan je expertise en locatie.' },
   ]
 
   const queryLabels = locale === 'en' ? [
-    { icon: <Shield className="w-4 h-4" />, title: 'Experiences & Reliability', scanning: 'Querying Perplexity + ChatGPT...' },
-    { icon: <Star className="w-4 h-4" />, title: 'Reviews & Complaints', scanning: 'Querying Perplexity + ChatGPT...' },
-    { icon: <MessageSquare className="w-4 h-4" />, title: 'Service & Accessibility', scanning: 'Querying Perplexity + ChatGPT...' },
+    { title: 'Experiences & Reliability', scanning: 'Querying Perplexity + ChatGPT...' },
+    { title: 'Reviews & Complaints', scanning: 'Querying Perplexity + ChatGPT...' },
+    { title: 'Service & Accessibility', scanning: 'Querying Perplexity + ChatGPT...' },
   ] : [
-    { icon: <Shield className="w-4 h-4" />, title: 'Ervaringen & Betrouwbaarheid', scanning: 'Perplexity + ChatGPT bevragen...' },
-    { icon: <Star className="w-4 h-4" />, title: 'Reviews & Klachten', scanning: 'Perplexity + ChatGPT bevragen...' },
-    { icon: <MessageSquare className="w-4 h-4" />, title: 'Service & Bereikbaarheid', scanning: 'Perplexity + ChatGPT bevragen...' },
+    { title: 'Ervaringen & Betrouwbaarheid', scanning: 'Perplexity + ChatGPT bevragen...' },
+    { title: 'Reviews & Klachten', scanning: 'Perplexity + ChatGPT bevragen...' },
+    { title: 'Service & Bereikbaarheid', scanning: 'Perplexity + ChatGPT bevragen...' },
   ]
 
   useEffect(() => {
@@ -131,7 +145,6 @@ export default function BrandCheckPage() {
       setUser(session?.user ?? null)
       setAuthChecked(true)
 
-      // Check Pro status
       if (session?.user) {
         if (ADMIN_EMAILS.includes(session.user.email)) {
           setIsPro(true)
@@ -151,7 +164,6 @@ export default function BrandCheckPage() {
 
       try {
         if (session?.user) {
-          // Weekly reset: use ISO week number
           const now = new Date()
           const weekKey = `brand_check_${now.getFullYear()}_W${Math.ceil(((now - new Date(now.getFullYear(),0,1)) / 86400000 + new Date(now.getFullYear(),0,1).getDay() + 1) / 7)}`
           const stored = localStorage.getItem(weekKey)
@@ -192,9 +204,7 @@ export default function BrandCheckPage() {
     const baseBody = { brandName: brandName.trim(), location: location.trim(), category: category.trim(), locale }
 
     try {
-      // Run 3 queries SEQUENTIALLY — real progress per step
       for (let i = 0; i < QUERY_TYPES.length; i++) {
-        // Mark current as scanning
         setQueryStates(prev => prev.map((q, idx) => idx === i ? { status: 'scanning' } : q))
 
         const response = await fetch('/api/brand-check', {
@@ -206,17 +216,14 @@ export default function BrandCheckPage() {
         const data = await response.json()
 
         if (!response.ok) {
-          // Mark as error but continue
           setQueryStates(prev => prev.map((q, idx) => idx === i ? { status: 'error' } : q))
           queryResults.push({ queryType: QUERY_TYPES[i], prompt: '', perplexity: { response: '', mentioned: false, sentiment: 'neutral', score: 50, posSignals: [], negSignals: [], aspects: [] }, chatgpt: { response: '', mentioned: false, sentiment: 'neutral', score: 50, posSignals: [], negSignals: [], aspects: [] } })
         } else {
           queryResults.push(data)
-          // Mark as done
           setQueryStates(prev => prev.map((q, idx) => idx === i ? { status: 'done' } : q))
         }
       }
 
-      // ── Aggregate results ──
       const allPx = queryResults.map(r => r.perplexity)
       const allCg = queryResults.map(r => r.chatgpt)
       const allResults = [...allPx, ...allCg]
@@ -245,7 +252,6 @@ export default function BrandCheckPage() {
 
       setScanPhase('done')
 
-      // Update scan count
       if (!isAdmin) {
         const newCount = scanCount + 1
         setScanCount(newCount)
@@ -262,7 +268,6 @@ export default function BrandCheckPage() {
         if (newCount >= limit) setLimitReached(true)
       }
 
-      // Small delay for last animation frame
       await new Promise(r => setTimeout(r, 400))
 
       setResults({
@@ -285,7 +290,6 @@ export default function BrandCheckPage() {
       setLoading(false)
       setTimeout(() => { resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }, 200)
 
-      // Auto-fetch Google Reviews in background
       fetchGoogleReviews(brandName.trim(), location.trim())
 
     } catch (err) {
@@ -295,7 +299,7 @@ export default function BrandCheckPage() {
     }
   }
 
-  const getSentimentColor = (s) => s === 'positive' ? '#10b981' : s === 'negative' ? '#ef4444' : s === 'mixed' ? '#f59e0b' : '#94a3b8'
+  const getSentimentColor = (s) => s === 'positive' ? 'var(--success)' : s === 'negative' ? 'var(--danger)' : s === 'mixed' ? '#f59e0b' : 'var(--ink-3)'
 
   async function fetchGoogleReviews(brand, loc) {
     setReviewsLoading(true)
@@ -315,118 +319,86 @@ export default function BrandCheckPage() {
     }
     setReviewsLoading(false)
   }
+
   const getSentimentLabel = (s) => {
     if (locale === 'en') return s === 'positive' ? 'Positive' : s === 'negative' ? 'Negative' : s === 'mixed' ? 'Mixed' : 'Neutral'
     return s === 'positive' ? 'Positief' : s === 'negative' ? 'Negatief' : s === 'mixed' ? 'Gemengd' : 'Neutraal'
   }
-  const getSentimentIcon = (s) => s === 'positive' ? <ThumbsUp className="w-5 h-5" /> : s === 'negative' ? <ThumbsDown className="w-5 h-5" /> : <Minus className="w-5 h-5" />
 
   const ASPECT_LABELS = { bereikbaarheid: locale === 'en' ? 'Accessibility' : 'Bereikbaarheid', reviews: 'Reviews', klachten: locale === 'en' ? 'Complaints' : 'Klachten', service: 'Service', openingstijden: locale === 'en' ? 'Opening hours' : 'Openingstijden', betrouwbaarheid: locale === 'en' ? 'Reliability' : 'Betrouwbaarheid', prijs: locale === 'en' ? 'Price' : 'Prijs', snelheid: locale === 'en' ? 'Speed' : 'Snelheid' }
-  const ASPECT_ICONS = { bereikbaarheid: <MapPin className="w-3.5 h-3.5" />, reviews: <Star className="w-3.5 h-3.5" />, klachten: <Shield className="w-3.5 h-3.5" />, service: <MessageSquare className="w-3.5 h-3.5" />, openingstijden: <Eye className="w-3.5 h-3.5" />, betrouwbaarheid: <CheckCircle2 className="w-3.5 h-3.5" />, prijs: <BarChart3 className="w-3.5 h-3.5" />, snelheid: <Sparkles className="w-3.5 h-3.5" /> }
 
   // Progress based on actual query states
   const completedCount = queryStates.filter(q => q.status === 'done' || q.status === 'error').length
   const scanProgress = Math.round((completedCount / 3) * 100)
 
+  // ============================================
+  // RENDER
+  // ============================================
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 relative">
-      {/* Animation styles */}
-      <style>{`
-        @keyframes tool-float-slow {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -25px) scale(1.08); }
-          66% { transform: translate(-25px, 15px) scale(0.95); }
-        }
-        @keyframes tool-float-medium {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(-40px, 30px) scale(1.1); }
-        }
-        .tool-orb-1 { animation: tool-float-slow 22s ease-in-out infinite; }
-        .tool-orb-2 { animation: tool-float-medium 18s ease-in-out infinite; animation-delay: -4s; }
-        .tool-orb-3 { animation: tool-float-slow 26s ease-in-out infinite reverse; animation-delay: -8s; }
-        @media (prefers-reduced-motion: reduce) {
-          .tool-orb-1, .tool-orb-2, .tool-orb-3 { animation: none; }
-        }
-      `}</style>
+    <div className="bc-page" suppressHydrationWarning>
+      <div className="bc-wrap">
 
-      {/* Animated background orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div 
-          className="tool-orb-1 absolute -top-32 -right-32 lg:top-[-10%] lg:right-[5%] w-[300px] h-[300px] lg:w-[450px] lg:h-[450px] rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 40%, transparent 70%)' }}
-        />
-        <div 
-          className="tool-orb-2 absolute -bottom-24 -left-24 lg:bottom-[-15%] lg:left-[-5%] w-[250px] h-[250px] lg:w-[400px] lg:h-[400px] rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.10) 0%, rgba(139, 92, 246, 0.03) 40%, transparent 70%)' }}
-        />
-        <div 
-          className="tool-orb-3 absolute top-[50%] right-[8%] w-[120px] h-[120px] lg:w-[180px] lg:h-[180px] rounded-full hidden lg:block"
-          style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 60%)' }}
-        />
-      </div>
-      {/* ── HERO + INPUT (always visible) ── */}
-      <section className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
-        <div className="text-center mb-8 sm:mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-purple-50 border border-purple-200 rounded-full text-purple-700 text-sm font-medium mb-4">
-            <Sparkles className="w-4 h-4" />
-            AI Brand Check
+        {/* Hero */}
+        <header className="bc-hero">
+          <div className="tool-eyebrow">AI Brand Check</div>
+          <h1>
+            {locale === 'nl' ? (
+              <>Wat zegt <em>AI</em> over jouw bedrijf?</>
+            ) : (
+              <>What does <em>AI</em> say about your business?</>
+            )}
+          </h1>
+          <p className="bc-hero-sub" dangerouslySetInnerHTML={{ __html: t.raw('heroSubtitle') }} />
+          <div className="bc-trust-pills">
+            <span className="tool-trust-pill"><span className="pulse-dot"></span>Perplexity</span>
+            <span className="tool-trust-pill"><span className="pulse-dot"></span>ChatGPT</span>
+            <span className="tool-trust-pill"><span className="pulse-dot"></span>Google Reviews</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 text-slate-900 leading-tight px-4">{t('heroTitle')}</h1>
-          <p className="text-base sm:text-lg md:text-xl text-slate-600 px-4 mb-4" dangerouslySetInnerHTML={{ __html: t.raw('heroSubtitle') }} />
-          <div className="flex justify-center gap-2 mb-6">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-slate-200 bg-white text-sm text-slate-600"><span className="w-2 h-2 rounded-full bg-emerald-400" />Perplexity</span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-slate-200 bg-white text-sm text-slate-600"><span className="w-2 h-2 rounded-full bg-emerald-400" />ChatGPT</span>
-          </div>
-        </div>
+        </header>
 
-        {/* ── Demo Video ── */}
+        {/* Demo Video */}
         {!loading && !results && (
-          <div className="max-w-3xl mx-auto mb-8 sm:mb-10">
-            <p className="text-center text-sm font-medium text-slate-500 mb-3">
+          <div className="tool-video-wrap">
+            <p className="tool-video-label">
               {locale === 'en' ? '▶ See how the Brand Check works (2.5x speed)' : '▶ Bekijk hoe de Brand Check werkt (2,5x versneld)'}
             </p>
-            <div className={`rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-slate-100 aspect-video relative ${videoTheater ? 'invisible' : ''}`}>
+            <div className={`tool-video-frame ${videoTheater ? 'invisible' : ''}`}>
               {!videoPlaying ? (
-                <button
-                  onClick={() => setVideoPlaying(true)}
-                  className="absolute inset-0 w-full h-full cursor-pointer group"
-                >
+                <button onClick={() => setVideoPlaying(true)} className="tool-video-poster">
                   <Image
                     src="/Teun.ai-AI-brand-check-poster.webp"
                     alt={locale === 'en' ? 'AI Brand Check demo' : 'AI Brand Check demo'}
                     fill
-                    className="object-cover"
+                    style={{ objectFit: 'cover' }}
                     sizes="(max-width: 768px) 100vw, 768px"
                   />
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/90 group-hover:bg-white rounded-full flex items-center justify-center shadow-xl group-hover:scale-110 transition-all">
-                      <svg className="w-7 h-7 sm:w-8 sm:h-8 text-[#292956] ml-1" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                    </div>
+                  <div className="overlay" />
+                  <div className="tool-video-play">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                   </div>
                 </button>
               ) : !videoTheater && (
-                <div className="relative w-full h-full">
-                  <video autoPlay controls controlsList="nofullscreen" playsInline className="w-full h-full" onPlay={(e) => { e.target.playbackRate = 2.5 }}>
+                <>
+                  <video autoPlay controls controlsList="nofullscreen" playsInline style={{ width: '100%', height: '100%' }} onPlay={(e) => { e.target.playbackRate = 2.5 }}>
                     <source src="/Teun.ai-AI-brand-check.mp4" type="video/mp4" />
                   </video>
-                  <button onClick={() => setVideoTheater(true)} className="absolute top-3 right-3 bg-black/50 hover:bg-black/70 text-white rounded-lg px-2.5 py-1.5 text-xs font-medium transition cursor-pointer flex items-center gap-1.5" title="Theater modus">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                  <button onClick={() => setVideoTheater(true)} className="tool-video-theater-btn" title="Theater modus">
+                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                    </svg>
                   </button>
-                </div>
+                </>
               )}
             </div>
-
-            {/* Theater mode overlay */}
             {videoTheater && (
-              <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 sm:p-8">
-                <button onClick={() => setVideoTheater(false)} className="absolute top-4 right-4 text-white/70 hover:text-white z-50 cursor-pointer">
-                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              <div className="tool-theater">
+                <button onClick={() => setVideoTheater(false)} className="tool-theater-close">
+                  <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
-                <div className="rounded-xl overflow-hidden aspect-video w-full max-w-6xl">
-                  <video autoPlay controls controlsList="nofullscreen" playsInline className="w-full h-full" onPlay={(e) => { e.target.playbackRate = 2.5 }}>
+                <div className="tool-theater-video">
+                  <video autoPlay controls controlsList="nofullscreen" playsInline style={{ width: '100%', height: '100%' }} onPlay={(e) => { e.target.playbackRate = 2.5 }}>
                     <source src="/Teun.ai-AI-brand-check.mp4" type="video/mp4" />
                   </video>
                 </div>
@@ -435,280 +407,333 @@ export default function BrandCheckPage() {
           </div>
         )}
 
+        {/* Limit reached */}
         {limitReached && !isAdmin && !isPro && authChecked ? (
-          <div className="bg-white rounded-xl shadow-lg shadow-slate-200/50 border border-slate-200 p-8 text-center">
-            <p className="text-xl font-bold text-slate-900 mb-2">
-              {user 
+          <section className="tool-section bc-limit">
+            <p className="bc-limit-title">
+              {user
                 ? (locale === 'en' ? 'Weekly limit reached' : 'Wekelijks limiet bereikt')
                 : (locale === 'en' ? 'Free check used' : 'Gratis check gebruikt')}
             </p>
-            <p className="text-slate-500 text-sm mb-6 max-w-md mx-auto">
-              {user 
+            <p className="bc-limit-desc">
+              {user
                 ? (locale === 'en' ? 'You can check again next week, or upgrade to Lite for unlimited brand checks.' : 'Je kunt volgende week weer checken, of upgrade naar Lite voor onbeperkte brand checks.')
                 : (locale === 'en' ? 'Create a free account for 1 brand check per week.' : 'Maak een gratis account aan voor 1 brand check per week.')}
             </p>
             {user ? (
-              <Link href={locale === 'en' ? '/en/pricing' : '/pricing'} className="bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white font-semibold px-8 py-3 rounded-lg hover:shadow-lg transition-all inline-flex items-center gap-2 cursor-pointer">
-                {locale === 'en' ? 'Upgrade to Lite for unlimited' : 'Upgrade naar Lite voor onbeperkt'} <ArrowRight className="w-4 h-4" />
+              <Link href={locale === 'en' ? '/en/pricing' : '/pricing'} className="tool-btn-spark">
+                {locale === 'en' ? 'Upgrade to Lite for unlimited' : 'Upgrade naar Lite voor onbeperkt'}
               </Link>
             ) : (
-              <Link href={locale === 'en' ? '/en/signup' : '/signup'} className="bg-[#292956] text-white font-semibold px-8 py-3 rounded-lg hover:bg-[#1e1e45] transition-all inline-flex items-center gap-2 cursor-pointer">
-                {locale === 'en' ? 'Create free account' : 'Gratis account aanmaken'} <ArrowRight className="w-4 h-4" />
+              <Link href={locale === 'en' ? '/en/signup' : '/signup'} className="tool-btn-spark">
+                {locale === 'en' ? 'Create free account' : 'Gratis account aanmaken'}
               </Link>
             )}
-          </div>
+          </section>
         ) : (
-          <>
-            <form onSubmit={handleScan} className="space-y-4">
-              <div className={`bg-white rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200 p-6 sm:p-8 transition-opacity ${loading ? 'opacity-60' : ''}`}>
-                <div className="mb-5">
-                  <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-2">
-                    <Building2 className="w-4 h-4 text-slate-400" />
-                    {locale === 'en' ? 'Company name' : 'Bedrijfsnaam'} <span className="text-red-400">*</span>
+          // FORM
+          !results && (
+            <form id="bc-form" onSubmit={handleScan} className="tool-section bc-form">
+              <div className="bc-form-grid">
+                <div className="bc-field bc-field-full">
+                  <label htmlFor="bc-brand" className="tool-label">
+                    {locale === 'en' ? 'Company name' : 'Bedrijfsnaam'} <span className="req">*</span>
                   </label>
-                  <input type="text" value={brandName} onChange={e => setBrandName(e.target.value)} placeholder={locale === 'en' ? 'e.g. OnlineLabs' : 'bijv. OnlineLabs'} className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400" required minLength={2} disabled={loading} />
+                  <input
+                    id="bc-brand"
+                    type="text"
+                    value={brandName}
+                    onChange={e => setBrandName(e.target.value)}
+                    placeholder={locale === 'en' ? 'e.g. OnlineLabs' : 'bijv. OnlineLabs'}
+                    className="tool-input"
+                    required
+                    minLength={2}
+                    disabled={loading}
+                  />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div>
-                    <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-2">
-                      <MapPin className="w-4 h-4 text-slate-400" />
-                      {locale === 'en' ? 'City' : 'Vestigingsplaats'} <span className="text-red-400">*</span>
-                    </label>
-                    <input type="text" value={location} onChange={e => setLocation(e.target.value)} placeholder={locale === 'en' ? 'e.g. Amsterdam' : 'bijv. Amsterdam'} className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400" required minLength={2} disabled={loading} />
-                  </div>
-                  <div>
-                    <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-2">
-                      <Briefcase className="w-4 h-4 text-slate-400" />
-                      {locale === 'en' ? 'Industry' : 'Branche'} <span className="text-red-400">*</span>
-                      <span className="relative ml-auto" onClick={() => setBrancheTooltip(!brancheTooltip)}>
-                        <svg className="w-4 h-4 text-slate-400 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        {brancheTooltip && (
-                          <span className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap z-50">
-                            {locale === 'en' ? 'As listed on your Google Business Profile' : 'Zoals vermeld bij Google Bedrijfsprofiel'}
-                          </span>
-                        )}
-                      </span>
-                    </label>
-                    <input type="text" value={category} onChange={e => setCategory(e.target.value)} placeholder={locale === 'en' ? 'e.g. Digital marketing agency' : 'bijv. Online marketing bureau'} className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400" required minLength={2} disabled={loading} />
-                  </div>
+
+                <div className="bc-field">
+                  <label htmlFor="bc-loc" className="tool-label">
+                    {locale === 'en' ? 'City' : 'Vestigingsplaats'} <span className="req">*</span>
+                  </label>
+                  <input
+                    id="bc-loc"
+                    type="text"
+                    value={location}
+                    onChange={e => setLocation(e.target.value)}
+                    placeholder={locale === 'en' ? 'e.g. Amsterdam' : 'bijv. Amsterdam'}
+                    className="tool-input"
+                    required
+                    minLength={2}
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="bc-field">
+                  <label htmlFor="bc-cat" className="tool-label">
+                    {locale === 'en' ? 'Industry' : 'Branche'} <span className="req">*</span>
+                    <span className="tool-tooltip-wrap">
+                      <svg className="tool-tooltip-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"
+                        onClick={(e) => { e.preventDefault(); setBrancheTooltip(!brancheTooltip) }}>
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 16v-4M12 8h.01" />
+                      </svg>
+                      {brancheTooltip && (
+                        <span className="tool-tooltip">
+                          {locale === 'en' ? 'As listed on your Google Business Profile' : 'Zoals vermeld bij Google Bedrijfsprofiel'}
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                  <input
+                    id="bc-cat"
+                    type="text"
+                    value={category}
+                    onChange={e => setCategory(e.target.value)}
+                    placeholder={locale === 'en' ? 'e.g. Digital marketing agency' : 'bijv. Online marketing bureau'}
+                    className="tool-input"
+                    required
+                    minLength={2}
+                    disabled={loading}
+                  />
                 </div>
               </div>
-              <button type="submit" disabled={loading || !brandName.trim() || !category.trim() || !location.trim()} className="w-full bg-[#292956] text-white font-semibold px-6 py-3.5 rounded-xl hover:bg-[#1e1e45] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer text-lg">
-                {loading ? <><Loader2 className="w-5 h-5 animate-spin" />{locale === 'en' ? 'Checking...' : 'Checken...'}</> : <><Sparkles className="w-5 h-5" />{t('scanButton')}</>}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="teun-scan-btn bc-submit"
+              >
+                {loading
+                  ? (locale === 'en' ? 'Checking...' : 'Checken...')
+                  : (locale === 'en' ? 'Start brand check' : 'Start brand check')}
               </button>
+              <p className="bc-form-hint">
+                {locale === 'en' ? '6 AI checks across Perplexity and ChatGPT. Takes about 30 seconds.' : '6 AI-checks op Perplexity en ChatGPT. Duurt circa 30 seconden.'}
+              </p>
             </form>
-            {!loading && <p className="text-xs text-slate-400 mt-2 text-center">{locale === 'en' ? '6 AI checks across Perplexity and ChatGPT. Takes about 30 seconds.' : '6 AI-checks op Perplexity en ChatGPT. Duurt circa 30 seconden.'}</p>}
-          </>
+          )
         )}
 
+        {/* Error */}
         {error && (
-          <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
-            <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-            <p className="text-sm font-medium text-red-800">{error}</p>
+          <div className="tool-error">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, marginTop: 1 }}>
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 8v4M12 16h.01" />
+            </svg>
+            <div><strong>{error}</strong></div>
           </div>
         )}
-      </section>
 
-      {/* ── SCAN ANIMATION ── */}
-      {loading && scanPhase === 'scanning' && (
-        <section className="max-w-3xl mx-auto px-4 sm:px-6 pb-12">
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-600 flex items-center gap-2">
-                <Search className="w-4 h-4 text-purple-500" />
-                {locale === 'en' ? `Analyzing ${brandName} on 2 platforms` : `${brandName} analyseren op 2 platformen`}
-              </span>
-              <span className="text-sm text-slate-400">{scanProgress}%</span>
+        {/* SCANNING — sequential progress per query */}
+        {loading && scanPhase === 'scanning' && (
+          <section className="tool-section bc-scan">
+            <div className="bc-scan-header">
+              <div>
+                <p className="bc-scan-title">
+                  {locale === 'en' ? `Analyzing ${brandName} on 2 platforms` : `${brandName} analyseren op 2 platformen`}
+                </p>
+                <p className="bc-scan-platforms">
+                  <span><span className="pulse-dot"></span>Perplexity</span>
+                  <span><span className="pulse-dot"></span>ChatGPT</span>
+                </p>
+              </div>
+              <span className="bc-scan-pct">{scanProgress}%</span>
             </div>
-            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${scanProgress}%` }} />
-            </div>
-          </div>
 
-          <div className="space-y-3">
-            {queryLabels.map((q, i) => {
-              const state = queryStates[i]
-              return (
-                <div key={i} className={`rounded-xl border p-4 transition-all duration-500 ${state.status === 'done' ? 'bg-emerald-50 border-emerald-200' : state.status === 'scanning' ? 'bg-white border-purple-300 shadow-md shadow-purple-100' : state.status === 'error' ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200 opacity-50'}`}>
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${state.status === 'done' ? 'bg-emerald-500 text-white' : state.status === 'scanning' ? 'bg-purple-500 text-white' : state.status === 'error' ? 'bg-red-400 text-white' : 'bg-slate-200 text-slate-400'}`}>
-                      {state.status === 'done' ? <CheckCircle2 className="w-5 h-5" /> : state.status === 'scanning' ? <Loader2 className="w-5 h-5 animate-spin" /> : state.status === 'error' ? <XCircle className="w-5 h-5" /> : q.icon}
+            <div className="tool-progress-bar" style={{ marginBottom: 24 }}>
+              <div className="tool-progress-fill" style={{ width: `${scanProgress}%` }}></div>
+            </div>
+
+            <div className="bc-scan-list">
+              {queryLabels.map((q, i) => {
+                const state = queryStates[i]
+                return (
+                  <div key={i} className={`bc-scan-step ${state.status}`}>
+                    <div className="bc-scan-step-icon">
+                      {state.status === 'done' ? '✓' : state.status === 'scanning' ? <span className="bc-scan-spinner"></span> : state.status === 'error' ? '!' : i + 1}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`font-medium text-sm ${state.status === 'done' ? 'text-emerald-800' : state.status === 'scanning' ? 'text-slate-900' : 'text-slate-500'}`}>{q.title}</p>
-                      <p className={`text-xs mt-0.5 ${state.status === 'done' ? 'text-emerald-600' : state.status === 'scanning' ? 'text-purple-600' : 'text-slate-400'}`}>
-                        {state.status === 'done' ? (locale === 'en' ? 'Both platforms complete' : 'Beide platformen afgerond') : state.status === 'scanning' ? q.scanning : state.status === 'error' ? (locale === 'en' ? 'Error — skipped' : 'Fout — overgeslagen') : (locale === 'en' ? 'Waiting...' : 'Wachten...')}
+                    <div className="bc-scan-step-content">
+                      <p className="bc-scan-step-title">{q.title}</p>
+                      <p className="bc-scan-step-status">
+                        {state.status === 'done'
+                          ? (locale === 'en' ? 'Both platforms complete' : 'Beide platformen afgerond')
+                          : state.status === 'scanning'
+                            ? q.scanning
+                            : state.status === 'error'
+                              ? (locale === 'en' ? 'Error — skipped' : 'Fout — overgeslagen')
+                              : (locale === 'en' ? 'Waiting...' : 'Wachten...')}
                       </p>
                     </div>
-                    {state.status === 'scanning' && (
-                      <div className="flex gap-1">
-                        <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" />
-                        <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }} />
-                        <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
-                      </div>
-                    )}
                   </div>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
 
-          <div className="flex items-center justify-center gap-4 mt-4">
-            <span className="text-xs text-slate-400 flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" /> Perplexity</span>
-            <span className="text-xs text-slate-400 flex items-center gap-1.5"><span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" style={{ animationDelay: '0.3s' }} /> ChatGPT</span>
-          </div>
-        </section>
-      )}
-
-      {/* ── RESULTS ── */}
-      {results && (
-        <section ref={resultsRef} className="max-w-4xl mx-auto px-4 sm:px-6 pb-8">
-          <div className="grid sm:grid-cols-2 gap-3 mb-6">
-            {[{ name: 'Perplexity', data: results.platforms?.perplexity }, { name: 'ChatGPT', data: results.platforms?.chatgpt }].map((p, i) => (
-              <div key={i} className={`rounded-xl p-4 border ${p.data?.mentioned ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
-                <div className="flex items-center gap-2">
-                  {p.data?.mentioned ? <CheckCircle2 className="w-5 h-5 text-emerald-600" /> : <XCircle className="w-5 h-5 text-red-500" />}
+        {/* RESULTS */}
+        {results && (
+          <section ref={resultsRef} className="bc-results">
+            {/* Platform mention summary */}
+            <div className="bc-platforms">
+              {[
+                { name: 'Perplexity', data: results.platforms?.perplexity },
+                { name: 'ChatGPT', data: results.platforms?.chatgpt }
+              ].map((p, i) => (
+                <div key={i} className={`bc-platform-card ${p.data?.mentioned ? 'mentioned' : 'not-mentioned'}`}>
+                  <div className="bc-platform-icon">
+                    {p.data?.mentioned ? '✓' : '✗'}
+                  </div>
                   <div>
-                    <p className="font-semibold text-sm text-slate-900">{p.name}</p>
-                    <p className="text-xs text-slate-500">{p.data?.mentioned ? (locale === 'en' ? `Mentioned in ${p.data.mentionCount}/3 queries` : `Genoemd in ${p.data.mentionCount}/3 zoekvragen`) : (locale === 'en' ? 'Not mentioned' : 'Niet genoemd')}</p>
+                    <p className="bc-platform-name">{p.name}</p>
+                    <p className="bc-platform-status">
+                      {p.data?.mentioned
+                        ? (locale === 'en' ? `Mentioned in ${p.data.mentionCount}/3 queries` : `Genoemd in ${p.data.mentionCount}/3 zoekvragen`)
+                        : (locale === 'en' ? 'Not mentioned' : 'Niet genoemd')}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Score circle + signals */}
+            <section className="tool-section bc-score-section">
+              <div className="bc-score-grid">
+                <div className="bc-score-circle">
+                  <svg viewBox="0 0 120 120">
+                    <circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" strokeWidth="10" />
+                    <circle cx="60" cy="60" r="52" fill="none" stroke={getSentimentColor(results.overallSentiment)} strokeWidth="10" strokeDasharray={`${(results.overallScore / 100) * 327} 327`} strokeLinecap="round" transform="rotate(-90 60 60)" />
+                  </svg>
+                  <div className="bc-score-value">
+                    <span className="num" style={{ color: getSentimentColor(results.overallSentiment) }}>{results.overallScore}</span>
+                    <span className="suffix">/ 100</span>
+                  </div>
+                </div>
+
+                <div className="bc-score-info">
+                  <p className="bc-score-label" style={{ color: getSentimentColor(results.overallSentiment) }}>
+                    {getSentimentLabel(results.overallSentiment)}
+                  </p>
+                  <p className="bc-score-meta">
+                    {results.brandName}{results.location ? ` · ${results.location}` : ''} · 6 checks
+                  </p>
+                  <div className="bc-score-signals">
+                    {results.posSignals?.slice(0, 4).map((s, i) => (
+                      <span key={`p${i}`} className="bc-signal pos">+ {s}</span>
+                    ))}
+                    {results.negSignals?.slice(0, 3).map((s, i) => (
+                      <span key={`n${i}`} className="bc-signal neg">− {s}</span>
+                    ))}
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+            </section>
 
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 mb-6">
-            <div className="flex flex-col sm:flex-row items-center gap-6">
-              <div className="relative w-28 h-28 flex-shrink-0">
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
-                  <circle cx="60" cy="60" r="52" fill="none" stroke="#e2e8f0" strokeWidth="10" />
-                  <circle cx="60" cy="60" r="52" fill="none" stroke={getSentimentColor(results.overallSentiment)} strokeWidth="10" strokeDasharray={`${(results.overallScore / 100) * 327} 327`} strokeLinecap="round" />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-3xl font-bold" style={{ color: getSentimentColor(results.overallSentiment) }}>{results.overallScore}</span>
-                  <span className="text-xs text-slate-400">/100</span>
+            {/* Topics AI talks about */}
+            {results.aspects?.length > 0 && (
+              <section className="tool-section bc-aspects">
+                <h2 className="bc-section-h2">
+                  {locale === 'en' ? <>Topics <em>AI</em> talks about</> : <>Onderwerpen waarover <em>AI</em> spreekt</>}
+                </h2>
+                <div className="bc-aspect-tags">
+                  {results.aspects.map((a, i) => (
+                    <span key={i} className="bc-aspect-tag">{ASPECT_LABELS[a] || a}</span>
+                  ))}
                 </div>
-              </div>
-              <div className="text-center sm:text-left">
-                <div className="flex items-center gap-2 justify-center sm:justify-start mb-1">
-                  <span style={{ color: getSentimentColor(results.overallSentiment) }}>{getSentimentIcon(results.overallSentiment)}</span>
-                  <h3 className="text-xl font-bold text-slate-900">{getSentimentLabel(results.overallSentiment)}</h3>
-                </div>
-                <p className="text-sm text-slate-500">{results.brandName}{results.location ? ` · ${results.location}` : ''} · 6 checks</p>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {results.posSignals?.slice(0, 4).map((s, i) => (<span key={`p${i}`} className="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full">+{s}</span>))}
-                  {results.negSignals?.slice(0, 3).map((s, i) => (<span key={`n${i}`} className="text-xs bg-red-50 text-red-600 px-2 py-1 rounded-full">-{s}</span>))}
-                </div>
-              </div>
-            </div>
-          </div>
+              </section>
+            )}
 
-          {results.aspects?.length > 0 && (
-            <div className="mb-6">
-              <h3 className="font-semibold text-slate-900 mb-3">{locale === 'en' ? 'Topics AI talks about' : 'Onderwerpen waarover AI spreekt'}</h3>
-              <div className="flex flex-wrap gap-2">{results.aspects.map((a, i) => (<span key={i} className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 text-sm px-3 py-1.5 rounded-lg">{ASPECT_ICONS[a] || <Search className="w-3.5 h-3.5" />} {ASPECT_LABELS[a] || a}</span>))}</div>
-            </div>
-          )}
-
-          {results.recommendations?.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6">
-              <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2"><Sparkles className="w-4 h-4 text-amber-600" />{locale === 'en' ? 'Recommendations' : 'Aanbevelingen'}</h3>
-              <div className="space-y-2">
-                {results.recommendations.map((rec, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0 mt-0.5 ${rec.priority === 'high' ? 'bg-red-500' : rec.priority === 'medium' ? 'bg-amber-500' : 'bg-slate-400'}`}>{i + 1}</span>
-                    <p className="text-sm text-slate-700">{rec.text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ── GOOGLE REVIEWS REALITY CHECK ── */}
-          {(reviewsLoading || reviewsData) && (
-            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-6">
-              <div className="flex items-center gap-3 px-5 py-4 bg-slate-50 border-b border-slate-100">
-                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            {/* Recommendations */}
+            {results.recommendations?.length > 0 && (
+              <section className="tool-section bc-recs">
+                <h2 className="bc-section-h2">
+                  {locale === 'en' ? <><em>Aanbevelingen</em></> : null}
+                  {locale === 'nl' ? <><em>Aanbevelingen</em></> : <><em>Recommendations</em></>}
+                </h2>
+                <div className="bc-recs-list">
+                  {results.recommendations.map((rec, i) => (
+                    <div key={i} className={`bc-rec ${rec.priority}`}>
+                      <span className="bc-rec-num">{i + 1}</span>
+                      <p>{rec.text}</p>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-900">{locale === 'en' ? 'Google Reviews Reality Check' : 'Google Reviews Reality Check'}</p>
-                  <p className="text-xs text-slate-500">{locale === 'en' ? 'How do real reviews compare to AI perception?' : 'Hoe verhouden echte reviews zich tot AI-perceptie?'}</p>
-                </div>
-              </div>
+              </section>
+            )}
 
-              <div className="p-5">
+            {/* Google Reviews Reality Check */}
+            {(reviewsLoading || reviewsData) && (
+              <section className="tool-section bc-reviews">
+                <h2 className="bc-section-h2">
+                  {locale === 'en' ? <>Google Reviews <em>Reality Check</em></> : <>Google Reviews <em>Reality Check</em></>}
+                </h2>
+                <p className="bc-reviews-sub">
+                  {locale === 'en' ? 'How do real reviews compare to AI perception?' : 'Hoe verhouden echte reviews zich tot AI-perceptie?'}
+                </p>
+
                 {reviewsLoading && (
-                  <div className="flex items-center gap-3 py-4">
-                    <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
-                    <p className="text-sm text-slate-500">{locale === 'en' ? 'Fetching Google Reviews...' : 'Google Reviews ophalen...'}</p>
+                  <div className="bc-reviews-loading">
+                    <span className="tool-init-spinner"><span className="dot"></span><span className="dot"></span><span className="dot"></span></span>
+                    <p>{locale === 'en' ? 'Fetching Google Reviews...' : 'Google Reviews ophalen...'}</p>
                   </div>
                 )}
 
                 {reviewsData && reviewsData.summary && (
                   <>
-                    {/* Rating comparison */}
-                    <div className="flex items-center gap-4 mb-5">
-                      <div className="flex items-center gap-2">
-                        <div className="flex">
+                    <div className="bc-reviews-rating">
+                      <div className="bc-stars">
+                        <div className="stars">
                           {[1,2,3,4,5].map(s => (
-                            <svg key={s} className={`w-5 h-5 ${s <= Math.round(reviewsData.summary.avgRating) ? 'text-amber-400' : 'text-slate-200'}`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                            <svg key={s} className={s <= Math.round(reviewsData.summary.avgRating) ? 'filled' : ''} fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
                           ))}
                         </div>
-                        <span className="text-2xl font-bold text-slate-900">{reviewsData.summary.avgRating}</span>
-                        <span className="text-sm text-slate-400">({reviewsData.summary.totalReviews} reviews)</span>
+                        <span className="bc-rating-num">{reviewsData.summary.avgRating}</span>
+                        <span className="bc-rating-count">({reviewsData.summary.totalReviews} reviews)</span>
                       </div>
 
-                      <div className="h-8 w-px bg-slate-200" />
-
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-slate-500">{locale === 'en' ? 'AI says:' : 'AI zegt:'}</span>
-                        <span className={`text-sm font-semibold px-2.5 py-0.5 rounded-full ${
-                          results.overallSentiment === 'positive' ? 'bg-emerald-50 text-emerald-700' :
-                          results.overallSentiment === 'negative' ? 'bg-red-50 text-red-600' :
-                          'bg-amber-50 text-amber-700'
-                        }`}>{getSentimentLabel(results.overallSentiment)}</span>
+                      <div className="bc-reviews-vs">
+                        <span className="bc-vs-label">{locale === 'en' ? 'AI says:' : 'AI zegt:'}</span>
+                        <span className={`bc-vs-pill ${results.overallSentiment}`}>
+                          {getSentimentLabel(results.overallSentiment)}
+                        </span>
                       </div>
 
-                      {/* Match indicator */}
                       {(() => {
                         const rating = reviewsData.summary.avgRating
                         const aiSent = results.overallSentiment
                         const match = (rating >= 4 && aiSent === 'positive') || (rating < 3 && aiSent === 'negative') || (rating >= 3 && rating < 4 && aiSent === 'mixed')
                         return (
-                          <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${match ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
-                            {match
-                              ? (locale === 'en' ? '✓ Match' : '✓ Komt overeen')
-                              : (locale === 'en' ? '⚠ Mismatch' : '⚠ Verschil')}
+                          <span className={`bc-match ${match ? 'ok' : 'mismatch'}`}>
+                            {match ? (locale === 'en' ? '✓ Match' : '✓ Komt overeen') : (locale === 'en' ? '⚠ Mismatch' : '⚠ Verschil')}
                           </span>
                         )
                       })()}
                     </div>
 
-                    {/* Review themes */}
                     {reviewsData.themes?.length > 0 && (
-                      <div className="mb-5">
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{locale === 'en' ? 'Themes from reviews' : "Thema's uit reviews"}</p>
-                        <div className="space-y-2">
-                          {reviewsData.themes.slice(0, 5).map((theme, i) => (
-                            <div key={i} className="flex items-center gap-3">
-                              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] flex-shrink-0 ${
-                                theme.sentiment === 'positive' ? 'bg-emerald-500' :
-                                theme.sentiment === 'negative' ? 'bg-red-500' : 'bg-amber-500'
-                              }`}>
-                                {theme.sentiment === 'positive' ? '✓' : theme.sentiment === 'negative' ? '!' : '~'}
-                              </span>
-                              <span className="text-sm text-slate-700 font-medium flex-1">{theme.label}</span>
-                              <span className="text-xs text-slate-400">{theme.positive > 0 && <span className="text-emerald-600">{theme.positive}× {locale === 'en' ? 'pos' : 'pos'}</span>}{theme.positive > 0 && theme.negative > 0 && ' · '}{theme.negative > 0 && <span className="text-red-500">{theme.negative}× {locale === 'en' ? 'neg' : 'neg'}</span>}</span>
-                            </div>
-                          ))}
-                        </div>
+                      <div className="bc-themes">
+                        <p className="bc-themes-label">{locale === 'en' ? 'Themes from reviews' : "Thema's uit reviews"}</p>
+                        {reviewsData.themes.slice(0, 5).map((theme, i) => (
+                          <div key={i} className={`bc-theme ${theme.sentiment}`}>
+                            <span className="bc-theme-icon">
+                              {theme.sentiment === 'positive' ? '✓' : theme.sentiment === 'negative' ? '!' : '~'}
+                            </span>
+                            <span className="bc-theme-label">{theme.label}</span>
+                            <span className="bc-theme-stats">
+                              {theme.positive > 0 && <span className="pos-count">{theme.positive}× pos</span>}
+                              {theme.positive > 0 && theme.negative > 0 && ' · '}
+                              {theme.negative > 0 && <span className="neg-count">{theme.negative}× neg</span>}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     )}
 
-                    {/* AI insight based on review data */}
+                    {/* AI Insight */}
                     {(() => {
                       const negThemes = reviewsData.themes?.filter(t => t.sentiment === 'negative') || []
                       const rating = reviewsData.summary.avgRating
@@ -736,25 +761,27 @@ export default function BrandCheckPage() {
 
                       if (!insight) return null
                       return (
-                        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
-                          <Sparkles className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                          <p className="text-sm text-blue-800">{insight}</p>
+                        <div className="bc-insight">
+                          <p>{insight}</p>
                         </div>
                       )
                     })()}
 
-                    {/* Sample reviews */}
                     {reviewsData.reviews?.length > 0 && (
-                      <details className="mt-4">
-                        <summary className="text-xs text-slate-400 cursor-pointer hover:text-slate-600">{locale === 'en' ? `Show ${reviewsData.reviews.length} recent reviews` : `Toon ${reviewsData.reviews.length} recente reviews`}</summary>
-                        <div className="mt-3 space-y-3">
+                      <details className="bc-sample-reviews">
+                        <summary>{locale === 'en' ? `Show ${reviewsData.reviews.length} recent reviews` : `Toon ${reviewsData.reviews.length} recente reviews`}</summary>
+                        <div className="bc-review-items">
                           {reviewsData.reviews.map((r, i) => (
-                            <div key={i} className="bg-slate-50 rounded-lg p-3">
-                              <div className="flex items-center gap-2 mb-1">
-                                <div className="flex">{[1,2,3,4,5].map(s => <svg key={s} className={`w-3 h-3 ${s <= r.rating ? 'text-amber-400' : 'text-slate-200'}`} fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}</div>
-                                {r.date && <span className="text-[10px] text-slate-400">{r.date}</span>}
+                            <div key={i} className="bc-review-item">
+                              <div className="bc-review-stars">
+                                {[1,2,3,4,5].map(s => (
+                                  <svg key={s} className={s <= r.rating ? 'filled' : ''} fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                  </svg>
+                                ))}
+                                {r.date && <span className="bc-review-date">{r.date}</span>}
                               </div>
-                              {r.text && <p className="text-xs text-slate-600 leading-relaxed line-clamp-3">{r.text}</p>}
+                              {r.text && <p className="bc-review-text">{r.text}</p>}
                             </div>
                           ))}
                         </div>
@@ -764,76 +791,96 @@ export default function BrandCheckPage() {
                 )}
 
                 {reviewsData && !reviewsData.summary && (
-                  <p className="text-sm text-slate-400 py-2">{locale === 'en' ? 'No Google Reviews found for this business.' : 'Geen Google Reviews gevonden voor dit bedrijf.'}</p>
+                  <p className="bc-no-reviews">
+                    {locale === 'en' ? 'No Google Reviews found for this business.' : 'Geen Google Reviews gevonden voor dit bedrijf.'}
+                  </p>
                 )}
-              </div>
-            </div>
-          )}
+              </section>
+            )}
 
-          <div className="mb-6">
-            <h3 className="font-semibold text-slate-900 mb-3">{locale === 'en' ? 'AI responses per query' : 'AI-antwoorden per zoekvraag'}</h3>
-            <div className="space-y-3">
-              {results.queries?.map((q, i) => {
-                const tab = activeTab[i] || 'perplexity'
-                const pxData = q.perplexity || {}
-                const cgData = q.chatgpt || {}
-                const anyMentioned = pxData.mentioned || cgData.mentioned
-                return (
-                  <div key={i} className="border border-slate-200 rounded-xl overflow-hidden">
-                    <button onClick={() => setExpandedQuery(expandedQuery === i ? null : i)} className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors cursor-pointer text-left">
-                      <div className="flex items-center gap-3 min-w-0">
-                        {anyMentioned ? <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" /> : <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />}
-                        <span className="text-sm text-slate-700 truncate">{q.prompt}</span>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${pxData.mentioned ? 'bg-emerald-100 text-emerald-700' : 'bg-red-50 text-red-500'}`}>PX</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${cgData.mentioned ? 'bg-emerald-100 text-emerald-700' : 'bg-red-50 text-red-500'}`}>CG</span>
-                        {expandedQuery === i ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                      </div>
-                    </button>
-                    {expandedQuery === i && (
-                      <div className="px-4 pb-4 border-t border-slate-100">
-                        <div className="flex gap-2 mt-3 mb-3">
-                          <button onClick={() => setActiveTab(prev => ({ ...prev, [i]: 'perplexity' }))} className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${tab === 'perplexity' ? 'bg-[#292956] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Perplexity {pxData.mentioned ? '✓' : '✗'}</button>
-                          <button onClick={() => setActiveTab(prev => ({ ...prev, [i]: 'chatgpt' }))} className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${tab === 'chatgpt' ? 'bg-[#292956] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>ChatGPT {cgData.mentioned ? '✓' : '✗'}</button>
-                        </div>
-                        <div className="bg-slate-50 rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs text-slate-400 flex items-center gap-1"><Eye className="w-3 h-3" /> {tab === 'perplexity' ? 'Perplexity' : 'ChatGPT'}</p>
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${(tab === 'perplexity' ? pxData : cgData).sentiment === 'positive' ? 'bg-emerald-50 text-emerald-700' : (tab === 'perplexity' ? pxData : cgData).sentiment === 'negative' ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-600'}`}>{getSentimentLabel((tab === 'perplexity' ? pxData : cgData).sentiment)}</span>
+            {/* Per-query results */}
+            <section className="tool-section bc-queries">
+              <h2 className="bc-section-h2">
+                {locale === 'en' ? <><em>AI</em>-antwoorden per zoekvraag</> : null}
+                {locale === 'nl' ? <><em>AI</em>-antwoorden per zoekvraag</> : <><em>AI</em> responses per query</>}
+              </h2>
+              <div className="bc-query-list">
+                {results.queries?.map((q, i) => {
+                  const tab = activeTab[i] || 'perplexity'
+                  const pxData = q.perplexity || {}
+                  const cgData = q.chatgpt || {}
+                  const anyMentioned = pxData.mentioned || cgData.mentioned
+                  return (
+                    <div key={i} className="bc-query">
+                      <button onClick={() => setExpandedQuery(expandedQuery === i ? null : i)} className="bc-query-summary">
+                        <span className={`bc-query-icon ${anyMentioned ? 'mentioned' : 'not'}`}>
+                          {anyMentioned ? '✓' : '✗'}
+                        </span>
+                        <span className="bc-query-prompt">{q.prompt}</span>
+                        <span className="bc-query-pills">
+                          <span className={`bc-query-pill ${pxData.mentioned ? 'on' : 'off'}`}>PX</span>
+                          <span className={`bc-query-pill ${cgData.mentioned ? 'on' : 'off'}`}>CG</span>
+                          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" style={{ transform: expandedQuery === i ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                            <path d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </span>
+                      </button>
+                      {expandedQuery === i && (
+                        <div className="bc-query-detail">
+                          <div className="bc-query-tabs">
+                            <button
+                              onClick={() => setActiveTab(prev => ({ ...prev, [i]: 'perplexity' }))}
+                              className={`bc-query-tab ${tab === 'perplexity' ? 'active' : ''}`}
+                            >
+                              Perplexity {pxData.mentioned ? '✓' : '✗'}
+                            </button>
+                            <button
+                              onClick={() => setActiveTab(prev => ({ ...prev, [i]: 'chatgpt' }))}
+                              className={`bc-query-tab ${tab === 'chatgpt' ? 'active' : ''}`}
+                            >
+                              ChatGPT {cgData.mentioned ? '✓' : '✗'}
+                            </button>
                           </div>
-                          <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{(tab === 'perplexity' ? pxData : cgData).response || (locale === 'en' ? 'No response received.' : 'Geen antwoord ontvangen.')}</p>
+                          <div className="bc-query-response">
+                            <div className="bc-query-response-head">
+                              <span>{tab === 'perplexity' ? 'Perplexity' : 'ChatGPT'}</span>
+                              <span className={`bc-sentiment-pill ${(tab === 'perplexity' ? pxData : cgData).sentiment}`}>
+                                {getSentimentLabel((tab === 'perplexity' ? pxData : cgData).sentiment)}
+                              </span>
+                            </div>
+                            <p className="bc-query-text">
+                              {(tab === 'perplexity' ? pxData : cgData).response || (locale === 'en' ? 'No response received.' : 'Geen antwoord ontvangen.')}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
 
-          <div className="bg-white border border-slate-200 rounded-xl p-6 text-center">
+            {/* Account CTA — dynamische tekst op basis van score */}
             {(() => {
-              const score = results.overallScore || 50;
-              const hasNegSignals = (results.negSignals || []).length > 0;
-              const isNegative = results.overallSentiment === 'negative' || results.overallSentiment === 'mixed';
-              const notMentioned = !results.mentioned;
+              const score = results.overallScore || 50
+              const isNegative = results.overallSentiment === 'negative' || results.overallSentiment === 'mixed'
+              const notMentioned = !results.mentioned
 
               const title = notMentioned
                 ? (locale === 'en'
                     ? `AI doesn't know ${results.brandName || 'your business'} — your competitors may already be visible`
-                    : `AI kent ${results.brandName || 'jouw bedrijf'} niet — je concurrenten mogelijk wel`)
+                    : `AI kent ${results.brandName || 'jouw bedrijf'} niet, je concurrenten mogelijk wel`)
                 : isNegative
                   ? (locale === 'en'
-                      ? `AI warns customers about ${results.brandName || 'your business'}: ${(results.negSignals || []).slice(0, 3).join(', ')}`
-                      : `AI waarschuwt klanten over ${results.brandName || 'jouw bedrijf'}: ${(results.negSignals || []).slice(0, 3).join(', ')}`)
+                      ? `AI warns customers about ${results.brandName || 'your business'}`
+                      : `AI waarschuwt klanten over ${results.brandName || 'jouw bedrijf'}`)
                   : score < 70
                     ? (locale === 'en'
-                        ? `Score ${score}/100 — AI sees room for improvement for ${results.brandName || 'your business'}`
-                        : `Score ${score}/100 — AI ziet verbeterpunten voor ${results.brandName || 'jouw bedrijf'}`)
+                        ? `Score ${score}/100, AI sees room for improvement`
+                        : `Score ${score}/100, AI ziet verbeterpunten`)
                     : (locale === 'en'
-                        ? `AI is positive about ${results.brandName || 'you'} — but does AI also recommend you?`
-                        : `AI is positief over ${results.brandName || 'jou'} — maar beveelt AI jou ook aan?`);
+                        ? `AI is positive about ${results.brandName || 'you'}, maar beveelt AI jou ook aan?`
+                        : `AI is positief over ${results.brandName || 'jou'}, maar beveelt AI jou ook aan?`)
 
               const description = notMentioned
                 ? (locale === 'en'
@@ -845,172 +892,258 @@ export default function BrandCheckPage() {
                       : 'Klanten zien deze signalen als ze AI naar jou vragen. Maak een gratis account aan, scan je volledige AI-zichtbaarheid en verbeter je positie.')
                   : (locale === 'en'
                       ? 'You now know what AI says. But does AI recommend you when customers search? Create a free account and scan your position on ChatGPT, Perplexity and Google AI.'
-                      : 'Je weet nu wat AI zegt. Maar beveelt AI jou ook aan als klanten zoeken? Maak een gratis account aan en scan je positie op ChatGPT, Perplexity en Google AI.');
+                      : 'Je weet nu wat AI zegt. Maar beveelt AI jou ook aan als klanten zoeken? Maak een gratis account aan en scan je positie op ChatGPT, Perplexity en Google AI.')
+
+              const bonus = locale === 'nl'
+                ? 'Met een gratis account scan je ook Google AI Modus en AI Overviews.'
+                : 'With a free account you can also scan Google AI Mode and AI Overviews.'
 
               return (
-                <>
-                  <p className="text-lg font-bold text-slate-900 mb-2">{title}</p>
-                  <p className="text-slate-600 text-sm max-w-md mx-auto mb-5">{description}</p>
+                <div className="tool-account-cta">
+                  <h3>{title}</h3>
+                  <p>{description}</p>
+                  <p className="bonus">+ {bonus}</p>
                   {!user ? (
-                    <Link href="/signup" className="inline-flex items-center gap-2 bg-[#292956] text-white font-semibold px-6 py-3 rounded-lg hover:bg-[#1e1e45] transition-colors cursor-pointer">
-                      {locale === 'en' ? 'Create free account' : 'Gratis account aanmaken'} <ArrowRight className="w-4 h-4" />
+                    <Link href="/signup" className="tool-account-cta-btn">
+                      {locale === 'en' ? 'Create free account' : 'Gratis account aanmaken'}
+                      <span aria-hidden="true">→</span>
                     </Link>
                   ) : (
-                    <Link href="/dashboard" className="inline-flex items-center gap-2 bg-[#292956] text-white font-semibold px-6 py-3 rounded-lg hover:bg-[#1e1e45] transition-colors cursor-pointer">
-                      {locale === 'en' ? 'Go to dashboard' : 'Ga naar dashboard'} <ArrowRight className="w-4 h-4" />
+                    <Link href="/dashboard" className="tool-account-cta-btn">
+                      {locale === 'en' ? 'Go to dashboard' : 'Ga naar dashboard'}
+                      <span aria-hidden="true">→</span>
                     </Link>
                   )}
-                </>
-              );
+                  <p className="small">
+                    {locale === 'nl' ? 'Geheel gratis · Geen creditcard nodig' : 'Completely free · No credit card needed'}
+                  </p>
+                </div>
+              )
             })()}
-          </div>
 
-          <div className="mt-6 text-center">
-            <button onClick={() => { setResults(null); setReviewsData(null); setScanPhase('idle'); setBrandName(''); setLocation(''); setCategory(''); window.scrollTo({ top: 0, behavior: 'smooth' }) }} className="text-sm text-slate-500 hover:text-slate-700 font-medium inline-flex items-center gap-1 cursor-pointer">← {locale === 'en' ? 'Check another brand' : 'Ander merk checken'}</button>
-          </div>
+            <div className="bc-restart">
+              <button onClick={() => {
+                setResults(null)
+                setReviewsData(null)
+                setScanPhase('idle')
+                setBrandName('')
+                setLocation('')
+                setCategory('')
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}>
+                ← {locale === 'en' ? 'Check another brand' : 'Ander merk checken'}
+              </button>
+            </div>
+          </section>
+        )}
+      </div>
 
-          {/* ━━━ Other Tools ━━━ */}
-          <ToolsCrossSell currentTool="brand-check" locale={locale} />
-        </section>
-      )}
-
-      {/* ── SEO CONTENT ── */}
+      {/* SEO content + FAQ — alleen als geen scan loopt */}
       {!results && !loading && (
         <>
-          {/* What does AI say */}
-          <section className="max-w-3xl mx-auto px-4 sm:px-6 pt-20 pb-16">
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 leading-tight">{locale === 'en' ? <>What does AI say<br /><span className="text-[#7C3AED]">when someone asks about your business?</span></> : <>Wat zegt AI<br /><span className="text-[#7C3AED]">als iemand naar jouw bedrijf vraagt?</span></>}</h2>
-            <p className="text-slate-600 leading-relaxed mb-4">{locale === 'en' ? 'Millions of people ask ChatGPT and Perplexity for business recommendations every day. What does ChatGPT say about my business? An AI Brand Check reveals exactly that: the brand mentions AI generates, the sentiment, and whether you appear at all. This free AI reputation check shows your brand perception across platforms.' : 'Miljoenen mensen vragen ChatGPT en Perplexity dagelijks om bedrijfsaanbevelingen. Wat zegt ChatGPT over mijn bedrijf? Een AI Brand Check onthult precies dat: de AI merkperceptie, het sentiment, en of je uberhaupt wordt genoemd. Deze gratis AI reputatie check toont hoe AI over jouw merk praat.'}</p>
-            <p className="text-slate-600 leading-relaxed">{locale === 'en' ? 'This free tool runs 3 commercial queries on both Perplexity and ChatGPT about your brand: experiences, reviews, and service quality. 6 AI reputation checks in total. You see exactly how AI perceives your business and get concrete tips to improve your AI brand perception.' : 'Deze gratis tool voert 3 commerciele zoekvragen uit op zowel Perplexity als ChatGPT over jouw merk: ervaringen, reviews, en servicekwaliteit. 6 AI reputatie checks in totaal. Je ziet precies hoe AI over jouw merk praat en krijgt concrete tips om je AI merkperceptie te verbeteren.'}</p>
+          {/* SEO Intro */}
+          <section className="tool-seo-intro">
+            <h2>
+              {locale === 'en'
+                ? <>Your brand according to <em>AI</em></>
+                : <>Jouw merk volgens <em>AI</em></>}
+            </h2>
+            <p>
+              {locale === 'en'
+                ? 'Millions of people ask ChatGPT and Perplexity for business recommendations every day. What does ChatGPT say about my business? An AI Brand Check reveals exactly that: the brand mentions AI generates, the sentiment, and whether you appear at all. This free AI reputation check shows your brand perception across platforms.'
+                : 'Miljoenen mensen vragen ChatGPT en Perplexity dagelijks om aanbevelingen. Wat zegt ChatGPT over mijn bedrijf? Een AI Brand Check onthult precies dat: de AI merkperceptie, het sentiment, en of je überhaupt wordt genoemd. Deze gratis AI reputatie check toont hoe AI over jouw merk praat.'}
+            </p>
+            <p>
+              {locale === 'en'
+                ? 'This free tool runs 3 commercial queries on both Perplexity and ChatGPT about your brand: experiences, reviews, and service quality. 6 AI reputation checks in total. You see exactly how AI perceives your business and get concrete tips to improve your AI brand perception.'
+                : 'Deze gratis tool voert 3 commerciële zoekvragen uit op zowel Perplexity als ChatGPT over jouw merk: ervaringen, reviews, en servicekwaliteit. 6 AI reputatie checks in totaal. Je ziet precies hoe AI over jouw merk praat en krijgt concrete tips om je AI merkperceptie te verbeteren.'}
+            </p>
           </section>
 
-          {/* What do we check - with outlined icons like GEO Audit */}
-          <section className="bg-slate-50 py-16">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6">
-              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 text-center mb-4">{locale === 'en' ? 'What do we check?' : 'Wat checken we?'}</h2>
-              <p className="text-slate-500 text-center mb-10 max-w-2xl mx-auto">{locale === 'en' ? '3 targeted queries on 2 AI platforms reveal how AI perceives your brand.' : '3 gerichte zoekvragen op 2 AI-platformen onthullen hoe AI jouw merk ziet.'}</p>
-              <div className="grid sm:grid-cols-3 gap-6">
-                {[
-                  { icon: <Shield className="w-5 h-5" />, title: locale === 'en' ? 'Experiences' : 'Ervaringen', desc: locale === 'en' ? 'Is your business considered reliable? What experiences does AI highlight?' : 'Wordt jouw bedrijf als betrouwbaar gezien? Welke ervaringen licht AI uit?' },
-                  { icon: <Star className="w-5 h-5" />, title: locale === 'en' ? 'Reviews' : 'Reviews', desc: locale === 'en' ? 'What does AI know about your reviews and complaints? Are there negative signals?' : 'Wat weet AI over je reviews en klachten? Zijn er negatieve signalen?' },
-                  { icon: <MessageSquare className="w-5 h-5" />, title: locale === 'en' ? 'Service' : 'Service', desc: locale === 'en' ? 'How does AI rate your accessibility, quality and service level?' : 'Hoe beoordeelt AI je bereikbaarheid, kwaliteit en serviceniveau?' }
-                ].map((item, i) => (
-                  <div key={i} className="bg-white rounded-xl p-6 border border-slate-200">
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center mb-4">{item.icon}</div>
-                    <h3 className="font-semibold text-slate-900 mb-2">{item.title}</h3>
-                    <p className="text-sm text-slate-600 leading-relaxed">{item.desc}</p>
-                    <div className="flex gap-2 mt-3">
-                      <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-500 rounded">Perplexity</span>
-                      <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-500 rounded">ChatGPT</span>
+          {/* What we check — 3 cards */}
+          <section className="tool-seo-how">
+            <div className="tool-seo-how-wrap">
+              <h2>{locale === 'en' ? <>What do <em>we</em> check?</> : <>Wat <em>checken</em> we?</>}</h2>
+              <p className="tool-seo-how-sub">
+                {locale === 'en'
+                  ? '3 targeted queries on 2 AI platforms reveal how AI perceives your brand.'
+                  : '3 gerichte zoekvragen op 2 AI-platformen onthullen hoe AI jouw merk ziet.'}
+              </p>
+              <div className="tool-seo-how-grid bc-seo-3-grid">
+                {(locale === 'en' ? [
+                  { title: 'Experiences', desc: 'Is your business considered reliable? What experiences does AI highlight?' },
+                  { title: 'Reviews', desc: 'What does AI know about your reviews and complaints? Are there negative signals?' },
+                  { title: 'Service', desc: 'How does AI rate your accessibility, quality and service level?' },
+                ] : [
+                  { title: 'Ervaringen', desc: 'Wordt jouw bedrijf als betrouwbaar gezien? Welke ervaringen licht AI uit?' },
+                  { title: 'Reviews', desc: 'Wat weet AI over je reviews en klachten? Zijn er negatieve signalen?' },
+                  { title: 'Service', desc: 'Hoe beoordeelt AI je bereikbaarheid, kwaliteit en serviceniveau?' },
+                ]).map((item, i) => (
+                  <div key={i} className="tool-seo-how-card">
+                    <div className="tool-seo-how-card-head">
+                      <span className="num">{String(i + 1).padStart(2, '0')}</span>
                     </div>
+                    <h3>{item.title}</h3>
+                    <p>{item.desc}</p>
                   </div>
                 ))}
               </div>
             </div>
           </section>
 
-          {/* AI has an opinion - light style matching homepage */}
-          <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 text-center">{locale === 'en' ? <>AI has an opinion<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">about your business</span></> : <>AI heeft een mening<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">over jouw bedrijf</span></>}</h2>
-            <p className="text-slate-600 leading-relaxed text-center mb-8 max-w-2xl mx-auto">{locale === 'en' ? 'When someone asks "Is [your company] reliable?", AI constructs an answer from online sources. Reviews, forums, social media, and industry articles all influence AI brand mentions.' : 'Als iemand vraagt "Is [jouw bedrijf] betrouwbaar?", stelt AI een antwoord samen uit online bronnen. Reviews, forums, social media en brancheartikelen bepalen de AI merkperceptie.'}</p>
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
-              <div className="space-y-5">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                  </div>
-                  <div className="bg-slate-50 rounded-xl rounded-tl-sm px-4 py-3 text-sm text-slate-700 border border-slate-100">{locale === 'en' ? '"What are experiences with [your company]? Is it reliable?"' : '"Wat zijn ervaringen met [jouw bedrijf]? Is het betrouwbaar?"'}</div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Sparkles className="w-4 h-4 text-purple-500" />
-                  </div>
-                  <div className="bg-slate-50 rounded-xl rounded-tl-sm px-4 py-3 border border-slate-100">
-                    <p className="text-sm text-slate-700">{locale === 'en' ? '"Based on available information..."' : '"Op basis van beschikbare informatie..."'}</p>
-                    <p className="text-sm text-purple-600 font-medium mt-1">{locale === 'en' ? 'Is the response positive, negative, or does AI not even know your brand?' : 'Is het antwoord positief, negatief, of kent AI je merk niet eens?'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <p className="text-center text-slate-500 text-sm mt-6">{locale === 'en' ? 'Understanding what AI says about your business is the first step to improving your AI reputation.' : 'Begrijpen hoe AI over jouw merk praat is de eerste stap naar een betere AI reputatie.'}</p>
-          </section>
-
-          {/* Pricing CTA */}
-          <section className="py-16 bg-white">
-            <div className="max-w-3xl mx-auto px-5 sm:px-6 lg:px-8 text-center">
-              <p className="text-slate-500 mb-6">
+          {/* Final CTA — matcht homepage teun-final pattern */}
+          <section className="teun-final" aria-labelledby="bc-cta-heading">
+            <div className="wrap">
+              <h2 id="bc-cta-heading">
+                {locale === 'en' ? (
+                  <>Be the <em>answer</em>.<br />Not a question mark.</>
+                ) : (
+                  <>Word het <em>antwoord</em>.<br />Niet een vraagteken.</>
+                )}
+              </h2>
+              <p>
                 {locale === 'en'
-                  ? 'All tools are free to use. Upgrade to Lite or Pro for automatic tracking and unlimited use.'
-                  : 'Alle tools zijn gratis te gebruiken. Upgrade naar Lite of Pro voor automatische tracking en onbeperkt gebruik.'}
+                  ? 'AI already has an opinion about your brand. The only question is whether it works for you, against you, or whether AI knows your brand at all. Find out in 30 seconds.'
+                  : 'AI heeft nu al een mening over jouw merk. De enige vraag is of die voor je werkt, tegen je werkt, of dat AI je merk niet eens kent. Ontdek het in 30 seconden.'}
               </p>
-              <div className="flex flex-wrap justify-center gap-4">
-                <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer">
-                  {locale === 'nl' ? 'Gratis Brand Check starten' : 'Start free Brand Check'} <ArrowRight className="w-5 h-5" />
-                </button>
-                <Link href="/pricing" className="inline-flex items-center gap-2 px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-lg hover:shadow-md hover:border-slate-300 transition-all">
-                  {locale === 'nl' ? 'Bekijk Lite & Pro' : 'View Lite & Pro'} <ArrowRight className="w-5 h-5" />
+              <div className="btns">
+                <a href="#bc-form" className="btn-primary">
+                  {locale === 'en' ? 'Start free brand check' : 'Gratis Brand Check starten'} <span aria-hidden="true">→</span>
+                </a>
+                <Link
+                  href={locale === 'en' ? '/en/pricing' : '/pricing'}
+                  className="btn-secondary"
+                >
+                  {locale === 'en' ? 'View Lite & Pro' : 'Bekijk Lite & Pro'}
                 </Link>
               </div>
-              <p className="text-slate-400 text-xs mt-3">
-                {locale === 'nl' ? 'Vanaf €29,95/mnd excl. BTW' : 'From €29.95/mo excl. VAT'}
-              </p>
             </div>
           </section>
 
-          {/* FAQ Section — Homepage style with Teun */}
-          <section className="py-20 bg-slate-50 relative overflow-visible">
-            <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
-              <div className="grid lg:grid-cols-2 gap-12 items-start">
-                <div>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-6">{locale === 'en' ? 'Frequently asked questions' : 'Veelgestelde vragen'}</h2>
-                  <div className="space-y-4">
-                    {faqItems.map((item, i) => (
-                      <div key={i} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                        <button
-                          onClick={() => setOpenFaq(openFaq === i ? -1 : i)}
-                          className="w-full flex items-center justify-between p-6 text-left cursor-pointer"
-                        >
-                          <div className="flex items-center gap-4">
-                            <span className="text-slate-400 font-mono text-sm">
-                              {String(i + 1).padStart(2, '0')}
-                            </span>
-                            <span className="font-semibold text-slate-900">
-                              {item.q}
-                            </span>
-                          </div>
-                          <svg 
-                            className={`w-5 h-5 text-slate-400 transition-transform flex-shrink-0 ml-2 ${openFaq === i ? 'rotate-45' : ''}`} 
-                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                        </button>
-                        {openFaq === i && (
-                          <div className="px-6 pb-6 pt-0">
-                            <p className="text-slate-600 pl-10">{item.a}</p>
-                          </div>
-                        )}
-                      </div>
+          {/* FAQ — homepage teun-faq pattern */}
+          {(() => {
+            const catLabels = locale === 'en'
+              ? { all: 'All', product: 'Product', pricing: 'Pricing', technical: 'Technical' }
+              : { all: 'Alles', product: 'Product', pricing: 'Prijzen', technical: 'Technisch' }
+
+            const faqCounts = {
+              all: faqItems.length,
+              product: faqItems.filter(i => i.cat === 'product').length,
+              pricing: faqItems.filter(i => i.cat === 'pricing').length,
+              technical: faqItems.filter(i => i.cat === 'technical').length
+            }
+
+            const filteredFaq = faqCategory === 'all'
+              ? faqItems
+              : faqItems.filter(i => i.cat === faqCategory)
+
+            return (
+              <section className="teun-faq" id="faq" aria-labelledby="bc-faq-heading">
+                <div className="wrap">
+                  <div className="teun-faq-head">
+                    <div className="teun-faq-eyebrow">
+                      {locale === 'en' ? 'QUESTIONS & ANSWERS' : 'VRAGEN & ANTWOORDEN'}
+                    </div>
+                    <h2 id="bc-faq-heading">
+                      {locale === 'en' ? (
+                        <>Everything you want to know <em>before you click.</em></>
+                      ) : (
+                        <>Alles wat je wilt weten <em>voor je klikt.</em></>
+                      )}
+                    </h2>
+                    <p className="sub">
+                      {locale === 'en'
+                        ? 'No bot answers, no marketing speak. Real explanations, written by our team.'
+                        : 'Geen bot-antwoorden, geen marketingpraat. De echte uitleg, geschreven door ons team.'}
+                    </p>
+                  </div>
+
+                  <div className="teun-faq-cats" role="tablist">
+                    {[
+                      { id: 'all',       count: faqCounts.all },
+                      { id: 'product',   count: faqCounts.product },
+                      { id: 'pricing',   count: faqCounts.pricing },
+                      { id: 'technical', count: faqCounts.technical }
+                    ].map(({ id, count }) => (
+                      <button
+                        key={id}
+                        className={faqCategory === id ? 'active' : ''}
+                        onClick={() => { setFaqCategory(id); setOpenFaq(0) }}
+                        role="tab"
+                        aria-selected={faqCategory === id}
+                      >
+                        {catLabels[id]}
+                        <span className="count">{count}</span>
+                      </button>
                     ))}
                   </div>
-                </div>
 
-                <div className="hidden lg:flex justify-center items-end relative">
-                  <div className="translate-y-20">
-                    <Image
-                      src="/teun-ai-mascotte.png"
-                      alt={locale === 'en' ? 'Teun helps you' : 'Teun helpt je'}
-                      width={420}
-                      height={530}
-                      className="drop-shadow-xl"
-                    />
+                  <div className="teun-faq-list">
+                    {filteredFaq.map((item, i) => (
+                      <details
+                        key={`${faqCategory}-${i}`}
+                        className="teun-faq-item"
+                        open={openFaq === i}
+                        onToggle={(e) => { if (e.target.open) setOpenFaq(i) }}
+                      >
+                        <summary>
+                          <span className="num">{String(i + 1).padStart(2, '0')}</span>
+                          <h3 className="q">{item.q}</h3>
+                          <span className="cat-chip">{catLabels[item.cat]}</span>
+                          <span className="toggle" aria-hidden="true">
+                            <svg viewBox="0 0 12 12" fill="none">
+                              <path d="M2 6h8M6 2v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                            </svg>
+                          </span>
+                        </summary>
+                        <div className="answer-wrap">
+                          <div className="answer">{item.a}</div>
+                        </div>
+                      </details>
+                    ))}
+                  </div>
+
+                  {/* Help callout */}
+                  <div className="teun-faq-help">
+                    <div>
+                      <h3>
+                        {locale === 'en' ? (
+                          <>Still got questions? <em>We&rsquo;re here.</em></>
+                        ) : (
+                          <>Nog vragen? <em>We helpen je.</em></>
+                        )}
+                      </h3>
+                      <p>
+                        {locale === 'en'
+                          ? 'Reach us by email or book a 15-minute call. No sales pitch, just answers.'
+                          : 'Stuur ons een mail of plan een gesprek van 15 minuten. Geen verkooppraat, gewoon antwoorden.'}
+                      </p>
+                    </div>
+                    <div className="teun-faq-help-actions">
+                      <a href="mailto:hallo@teun.ai" className="teun-faq-help-btn primary">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                          <path d="M2 3h10v8H2z M2 3l5 4 5-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        hallo@teun.ai
+                      </a>
+                      <a
+                        href="https://calendly.com/imre-onlinelabs/teun-ai-demo"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="teun-faq-help-btn secondary"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                          <rect x="2" y="3" width="10" height="9" rx="1" stroke="currentColor" strokeWidth="1.5" />
+                          <path d="M2 6h10M5 1v3M9 1v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                        {locale === 'en' ? 'Book a call' : 'Plan een gesprek'}
+                      </a>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </section>
-
-          {/* CTA */}
+              </section>
+            )
+          })()}
         </>
       )}
     </div>

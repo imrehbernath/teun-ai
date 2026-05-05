@@ -1,39 +1,36 @@
-'use client';
+'use client'
 
-import { useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 
 export default function ReadingProgressBar() {
-  const t = useTranslations('blogPost');
-  const [progress, setProgress] = useState(0);
+  const t = useTranslations('blogPost')
+  const [progress, setProgress] = useState(0)
 
   useEffect(() => {
     const updateProgress = () => {
-      const scrollTop = window.scrollY;
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      const scrollPercent = (scrollTop / docHeight) * 100;
-      setProgress(scrollPercent);
-    };
+      const scrollTop = window.scrollY
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight
+      const scrollPercent = (scrollTop / docHeight) * 100
+      setProgress(scrollPercent)
+    }
 
-    window.addEventListener('scroll', updateProgress, { passive: true });
-    updateProgress();
+    window.addEventListener('scroll', updateProgress, { passive: true })
+    updateProgress()
 
-    return () => window.removeEventListener('scroll', updateProgress);
-  }, []);
+    return () => window.removeEventListener('scroll', updateProgress)
+  }, [])
 
   return (
-    <div 
-      className="fixed top-0 left-0 right-0 h-1 bg-gray-200 z-50"
+    <div
+      className="bp-progress"
       role="progressbar"
       aria-valuenow={Math.round(progress)}
       aria-valuemin="0"
       aria-valuemax="100"
       aria-label={t('readingProgress')}
     >
-      <div
-        className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-150 ease-out"
-        style={{ width: `${progress}%` }}
-      />
+      <div className="bp-progress-bar" style={{ width: `${progress}%` }} />
     </div>
-  );
+  )
 }

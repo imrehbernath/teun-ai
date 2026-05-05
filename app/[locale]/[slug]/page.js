@@ -1,17 +1,18 @@
-import { notFound } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
-import he from 'he';
-import styles from './blog-post.module.css';
-import TableOfContents from './TableOfContents';
-import FAQAccordion from './FAQAccordion';
-import EmailSignup from './EmailSignup';
-import ReadingProgressBar from './ReadingProgressBar';
-import ReadingTime from './ReadingTime';
-import SocialShareButtons from './SocialShareButtons';
-import AuthorBio from './AuthorBio';
-import GeoAuditCTA from './GeoAuditCTA';
-import ServerResponsiveImage from './ServerResponsiveImage';
+// app/[locale]/[slug]/page.js
+import { notFound } from 'next/navigation'
+import Image from 'next/image'
+import { Link } from '@/i18n/navigation'
+import he from 'he'
+import styles from './blog-post.module.css'
+import TableOfContents from './TableOfContents'
+import FAQAccordion from './FAQAccordion'
+import EmailSignup from './EmailSignup'
+import ReadingProgressBar from './ReadingProgressBar'
+import ReadingTime from './ReadingTime'
+import SocialShareButtons from './SocialShareButtons'
+import AuthorBio from './AuthorBio'
+import GeoAuditCTA from './GeoAuditCTA'
+import ServerResponsiveImage from './ServerResponsiveImage'
 
 async function getPost(slug) {
   const query = `
@@ -51,7 +52,7 @@ async function getPost(slug) {
         }
       }
     }
-  `;
+  `
 
   try {
     const res = await fetch(process.env.WORDPRESS_GRAPHQL_URL, {
@@ -59,108 +60,98 @@ async function getPost(slug) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query, variables: { slug } }),
       next: { revalidate: 3600 }
-    });
+    })
 
-    const json = await res.json();
-    
+    const json = await res.json()
+
     if (json.errors) {
-      console.error('GraphQL Errors:', json.errors);
-      return null;
+      console.error('GraphQL Errors:', json.errors)
+      return null
     }
-    
-    const post = json.data?.post;
-    
-    if (!post) return null;
-    
-    // Transform featured image URL to assets.teun.ai
+
+    const post = json.data?.post
+
+    if (!post) return null
+
     if (post.featuredImage?.node?.sourceUrl) {
       post.featuredImage.node.sourceUrl = post.featuredImage.node.sourceUrl.replace(
         'https://wordpress-988065-5905039.cloudwaysapps.com',
         'https://assets.teun.ai'
-      );
+      )
     }
-    
-    // Transform mobile image URL to assets.teun.ai
+
     if (post.mobileImageData?.sourceUrl) {
       post.mobileImageData.sourceUrl = post.mobileImageData.sourceUrl.replace(
         'https://wordpress-988065-5905039.cloudwaysapps.com',
         'https://assets.teun.ai'
-      );
+      )
     }
-    
-    // Transform author avatar URL to assets.teun.ai
+
     if (post.author?.node?.avatar?.url) {
       post.author.node.avatar.url = post.author.node.avatar.url.replace(
         'https://wordpress-988065-5905039.cloudwaysapps.com',
         'https://assets.teun.ai'
-      );
+      )
     }
-    
-    // Fetch Rank Math SEO data via REST API
-    const siteUrl = 'https://assets.teun.ai';
-    const postUrl = `${siteUrl}${post.uri}`;
-    
+
+    const siteUrl = 'https://assets.teun.ai'
+    const postUrl = `${siteUrl}${post.uri}`
+
     try {
       const rankMathRes = await fetch(
         `${siteUrl}/wp-json/rankmath/v1/getHead?url=${encodeURIComponent(postUrl)}`,
         { next: { revalidate: 3600 } }
-      );
-      
-      const rankMathData = await rankMathRes.json();
-      
+      )
+
+      const rankMathData = await rankMathRes.json()
+
       if (rankMathData.success && rankMathData.head) {
-        post.rankMathHead = rankMathData.head;
+        post.rankMathHead = rankMathData.head
       }
     } catch (error) {
-      console.error('Rank Math API Error:', error);
+      console.error('Rank Math API Error:', error)
     }
-    
-    return post;
+
+    return post
   } catch (error) {
-    console.error('Fetch Error:', error);
-    return null;
+    console.error('Fetch Error:', error)
+    return null
   }
 }
 
 export async function generateMetadata({ params }) {
-  const resolvedParams = await params;
-  const post = await getPost(resolvedParams.slug);
-  
-  if (!post) return { title: 'Post niet gevonden' };
+  const resolvedParams = await params
+  const post = await getPost(resolvedParams.slug)
 
-  // Extract metadata from Rank Math
-  let title = post.title;
-  let description = post.excerpt?.replace(/<[^>]*>/g, '').substring(0, 160) || '';
-  let ogImage = post.featuredImage?.node?.sourceUrl;
-  
+  if (!post) return { title: 'Post niet gevonden' }
+
+  let title = post.title
+  let description = post.excerpt?.replace(/<[^>]*>/g, '').substring(0, 160) || ''
+  let ogImage = post.featuredImage?.node?.sourceUrl
+
   if (post.rankMathHead) {
-    // Extract title and DECODE with he library
     const titleMatch = post.rankMathHead.match(/<meta property="og:title" content="([^"]*)"/)
-      || post.rankMathHead.match(/<title>([^<]*)<\/title>/);
+      || post.rankMathHead.match(/<title>([^<]*)<\/title>/)
     if (titleMatch) {
-      title = he.decode(titleMatch[1]);
+      title = he.decode(titleMatch[1])
     }
-    
-    // Extract description and DECODE with he library
-    const descMatch = post.rankMathHead.match(/<meta name="description" content="([^"]*)"/);
+
+    const descMatch = post.rankMathHead.match(/<meta name="description" content="([^"]*)"/)
     if (descMatch) {
-      description = he.decode(descMatch[1]);
+      description = he.decode(descMatch[1])
     }
-    
-    // Extract OG image
-    const ogImageMatch = post.rankMathHead.match(/<meta property="og:image" content="([^"]*)"/);
+
+    const ogImageMatch = post.rankMathHead.match(/<meta property="og:image" content="([^"]*)"/)
     if (ogImageMatch) {
       ogImage = ogImageMatch[1].replace(
         'https://wordpress-988065-5905039.cloudwaysapps.com',
         'https://assets.teun.ai'
-      );
+      )
     }
   }
 
   return {
-    title: {
-      absolute: title
-    },
+    title: { absolute: title },
     description,
     alternates: {
       canonical: `https://teun.ai/${resolvedParams.slug}`,
@@ -178,166 +169,147 @@ export async function generateMetadata({ params }) {
       description,
       images: ogImage ? [ogImage] : [],
     },
-  };
+  }
 }
 
 export default async function BlogPost({ params }) {
-  const resolvedParams = await params;
-  const post = await getPost(resolvedParams.slug);
+  const resolvedParams = await params
+  const post = await getPost(resolvedParams.slug)
 
   if (!post) {
-    notFound();
+    notFound()
   }
 
-  const headings = [];
-  let faqs = [];
-  
-  // Extract FAQs from Rank Math JSON-LD schema
+  const headings = []
+  let faqs = []
+
   if (post.rankMathHead) {
-    const scriptRegex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
-    const scripts = [...post.rankMathHead.matchAll(scriptRegex)];
-    
+    const scriptRegex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+    const scripts = [...post.rankMathHead.matchAll(scriptRegex)]
+
     for (let i = 0; i < scripts.length; i++) {
-      const jsonContent = scripts[i][1].trim();
-      
+      const jsonContent = scripts[i][1].trim()
+
       try {
-        const schema = JSON.parse(jsonContent);
-        
+        const schema = JSON.parse(jsonContent)
+
         if (schema['@graph']) {
           for (const item of schema['@graph']) {
             if (item['@type'] === 'FAQPage' && item.mainEntity) {
               faqs = item.mainEntity.map(q => ({
                 question: q.name,
                 answer: q.acceptedAnswer?.text || ''
-              }));
-              break;
+              }))
+              break
             }
-            
+
             if (item.subjectOf) {
               for (const subject of item.subjectOf) {
                 if (subject['@type'] === 'FAQPage' && subject.mainEntity) {
                   faqs = subject.mainEntity.map(q => ({
                     question: q.name,
                     answer: q.acceptedAnswer?.text || ''
-                  }));
-                  break;
+                  }))
+                  break
                 }
               }
             }
-            
-            if (faqs.length > 0) break;
+
+            if (faqs.length > 0) break
           }
         }
         else if (schema['@type'] === 'FAQPage' && schema.mainEntity) {
           faqs = schema.mainEntity.map(q => ({
             question: q.name,
             answer: q.acceptedAnswer?.text || ''
-          }));
+          }))
         }
-        
-        if (faqs.length > 0) break;
-        
+
+        if (faqs.length > 0) break
+
       } catch (e) {
-        console.log(`JSON parse error in script ${i}:`, e.message);
+        console.log(`JSON parse error in script ${i}:`, e.message)
       }
     }
   }
-  
-  // Process content for TOC - ALLEEN H2 headings
+
   const contentWithIds = post.content.replace(
     /<h([23])[^>]*>(.*?)<\/h\1>/gi,
     (match, level, text) => {
-      const cleanText = text.replace(/<[^>]*>/g, '');
+      const cleanText = text.replace(/<[^>]*>/g, '')
       const id = cleanText
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-      
-      // Alleen H2 toevoegen aan TOC (skip FAQ questions en H3)
+        .replace(/^-|-$/g, '')
+
       if (parseInt(level) === 2 && !cleanText.includes('?')) {
-        headings.push({ level: parseInt(level), text: cleanText, id });
+        headings.push({ level: parseInt(level), text: cleanText, id })
       }
-      
-      return `<h${level} id="${id}">${text}</h${level}>`;
+
+      return `<h${level} id="${id}">${text}</h${level}>`
     }
-  );
+  )
 
-  // Clean excerpt for display - strip HTML tags AND decode entities
-  const cleanExcerpt = he.decode(post.excerpt?.replace(/<[^>]*>/g, '') || '');
+  const cleanExcerpt = he.decode(post.excerpt?.replace(/<[^>]*>/g, '') || '')
 
-  // Transform all WordPress URLs to assets.teun.ai in content
   const transformedContent = contentWithIds.replace(
     /https:\/\/wordpress-988065-5905039\.cloudwaysapps\.com/g,
     'https://assets.teun.ai'
-  );
+  )
 
-  // Current URL for sharing
-  const currentUrl = `https://teun.ai/${resolvedParams.slug}`;
+  const currentUrl = `https://teun.ai/${resolvedParams.slug}`
 
   return (
-    <>
-      {/* Reading Progress Bar - Fixed at top */}
+    <div className="tool-page bp-page">
       <ReadingProgressBar />
 
-      {/* Hero Section */}
-      <div className="bg-white pt-8 pb-4 lg:py-24 px-4 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 max-w-[1400px] mx-auto items-stretch">
-          
-          {/* Links: Titel + Intro - Mobile: white, Desktop: dark card */}
-          <div className="lg:bg-gradient-to-br lg:from-[#2D2D5F] lg:via-[#353570] lg:to-[#3D3D7A] lg:text-white lg:rounded-3xl lg:p-12 flex flex-col justify-center">
-            <h1 className="text-3xl lg:text-4xl font-bold mb-4 lg:mb-6 leading-tight text-slate-900 lg:text-white">
-              {post.title}
-            </h1>
-            
-            <p className="text-base lg:text-lg text-slate-600 lg:text-slate-300 mb-6 lg:mb-8 leading-relaxed">
-              {cleanExcerpt}
-            </p>
+      {/* HERO - 2-koloms */}
+      <header className="bp-hero">
+        <div className="bp-hero-grid">
+          <div className="bp-hero-card">
+            <div className="bp-hero-eyebrow">BLOG</div>
+            <h1 className="bp-hero-title">{post.title}</h1>
+            <p className="bp-hero-excerpt">{cleanExcerpt}</p>
 
-            {/* Meta info */}
-            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500 lg:text-slate-400">
+            <div className="bp-hero-meta">
               {post.author?.node?.avatar && (
-                <Link 
-                  href="/auteur/imre" 
-                  className="flex items-center gap-2 hover:text-slate-900 lg:hover:text-white transition-colors"
-                >
+                <Link href="/auteur/imre" className="bp-meta-author">
                   <Image
                     src={post.author.node.avatar.url}
                     alt={`Foto van ${post.author.node.name}, auteur van dit artikel`}
-                    width={32}
-                    height={32}
-                    className="rounded-full"
+                    width={28}
+                    height={28}
+                    className="bp-meta-avatar"
                     loading="lazy"
                   />
                   <span>{post.author.node.name}</span>
                 </Link>
               )}
-              
-              {/* Published date */}
-              <time dateTime={post.date}>
-                {new Date(post.date).toLocaleDateString('nl-NL', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric'
-                })}
-              </time>
 
-              {/* Modified date */}
+              <span className="bp-meta-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+                  <line x1="16" x2="16" y1="2" y2="6"/>
+                  <line x1="8" x2="8" y1="2" y2="6"/>
+                  <line x1="3" x2="21" y1="10" y2="10"/>
+                </svg>
+                <time dateTime={post.date}>
+                  {new Date(post.date).toLocaleDateString('nl-NL', {
+                    day: 'numeric', month: 'long', year: 'numeric'
+                  })}
+                </time>
+              </span>
+
               {post.modified && new Date(post.modified).getTime() !== new Date(post.date).getTime() && (
-                <span className="text-xs text-slate-600 lg:text-white bg-slate-100 lg:bg-white/25 px-3 py-1 rounded-full font-semibold">
-                  <time 
-                    dateTime={post.modified}
-                    title={`Laatst bijgewerkt: ${new Date(post.modified).toLocaleDateString('nl-NL', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric'
-                    })}`}
-                  >
-                    ↻ Bijgewerkt {new Date(post.modified).toLocaleDateString('nl-NL', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric'
-                    })}
-                  </time>
+                <span
+                  className="bp-meta-updated"
+                  title={`Laatst bijgewerkt: ${new Date(post.modified).toLocaleDateString('nl-NL', {
+                    day: 'numeric', month: 'long', year: 'numeric'
+                  })}`}
+                >
+                  ↻ Bijgewerkt {new Date(post.modified).toLocaleDateString('nl-NL', {
+                    day: 'numeric', month: 'short', year: 'numeric'
+                  })}
                 </span>
               )}
 
@@ -345,8 +317,7 @@ export default async function BlogPost({ params }) {
             </div>
           </div>
 
-          {/* Rechts: Featured Image - RESPONSIVE met fetchPriority */}
-          <div className="rounded-2xl lg:rounded-3xl overflow-hidden bg-slate-100">
+          <div className="bp-hero-image">
             <ServerResponsiveImage
               desktopImage={post.featuredImage?.node}
               mobileImage={post.mobileImageData}
@@ -356,72 +327,55 @@ export default async function BlogPost({ params }) {
               sizes="(max-width: 1024px) 100vw, 50vw"
             />
           </div>
-
         </div>
-      </div>
+      </header>
 
-      {/* Main Content */}
-      <article className="bg-white">
-        <div className="mx-auto px-4 pt-6 pb-12 lg:pt-12 max-w-[1200px]">
-          <div className="grid grid-cols-12 gap-6 lg:gap-12">
+      {/* CONTENT */}
+      <article className="bp-article">
+        <div className="bp-article-wrap">
+          <div className="bp-article-grid">
 
             {headings.length > 0 && (
-              <div className="col-span-12 lg:col-span-4">
-                <div className="lg:sticky lg:top-24 lg:pb-28">
-                  <div className={styles.tocWrapper}>
-                    <TableOfContents headings={headings} />
-                  </div>
-                  
-                  <div className="hidden lg:block">
-                    <EmailSignup 
+              <aside className="bp-aside">
+                <div className="bp-aside-sticky">
+                  <TableOfContents headings={headings} />
+
+                  <div className="bp-aside-newsletter">
+                    <EmailSignup
                       title="Blijf op de hoogte van GEO-updates"
                       compact={true}
                     />
                   </div>
                 </div>
-              </div>
+              </aside>
             )}
 
-            <div className={headings.length > 0 ? 'col-span-12 lg:col-span-8' : 'col-span-12'}>
-              
-              <div 
+            <div className={`bp-content-col ${headings.length > 0 ? '' : 'bp-content-col-full'}`}>
+
+              <div
                 className={styles.blogContent}
                 dangerouslySetInnerHTML={{ __html: transformedContent }}
               />
 
               <FAQAccordion faqs={faqs} />
 
-              {/* Author Bio */}
               <AuthorBio />
 
-              {/* Share buttons ook onderaan artikel */}
-              <div className="mt-12 pt-8 border-t border-gray-200">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <p className="text-gray-600 font-medium">Vond je dit artikel nuttig?</p>
-                  <SocialShareButtons 
-                    title={post.title}
-                    url={currentUrl}
-                  />
-                </div>
+              <div className="bp-share-row">
+                <p className="bp-share-row-text">Vond je dit artikel nuttig?</p>
+                <SocialShareButtons title={post.title} url={currentUrl} />
               </div>
 
-              <div className="lg:hidden mt-8">
-                <EmailSignup 
+              <div className="bp-mobile-newsletter">
+                <EmailSignup
                   title="Blijf op de hoogte van GEO-updates"
                   compact={false}
                 />
               </div>
 
-              {/* GEO Audit CTA met popup */}
-              <GeoAuditCTA />
-
-              <div className="mt-12 text-center">
-                <Link 
-                  href="/blog"
-                  className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold text-lg group"
-                >
-                  <span className="group-hover:-translate-x-1 transition-transform">←</span>
-                  Terug naar blogoverzicht
+              <div className="bp-back-link">
+                <Link href="/blog" className="bp-link">
+                  <span aria-hidden="true">←</span> Terug naar blogoverzicht
                 </Link>
               </div>
 
@@ -431,127 +385,111 @@ export default async function BlogPost({ params }) {
         </div>
       </article>
 
-      {/* Teun mascotte - overlapping footer like homepage */}
-      <section className="bg-slate-50 relative overflow-visible">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex justify-center">
-            <div className="hidden lg:block translate-y-24" style={{ marginBottom: '48px' }}>
-              <Image
-                src="/teun-ai-mascotte.png"
-                alt="Teun helpt je met GEO"
-                width={280}
-                height={350}
-                className="drop-shadow-xl"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
+      <GeoAuditCTA />
 
       {/* Schema.org structured data */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              '@context': 'https://schema.org',
-              '@graph': [
-                {
-                  '@type': 'Organization',
-                  '@id': 'https://teun.ai/#organization',
-                  'name': 'teun.ai',
-                  'logo': {
-                    '@type': 'ImageObject',
-                    '@id': 'https://teun.ai/#logo',
-                    'url': 'https://teun.ai/wp-content/uploads/2025/10/Teun-ai-logo-light.png',
-                    'contentUrl': 'https://teun.ai/wp-content/uploads/2025/10/Teun-ai-logo-light.png',
-                    'caption': 'Teun.ai',
-                    'inLanguage': 'nl-NL',
-                    'width': '512',
-                    'height': '512'
-                  }
-                },
-                {
-                  '@type': 'WebSite',
-                  '@id': 'https://teun.ai/#website',
-                  'url': 'https://teun.ai',
-                  'name': 'Teun.ai',
-                  'alternateName': 'Teun.ai',
-                  'publisher': { '@id': 'https://teun.ai/#organization' },
-                  'inLanguage': 'nl-NL'
-                },
-                {
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@graph': [
+              {
+                '@type': 'Organization',
+                '@id': 'https://teun.ai/#organization',
+                'name': 'teun.ai',
+                'logo': {
                   '@type': 'ImageObject',
-                  '@id': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp',
-                  'url': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp',
-                  'width': '1200',
-                  'height': '675',
-                  'caption': post.featuredImage?.node?.altText || post.title,
-                  'inLanguage': 'nl-NL'
-                },
-                {
-                  '@type': 'WebPage',
-                  '@id': `https://teun.ai/${resolvedParams.slug}#webpage`,
-                  'url': `https://teun.ai/${resolvedParams.slug}`,
-                  'name': post.title,
-                  'datePublished': new Date(post.date).toISOString(),
-                  'dateModified': new Date(post.modified).toISOString(),
-                  'isPartOf': { '@id': 'https://teun.ai/#website' },
-                  'primaryImageOfPage': { '@id': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp' },
-                  'inLanguage': 'nl-NL'
-                },
-                {
-                  '@type': 'Person',
-                  '@id': 'https://teun.ai/auteur/imre',
-                  'name': 'Imre Bernáth',
-                  'description': 'Imre Bernáth deelt inzichten over SEO, AI visibility en GEO-optimalisatie. Oprichter van Teun.ai en OnlineLabs. 15+ jaar ervaring in strategische online groei.',
-                  'url': 'https://teun.ai/auteur/imre',
-                  'image': {
-                    '@type': 'ImageObject',
-                    '@id': post.author?.node?.avatar?.url || 'https://gravatar.com/avatar/35c26275319f1c247e76cd36518ee34a?size=96',
-                    'url': post.author?.node?.avatar?.url || 'https://gravatar.com/avatar/35c26275319f1c247e76cd36518ee34a?size=96',
-                    'caption': 'Imre Bernáth',
-                    'inLanguage': 'nl-NL'
-                  },
-                  'sameAs': ['https://teun.ai', 'https://nl.linkedin.com/in/imrebernath'],
-                  'worksFor': { '@id': 'https://teun.ai/#organization' }
-                },
-                {
-                  '@type': 'BlogPosting',
-                  'headline': post.title,
-                  'datePublished': new Date(post.date).toISOString(),
-                  'dateModified': new Date(post.modified).toISOString(),
-                  'author': {
-                    '@id': 'https://teun.ai/auteur/imre',
-                    'name': 'Imre Bernáth'
-                  },
-                  'publisher': { '@id': 'https://teun.ai/#organization' },
-                  'description': cleanExcerpt.substring(0, 160),
-                  'name': post.title,
-                  '@id': `https://teun.ai/${resolvedParams.slug}#richSnippet`,
-                  'isPartOf': { '@id': `https://teun.ai/${resolvedParams.slug}#webpage` },
-                  'image': { '@id': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp' },
+                  '@id': 'https://teun.ai/#logo',
+                  'url': 'https://teun.ai/wp-content/uploads/2025/10/Teun-ai-logo-light.png',
+                  'contentUrl': 'https://teun.ai/wp-content/uploads/2025/10/Teun-ai-logo-light.png',
+                  'caption': 'Teun.ai',
                   'inLanguage': 'nl-NL',
-                  'mainEntityOfPage': { '@id': `https://teun.ai/${resolvedParams.slug}#webpage` }
+                  'width': '512',
+                  'height': '512'
+                }
+              },
+              {
+                '@type': 'WebSite',
+                '@id': 'https://teun.ai/#website',
+                'url': 'https://teun.ai',
+                'name': 'Teun.ai',
+                'alternateName': 'Teun.ai',
+                'publisher': { '@id': 'https://teun.ai/#organization' },
+                'inLanguage': 'nl-NL'
+              },
+              {
+                '@type': 'ImageObject',
+                '@id': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp',
+                'url': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp',
+                'width': '1200',
+                'height': '675',
+                'caption': post.featuredImage?.node?.altText || post.title,
+                'inLanguage': 'nl-NL'
+              },
+              {
+                '@type': 'WebPage',
+                '@id': `https://teun.ai/${resolvedParams.slug}#webpage`,
+                'url': `https://teun.ai/${resolvedParams.slug}`,
+                'name': post.title,
+                'datePublished': new Date(post.date).toISOString(),
+                'dateModified': new Date(post.modified).toISOString(),
+                'isPartOf': { '@id': 'https://teun.ai/#website' },
+                'primaryImageOfPage': { '@id': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp' },
+                'inLanguage': 'nl-NL'
+              },
+              {
+                '@type': 'Person',
+                '@id': 'https://teun.ai/auteur/imre',
+                'name': 'Imre Bernáth',
+                'description': 'Imre Bernáth deelt inzichten over SEO, AI visibility en GEO-optimalisatie. Oprichter van Teun.ai en OnlineLabs. 15+ jaar ervaring in strategische online groei.',
+                'url': 'https://teun.ai/auteur/imre',
+                'image': {
+                  '@type': 'ImageObject',
+                  '@id': post.author?.node?.avatar?.url || 'https://gravatar.com/avatar/35c26275319f1c247e76cd36518ee34a?size=96',
+                  'url': post.author?.node?.avatar?.url || 'https://gravatar.com/avatar/35c26275319f1c247e76cd36518ee34a?size=96',
+                  'caption': 'Imre Bernáth',
+                  'inLanguage': 'nl-NL'
                 },
-                // FAQ SCHEMA - Alleen als er FAQs zijn
-                ...(faqs.length > 0 ? [{
-                  '@type': 'FAQPage',
-                  '@id': `https://teun.ai/${resolvedParams.slug}#faq`,
-                  'mainEntity': faqs.map(faq => ({
-                    '@type': 'Question',
-                    'name': faq.question,
-                    'acceptedAnswer': {
-                      '@type': 'Answer',
-                      'text': faq.answer.replace(/<[^>]*>/g, '')
-                    }
-                  }))
-                }] : [])
-              ]
-            })
-          }}
-        />
-    </>
-  );
+                'sameAs': ['https://teun.ai', 'https://nl.linkedin.com/in/imrebernath'],
+                'worksFor': { '@id': 'https://teun.ai/#organization' }
+              },
+              {
+                '@type': 'BlogPosting',
+                'headline': post.title,
+                'datePublished': new Date(post.date).toISOString(),
+                'dateModified': new Date(post.modified).toISOString(),
+                'author': {
+                  '@id': 'https://teun.ai/auteur/imre',
+                  'name': 'Imre Bernáth'
+                },
+                'publisher': { '@id': 'https://teun.ai/#organization' },
+                'description': cleanExcerpt.substring(0, 160),
+                'name': post.title,
+                '@id': `https://teun.ai/${resolvedParams.slug}#richSnippet`,
+                'isPartOf': { '@id': `https://teun.ai/${resolvedParams.slug}#webpage` },
+                'image': { '@id': post.featuredImage?.node?.sourceUrl || 'https://teun.ai/default-image.webp' },
+                'inLanguage': 'nl-NL',
+                'mainEntityOfPage': { '@id': `https://teun.ai/${resolvedParams.slug}#webpage` }
+              },
+              ...(faqs.length > 0 ? [{
+                '@type': 'FAQPage',
+                '@id': `https://teun.ai/${resolvedParams.slug}#faq`,
+                'mainEntity': faqs.map(faq => ({
+                  '@type': 'Question',
+                  'name': faq.question,
+                  'acceptedAnswer': {
+                    '@type': 'Answer',
+                    'text': faq.answer.replace(/<[^>]*>/g, '')
+                  }
+                }))
+              }] : [])
+            ]
+          })
+        }}
+      />
+    </div>
+  )
 }
 
-export const revalidate = 86400; // 24 uur cache
+export const revalidate = 86400

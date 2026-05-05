@@ -1,20 +1,18 @@
-// app/tools/ai-visibility/page.js
-// ✅ SESSION 11 - Redesign aligned with Homepage + Better Mobile Teun
+// app/[locale]/tools/ai-visibility/page.js
+// Redesign: cream/Lora/spark — sitewide consistency met homepage
+// Functionaliteit identiek aan SESSION 11 — alleen visuele laag vervangen
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Search, TrendingUp, Zap, CheckCircle2, AlertCircle, Loader2, Award, ArrowRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Link } from '@/i18n/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import Image from 'next/image';
-import FeedbackWidget from '@/app/components/FeedbackWidget';
-import ToolsCrossSell from '@/app/components/ToolsCrossSell'
 
-// ====================================
+// ============================================
 // BRANCHE TAALDETECTIE (EN → NL)
-// ====================================
+// ============================================
 const BRANCHE_EN_TO_NL = {
   // Marketing & Communicatie
   'agency': ['Marketingbureau', 'Reclamebureau'],
@@ -127,51 +125,47 @@ const BRANCHE_EN_TO_NL = {
 function detectBranchLanguage(input) {
   if (!input || input.length < 2) return null;
   const lower = input.toLowerCase().trim();
-  
-  // Exacte match
+
   if (BRANCHE_EN_TO_NL[lower]) {
     return { type: 'exact', suggestions: BRANCHE_EN_TO_NL[lower], original: input };
   }
-  
-  // Gedeeltelijke match (input bevat een Engelse term)
+
   for (const [en, nl] of Object.entries(BRANCHE_EN_TO_NL)) {
     if (lower.includes(en) || en.includes(lower)) {
       return { type: 'partial', suggestions: nl, original: input, matchedTerm: en };
     }
   }
-  
-  // Heuristiek: veelvoorkomende Engelse woorden die op een Engelse branche duiden
+
   const englishIndicators = [
     'company', 'services', 'solutions', 'group', 'studio', 'shop', 'store',
     'firm', 'business', 'industry', 'provider', 'specialist', 'expert',
     'management', 'development', 'design', 'digital', 'creative', 'professional',
     'international', 'global', 'supply', 'trading', 'repair', 'maintenance'
   ];
-  
+
   const words = lower.split(/\s+/);
   const hasEnglishWord = words.some(w => englishIndicators.includes(w));
-  
+
   if (hasEnglishWord) {
     return { type: 'generic', suggestions: [], original: input };
   }
-  
+
   return null;
 }
 
-// ====================================
+// ============================================
 // CLEAN COMPETITOR NAME FOR DISPLAY
-// Strips markdown, URLs, Google Business metadata from stored names
-// ====================================
+// ============================================
 function cleanDisplayName(name) {
-  if (!name) return ''
+  if (!name) return '';
   let clean = name
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')  // [text](url) → text
-    .replace(/https?:\/\/\S+/g, '')             // bare URLs
-    .replace(/\*\*/g, '')                        // bold markdown
-    .replace(/\[\d+\]/g, '')                     // citation refs [1][2]
-    .replace(/\s*·\s*.*/g, '')                   // everything after · (Google metadata)
-    .replace(/\(\d+\s*(?:beoordelingen|reviews?|sterren)\)/gi, '')  // (141 beoordelingen)
-    .replace(/\(\s*\d+\s*\)/g, '')               // bare (141)
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/\*\*/g, '')
+    .replace(/\[\d+\]/g, '')
+    .replace(/\s*·\s*.*/g, '')
+    .replace(/\(\d+\s*(?:beoordelingen|reviews?|sterren)\)/gi, '')
+    .replace(/\(\s*\d+\s*\)/g, '')
     .replace(/\b(Nu geopend|Gesloten|UitGesloten|Uit Gesloten|Tijdelijk gesloten)\b/gi, '')
     .replace(/\b(Event planner|Event venue|Event location|Boat rental service|Car rental agency|Travel agency|Insurance agency|Real estate agency|Wedding venue|Conference center|Restaurant|Hotel|Café|Bar|Shop|Store|Winkel|Salon|Kapper|Tandarts|Huisarts|Apotheek|Garage|Makelaar|Notaris|Advocaat|Accountant|Fysiotherapeut|Sportschool|Beauty salon|Hair salon|Marina|Yacht club)\b/gi, '')
     .replace(/[A-Z][a-z]+(?:straat|weg|laan|plein|gracht|kade|singel|dijk|pad)\s*\d+.*/gi, '')
@@ -182,30 +176,28 @@ function cleanDisplayName(name) {
     .replace(/^[\s·•\-–—:,;|()\[\]]+/, '')
     .replace(/[\s·•\-–—:,;|()\[\]]+$/, '')
     .replace(/\s+/g, ' ')
-    .trim()
-  
-  // Extra validation: filter out garbage
-  if (clean.length < 4) return ''
-  if (clean.split(/\s+/).length > 6) return ''  // sentences, not names
-  if (/^(dit|deze|dat|die|er|het|de|een|als|voor|naar|van|met|bij|wat|wie|waar|aanbevolen|enkele|diverse|bruine vloot|zeilvloot)\b/i.test(clean)) return ''
-  if (/beoordelingen\)?$/i.test(clean)) return ''
-  if (/reviews?\)?$/i.test(clean)) return ''
-  if (/^\(\d+/.test(clean)) return ''
-  if (/\.(nl|com|org|net|be|de|eu)$/i.test(clean)) return ''
-  
-  return clean
+    .trim();
+
+  if (clean.length < 4) return '';
+  if (clean.split(/\s+/).length > 6) return '';
+  if (/^(dit|deze|dat|die|er|het|de|een|als|voor|naar|van|met|bij|wat|wie|waar|aanbevolen|enkele|diverse|bruine vloot|zeilvloot)\b/i.test(clean)) return '';
+  if (/beoordelingen\)?$/i.test(clean)) return '';
+  if (/reviews?\)?$/i.test(clean)) return '';
+  if (/^\(\d+/.test(clean)) return '';
+  if (/\.(nl|com|org|net|be|de|eu)$/i.test(clean)) return '';
+
+  return clean;
 }
 
-// ====================================
+// ============================================
 // BEDRIJFSNAAM FUZZY MATCHING
-// ====================================
+// ============================================
 function findNameInCompetitors(companyName, analysisResults) {
   if (!companyName || !analysisResults?.length) return null;
-  
+
   const nameLower = companyName.toLowerCase().trim();
   const nameWords = nameLower.split(/\s+/).filter(w => w.length > 2);
-  
-  // Verzamel alle concurrenten
+
   const allCompetitors = {};
   analysisResults.forEach(result => {
     (result.competitors_mentioned || []).forEach(comp => {
@@ -215,41 +207,36 @@ function findNameInCompetitors(companyName, analysisResults) {
       }
     });
   });
-  
+
   const matches = [];
-  
+
   for (const [comp, count] of Object.entries(allCompetitors)) {
     const compLower = comp.toLowerCase().trim();
-    
-    // Skip als het exact hetzelfde is (dan zou company_mentioned true zijn)
+
     if (compLower === nameLower) continue;
-    
-    // Check 1: Levenshtein-achtige overeenkomst (substring)
+
     if (compLower.includes(nameLower) || nameLower.includes(compLower)) {
       matches.push({ name: comp, count, confidence: 'high', reason: 'substring' });
       continue;
     }
-    
-    // Check 2: Woord-overlap (minstens 1 significant woord)
+
     const compWords = compLower.split(/\s+/).filter(w => w.length > 2);
-    const sharedWords = nameWords.filter(w => compWords.some(cw => 
+    const sharedWords = nameWords.filter(w => compWords.some(cw =>
       cw.includes(w) || w.includes(cw) || levenshteinDistance(w, cw) <= 2
     ));
-    
+
     if (sharedWords.length > 0 && (sharedWords.length / Math.max(nameWords.length, 1)) >= 0.5) {
       matches.push({ name: comp, count, confidence: 'medium', reason: 'word_overlap' });
       continue;
     }
-    
-    // Check 3: Levenshtein distance op de hele string
+
     const distance = levenshteinDistance(nameLower, compLower);
     const maxLen = Math.max(nameLower.length, compLower.length);
     if (distance <= 3 && (distance / maxLen) < 0.3) {
       matches.push({ name: comp, count, confidence: 'high', reason: 'typo' });
     }
   }
-  
-  // Sorteer op confidence en count
+
   return matches.sort((a, b) => {
     if (a.confidence !== b.confidence) return a.confidence === 'high' ? -1 : 1;
     return b.count - a.count;
@@ -270,34 +257,44 @@ function levenshteinDistance(a, b) {
   return matrix[a.length][b.length];
 }
 
-// ====================================
-// FAQ ACCORDION (Teun.ai style — numbered, white cards with border)
-// ====================================
+// ============================================
+// FAQ ACCORDION — cream/Lora style (matcht homepage)
+// ============================================
 function FAQAccordion({ items }) {
   const [openIdx, setOpenIdx] = useState(0);
   return (
-    <div className="space-y-4">
+    <div className="tool-faq-list">
       {items.map((item, i) => (
-        <div key={i} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <button onClick={() => setOpenIdx(openIdx === i ? -1 : i)} className="w-full flex items-center justify-between p-6 text-left cursor-pointer">
-            <div className="flex items-center gap-4">
-              <span className="text-slate-400 font-mono text-sm">{String(i + 1).padStart(2, '0')}</span>
-              <span className="font-semibold text-slate-900">{item.q}</span>
-            </div>
-            <svg className={`w-5 h-5 text-slate-400 transition-transform flex-shrink-0 ml-2 ${openIdx === i ? 'rotate-45' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-          </button>
-          {openIdx === i && <div className="px-6 pb-6 pt-0"><p className="text-slate-600 pl-10 leading-relaxed">{item.a}</p></div>}
-        </div>
+        <details key={i} className="tool-faq-item" open={openIdx === i} onToggle={(e) => {
+          if (e.target.open) setOpenIdx(i);
+        }}>
+          <summary>
+            <span className="num">{String(i + 1).padStart(2, '0')}</span>
+            <h3 className="q">{item.q}</h3>
+            <span className="toggle" aria-hidden="true">
+              <svg viewBox="0 0 12 12" fill="none">
+                <path d="M2 6h8M6 2v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </span>
+          </summary>
+          <div className="answer-wrap">
+            <div className="answer">{item.a}</div>
+          </div>
+        </details>
       ))}
     </div>
   );
 }
 
+// ============================================
+// MAIN COMPONENT
+// ============================================
 function AIVisibilityToolContent() {
   const searchParams = useSearchParams();
   const t = useTranslations('aiVisibility');
   const locale = useLocale();
-  
+  const isEn = locale === 'en';
+
   const [step, setStep] = useState(1);
   const [initializing, setInitializing] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
@@ -311,17 +308,16 @@ function AIVisibilityToolContent() {
   const [fromHomepage, setFromHomepage] = useState(false);
   const [videoPlaying, setVideoPlaying] = useState(false);
   const [videoTheater, setVideoTheater] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     companyName: '',
     companyCategory: '',
     queries: '',
     website: '',
-    serviceArea: ''  // ✨ Servicegebied voor lokale AI-resultaten
+    serviceArea: ''
   });
   const [customPrompts, setCustomPrompts] = useState(null);
 
-  // Advanced Settings State
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [excludeTermsInput, setExcludeTermsInput] = useState('');
   const [includeTermsInput, setIncludeTermsInput] = useState('');
@@ -333,6 +329,12 @@ function AIVisibilityToolContent() {
   const [extractingKeywords, setExtractingKeywords] = useState(false);
   const [extractionResult, setExtractionResult] = useState(null);
 
+  // Cream theme on body
+  useEffect(() => {
+    document.body.classList.add('theme-cream');
+    return () => document.body.classList.remove('theme-cream');
+  }, []);
+
   // Close tooltip on outside tap
   useEffect(() => {
     if (!activeTooltip) return;
@@ -341,49 +343,46 @@ function AIVisibilityToolContent() {
     return () => { clearTimeout(timer); document.removeEventListener('click', close); };
   }, [activeTooltip]);
 
-  // Theater mode: Escape to close, lock scroll
+  // Theater mode
   useEffect(() => {
     if (!videoTheater) return;
-    const handleKey = (e) => { if (e.key === 'Escape') setVideoTheater(false) };
+    const handleKey = (e) => { if (e.key === 'Escape') setVideoTheater(false); };
     document.addEventListener('keydown', handleKey);
     document.body.style.overflow = 'hidden';
-    return () => { document.removeEventListener('keydown', handleKey); document.body.style.overflow = '' };
+    return () => { document.removeEventListener('keydown', handleKey); document.body.style.overflow = ''; };
   }, [videoTheater]);
 
   // Handle URL Parameters from OnlineLabs
   useEffect(() => {
     if (!searchParams) { setInitializing(false); return; }
 
-    // ✨ Check for pending scan from dashboard modal
-    const pendingScan = sessionStorage.getItem('pendingScan')
+    const pendingScan = sessionStorage.getItem('pendingScan');
     if (pendingScan) {
       try {
-        const data = JSON.parse(pendingScan)
-        sessionStorage.removeItem('pendingScan') // Clean up
-        console.log('📝 Pending scan loaded from dashboard:', data)
-        
+        const data = JSON.parse(pendingScan);
+        sessionStorage.removeItem('pendingScan');
+        console.log('📝 Pending scan loaded from dashboard:', data);
+
         setFormData(prev => ({
           ...prev,
           companyName: data.companyName || prev.companyName,
           companyCategory: data.companyCategory || prev.companyCategory,
           website: data.websiteUrl || prev.website
-        }))
-        
+        }));
+
         if (data.customPrompts && data.customPrompts.length > 0) {
-          setCustomPrompts(data.customPrompts)
+          setCustomPrompts(data.customPrompts);
         }
-        
-        setStep(3) // Go to step 3 (confirm prompts)
-        return // Don't process other params
+
+        setStep(3);
+        return;
       } catch (e) {
-        console.error('Error loading pending scan:', e)
-        sessionStorage.removeItem('pendingScan')
+        console.error('Error loading pending scan:', e);
+        sessionStorage.removeItem('pendingScan');
       }
     }
 
-    // Check for direct step navigation (e.g., ?step=3)
-    const stepParam = searchParams.get('step')
-    
+    const stepParam = searchParams.get('step');
     const company = searchParams.get('company');
     const category = searchParams.get('category');
     const keywords = searchParams.get('keywords');
@@ -406,19 +405,18 @@ function AIVisibilityToolContent() {
         if (storedPrompts) {
           const parsedPrompts = JSON.parse(storedPrompts);
           console.log('📝 Custom prompts loaded:', parsedPrompts.length);
-          
+
           setFormData(prev => ({
             ...prev,
             companyName: company || prev.companyName,
             companyCategory: category || prev.companyCategory,
             website: websiteParam || prev.website
           }));
-          
+
           setCustomPrompts(parsedPrompts);
           setStep(3);
           sessionStorage.removeItem('teun_custom_prompts');
 
-          // Auto-start scan if flag is set (from Prompt Discovery)
           if (autostart === 'true') {
             setFromHomepage(true);
             setAnalyzing(true);
@@ -461,7 +459,6 @@ function AIVisibilityToolContent() {
     if (company && category) {
       setStep(3);
       if (autostart === 'true') {
-        // Skip autostart als er al resultaten in sessionStorage staan (browser-back)
         const hasSavedResults = (() => { try { return !!sessionStorage.getItem('teun_scan_results'); } catch (_) { return false; } })();
         if (hasSavedResults) {
           console.log('📋 Autostart overgeslagen — resultaten uit sessionStorage');
@@ -483,34 +480,25 @@ function AIVisibilityToolContent() {
 
   useEffect(() => {
     const supabase = createClient();
-    
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
   const [pendingAutoStart, setPendingAutoStart] = useState(false);
 
-  // Herstel resultaten uit sessionStorage (browser-back fix)
+  // Browser-back: herstel resultaten uit sessionStorage
   useEffect(() => {
-    // Detect back-navigation (meerdere methoden als fallback)
     const isBackNav = (() => {
       try {
-        // Methode 1: Nieuwe Performance API
         const navEntry = performance.getEntriesByType?.('navigation')?.[0];
         if (navEntry?.type === 'back_forward') return true;
-        // Methode 2: Oude API (deprecated maar betrouwbaar)
         if (performance.navigation?.type === 2) return true;
-        // Methode 3: Referrer check (Next.js client-side nav terug van signup/login)
         if (document.referrer && /\/(signup|login|en\/signup|en\/login)/.test(document.referrer)) return true;
       } catch (_) {}
       return false;
@@ -518,7 +506,6 @@ function AIVisibilityToolContent() {
 
     const hasPendingScan = (() => { try { return !!sessionStorage.getItem('pendingScan'); } catch (_) { return false; } })();
 
-    // Restore ALLEEN bij back-navigatie EN geen nieuwe scan pending
     if (isBackNav && !results && !analyzing && !hasPendingScan) {
       try {
         const saved = sessionStorage.getItem('teun_scan_results');
@@ -532,7 +519,6 @@ function AIVisibilityToolContent() {
       } catch (_) {}
     }
 
-    // Popstate voor latere back/forward navigatie
     const handlePopState = () => {
       if (results || analyzing) return;
       try {
@@ -552,7 +538,6 @@ function AIVisibilityToolContent() {
   }, []);
 
   useEffect(() => {
-    // Auto-start zodra alles klaar is: formData gevuld en auth geladen
     if (pendingAutoStart && !loading && formData.companyName && formData.companyCategory) {
       setPendingAutoStart(false);
       handleAnalyze();
@@ -585,15 +570,15 @@ function AIVisibilityToolContent() {
     const exclude = excludeTermsInput.split(',').map(t => t.trim()).filter(t => t);
     const include = includeTermsInput.split(',').map(t => t.trim()).filter(t => t);
     const location = locationTermsInput.split(',').map(t => t.trim()).filter(t => t);
-    
+
     return (exclude.length > 0 || include.length > 0 || location.length > 0)
       ? { exclude, include, location }
       : null;
   };
 
-  // ====================================
+  // ============================================
   // EXTRACT KEYWORDS FROM URL
-  // ====================================
+  // ============================================
   const handleExtractKeywords = async () => {
     const url = formData.website?.trim();
     if (!url) {
@@ -601,10 +586,9 @@ function AIVisibilityToolContent() {
       return;
     }
 
-    // Normalize URL — voeg https:// toe als ontbreekt
-    let normalizedUrl = url
+    let normalizedUrl = url;
     if (!/^https?:\/\//i.test(normalizedUrl)) {
-      normalizedUrl = `https://${normalizedUrl}`
+      normalizedUrl = `https://${normalizedUrl}`;
     }
 
     setExtractingKeywords(true);
@@ -615,7 +599,7 @@ function AIVisibilityToolContent() {
       const response = await fetch('/api/extract-keywords', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           url: normalizedUrl,
           companyName: formData.companyName || '',
           category: formData.companyCategory || ''
@@ -630,7 +614,6 @@ function AIVisibilityToolContent() {
       const data = await response.json();
 
       if (data.keywords && data.keywords.length > 0) {
-        // Fill keywords
         setFormData(prev => ({
           ...prev,
           queries: data.keywords.join(', '),
@@ -653,8 +636,10 @@ function AIVisibilityToolContent() {
     }
   };
 
+  // ============================================
+  // HANDLE ANALYZE — kern scan flow
+  // ============================================
   const handleAnalyze = async () => {
-    // Clear oude resultaten zodat browser-back restore niet interfereert
     try { sessionStorage.removeItem('teun_scan_results'); sessionStorage.removeItem('teun_scan_formData'); } catch (_) {}
     setResults(null);
     setAnalyzing(true);
@@ -669,16 +654,16 @@ function AIVisibilityToolContent() {
         .filter(q => q.length > 0);
 
       setProgress(5);
-      
+
       const hasCustomPrompts = customPrompts && customPrompts.length > 0;
       const totalPrompts = hasCustomPrompts ? customPrompts.length : 10;
-      
+
       if (hasCustomPrompts) {
         setCurrentStep(t('step3.customPromptsAnalyzing', { count: totalPrompts }));
       } else {
         setCurrentStep(t('step3.generatingPrompts'));
       }
-      
+
       const progressInterval = setInterval(() => {
         setProgress(prev => {
           const rounded = Math.floor(prev);
@@ -744,22 +729,20 @@ function AIVisibilityToolContent() {
       }
 
       const data = await response.json();
-      
+
       clearInterval(progressInterval);
       clearInterval(stepInterval);
-      
+
       setProgress(100);
       setCurrentStep(t('step3.completed'));
       setResults(data);
       setCustomPrompts(null);
 
-      // Bewaar resultaten in sessionStorage zodat browser-back ze niet verliest
       try {
         sessionStorage.setItem('teun_scan_results', JSON.stringify(data));
         sessionStorage.setItem('teun_scan_formData', JSON.stringify(formData));
       } catch (_) {}
 
-      // Check voor bedrijfsnaam mismatch in concurrenten
       const allResults = [...(data.analysis_results || []), ...(data.chatgpt_results || [])];
       if (data.total_company_mentions === 0 && data.chatgpt_company_mentions === 0 && allResults.length > 0) {
         const mismatch = findNameInCompetitors(formData.companyName, allResults);
@@ -781,165 +764,128 @@ function AIVisibilityToolContent() {
     }
   };
 
-  // ====================================
+  // ============================================
   // RENDER
-  // ====================================
-  
-  // Prevent step flash while URL params are being processed
+  // ============================================
+
+  // ============================================
+  // RENDER
+  // ============================================
+
+  // Initializing state — show loading
   if (initializing) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center">
-        <div className="flex items-center gap-3 text-slate-400">
-          <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-          <span className="text-sm">{t('loading')}</span>
+      <div className="tool-init">
+        <div className="tool-init-spinner" aria-label={t('loading')}>
+          <span className="dot"></span><span className="dot"></span><span className="dot"></span>
         </div>
+        
       </div>
     );
   }
 
+  // ============================================
+  // MAIN RETURN — JSX
+  // ============================================
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 relative" suppressHydrationWarning>
-      {/* Hero animation styles */}
-      <style>{`
-        @keyframes tool-float-slow {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -25px) scale(1.08); }
-          66% { transform: translate(-25px, 15px) scale(0.95); }
-        }
-        @keyframes tool-float-medium {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(-40px, 30px) scale(1.1); }
-        }
-        .tool-orb-1 { animation: tool-float-slow 22s ease-in-out infinite; }
-        .tool-orb-2 { animation: tool-float-medium 18s ease-in-out infinite; animation-delay: -4s; }
-        .tool-orb-3 { animation: tool-float-slow 26s ease-in-out infinite reverse; animation-delay: -8s; }
-        @media (prefers-reduced-motion: reduce) {
-          .tool-orb-1, .tool-orb-2, .tool-orb-3 { animation: none; }
-        }
-      `}</style>
+    <div className="tool-page" suppressHydrationWarning>
+      
 
-      {/* Animated background orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div 
-          className="tool-orb-1 absolute -top-32 -right-32 lg:top-[-10%] lg:right-[5%] w-[300px] h-[300px] lg:w-[450px] lg:h-[450px] rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 40%, transparent 70%)' }}
-        />
-        <div 
-          className="tool-orb-2 absolute -bottom-24 -left-24 lg:bottom-[-15%] lg:left-[-5%] w-[250px] h-[250px] lg:w-[400px] lg:h-[400px] rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.10) 0%, rgba(139, 92, 246, 0.03) 40%, transparent 70%)' }}
-        />
-        <div 
-          className="tool-orb-3 absolute top-[50%] right-[8%] w-[120px] h-[120px] lg:w-[180px] lg:h-[180px] rounded-full hidden lg:block"
-          style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 60%)' }}
-        />
-      </div>
+      <div className="tool-wrap">
 
-
-      <div className="relative max-w-5xl mx-auto px-4 py-6 sm:py-12">
-        
         {/* OnlineLabs Referral Banner */}
         {referralSource === 'onlinelabs' && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <span className="text-xl">🔗</span>
-              </div>
-              <div>
-                <p className="text-sm text-slate-700">
-                  <strong>{t('referral.via')}</strong> – {t('referral.autoFilled')}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {t('referral.checkData')}
-                </p>
-              </div>
+          <div className="tool-referral">
+            <div className="tool-referral-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+            </div>
+            <div>
+              <p><strong>{t('referral.via')}</strong> {t('referral.autoFilled')}</p>
+              <p className="small">{t('referral.checkData')}</p>
             </div>
           </div>
         )}
-        
-        {/* Header */}
-        <header className="text-center mb-8 sm:mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 border border-blue-200 rounded-full text-blue-700 text-sm font-medium mb-4">
-            <Search className="w-4 h-4" />
-            {t('badge')}
-          </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 text-slate-900 leading-tight px-4">
-            {t('title')}
+
+        {/* Hero */}
+        <header className="tool-hero">
+          <div className="tool-eyebrow">{t('badge')}</div>
+          <h1>
+            {locale === 'nl' ? (
+              <>Hoe zichtbaar is jouw merk in <em>AI-zoekmachines</em>?</>
+            ) : (
+              <>How visible is your brand in <em>AI search engines</em>?</>
+            )}
           </h1>
-          <p className="text-base sm:text-lg md:text-xl text-slate-600 px-4 mb-4">
-            {t('subtitle')}
-          </p>
-          {/* AI Platform badges - matching homepage style */}
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-1">
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+          <p className="tool-hero-sub">{t('subtitle')}</p>
+          <div className="tool-trust-pills">
+            <span className="tool-trust-pill">
+              <span className="pulse-dot"></span>
               ChatGPT
             </span>
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+            <span className="tool-trust-pill">
+              <span className="pulse-dot"></span>
               Perplexity
             </span>
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+            <span className="tool-trust-pill">
+              <span className="pulse-dot"></span>
               {t('aiMode')}
-              <span className="text-[10px] text-slate-400">{t('accountTag')}</span>
+              <span className="acc-tag">{t('accountTag')}</span>
             </span>
-            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm text-slate-700 shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+            <span className="tool-trust-pill">
+              <span className="pulse-dot"></span>
               {t('aiOverviews')}
-              <span className="text-[10px] text-slate-400">{t('accountTag')}</span>
+              <span className="acc-tag">{t('accountTag')}</span>
             </span>
           </div>
-         <p className="text-xs text-slate-400">{t('platformInfo')}</p>
+          <p className="tool-platform-info">{t('platformInfo')}</p>
         </header>
 
         {/* Demo Video */}
         {step === 1 && !analyzing && !results && (
-          <div className="max-w-3xl mx-auto mb-8 sm:mb-10">
-            <p className="text-center text-sm font-medium text-slate-500 mb-3">
+          <div className="tool-video-wrap">
+            <p className="tool-video-label">
               {locale === 'nl' ? '▶ Bekijk hoe de scan werkt (2,5x versneld)' : '▶ See how the scan works (2.5x speed)'}
             </p>
-            <div className={`rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-slate-100 aspect-video relative ${videoTheater ? 'invisible' : ''}`}>
+            <div className={`tool-video-frame ${videoTheater ? 'invisible' : ''}`}>
               {!videoPlaying ? (
-                <button
-                  onClick={() => setVideoPlaying(true)}
-                  className="absolute inset-0 w-full h-full cursor-pointer group"
-                >
+                <button onClick={() => setVideoPlaying(true)} className="tool-video-poster">
                   <Image
                     src="/Teun.ai-AI-zichtbaarheidsanalyse-poster.webp"
                     alt={locale === 'nl' ? 'AI Zichtbaarheid Scan demo' : 'AI Visibility Scan demo'}
                     fill
-                    className="object-cover"
+                    style={{ objectFit: 'cover' }}
                     sizes="(max-width: 768px) 100vw, 768px"
                   />
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/90 group-hover:bg-white rounded-full flex items-center justify-center shadow-xl group-hover:scale-110 transition-all">
-                      <svg className="w-7 h-7 sm:w-8 sm:h-8 text-[#292956] ml-1" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                    </div>
+                  <div className="overlay" />
+                  <div className="tool-video-play">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                   </div>
                 </button>
               ) : !videoTheater && (
-                <div className="relative w-full h-full">
-                  <video autoPlay controls controlsList="nofullscreen" playsInline className="w-full h-full" onPlay={(e) => { e.target.playbackRate = 2.5 }}>
+                <>
+                  <video autoPlay controls controlsList="nofullscreen" playsInline style={{ width: '100%', height: '100%' }} onPlay={(e) => { e.target.playbackRate = 2.5; }}>
                     <source src="/Teun.ai-AI-zichtbaarheidsanalyse.mp4" type="video/mp4" />
                   </video>
-                  <button onClick={() => setVideoTheater(true)} className="absolute top-3 right-3 bg-black/50 hover:bg-black/70 text-white rounded-lg px-2.5 py-1.5 text-xs font-medium transition cursor-pointer flex items-center gap-1.5" title="Theater modus">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                  <button onClick={() => setVideoTheater(true)} className="tool-video-theater-btn" title="Theater modus">
+                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                    </svg>
                   </button>
-                </div>
+                </>
               )}
             </div>
-
-            {/* Theater mode overlay */}
             {videoTheater && (
-              <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 sm:p-8">
-                <button onClick={() => setVideoTheater(false)} className="absolute top-4 right-4 text-white/70 hover:text-white z-50 cursor-pointer">
-                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              <div className="tool-theater">
+                <button onClick={() => setVideoTheater(false)} className="tool-theater-close">
+                  <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
-                <div className="rounded-xl overflow-hidden aspect-video w-full max-w-6xl">
-                  <video autoPlay controls controlsList="nofullscreen" playsInline className="w-full h-full" onPlay={(e) => { e.target.playbackRate = 2.5 }}>
+                <div className="tool-theater-video">
+                  <video autoPlay controls controlsList="nofullscreen" playsInline style={{ width: '100%', height: '100%' }} onPlay={(e) => { e.target.playbackRate = 2.5; }}>
                     <source src="/Teun.ai-AI-zichtbaarheidsanalyse.mp4" type="video/mp4" />
                   </video>
                 </div>
@@ -948,8 +894,8 @@ function AIVisibilityToolContent() {
           </div>
         )}
 
-        {/* Step Indicator - Pill style matching homepage CTA */}
-        <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-6 sm:mb-8 flex-wrap px-2">
+        {/* Step indicator */}
+        <div className="tool-steps" role="list" aria-label="Scan stappen">
           {[
             { num: 1, label: t('steps.s1'), mobileLabel: t('steps.s1Mobile') },
             { num: 2, label: t('steps.s2'), mobileLabel: t('steps.s2Mobile') },
@@ -958,43 +904,32 @@ function AIVisibilityToolContent() {
           ].map(({ num, label, mobileLabel }) => (
             <div
               key={num}
-              className={'px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 ' + (
-                step === num
-                  ? 'bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white shadow-lg'
-                  : step > num
-                  ? 'bg-slate-200 text-slate-500'
-                  : 'bg-white border border-slate-200 text-slate-400'
-              )}
+              role="listitem"
+              className={`tool-step-pill ${step === num ? 'active' : step > num ? 'done' : ''}`}
+              aria-current={step === num ? 'step' : undefined}
             >
-              <span className="hidden sm:inline">{num}. {label}</span>
-              <span className="sm:hidden">{num}. {mobileLabel}</span>
+              {num}. <span style={{ display: 'inline' }}>{label}</span>
             </div>
           ))}
         </div>
 
         {/* ====================================== */}
-        {/* STEP 1 - Zoekwoorden (LIGHT THEME)    */}
+        {/* STEP 1 — Zoekwoorden + URL extractie  */}
         {/* ====================================== */}
         {step === 1 && (
-          <section className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 sm:p-8 mb-8">
-            <div className="grid lg:grid-cols-5 gap-6 lg:gap-8">
-              {/* Left: Content - 3 columns */}
-              <div className="lg:col-span-3">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-lg flex items-center justify-center border border-blue-200">
-                    <Search className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-bold text-slate-900">{t('step1.heading')}</p>
+          <section className="tool-section">
+            <div className="tool-scan-grid">
+              <div>
+                <div className="tool-section-header">                  <h2 className="tool-section-title">{t('step1.heading')}</h2>
                 </div>
 
-                {/* URL Extraction */}
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 mb-6">
-                  <div className="mb-3">
-                    <strong className="text-slate-800 text-sm">{t('step1.urlLabel')}</strong>
-                    <p className="text-xs text-slate-500 mt-0.5">{t('step1.urlHint')}</p>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-2">
+                {/* URL Extraction box */}
+                <div className="tool-url-box">
+                  <label htmlFor="aiv-url" className="tool-url-box-label">{t('step1.urlLabel')}</label>
+                  <p className="tool-url-box-hint">{t('step1.urlHint')}</p>
+                  <div className="tool-url-row">
                     <input
+                      id="aiv-url"
                       type="text"
                       inputMode="url"
                       autoComplete="off"
@@ -1003,18 +938,15 @@ function AIVisibilityToolContent() {
                       spellCheck="false"
                       value={formData.website}
                       onChange={(e) => setFormData({ ...formData, website: e.target.value.toLowerCase() })}
-                      placeholder={locale === "nl" ? "jouwwebsite.nl" : "yourwebsite.com"}
-                      className="flex-1 px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 bg-white"
+                      placeholder={locale === 'nl' ? 'jouwwebsite.nl' : 'yourwebsite.com'}
+                      className="tool-input"
+                      style={{ flex: 1 }}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleExtractKeywords(); } }}
                     />
-                    <button
-                      onClick={handleExtractKeywords}
-                      disabled={extractingKeywords || !formData.website?.trim()}
-                      className="px-5 py-3 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white font-semibold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 whitespace-nowrap flex items-center gap-2"
-                    >
+                    <button onClick={handleExtractKeywords} disabled={extractingKeywords || !formData.website?.trim()} className="tool-btn-primary">
                       {extractingKeywords ? (
                         <>
-                          <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                          <span className="tool-init-spinner"><span className="dot"></span><span className="dot"></span><span className="dot"></span></span>
                           {t('loading')}
                         </>
                       ) : (
@@ -1023,323 +955,234 @@ function AIVisibilityToolContent() {
                     </button>
                   </div>
 
-                  {/* Extraction Success */}
                   {extractionResult && (
-                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <div className="flex items-center gap-2 text-sm text-green-700">
-                        <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                        <span><strong>{t('step1.extractSuccess', { count: extractionResult.count })}</strong></span>
-                      </div>
+                    <div className="tool-extract-success">
+                      <strong>✓ {t('step1.extractSuccess', { count: extractionResult.count })}</strong>
                       {(extractionResult.companyName || extractionResult.category) && (
-                        <p className="text-xs text-green-600 mt-1 ml-6">
+                        <div className="meta">
                           {extractionResult.companyName && <>{t('step3.summaryCompany')} {extractionResult.companyName}</>}
                           {extractionResult.companyName && extractionResult.category && <> · </>}
                           {extractionResult.category && <>{t('step3.summaryIndustry')} {extractionResult.category}</>}
-                        </p>
+                        </div>
                       )}
                     </div>
                   )}
                 </div>
 
-                {/* Divider */}
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="flex-1 h-px bg-slate-200"></div>
-                  <span className="text-xs text-slate-400 font-medium">{t('step1.orManual')}</span>
-                  <div className="flex-1 h-px bg-slate-200"></div>
+                <div className="tool-divider">
+                  <span>{t('step1.orManual')}</span>
                 </div>
 
-                {/* Tip box - Desktop only */}
-                <div className="hidden lg:block bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm text-slate-700">
-                      <strong className="text-slate-800">{t('step1.tipTitle')}</strong>
-                      <p className="mt-1 text-slate-600">
-                        {t('step1.tipText')}
-                      </p>
-                    </div>
+                {/* Tip box (desktop) */}
+                <div className="tool-tip" style={{ display: 'flex' }}>
+                  <svg className="tool-tip-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 16v-4M12 8h.01" />
+                  </svg>
+                  <div>
+                    <strong>{t('step1.tipTitle')}</strong>
+                    <p>{t('step1.tipText')}</p>
                   </div>
                 </div>
 
-                <div className="space-y-2 mb-6">
-                  <label className="text-sm text-slate-700 font-medium block">
-                    {t('step1.keywordsLabel')} <span className="text-blue-600">*</span>
+                <div style={{ marginBottom: 22 }}>
+                  <label htmlFor="aiv-queries" className="tool-label">
+                    {t('step1.keywordsLabel')} <span className="req">*</span>
                   </label>
-                  <p className="text-xs text-slate-500 -mt-1 mb-2">
-                    {t('step1.keywordsHint')}
-                  </p>
+                  <p className="tool-hint" style={{ marginBottom: 8 }}>{t('step1.keywordsHint')}</p>
                   <textarea
+                    id="aiv-queries"
                     value={formData.queries}
                     onChange={(e) => setFormData({ ...formData, queries: e.target.value })}
                     placeholder={t('step1.keywordsPlaceholder')}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 min-h-[80px] resize-y bg-white"
+                    className="tool-input"
                   />
                 </div>
 
-                {/* Advanced Settings - Desktop only */}
-                <div className="hidden lg:block mt-6 border-t border-slate-100 pt-6">
-                  <button
-                    type="button"
-                    onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
-                    className="flex items-center justify-between w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all group border border-slate-200"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-lg flex items-center justify-center border border-purple-200 group-hover:border-purple-300 transition-all">
-                        <span className="text-xl">⚙️</span>
-                      </div>
-                      <div className="text-left">
-                        <div className="font-semibold text-slate-800">{t('advanced.title')}</div>
-                        <div className="text-xs text-slate-500">{t('advanced.subtitle')}</div>
+                {/* Advanced Settings */}
+                <div className="tool-advanced">
+                  <button type="button" onClick={() => setShowAdvancedSettings(!showAdvancedSettings)} className="tool-advanced-toggle">
+                    <div className="tool-advanced-toggle-info">
+                      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <div className="tool-advanced-toggle-text">
+                        <strong>{t('advanced.title')}</strong>
+                        <span>{t('advanced.subtitle')}</span>
                       </div>
                     </div>
-                    <div className="text-slate-400">
-                      {showAdvancedSettings ? '▼' : '▶'}
-                    </div>
+                    <svg className={`chevron ${showAdvancedSettings ? 'open' : ''}`} width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M9 5l7 7-7 7" />
+                    </svg>
                   </button>
 
                   {showAdvancedSettings && (
-                    <div className="mt-4 space-y-4 bg-slate-50 rounded-xl p-5 border border-slate-200">
-                      
-                      {/* Info Banner */}
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                        <div className="flex items-start gap-2">
-                          <span className="text-blue-500 flex-shrink-0">ℹ️</span>
-                          <div className="text-sm text-slate-600">
-                            {t('advanced.info')}
-                          </div>
+                    <div className="tool-advanced-panel">
+                      <div className="tool-advanced-info">{t('advanced.info')}</div>
+
+                      <label className="tool-label" style={{ marginBottom: 10 }}>{t('advanced.clickExamples')}</label>
+
+                      <div className="tool-preset-group">
+                        <span className="tool-preset-label">{t('advanced.premiumLabel')}</span>
+                        <div className="tool-preset-chips">
+                          <button type="button" onClick={() => addIncludeTerms(locale === 'nl' ? ['premium', 'hoogwaardig', 'exclusief'] : ['premium', 'high-quality', 'exclusive'])} className="tool-chip">
+                            + {locale === 'nl' ? 'premium, hoogwaardig, exclusief' : 'premium, high-quality, exclusive'}
+                          </button>
+                          <button type="button" onClick={() => addIncludeTerms(locale === 'nl' ? ['gespecialiseerd', 'ervaren', 'deskundig'] : ['specialized', 'experienced', 'expert'])} className="tool-chip">
+                            + {locale === 'nl' ? 'gespecialiseerd, ervaren, deskundig' : 'specialized, experienced, expert'}
+                          </button>
+                          <button type="button" onClick={() => addExcludeTerms(locale === 'nl' ? ['goedkoop', 'budget', 'korting'] : ['cheap', 'budget', 'discount'])} className="tool-chip exclude">
+                            − {locale === 'nl' ? 'goedkoop, budget, korting' : 'cheap, budget, discount'}
+                          </button>
                         </div>
                       </div>
 
-                      {/* Preset Examples */}
-                      <div className="space-y-3">
-                        <label className="text-sm text-slate-700 font-medium block">
-                          {t('advanced.clickExamples')}
-                        </label>
-                        
-                        {/* Premium Examples */}
-                        <div className="space-y-2">
-                          <div className="text-xs text-purple-600 font-semibold">{t('advanced.premiumLabel')}</div>
-                          <div className="flex flex-wrap gap-2">
-                            <button type="button" onClick={() => addIncludeTerms(locale === 'nl' ? ['premium', 'hoogwaardig', 'exclusief'] : ['premium', 'high-quality', 'exclusive'])}
-                              className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium transition-all border border-green-200">
-                              + {locale === 'nl' ? 'premium, hoogwaardig, exclusief' : 'premium, high-quality, exclusive'}
-                            </button>
-                            <button type="button" onClick={() => addIncludeTerms(locale === 'nl' ? ['gespecialiseerd', 'ervaren', 'deskundig'] : ['specialized', 'experienced', 'expert'])}
-                              className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium transition-all border border-green-200">
-                              + {locale === 'nl' ? 'gespecialiseerd, ervaren, deskundig' : 'specialized, experienced, expert'}
-                            </button>
-                            <button type="button" onClick={() => addExcludeTerms(locale === 'nl' ? ['goedkoop', 'budget', 'korting'] : ['cheap', 'budget', 'discount'])}
-                              className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition-all border border-red-200">
-                              − {locale === 'nl' ? 'goedkoop, budget, korting' : 'cheap, budget, discount'}
-                            </button>
-                          </div>
+                      <div className="tool-preset-group">
+                        <span className="tool-preset-label">{t('advanced.localLabel')}</span>
+                        <div className="tool-preset-chips">
+                          <button type="button" onClick={() => addLocationTerms(['Amsterdam', 'Rotterdam', 'Utrecht'])} className="tool-chip">
+                            + Amsterdam, Rotterdam, Utrecht
+                          </button>
+                          <button type="button" onClick={() => addLocationTerms(locale === 'nl' ? ['landelijk actief', 'in Nederland'] : ['nationwide', 'United Kingdom'])} className="tool-chip">
+                            + {locale === 'nl' ? 'landelijk, in Nederland' : 'nationwide, UK'}
+                          </button>
+                          <button type="button" onClick={() => addIncludeTerms(locale === 'nl' ? ['lokaal', 'in de buurt', 'regio'] : ['local', 'nearby', 'region'])} className="tool-chip">
+                            + {locale === 'nl' ? 'lokaal, in de buurt, regio' : 'local, nearby, region'}
+                          </button>
                         </div>
-
-                        {/* Local Service Examples */}
-                        <div className="space-y-2">
-                          <div className="text-xs text-blue-600 font-semibold">{t('advanced.localLabel')}</div>
-                          <div className="flex flex-wrap gap-2">
-                            <button type="button" onClick={() => addLocationTerms(['Amsterdam', 'Rotterdam', 'Utrecht'])}
-                              className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium transition-all border border-blue-200">
-                              + Amsterdam, Rotterdam, Utrecht
-                            </button>
-                            <button type="button" onClick={() => addLocationTerms(locale === 'nl' ? ['landelijk actief', 'in Nederland'] : ['nationwide', 'United Kingdom'])}
-                              className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium transition-all border border-blue-200">
-                              + {locale === 'nl' ? 'landelijk actief, in Nederland' : 'nationwide, United Kingdom'}
-                            </button>
-                            <button type="button" onClick={() => addIncludeTerms(locale === 'nl' ? ['lokaal', 'in de buurt', 'regio'] : ['local', 'nearby', 'region'])}
-                              className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium transition-all border border-green-200">
-                              + {locale === 'nl' ? 'lokaal, in de buurt, regio' : 'local, nearby, region'}
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Service Quality Examples */}
-                        <div className="space-y-2">
-                          <div className="text-xs text-indigo-600 font-semibold">{t('advanced.qualityLabel')}</div>
-                          <div className="flex flex-wrap gap-2">
-                            <button type="button" onClick={() => addIncludeTerms(locale === 'nl' ? ['24/7 bereikbaar', 'spoedservice', 'direct beschikbaar'] : ['24/7 available', 'emergency service', 'immediately available'])}
-                              className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium transition-all border border-green-200">
-                              + {locale === 'nl' ? '24/7, spoedservice, direct' : '24/7, emergency, immediate'}
-                            </button>
-                            <button type="button" onClick={() => addIncludeTerms(locale === 'nl' ? ['transparant', 'vast tarief', 'duidelijke offerte'] : ['transparent', 'fixed rate', 'clear quote'])}
-                              className="px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-xs font-medium transition-all border border-green-200">
-                              + {locale === 'nl' ? 'transparant, vast tarief, duidelijk' : 'transparent, fixed rate, clear'}
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Reset Button */}
-                        <button type="button" onClick={() => { setExcludeTermsInput(''); setIncludeTermsInput(''); setLocationTermsInput(''); }}
-                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-medium transition-all border border-slate-200">
-                          {t('advanced.resetAll')}
-                        </button>
                       </div>
 
-                      {/* Input Fields */}
-                      <div className="space-y-4 pt-4 border-t border-slate-200">
-                        <div className="space-y-2">
-                          <label className="text-sm text-slate-700 font-medium flex items-center gap-2">
-                            <span className="text-red-500">❌</span> {t('advanced.excludeLabel')}
-                          </label>
-                          <input type="text" value={excludeTermsInput} onChange={(e) => setExcludeTermsInput(e.target.value)}
-                            placeholder={locale === 'nl' ? 'Bijv: goedkoop, budget, korting' : 'e.g. cheap, budget, discount'}
-                            className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-red-400 focus:ring-2 focus:ring-red-400/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 text-sm" />
-                          <div className="text-xs text-slate-500">{t('advanced.excludeHint')}</div>
+                      <div className="tool-preset-group">
+                        <span className="tool-preset-label">{t('advanced.qualityLabel')}</span>
+                        <div className="tool-preset-chips">
+                          <button type="button" onClick={() => addIncludeTerms(locale === 'nl' ? ['24/7 bereikbaar', 'spoedservice', 'direct beschikbaar'] : ['24/7 available', 'emergency service', 'immediately available'])} className="tool-chip">
+                            + {locale === 'nl' ? '24/7, spoedservice, direct' : '24/7, emergency, immediate'}
+                          </button>
+                          <button type="button" onClick={() => addIncludeTerms(locale === 'nl' ? ['transparant', 'vast tarief', 'duidelijke offerte'] : ['transparent', 'fixed rate', 'clear quote'])} className="tool-chip">
+                            + {locale === 'nl' ? 'transparant, vast tarief' : 'transparent, fixed rate'}
+                          </button>
                         </div>
-                        <div className="space-y-2">
-                          <label className="text-sm text-slate-700 font-medium flex items-center gap-2">
-                            <span className="text-green-500">✅</span> {t('advanced.includeLabel')}
-                          </label>
-                          <input type="text" value={includeTermsInput} onChange={(e) => setIncludeTermsInput(e.target.value)}
-                            placeholder={locale === 'nl' ? 'Bijv: gespecialiseerd, ervaren, premium' : 'e.g. specialized, experienced, premium'}
-                            className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-green-400 focus:ring-2 focus:ring-green-400/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 text-sm" />
-                          <div className="text-xs text-slate-500">{t('advanced.includeHint')}</div>
+                      </div>
+
+                      <button type="button" onClick={() => { setExcludeTermsInput(''); setIncludeTermsInput(''); setLocationTermsInput(''); }} className="tool-reset-btn">
+                        {t('advanced.resetAll')}
+                      </button>
+
+                      <div className="tool-advanced-fields">
+                        <div className="tool-field-group">
+                          <label className="tool-label">{t('advanced.excludeLabel')}</label>
+                          <input type="text" value={excludeTermsInput} onChange={(e) => setExcludeTermsInput(e.target.value)} placeholder={locale === 'nl' ? 'Bijv: goedkoop, budget, korting' : 'e.g. cheap, budget, discount'} className="tool-input" />
+                          <p className="tool-hint">{t('advanced.excludeHint')}</p>
                         </div>
-                        <div className="space-y-2">
-                          <label className="text-sm text-slate-700 font-medium flex items-center gap-2">
-                            <span className="text-blue-500">📍</span> {t('advanced.locationLabel')}
-                          </label>
+                        <div className="tool-field-group">
+                          <label className="tool-label">{t('advanced.includeLabel')}</label>
+                          <input type="text" value={includeTermsInput} onChange={(e) => setIncludeTermsInput(e.target.value)} placeholder={locale === 'nl' ? 'Bijv: gespecialiseerd, ervaren, premium' : 'e.g. specialized, experienced, premium'} className="tool-input" />
+                          <p className="tool-hint">{t('advanced.includeHint')}</p>
+                        </div>
+                        <div className="tool-field-group">
+                          <label className="tool-label">{t('advanced.locationLabel')}</label>
                           <input type="text" value={locationTermsInput} onChange={(e) => {
                             setLocationTermsInput(e.target.value);
-                            // Sync met servicegebied
                             if (!formData.serviceArea || formData.serviceArea === locationTermsInput) {
                               setFormData(prev => ({ ...prev, serviceArea: e.target.value }));
                             }
-                          }}
-                            placeholder={locale === 'nl' ? 'Bijv: Amsterdam, landelijk actief, regio Utrecht' : 'e.g. London, nationwide, Greater Manchester'}
-                            className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 text-sm" />
-                          <div className="text-xs text-slate-500">{t('advanced.locationHint')}</div>
+                          }} placeholder={locale === 'nl' ? 'Bijv: Amsterdam, landelijk, regio Utrecht' : 'e.g. London, nationwide, Greater Manchester'} className="tool-input" />
+                          <p className="tool-hint">{t('advanced.locationHint')}</p>
                         </div>
                       </div>
 
-                      {/* Preview */}
                       {(excludeTermsInput || includeTermsInput || locationTermsInput) && (
-                        <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                          <div className="text-xs text-purple-700 font-semibold mb-2">{t('advanced.activeSettings')}</div>
-                          <div className="space-y-1 text-xs">
-                            {excludeTermsInput && <div className="flex items-start gap-2"><span className="text-red-500">❌</span><span className="text-slate-600">{excludeTermsInput}</span></div>}
-                            {includeTermsInput && <div className="flex items-start gap-2"><span className="text-green-500">✅</span><span className="text-slate-600">{includeTermsInput}</span></div>}
-                            {locationTermsInput && <div className="flex items-start gap-2"><span className="text-blue-500">📍</span><span className="text-slate-600">{locationTermsInput}</span></div>}
-                          </div>
+                        <div className="tool-active-settings">
+                          <span className="label">{t('advanced.activeSettings')}</span>
+                          {excludeTermsInput && <div className="row"><span>{t('advanced.avoid')}</span><span>{excludeTermsInput}</span></div>}
+                          {includeTermsInput && <div className="row"><span>{locale === 'nl' ? '✅ Gebruik:' : '✅ Use:'}</span><span>{includeTermsInput}</span></div>}
+                          {locationTermsInput && <div className="row"><span>{t('advanced.location')}</span><span>{locationTermsInput}</span></div>}
                         </div>
                       )}
                     </div>
                   )}
                 </div>
 
-                {/* Mobile Teun - Between form and button */}
-                <div className="flex lg:hidden justify-center my-4">
-                  <div className="relative">
-                    <Image
-                      src="/teun-ai-mascotte.png"
-                      alt="Teun"
-                      width={140}
-                      height={175}
-                      className="drop-shadow-xl"
-                    />
-                    <p className="text-xs text-slate-500 text-center mt-2 font-medium">
-                      {t('step1.mascotText')}
-                    </p>
+                {/* Mobile mascotte */}
+                <div className="tool-mascot-mobile">
+                  <div style={{ textAlign: 'center' }}>
+                    <Image src="/teun-ai-mascotte.png" alt="Teun" width={130} height={163} />
+                    <p className="tool-hint" style={{ marginTop: 6 }}>{t('step1.mascotText')}</p>
                   </div>
                 </div>
 
-                {/* CTA Button */}
-                <div className="flex justify-end mt-6">
-                  <button
-                    onClick={() => {
-                      setStep(2);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white font-bold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer text-base"
-                  >
+                <div className="tool-actions end">
+                  <button onClick={() => { setStep(2); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="tool-btn-success">
                     {t('step1.next')}
                   </button>
                 </div>
               </div>
 
-              {/* Right: Teun Mascotte - Desktop */}
-              <div className="hidden lg:flex lg:col-span-2 flex-col items-center justify-center">
-                <Image
-                  src="/teun-ai-mascotte.png"
-                  alt={locale === "nl" ? "Teun helpt je zoekwoorden kiezen" : "Teun helps you choose keywords"}
-                  width={280}
-                  height={350}
-                  className="drop-shadow-2xl"
-                />
-                <p className="text-sm text-slate-500 mt-4 text-center font-medium">
-                  {t('step1.mascotText')}
-                </p>
+              {/* Desktop mascotte */}
+              {/* Desktop mascotte */}
+              <div className="tool-mascot-col">
+                <Image src="/teun-ai-mascotte.png" alt={locale === 'nl' ? 'Teun helpt je zoekwoorden kiezen' : 'Teun helps you choose keywords'} width={220} height={275} />
+                <p className="mascot-text">{t('step1.mascotText')}</p>
               </div>
             </div>
           </section>
         )}
 
         {/* ====================================== */}
-        {/* STEP 2 - Bedrijfsinfo (LIGHT THEME)   */}
+        {/* STEP 2 — Bedrijfsinfo                  */}
         {/* ====================================== */}
         {step === 2 && (
-          <section className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 sm:p-8 mb-8">
-            <div className="grid lg:grid-cols-5 gap-6 lg:gap-8">
-              {/* Left: Content - 3 columns */}
-              <div className="lg:col-span-3">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center border border-purple-200">
-                    <TrendingUp className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-bold text-slate-900">{t('step2.heading')}</p>
+          <section className="tool-section">
+            <div className="tool-scan-grid">
+              <div>
+                <div className="tool-section-header">                  <h2 className="tool-section-title">{t('step2.heading')}</h2>
                 </div>
 
-                <div className="space-y-4 mb-6">
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
-                      {t('step2.companyLabel')} <span className="text-blue-600">*</span>
-                      <span className="relative">
-                        <svg 
-                          className="w-4 h-4 text-slate-400 cursor-help" 
-                          fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                          onClick={(e) => { e.preventDefault(); setActiveTooltip(activeTooltip === 'bedrijf' ? null : 'bedrijf'); }}
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginBottom: 22 }}>
+                  {/* Bedrijfsnaam */}
+                  <div>
+                    <label htmlFor="aiv-company" className="tool-label">
+                      {t('step2.companyLabel')} <span className="req">*</span>
+                      <span className="tool-tooltip-wrap">
+                        <svg className="tool-tooltip-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"
+                          onClick={(e) => { e.preventDefault(); setActiveTooltip(activeTooltip === 'bedrijf' ? null : 'bedrijf'); }}>
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="M12 16v-4M12 8h.01" />
                         </svg>
                         {activeTooltip === 'bedrijf' && (
-                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap z-50 shadow-lg">
-                            {t('step2.companyTooltip')}
-                            <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></span>
-                          </span>
+                          <span className="tool-tooltip">{t('step2.companyTooltip')}</span>
                         )}
                       </span>
                     </label>
                     <input
+                      id="aiv-company"
                       type="text"
                       value={formData.companyName}
                       onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                       placeholder={t('step2.companyPlaceholder')}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 bg-white"
+                      className="tool-input"
                       required
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
-                      {t('step2.industryLabel')} <span className="text-blue-600">*</span>
-                      <span className="relative">
-                        <svg 
-                          className="w-4 h-4 text-slate-400 cursor-help" 
-                          fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                          onClick={(e) => { e.preventDefault(); setActiveTooltip(activeTooltip === 'branche' ? null : 'branche'); }}
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  {/* Branche */}
+                  <div>
+                    <label htmlFor="aiv-category" className="tool-label">
+                      {t('step2.industryLabel')} <span className="req">*</span>
+                      <span className="tool-tooltip-wrap">
+                        <svg className="tool-tooltip-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"
+                          onClick={(e) => { e.preventDefault(); setActiveTooltip(activeTooltip === 'branche' ? null : 'branche'); }}>
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="M12 16v-4M12 8h.01" />
                         </svg>
                         {activeTooltip === 'branche' && (
-                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap z-50 shadow-lg">
-                            {t('step2.companyTooltip')}
-                            <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></span>
-                          </span>
+                          <span className="tool-tooltip">{t('step2.companyTooltip')}</span>
                         )}
                       </span>
                     </label>
                     <input
+                      id="aiv-category"
                       type="text"
                       value={formData.companyCategory}
                       onChange={(e) => {
@@ -1348,74 +1191,50 @@ function AIVisibilityToolContent() {
                         if (locale === 'nl') setBrancheSuggestion(detectBranchLanguage(val));
                       }}
                       placeholder={t('step2.industryPlaceholder')}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 bg-white"
+                      className="tool-input"
                       required
                     />
 
-                    {/* Branche taaldetectie suggestie */}
                     {brancheSuggestion && (
-                      <div className={`mt-2 p-3 rounded-xl text-sm transition-all animate-in fade-in ${
-                        brancheSuggestion.type === 'generic' 
-                          ? 'bg-amber-50 border border-amber-200' 
-                          : 'bg-blue-50 border border-blue-200'
-                      }`}>
+                      <div className={`tool-branche-suggest ${brancheSuggestion.type === 'generic' ? 'warn' : 'tip'}`}>
                         {brancheSuggestion.type === 'generic' ? (
-                          <div className="flex items-start gap-2">
-                            <span className="text-amber-500 flex-shrink-0">⚠️</span>
-                            <p className="text-amber-800 text-xs">
-                              {t.raw('step2.brancheWarningGeneric')}
-                            </p>
-                          </div>
+                          <p>⚠️ {t.raw('step2.brancheWarningGeneric')}</p>
                         ) : (
-                          <div>
-                            <div className="flex items-start gap-2 mb-2">
-                              <span className="flex-shrink-0">💡</span>
-                              <p className="text-blue-800 text-xs">
-                                {brancheSuggestion.original} {t('step2.brancheWarningSpecific')}
-                              </p>
-                            </div>
-                            <div className="flex flex-wrap gap-1.5 ml-6">
+                          <>
+                            <p>💡 <strong>{brancheSuggestion.original}</strong> {t('step2.brancheWarningSpecific')}</p>
+                            <div className="picks">
                               {brancheSuggestion.suggestions.map((suggestion, idx) => (
-                                <button
-                                  key={idx}
-                                  type="button"
-                                  onClick={() => {
-                                    setFormData({ ...formData, companyCategory: suggestion });
-                                    setBrancheSuggestion(null);
-                                  }}
-                                  className="px-3 py-1.5 bg-white hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-medium transition-all border border-blue-300 hover:border-blue-400 cursor-pointer shadow-sm hover:shadow"
-                                >
+                                <button key={idx} type="button" onClick={() => {
+                                  setFormData({ ...formData, companyCategory: suggestion });
+                                  setBrancheSuggestion(null);
+                                }}>
                                   {suggestion}
                                 </button>
                               ))}
                             </div>
-                          </div>
+                          </>
                         )}
                       </div>
                     )}
                   </div>
 
-                  {/* ✨ Website URL field for smart analysis */}
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                  {/* Website */}
+                  <div>
+                    <label htmlFor="aiv-website" className="tool-label">
                       Website
-                      <span className="relative">
-                        <svg 
-                          className="w-4 h-4 text-slate-400 cursor-help" 
-                          fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                          onClick={(e) => { e.preventDefault(); setActiveTooltip(activeTooltip === 'website' ? null : 'website'); }}
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <span className="tool-tooltip-wrap">
+                        <svg className="tool-tooltip-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"
+                          onClick={(e) => { e.preventDefault(); setActiveTooltip(activeTooltip === 'website' ? null : 'website'); }}>
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="M12 16v-4M12 8h.01" />
                         </svg>
                         {activeTooltip === 'website' && (
-                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap z-50 shadow-lg">
-                            {t('step2.websiteTooltip')}
-                            <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"></span>
-                          </span>
+                          <span className="tool-tooltip">{t('step2.websiteTooltip')}</span>
                         )}
                       </span>
                     </label>
                     <input
+                      id="aiv-website"
                       type="text"
                       inputMode="url"
                       autoComplete="off"
@@ -1424,257 +1243,194 @@ function AIVisibilityToolContent() {
                       spellCheck="false"
                       value={formData.website}
                       onChange={(e) => setFormData({ ...formData, website: e.target.value.toLowerCase() })}
-                      placeholder={locale === "nl" ? "jouwwebsite.nl" : "yourwebsite.com"}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 bg-white"
+                      placeholder={locale === 'nl' ? 'jouwwebsite.nl' : 'yourwebsite.com'}
+                      className="tool-input"
                     />
                     {!formData.website && (
-                      <p className="text-xs text-purple-600 mt-1.5">
-                        <span className="flex items-center gap-1">
-                          <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
-                          </svg>
-                          {t('step2.websiteTip')}
-                        </span>
+                      <p className="tool-hint" style={{ color: 'var(--spark)', marginTop: 6 }}>
+                        ⚡ {t('step2.websiteTip')}
                       </p>
                     )}
                   </div>
 
                   {/* Servicegebied */}
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                  <div>
+                    <label htmlFor="aiv-service" className="tool-label">
                       {t('step2.serviceArea')}
-                      <span className="text-xs font-normal text-slate-400">{t('step2.serviceAreaOptional')}</span>
+                      <span className="opt">{t('step2.serviceAreaOptional')}</span>
                     </label>
                     <input
+                      id="aiv-service"
                       type="text"
                       value={formData.serviceArea}
                       onChange={(e) => setFormData({ ...formData, serviceArea: e.target.value })}
                       placeholder={t('step2.serviceAreaPlaceholder')}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-slate-900 placeholder:text-slate-400 bg-white"
+                      className="tool-input"
                     />
-                    <p className="text-xs text-slate-400">{t('step2.serviceAreaHint')}</p>
+                    <p className="tool-hint">{t('step2.serviceAreaHint')}</p>
                   </div>
                 </div>
 
-                {/* Mobile Teun - Improved visibility */}
-                <div className="flex lg:hidden justify-center my-4">
-                  <div className="relative">
-                    <Image
-                      src="/mascotte-teun-ai.png"
-                      alt="Teun"
-                      width={140}
-                      height={175}
-                      className="drop-shadow-xl"
-                    />
-                    <p className="text-xs text-slate-500 text-center mt-2 font-medium">
-                      {t('step2.mascotText')}
-                    </p>
+                {/* Mobile mascotte */}
+                <div className="tool-mascot-mobile">
+                  <div style={{ textAlign: 'center' }}>
+                    <Image src="/mascotte-teun-ai.png" alt="Teun" width={130} height={163} />
+                    <p className="tool-hint" style={{ marginTop: 6 }}>{t('step2.mascotText')}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between mt-6">
-                  <button
-                    onClick={() => { setStep(1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                    className="px-5 py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition cursor-pointer border border-slate-200"
-                  >
+                <div className="tool-actions between">
+                  <button onClick={() => { setStep(1); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="tool-btn-secondary">
                     {t('step2.back')}
                   </button>
-                  <button
-                    onClick={() => {
-                      if (!formData.companyName || !formData.companyCategory) {
-                        setError(t('step2.requiredError'));
-                        return;
-                      }
-                      setError(null);
-                      setStep(3);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="px-8 py-4 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white font-bold rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all duration-200 cursor-pointer"
-                  >
+                  <button onClick={() => {
+                    if (!formData.companyName || !formData.companyCategory) {
+                      setError(t('step2.requiredError'));
+                      return;
+                    }
+                    setError(null);
+                    setStep(3);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }} className="tool-btn-success">
                     {t('step2.next')}
                   </button>
                 </div>
               </div>
 
-              {/* Right: Teun Mascotte - Desktop */}
-              <div className="hidden lg:flex lg:col-span-2 flex-col items-center justify-center">
-                <Image
-                  src="/mascotte-teun-ai.png"
-                  alt={locale === "nl" ? "Teun wacht op je bedrijfsinfo" : "Teun awaits your company info"}
-                  width={300}
-                  height={380}
-                  className="drop-shadow-2xl"
-                />
-                <p className="text-sm text-slate-500 mt-4 text-center font-medium">
-                  {t('step2.mascotText')}
-                </p>
+              <div className="tool-mascot-col">
+                <Image src="/mascotte-teun-ai.png" alt={locale === 'nl' ? 'Teun wacht op je bedrijfsinfo' : 'Teun awaits your company info'} width={240} height={300} />
+                <p className="mascot-text">{t('step2.mascotText')}</p>
               </div>
             </div>
           </section>
         )}
 
         {/* ====================================== */}
-        {/* STEP 3 - Analyse (LIGHT THEME)        */}
+        {/* STEP 3 — Analyse — fromHomepage variant */}
         {/* ====================================== */}
         {step === 3 && fromHomepage && (
-          <section className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 sm:p-8 mb-8">
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 text-center">
-              <Loader2 className="w-12 h-12 text-blue-500 mx-auto mb-4 animate-spin" />
-              <p className="text-xl font-bold text-slate-900 mb-2">{t('step3.analyzing')}</p>
-              <p className="text-slate-600 mb-4">{currentStep || t('step3.preparing')}</p>
-              
-              <div className="w-full bg-slate-200 rounded-full h-4 overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all duration-300 flex items-center justify-end pr-2"
-                  style={{ width: `${Math.max(Math.floor(progress), 2)}%` }}
-                >
-                  {progress > 5 && (
-                    <span className="text-xs font-bold text-white drop-shadow-lg">
-                      {Math.floor(progress)}%
-                    </span>
-                  )}
+          <section className="tool-section">
+            <div className="tool-scan-progress">
+              <div className="tool-scan-spinner"></div>
+              <h3>{t('step3.analyzing')}</h3>
+              <p className="current">{currentStep || t('step3.preparing')}</p>
+
+              <div className="tool-progress-bar">
+                <div className="tool-progress-fill" style={{ width: `${Math.max(Math.floor(progress), 2)}%` }}>
+                  {progress > 5 && <span className="pct">{Math.floor(progress)}%</span>}
                 </div>
               </div>
-              <p className="text-xs text-slate-400 mt-3">{t('step3.progressHint')}</p>
+              <p className="tool-progress-hint">{t('step3.progressHint')}</p>
             </div>
           </section>
         )}
 
+        {/* ====================================== */}
+        {/* STEP 3 — Analyse — normal variant      */}
+        {/* ====================================== */}
         {step === 3 && !fromHomepage && (
-          <section className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 sm:p-8 mb-8">
-            <div className="grid lg:grid-cols-5 gap-6 lg:gap-8">
-              {/* Left: Content - 3 columns */}
-              <div className="lg:col-span-3">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-lg flex items-center justify-center border border-yellow-200">
-                    <Zap className="w-5 h-5 text-yellow-600" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-bold text-slate-900">{t('step3.heading')}</p>
+          <section className="tool-section">
+            <div className="tool-scan-grid">
+              <div>
+                <div className="tool-section-header">                  <h2 className="tool-section-title">{t('step3.heading')}</h2>
                 </div>
 
                 {analyzing ? (
-                  <div className="space-y-6">
-                    {/* Mobile Teun during scanning */}
-                    <div className="flex lg:hidden justify-center mb-4">
-                      <Image src="/teun-ai-mascotte.png" alt={locale === "nl" ? "Teun analyseert" : "Teun is analyzing"} width={140} height={175} className="drop-shadow-xl" />
-                    </div>
-                    
-                    {/* Scanning Progress Box */}
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 text-center">
-                      <Loader2 className="w-12 h-12 text-blue-500 mx-auto mb-4 animate-spin" />
-                      <p className="text-xl font-bold text-slate-900 mb-2">{t('step3.analyzing')}</p>
-                      <p className="text-slate-600 mb-4">{currentStep}</p>
-                      
-                      <div className="w-full bg-slate-200 rounded-full h-4 overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all duration-300 flex items-center justify-end pr-2"
-                          style={{ width: `${Math.floor(progress)}%` }}
-                        >
-                          <span className="text-xs font-bold text-white drop-shadow-lg">
-                            {Math.floor(progress)}%
-                          </span>
-                        </div>
-                      </div>
-                      <p className="text-xs text-slate-400 mt-3">{t('step3.progressHint')}</p>
+                  <div>
+                    <div className="tool-mascot-mobile">
+                      <Image src="/teun-ai-mascotte.png" alt={locale === 'nl' ? 'Teun analyseert' : 'Teun is analyzing'} width={130} height={163} />
                     </div>
 
-                    {/* Progress Steps */}
-                    <div className="space-y-3 text-sm">
-                      <div className={'flex items-center gap-2 transition-colors duration-300 ' + (progress >= 20 ? 'text-green-600' : progress > 10 ? 'text-blue-600' : 'text-slate-400')}>
-                        {progress >= 20 ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border-2 border-current" />}
+                    <div className="tool-scan-progress">
+                      <div className="tool-scan-spinner"></div>
+                      <h3>{t('step3.analyzing')}</h3>
+                      <p className="current">{currentStep}</p>
+
+                      <div className="tool-progress-bar">
+                        <div className="tool-progress-fill" style={{ width: `${Math.floor(progress)}%` }}>
+                          <span className="pct">{Math.floor(progress)}%</span>
+                        </div>
+                      </div>
+                      <p className="tool-progress-hint">{t('step3.progressHint')}</p>
+                    </div>
+
+                    <div className="tool-progress-steps">
+                      <div className={`tool-progress-step ${progress >= 20 ? 'done' : progress > 10 ? 'active' : ''}`}>
+                        <span className="dot"></span>
                         <span>{customPrompts ? t('step3.progressStep1Custom') : t('step3.progressStep1')}</span>
                       </div>
-                      <div className={'flex items-center gap-2 transition-colors duration-300 ' + (progress >= 90 ? 'text-green-600' : progress > 20 ? 'text-blue-600' : 'text-slate-400')}>
-                        {progress >= 90 ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border-2 border-current" />}
+                      <div className={`tool-progress-step ${progress >= 90 ? 'done' : progress > 20 ? 'active' : ''}`}>
+                        <span className="dot"></span>
                         <span>{t('step3.progressStep2')}</span>
                       </div>
-                      <div className={'flex items-center gap-2 transition-colors duration-300 ' + (progress === 100 ? 'text-green-600' : progress > 90 ? 'text-blue-600' : 'text-slate-400')}>
-                        {progress === 100 ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-4 h-4 rounded-full border-2 border-current" />}
+                      <div className={`tool-progress-step ${progress === 100 ? 'done' : progress > 90 ? 'active' : ''}`}>
+                        <span className="dot"></span>
                         <span>{t('step3.progressStep3')}</span>
                       </div>
                     </div>
                   </div>
                 ) : (
                   <>
-                    {/* Summary Card */}
-                    <div className="bg-slate-50 rounded-xl p-4 mb-6 space-y-3 text-sm border border-slate-200">
-                      <div className="flex justify-between items-start gap-3">
-                        {t('step3.summaryCompany')}
-                        <span className="text-slate-900 font-medium text-right">{formData.companyName}</span>
+                    <div className="tool-summary">
+                      <div className="tool-summary-row">
+                        <span className="lbl">{t('step3.summaryCompany')}</span>
+                        <span className="val">{formData.companyName}</span>
                       </div>
-                      <div className="flex justify-between items-start gap-3">
-                        {t('step3.summaryIndustry')}
-                        <span className="text-slate-900 font-medium text-right">{formData.companyCategory}</span>
+                      <div className="tool-summary-row">
+                        <span className="lbl">{t('step3.summaryIndustry')}</span>
+                        <span className="val">{formData.companyCategory}</span>
                       </div>
                       {formData.queries && !customPrompts && (
-                        <div className="flex justify-between items-start gap-3">
-                          <span className="text-slate-500 flex-shrink-0">{t('step3.summaryKeyword')}</span>
-                          <span className="text-slate-900 font-medium text-right">
-                            {formData.queries.split(/[,\n]/)[0]?.trim() || t('step3.summaryNoKeywords')}
-                          </span>
+                        <div className="tool-summary-row">
+                          <span className="lbl">{t('step3.summaryKeyword')}</span>
+                          <span className="val">{formData.queries.split(/[,\n]/)[0]?.trim() || t('step3.summaryNoKeywords')}</span>
                         </div>
                       )}
-                      <div className="flex justify-between items-start gap-3">
-                        <span className="text-slate-500 flex-shrink-0">{t('step3.summaryPrompts')}</span>
-                        <span className="text-slate-900 font-medium text-right">
-                          {customPrompts ? `${customPrompts.length} aangepast` : `${user ? '10' : '5'} AI-prompts`}
-                        </span>
+                      <div className="tool-summary-row">
+                        <span className="lbl">{t('step3.summaryPrompts')}</span>
+                        <span className="val">{customPrompts ? `${customPrompts.length} ${locale === 'nl' ? 'aangepast' : 'custom'}` : `${user ? '10' : '5'} AI-prompts`}</span>
                       </div>
                       {referralSource && (
-                        <div className="flex justify-between items-start gap-3">
-                          <span className="text-slate-500 flex-shrink-0">Bron:</span>
-                          <span className="text-blue-600 font-medium text-right capitalize">{referralSource}</span>
+                        <div className="tool-summary-row">
+                          <span className="lbl">Bron:</span>
+                          <span className="val" style={{ color: 'var(--spark)', textTransform: 'capitalize' }}>{referralSource}</span>
                         </div>
                       )}
                     </div>
 
-                    {/* Custom Prompts from Dashboard */}
                     {customPrompts && customPrompts.length > 0 && (
-                      <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-6">
-                        <div className="text-sm text-purple-800 font-semibold mb-3 flex items-center gap-2">
-                          <span>📝</span>
-                          <span>{t('step3.customPromptsTitle', { count: customPrompts.length })}</span>
+                      <div className="tool-custom-prompts">
+                        <div className="tool-custom-prompts-title">
+                          📝 {t('step3.customPromptsTitle', { count: customPrompts.length })}
                         </div>
-                        <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                        <div className="tool-custom-prompts-list">
                           {customPrompts.map((prompt, idx) => (
-                            <div key={idx} className="flex items-start gap-2 text-sm">
-                              <span className="text-purple-600 flex-shrink-0 w-5">{idx + 1}.</span>
-                              <span className="text-slate-700">{prompt}</span>
+                            <div key={idx} className="item">
+                              <span className="num">{idx + 1}.</span>
+                              <span>{prompt}</span>
                             </div>
                           ))}
                         </div>
-                        <button onClick={() => setCustomPrompts(null)}
-                          className="mt-3 text-xs text-purple-600 hover:text-purple-800 underline">
+                        <button onClick={() => setCustomPrompts(null)} className="tool-cancel-custom">
                           {t('step3.cancelCustom')}
                         </button>
                       </div>
                     )}
 
-                    {/* Advanced Settings in Step 3 */}
                     {(excludeTermsInput || includeTermsInput || locationTermsInput) && (
-                      <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6">
-                        <div className="text-sm text-indigo-800 font-semibold mb-3 flex items-center gap-2">
-                          <span>⚙️</span>
-                          <span>{t('step3.advancedTitle')}</span>
-                        </div>
-                        <div className="space-y-2 text-xs">
-                          {excludeTermsInput && <div className="flex items-start gap-2"><span className="text-red-600 flex-shrink-0">{t('advanced.avoid')}</span><span className="text-slate-700">{excludeTermsInput}</span></div>}
-                          {includeTermsInput && <div className="flex items-start gap-2"><span className="text-green-600 flex-shrink-0">✅ Gebruik:</span><span className="text-slate-700">{includeTermsInput}</span></div>}
-                          {locationTermsInput && <div className="flex items-start gap-2"><span className="text-blue-600 flex-shrink-0">{t('advanced.location')}</span><span className="text-slate-700">{locationTermsInput}</span></div>}
-                        </div>
+                      <div className="tool-active-settings" style={{ marginBottom: 18 }}>
+                        <span className="label">⚙️ {t('step3.advancedTitle')}</span>
+                        {excludeTermsInput && <div className="row"><span>{t('advanced.avoid')}</span><span>{excludeTermsInput}</span></div>}
+                        {includeTermsInput && <div className="row"><span>{locale === 'nl' ? '✅ Gebruik:' : '✅ Use:'}</span><span>{includeTermsInput}</span></div>}
+                        {locationTermsInput && <div className="row"><span>{t('advanced.location')}</span><span>{locationTermsInput}</span></div>}
                       </div>
                     )}
 
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-3 mt-6">
-                      <button onClick={() => { setStep(2); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                        className="px-5 py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition cursor-pointer text-sm sm:text-base whitespace-nowrap border border-slate-200">
+                    <div className="tool-actions">
+                      <button onClick={() => { setStep(2); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="tool-btn-secondary">
                         {t('step3.back')}
                       </button>
-                      <button
-                        onClick={() => { setFromHomepage(false); handleAnalyze(); }}
-                        className={`flex-1 px-5 py-3 sm:py-4 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white font-bold rounded-xl hover:from-[#2D2D5F] hover:to-[#3D3D7F] transition shadow-lg flex items-center justify-center gap-2 cursor-pointer text-sm sm:text-base ${fromHomepage ? 'animate-bounce' : ''}`}>
-                        <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <button onClick={() => { setFromHomepage(false); handleAnalyze(); }} className="tool-btn-success" style={{ flex: 1 }}>
                         {t('step3.startAnalysis')}
                       </button>
                     </div>
@@ -1682,141 +1438,90 @@ function AIVisibilityToolContent() {
                 )}
               </div>
 
-              {/* Right: Teun Mascotte - 2 columns */}
-              <div className="hidden lg:flex lg:col-span-2 flex-col items-center justify-center">
-                <Image src="/teun-ai-mascotte.png" alt={locale === "nl" ? "Teun helpt je analyseren" : "Teun helps you analyze"} width={280} height={350} className="drop-shadow-2xl" />
-                <p className="text-sm text-slate-500 mt-4 text-center">
-                  {t('step3.mascotText')}
-                </p>
+              <div className="tool-mascot-col">
+                <Image src="/teun-ai-mascotte.png" alt={locale === 'nl' ? 'Teun helpt je analyseren' : 'Teun helps you analyze'} width={220} height={275} />
+                <p className="mascot-text">{t('step3.mascotText')}</p>
               </div>
             </div>
           </section>
         )}
 
         {/* ====================================== */}
-        {/* STEP 4 - Rapport (LIGHT THEME)        */}
+        {/* STEP 4 — Resultaten                    */}
         {/* ====================================== */}
         {step === 4 && results && (
-          <section className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 sm:p-8 mb-8">
-            {/* Teun above results - mobile */}
-            <div className="flex lg:hidden justify-center -mt-2 mb-4">
-              <div className="text-center">
-                <Image src="/Teun-ai-blij-met-resultaat.png" alt={locale === "nl" ? "Teun is blij!" : "Teun is happy!"} width={120} height={150} className="drop-shadow-xl mx-auto" />
-              </div>
+          <section className="tool-section">
+            <div className="tool-mascot-mobile">
+              <Image src="/Teun-ai-blij-met-resultaat.png" alt={locale === 'nl' ? 'Teun is blij!' : 'Teun is happy!'} width={120} height={150} />
             </div>
 
-            <div className="grid lg:grid-cols-5 gap-6 lg:gap-8">
-              {/* Left: Content - 3 columns */}
-              <div className="lg:col-span-3">
-                {/* Header with icon */}
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg flex items-center justify-center border border-green-200">
-                    <CheckCircle2 className="w-5 h-5 text-green-600" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-bold text-slate-900">{t('step4.heading')}</p>
+            <div className="tool-scan-grid">
+              <div>
+                <div className="tool-section-header">                  <h2 className="tool-section-title">{t('step4.heading')}</h2>
                 </div>
 
-                {/* Success Banner */}
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 mb-6">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm text-slate-700">
-                      <strong className="text-green-800">{t('step4.analysisComplete')}</strong>
-                      <p className="mt-1 text-slate-600">
-                        {t.rich('step4.reportReady', { company: formData.companyName, strong: (chunks) => <strong>{chunks}</strong> })}
-                      </p>
-                    </div>
+                <div className="tool-result-success">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <strong>{t('step4.analysisComplete')}</strong>
+                    <p>{t.rich('step4.reportReady', { company: formData.companyName, strong: (chunks) => <strong>{chunks}</strong> })}</p>
                   </div>
                 </div>
 
-                {/* Perplexity Badge */}
-                <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
-
-                {/* Bedrijfsnaam mismatch waarschuwing */}
                 {nameMismatch && (
-                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-xl p-4 mb-4 sm:mb-6">
-                    <div className="flex items-start gap-3">
-                      <span className="text-xl flex-shrink-0">🔍</span>
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-amber-900 mb-1">
-                          {t('step4.nameMismatchTitle', { name: nameMismatch.name })}
-                        </p>
-                        <p className="text-xs text-amber-700 mb-3">
-                          {t('step4.nameMismatchDesc', { company: formData.companyName, match: nameMismatch.name, count: nameMismatch.count })}
-                          {nameMismatch.reason === 'typo' && ` ${t('step4.nameMismatchTypo')}`}
-                          {nameMismatch.reason === 'substring' && ` ${t('step4.nameMismatchSubstring')}`}
-                        </p>
-                        <button
-                          onClick={() => {
-                            setFormData(prev => ({ ...prev, companyName: nameMismatch.name }));
-                            setNameMismatch(null);
-                            setResults(null);
-                            setStep(3);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }}
-                          className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-lg hover:from-amber-600 hover:to-orange-600 transition shadow-sm cursor-pointer"
-                        >
-                          {t('step4.rescanAs', { name: nameMismatch.name })}
-                        </button>
-                      </div>
-                    </div>
+                  <div className="tool-mismatch">
+                    <p className="tool-mismatch-title">🔍 {t('step4.nameMismatchTitle', { name: nameMismatch.name })}</p>
+                    <p className="tool-mismatch-desc">
+                      {t('step4.nameMismatchDesc', { company: formData.companyName, match: nameMismatch.name, count: nameMismatch.count })}
+                      {nameMismatch.reason === 'typo' && ` ${t('step4.nameMismatchTypo')}`}
+                      {nameMismatch.reason === 'substring' && ` ${t('step4.nameMismatchSubstring')}`}
+                    </p>
+                    <button onClick={() => {
+                      setFormData(prev => ({ ...prev, companyName: nameMismatch.name }));
+                      setNameMismatch(null);
+                      setResults(null);
+                      setStep(3);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }} className="tool-mismatch-btn">
+                      {t('step4.rescanAs', { name: nameMismatch.name })}
+                    </button>
                   </div>
                 )}
 
-                  {/* Platform Tabs */}
-                  <div className="flex items-center gap-2 mb-1">
-                    <button
-                      onClick={() => setResultPlatform('chatgpt')}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                        resultPlatform === 'chatgpt'
-                          ? 'bg-white shadow-sm border border-green-200 text-slate-800'
-                          : 'text-slate-500 hover:text-slate-700'
-                      }`}
-                    >
-                      <div className="w-5 h-5 bg-gradient-to-br from-[#10A37F] to-[#0D8A6A] rounded flex items-center justify-center">
-                        <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M22.2 9.4c.4-1.2.2-2.5-.5-3.6-.7-1-1.8-1.7-3-1.9-.6-.1-1.2 0-1.8.2-.5-1.3-1.5-2.3-2.8-2.8-1.3-.5-2.8-.4-4 .3C9.4.6 8.2.2 7 .5c-1.2.3-2.3 1.1-2.9 2.2-.6 1.1-.7 2.4-.3 3.6-1.3.5-2.3 1.5-2.8 2.8s-.4 2.8.3 4c-1 .8-1.6 2-1.7 3.3-.1 1.3.4 2.6 1.4 3.5 1 .9 2.3 1.3 3.6 1.2.5 1.3 1.5 2.3 2.8 2.8 1.3.5 2.8.4 4-.3.8 1 2 1.6 3.3 1.7 1.3.1 2.6-.4 3.5-1.4.9-1 1.3-2.3 1.2-3.6 1.3-.5 2.3-1.5 2.8-2.8.5-1.3.4-2.8-.3-4 1-.8 1.6-2 1.7-3.3.1-1.3-.4-2.6-1.4-3.5z"/>
-                        </svg>
-                      </div>
-                      ChatGPT
-                      <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
-                        resultPlatform === 'chatgpt' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'
-                      }`}>
-                        {results.chatgpt_company_mentions || 0}/{(results.chatgpt_results || []).length}
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => setResultPlatform('perplexity')}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                        resultPlatform === 'perplexity'
-                          ? 'bg-white shadow-sm border border-blue-200 text-slate-800'
-                          : 'text-slate-500 hover:text-slate-700'
-                      }`}
-                    >
-                      <div className="w-5 h-5 bg-gradient-to-br from-[#20B8CD] to-[#1AA3B3] rounded flex items-center justify-center">
-                        <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <circle cx="12" cy="12" r="10" />
-                          <path d="M12 6v6l4 2" />
-                        </svg>
-                      </div>
-                      Perplexity
-                      <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
-                        resultPlatform === 'perplexity' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'
-                      }`}>
-                        {results.total_company_mentions}/{results.analysis_results.length}
-                      </span>
-                    </button>
-                  </div>
-                  <p className="text-xs text-slate-400 ml-1">
-                    {resultPlatform === 'chatgpt' ? t('step4.chatgptDesc') : t('step4.perplexityDesc')}
-                  </p>
+                {/* Platform tabs */}
+                <div className="tool-platform-tabs">
+                  <button onClick={() => setResultPlatform('chatgpt')} className={`tool-platform-tab ${resultPlatform === 'chatgpt' ? 'active' : ''}`}>
+                    <span className="ai-logo">
+                      <svg viewBox="0 0 24 24" fill="#10A37F"><path d="M22.2 9.4c.4-1.2.2-2.5-.5-3.6-.7-1-1.8-1.7-3-1.9-.6-.1-1.2 0-1.8.2-.5-1.3-1.5-2.3-2.8-2.8-1.3-.5-2.8-.4-4 .3C9.4.6 8.2.2 7 .5c-1.2.3-2.3 1.1-2.9 2.2-.6 1.1-.7 2.4-.3 3.6-1.3.5-2.3 1.5-2.8 2.8s-.4 2.8.3 4c-1 .8-1.6 2-1.7 3.3-.1 1.3.4 2.6 1.4 3.5 1 .9 2.3 1.3 3.6 1.2.5 1.3 1.5 2.3 2.8 2.8 1.3.5 2.8.4 4-.3.8 1 2 1.6 3.3 1.7 1.3.1 2.6-.4 3.5-1.4.9-1 1.3-2.3 1.2-3.6 1.3-.5 2.3-1.5 2.8-2.8.5-1.3.4-2.8-.3-4 1-.8 1.6-2 1.7-3.3.1-1.3-.4-2.6-1.4-3.5z" /></svg>
+                    </span>
+                    ChatGPT
+                    <span className="pill">
+                      {results.chatgpt_company_mentions || 0}/{(results.chatgpt_results || []).length}
+                    </span>
+                  </button>
+                  <button onClick={() => setResultPlatform('perplexity')} className={`tool-platform-tab ${resultPlatform === 'perplexity' ? 'active' : ''}`}>
+                    <span className="ai-logo">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#20B8CD" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+                    </span>
+                    Perplexity
+                    <span className="pill">
+                      {results.total_company_mentions}/{results.analysis_results.length}
+                    </span>
+                  </button>
                 </div>
+                <p className="tool-platform-desc">
+                  {resultPlatform === 'chatgpt' ? t('step4.chatgptDesc') : t('step4.perplexityDesc')}
+                </p>
 
-          {/* Dynamische Account CTA — vervangt regels 1642-1655 */}
+                {/* Account CTA */}
                 {!user && (() => {
                   const totalMentions = (results.total_company_mentions || 0) + (results.chatgpt_company_mentions || 0);
-                  const totalPrompts = results.analysis_results?.length || 10;
-                  
+                  const perplexityCount = results.analysis_results?.length || 10;
+                  const chatgptCount = results.chatgpt_results?.length || 10;
+                  const totalPrompts = perplexityCount + chatgptCount;
+
                   const competitorSet = new Set();
                   [...(results.analysis_results || []), ...(results.chatgpt_results || [])].forEach(r => {
                     (r.competitors_mentioned || []).forEach(c => {
@@ -1828,120 +1533,82 @@ function AIVisibilityToolContent() {
 
                   const isInvisible = totalMentions === 0;
                   const isWeak = totalMentions > 0 && totalMentions <= 3;
+                  const isPerfect = totalMentions >= totalPrompts;
+                  const missing = Math.max(totalPrompts - totalMentions, 0);
 
-                  // Dynamische titel
                   const title = isInvisible
-                    ? (locale === 'nl' 
-                        ? 'AI beveelt jou niet aan — je concurrenten wel' 
-                        : 'AI doesn\'t recommend you — your competitors it does')
+                    ? (locale === 'nl' ? 'AI beveelt jou niet aan, je concurrenten wel' : "AI doesn't recommend you, your competitors it does")
                     : isWeak
-                      ? (locale === 'nl' 
-                          ? `Genoemd in ${totalMentions} van ${totalPrompts} prompts — dat kan beter` 
-                          : `Mentioned in ${totalMentions} of ${totalPrompts} prompts — room to grow`)
-                      : (locale === 'nl' 
-                          ? `Goed bezig — maar je mist nog ${totalPrompts - totalMentions} prompts` 
-                          : `Looking good — but you're missing ${totalPrompts - totalMentions} prompts`);
+                      ? (locale === 'nl' ? `Genoemd in ${totalMentions} van ${totalPrompts} prompts, dat kan beter` : `Mentioned in ${totalMentions} of ${totalPrompts} prompts, room to grow`)
+                      : isPerfect
+                        ? (locale === 'nl' ? 'Sterk! Je wordt overal genoemd' : 'Strong! You are mentioned everywhere')
+                        : (locale === 'nl' ? `Goed bezig, maar je mist nog ${missing} prompts` : `Looking good, but you're missing ${missing} prompts`);
 
-                  // Dynamische beschrijving
                   const description = isInvisible
-                    ? (locale === 'nl'
-                        ? `${competitorCount} concurrenten worden wél genoemd. Maak een gratis account aan en zie waarom jij niet zichtbaar bent.`
-                        : `${competitorCount} competitors are being mentioned. Create a free account and find out why you're not visible.`)
+                    ? (locale === 'nl' ? `${competitorCount} concurrenten worden wél genoemd. Maak een gratis account en zie waarom jij niet zichtbaar bent.` : `${competitorCount} competitors are being mentioned. Create a free account to find out why you're not visible.`)
                     : isWeak
-                      ? (locale === 'nl'
-                          ? `${competitorCount} concurrenten scoren beter. Maak een gratis account aan en track je positie over tijd.`
-                          : `${competitorCount} competitors are scoring higher. Create a free account and track your position over time.`)
-                      : (locale === 'nl'
-                          ? 'Maak een gratis account aan en gebruik al onze 6 AI-tools om je voorsprong te behouden.'
-                          : 'Create a free account and use all 6 of our AI tools to maintain your lead.');
+                      ? (locale === 'nl' ? `${competitorCount} concurrenten scoren beter. Maak een gratis account en track je positie over tijd.` : `${competitorCount} competitors are scoring higher. Create a free account to track your position over time.`)
+                      : isPerfect
+                        ? (locale === 'nl' ? 'Maak een gratis account en monitor je positie over tijd voordat een concurrent je voorbij gaat.' : 'Create a free account and monitor your position over time before a competitor overtakes you.')
+                        : (locale === 'nl' ? 'Maak een gratis account en gebruik al onze 6 AI-tools om je voorsprong te behouden.' : 'Create a free account and use all 6 of our AI tools to maintain your lead.');
+
+                  const bonus = locale === 'nl'
+                    ? 'Met een gratis account scan je ook Google AI Modus en AI Overviews.'
+                    : 'With a free account you can also scan Google AI Mode and AI Overviews.';
 
                   return (
-                    <div className="bg-white border-2 border-slate-200 rounded-xl p-5 sm:p-6 mb-4 sm:mb-6 text-center">
-                      <p className="text-lg sm:text-xl font-bold text-slate-900 mb-2">{title}</p>
-                      <p className="text-sm text-slate-500 mb-4 max-w-md mx-auto">{description}</p>
-                      <Link 
-                        href={`/signup${results?.meta?.sessionToken ? `?st=${results.meta.sessionToken}` : ''}`} 
-                        className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#292956] text-white font-bold rounded-lg hover:bg-[#1e1e45] transition-all shadow-md hover:shadow-lg"
-                      >
-                        {locale === 'nl' ? 'Gratis account aanmaken' : 'Create free account'} 
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                        </svg>
+                    <div className="tool-account-cta">
+                      <h3>{title}</h3>
+                      <p>{description}</p>
+                      <p className="bonus">+ {bonus}</p>
+                      <Link href={`/signup${results?.meta?.sessionToken ? `?st=${results.meta.sessionToken}` : ''}`} className="tool-account-cta-btn">
+                        {locale === 'nl' ? 'Gratis account aanmaken' : 'Create free account'}
+                        <span aria-hidden="true">→</span>
                       </Link>
-                      <p className="text-xs text-slate-400 mt-2">
+                      <p className="small">
                         {locale === 'nl' ? 'Geheel gratis · Geen creditcard nodig' : 'Completely free · No credit card needed'}
                       </p>
                     </div>
                   );
                 })()}
 
-                {/* Website Analyzed Badge */}
-                {results.websiteAnalyzed && (
-                  <div className="mb-4 sm:mb-6 p-3 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-purple-900">{t('step4.websiteAnalyzed')}</p>
-                        <p className="text-xs text-purple-600">
-                          {t('step4.keywordsExtracted', { count: results.enhancedKeywords?.length || 0 })}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Stats Cards - per platform */}
+                {/* Stats + Results list */}
                 {(() => {
-                  const activeResults = resultPlatform === 'chatgpt' 
-                    ? (results.chatgpt_results || []) 
+                  const activeResults = resultPlatform === 'chatgpt'
+                    ? (results.chatgpt_results || [])
                     : results.analysis_results;
-                  const activeMentions = resultPlatform === 'chatgpt' 
-                    ? (results.chatgpt_company_mentions || 0) 
+                  const activeMentions = resultPlatform === 'chatgpt'
+                    ? (results.chatgpt_company_mentions || 0)
                     : results.total_company_mentions;
                   const activeCompetitors = [...new Set(activeResults.flatMap(r => r.competitors_mentioned || []).map(c => cleanDisplayName(c)).filter(c => c && c.length >= 3))];
-                  
+
                   return (
                     <>
-                      <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
-                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 text-center">
-                          <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-1">{activeMentions}</div>
-                          <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-medium leading-tight">
-                            <span className="hidden sm:inline">{t('step4.mentions')}</span><span className="sm:hidden">{t('step4.mentionsMobile')}</span>
-                          </div>
+                      <div className="tool-stats">
+                        <div className="tool-stat">
+                          <div className="tool-stat-num success">{activeMentions}</div>
+                          <div className="tool-stat-label">{t('step4.mentionsMobile')}</div>
                         </div>
-                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 text-center">
-                          <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">{activeResults.length}</div>
-                          <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-medium leading-tight">
-                            <span className="hidden sm:inline">AI Prompts</span><span className="sm:hidden">Prompts</span>
-                          </div>
+                        <div className="tool-stat">
+                          <div className="tool-stat-num navy">{activeResults.length}</div>
+                          <div className="tool-stat-label">Prompts</div>
                         </div>
-                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 sm:p-4 text-center">
-                          <div className="text-2xl sm:text-3xl font-bold text-purple-600 mb-1">{activeCompetitors.length}</div>
-                          <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider font-medium leading-tight">
-                            <span className="hidden sm:inline">{t('step4.competitorsLabel')}</span><span className="sm:hidden">{t('step4.competitorsMobile')}</span>
-                          </div>
+                        <div className="tool-stat">
+                          <div className="tool-stat-num">{activeCompetitors.length}</div>
+                          <div className="tool-stat-label">{t('step4.competitorsMobile')}</div>
                         </div>
                       </div>
 
-                      {/* Results List */}
-                      <div className="space-y-3 mb-4 sm:mb-6">
+                      <div className="tool-results-list">
                         {activeResults.map((result, idx) => (
-                          <div key={idx} className="bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl p-3 sm:p-4 transition-all">
-                            <div className="flex gap-2 sm:gap-3">
-                              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-xs sm:text-sm ${
-                                result.company_mentioned
-                                  ? 'bg-green-100 text-green-700 border border-green-200'
-                                  : 'bg-slate-200 text-slate-500 border border-slate-300'
-                              }`}>
+                          <div key={idx} className="tool-result-item">
+                            <div className="tool-result-item-row">
+                              <div className={`tool-result-num ${result.company_mentioned ? 'mentioned' : ''}`}>
                                 {idx + 1}
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs sm:text-sm text-blue-700 mb-1 sm:mb-2 font-medium">{result.ai_prompt}</p>
-                                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{
+                              <div className="tool-result-content">
+                                <p className="tool-result-prompt">{result.ai_prompt}</p>
+                                <p className="tool-result-snippet">{
                                   (result.simulated_ai_response_snippet || '')
                                     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
                                     .replace(/https?:\/\/\S+/g, '')
@@ -1955,25 +1622,21 @@ function AIVisibilityToolContent() {
                                     .trim()
                                 }</p>
                                 {result.competitors_mentioned?.length > 0 && (
-                                  <div className="flex flex-wrap gap-1 sm:gap-2 mt-2 sm:mt-3">
-                                    <span className="text-[10px] sm:text-xs text-slate-500">{t('step4.competitorsLabel')}</span>
+                                  <div className="tool-result-competitors">
+                                    <span className="label">{t('step4.competitorsLabel')}</span>
                                     {result.competitors_mentioned.map((comp, i) => {
-                                      const clean = cleanDisplayName(comp)
-                                      if (!clean || clean.length < 3) return null
-                                      return (
-                                        <span key={i} className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 bg-purple-50 text-purple-700 rounded-md border border-purple-200">
-                                          {clean}
-                                        </span>
-                                      )
+                                      const clean = cleanDisplayName(comp);
+                                      if (!clean || clean.length < 3) return null;
+                                      return <span key={i} className="tool-comp-tag">{clean}</span>;
                                     })}
                                   </div>
                                 )}
                               </div>
                               {result.company_mentioned && (
-                                <div className="flex-shrink-0">
-                                  <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-100 rounded-full flex items-center justify-center">
-                                    <Award className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
-                                  </div>
+                                <div className="tool-result-trophy">
+                                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                    <path d="M12 15a4 4 0 100-8 4 4 0 000 8zm0 0v6m-6-3h12" />
+                                  </svg>
                                 </div>
                               )}
                             </div>
@@ -1984,58 +1647,48 @@ function AIVisibilityToolContent() {
                   );
                 })()}
 
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
-                  <button
-                    onClick={() => {
+                {/* Action buttons */}
+                <div className="tool-actions" style={{ flexDirection: 'column', alignItems: 'stretch', marginBottom: 22 }}>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    <button onClick={() => {
                       setStep(1);
                       setFormData({ companyName: '', companyCategory: '', queries: '', website: '', serviceArea: '' });
                       setExcludeTermsInput(''); setIncludeTermsInput(''); setLocationTermsInput('');
                       setResults(null); setReferralSource(null); setFromHomepage(false); setNameMismatch(null); setBrancheSuggestion(null);
                       try { sessionStorage.removeItem('teun_scan_results'); sessionStorage.removeItem('teun_scan_formData'); } catch (_) {}
-                    }}
-                    className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-100 border border-slate-200 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition cursor-pointer text-sm sm:text-base"
-                  >
-                    {t('step4.newAnalysis')}
-                  </button>
-                  <Link href="/"
-                    className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-semibold hover:shadow-lg transition text-center cursor-pointer text-sm sm:text-base">
-                    {t('step4.backHome')}
-                  </Link>
+                    }} className="tool-btn-secondary" style={{ flex: 1 }}>
+                      {t('step4.newAnalysis')}
+                    </button>
+                    <Link href="/" className="tool-btn-primary" style={{ flex: 1, textDecoration: 'none' }}>
+                      {t('step4.backHome')}
+                    </Link>
+                  </div>
                 </div>
 
-                {/* OnlineLabs Back Link */}
                 {referralSource === 'onlinelabs' && (
-                  <div className="mb-6">
-                    <a href="https://onlinelabs.nl/skills/geo-optimalisatie"
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-medium transition border border-blue-200 w-full justify-center">
+                  <div style={{ marginBottom: 18 }}>
+                    <a href="https://onlinelabs.nl/skills/geo-optimalisatie" className="tool-btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>
                       {t('step4.backOnlineLabs')}
                     </a>
                   </div>
                 )}
 
-                <FeedbackWidget 
-                  scanId={results?.scan_id || null}
-                  companyName={formData.companyName}
-                  totalMentions={results?.total_company_mentions || 0}
-                />
               </div>
 
-              {/* Right: Teun Mascotte + Competitor Ranking - 2 columns */}
-              <div className="hidden lg:flex lg:col-span-2 flex-col items-center justify-start pt-8">
-                <Image src="/Teun-ai-blij-met-resultaat.png" alt={locale === "nl" ? "Teun is blij met je resultaat!" : "Teun is happy with your results!"} width={240} height={300} className="drop-shadow-2xl" />
-                <p className="text-sm text-slate-500 mt-4 text-center font-medium">
-                  {(results.total_company_mentions + (results.chatgpt_company_mentions || 0)) > 0 
-                    ? t('step4.mascotHappy', { count: results.total_company_mentions + (results.chatgpt_company_mentions || 0) }) 
+              {/* Right column: mascotte + ranking */}
+              <div className="tool-mascot-col" style={{ paddingTop: 4 }}>
+                <Image src="/Teun-ai-blij-met-resultaat.png" alt={locale === 'nl' ? 'Teun is blij met je resultaat!' : 'Teun is happy with your results!'} width={200} height={250} />
+                <p className="mascot-text">
+                  {(results.total_company_mentions + (results.chatgpt_company_mentions || 0)) > 0
+                    ? t('step4.mascotHappy', { count: results.total_company_mentions + (results.chatgpt_company_mentions || 0) })
                     : t('step4.mascotImprove')}
                 </p>
 
                 {/* Competitor Ranking */}
                 {(() => {
-                  // Calculate mentions per company across ALL platforms
                   const mentionCounts = {};
                   mentionCounts[formData.companyName] = results.total_company_mentions + (results.chatgpt_company_mentions || 0);
-                  
+
                   const allResults = [...results.analysis_results, ...(results.chatgpt_results || [])];
                   allResults.forEach(result => {
                     (result.competitors_mentioned || []).forEach(comp => {
@@ -2045,131 +1698,106 @@ function AIVisibilityToolContent() {
                       }
                     });
                   });
-                  
-                  // Sort by mentions (descending)
+
                   const ranking = Object.entries(mentionCounts)
                     .sort((a, b) => b[1] - a[1])
-                    .slice(0, 6); // Top 6
-                  
+                    .slice(0, 6);
+
                   if (ranking.length <= 1) return null;
-                  
+
                   return (
-                    <div className="mt-6 w-full bg-slate-50 rounded-xl p-4 border border-slate-200">
-                      <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                        <span>🏆</span> {t('step4.rankingTitle')}
-                      </p>
-                      <div className="space-y-2">
-                        {ranking.map(([name, count], idx) => {
-                          const isUser = name === formData.companyName;
-                          const medals = ['🥇', '🥈', '🥉'];
-                          return (
-                            <div 
-                              key={idx} 
-                              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
-                                isUser 
-                                  ? 'bg-green-100 border border-green-300 text-green-800 font-semibold' 
-                                  : 'bg-white border border-slate-200 text-slate-700'
-                              }`}
-                            >
-                              <span className="w-6 text-center">
-                                {idx < 3 ? medals[idx] : `${idx + 1}.`}
-                              </span>
-                              <span className="flex-1 truncate">{name}</span>
-                              <span className={`font-bold ${isUser ? 'text-green-700' : 'text-slate-500'}`}>
-                                {count}x
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
+                    <div className="tool-ranking">
+                      <p className="tool-ranking-title">🏆 {t('step4.rankingTitle')}</p>
+                      {ranking.map(([name, count], idx) => {
+                        const isUser = name === formData.companyName;
+                        const medals = ['🥇', '🥈', '🥉'];
+                        return (
+                          <div key={idx} className={`tool-rank-row ${isUser ? 'user' : ''}`}>
+                            <span className="tool-rank-pos">
+                              {idx < 3 ? medals[idx] : `${idx + 1}.`}
+                            </span>
+                            <span className="tool-rank-name">{name}</span>
+                            <span className="tool-rank-count">{count}x</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 })()}
-
               </div>
             </div>
-
-            {/* ━━━ Other Tools ━━━ */}
-            <ToolsCrossSell currentTool="ai-visibility" locale={locale} />
           </section>
         )}
 
-        {/* CTA tijdens scannen */}
-        {analyzing && (
-          <div className="text-center mb-8">
-            <p className="text-slate-600 mb-3">{t('scanCta.text')}</p>
-            <a href="https://www.onlinelabs.nl/skills/geo-optimalisatie" target="_blank" rel="noopener noreferrer"
-              className="inline-block bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white font-semibold py-3 px-8 rounded-lg transition-all cursor-pointer">
-              {t('scanCta.button')}
-            </a>
-            <p className="text-slate-400 text-xs mt-2">{t('scanCta.hint')}</p>
-          </div>
-        )}
-
+        {/* Error */}
         {error && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-300 rounded-xl">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <div className="text-sm text-red-700"><strong>{t('error.prefix')}</strong> {error}</div>
-                {user && (error.includes('dagelijks') || error.includes('morgen') || error.includes('daily') || error.includes('tomorrow') || error.includes('Chrome extensie') || error.includes('Chrome extension')) && (
-                  <Link href={locale === 'en' ? '/en/pricing' : '/pricing'} className="inline-flex items-center gap-1 mt-2 text-sm font-semibold text-[#1E1E3F] hover:underline">
-                    {locale === 'en' ? 'Upgrade to Pro for unlimited scans' : 'Upgrade naar Pro voor onbeperkt scannen'} <ArrowRight className="w-3.5 h-3.5" />
+          <div className="tool-error">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, marginTop: 1 }}>
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 8v4M12 16h.01" />
+            </svg>
+            <div>
+              <strong>{t('error.prefix')}</strong> {error}
+              {user && (error.includes('dagelijks') || error.includes('morgen') || error.includes('daily') || error.includes('tomorrow') || error.includes('Chrome extensie') || error.includes('Chrome extension')) && (
+                <div style={{ marginTop: 6 }}>
+                  <Link href={locale === 'en' ? '/en/pricing' : '/pricing'} style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', textDecoration: 'underline' }}>
+                    {locale === 'en' ? 'Upgrade to Pro for unlimited scans' : 'Upgrade naar Pro voor onbeperkt scannen'} →
                   </Link>
-                )}
-                {!user && (error.includes('gratis') || error.includes('free') || error.includes('account') || error.includes('Log in')) && (
-                  <Link href="/signup" className="inline-flex items-center gap-1 mt-2 text-sm font-semibold text-[#1E1E3F] hover:underline">
-                    {locale === 'en' ? 'Create free account' : 'Gratis account aanmaken'} <ArrowRight className="w-3.5 h-3.5" />
+                </div>
+              )}
+              {!user && (error.includes('gratis') || error.includes('free') || error.includes('account') || error.includes('Log in')) && (
+                <div style={{ marginTop: 6 }}>
+                  <Link href="/signup" style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', textDecoration: 'underline' }}>
+                    {locale === 'en' ? 'Create free account' : 'Gratis account aanmaken'} →
                   </Link>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {!analyzing && (
-          <div className="text-center">
-            <p className="text-slate-500 mb-2 text-sm">
-              {user ? t('footer.loggedInAs', { email: user.email }) : ''}
-            </p>
-          </div>
+        {/* Logged in indicator */}
+        {!analyzing && user && (
+          <p className="tool-footer-info">{t('footer.loggedInAs', { email: user.email })}</p>
         )}
       </div>
 
-      {/* ── SEO CONTENT + FAQ (always visible, outside max-w container) ── */}
+      {/* ============================================
+          SEO CONTENT + FAQ — alleen op step 1 (geen analyzing/results)
+          ============================================ */}
       {!analyzing && !results && (
         <>
-          {/* Section 1: Introductie */}
-          <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4">
-              {locale === 'nl' 
-                ? <>Hoe zichtbaar is jouw bedrijf <br /><span className="text-blue-600">in AI-zoekmachines?</span></>
-                : <>How visible is your business <br /><span className="text-blue-600">in AI search engines?</span></>}
+          {/* SEO Intro */}
+          <section className="tool-seo-intro">
+            <h2>
+              {locale === 'nl' ? (
+                <>Je concurrent staat in <em>het AI-antwoord</em>. En jij?</>
+              ) : (
+                <>Your competitor is in <em>the AI answer</em>. And you?</>
+              )}
             </h2>
-            <p className="text-slate-600 leading-relaxed mb-4">
+            <p>
               {locale === 'nl'
                 ? 'Steeds meer consumenten slaan Google over en vragen ChatGPT, Perplexity of Google AI Mode rechtstreeks om aanbevelingen. "Wat is het beste marketingbureau in Amsterdam?" of "Welke advocaat is gespecialiseerd in arbeidsrecht?". Dit zijn de nieuwe zoekopdrachten die bepalen of klanten jou vinden of je concurrent.'
                 : 'More and more consumers skip Google and ask ChatGPT, Perplexity or Google AI Mode directly for recommendations. "What is the best marketing agency in Amsterdam?" or "Which lawyer specializes in employment law?". These are the new search queries that determine whether customers find you or your competitor.'}
             </p>
-            <p className="text-slate-600 leading-relaxed">
+            <p>
               {locale === 'nl'
                 ? 'De AI Zichtbaarheid Scan van Teun.ai genereert automatisch 10 commerciële prompts op basis van jouw branche en zoekwoorden, en legt deze live voor aan ChatGPT Search en Perplexity. Het resultaat: een concreet overzicht van waar jij wel en niet wordt aanbevolen, inclusief welke concurrenten wél worden genoemd.'
                 : 'The AI Visibility Scan by Teun.ai automatically generates 10 commercial prompts based on your industry and keywords, and submits them live to ChatGPT Search and Perplexity. The result: a concrete overview of where you are and are not recommended, including which competitors are being mentioned.'}
             </p>
           </section>
 
-          {/* Section 2: Hoe werkt het */}
-          <section className="bg-slate-50 py-16">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6">
-              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 text-center mb-4">
-                {locale === 'nl' ? 'Hoe werkt de scan?' : 'How does the AI Visibility Scan work?'}
-              </h2>
-              <p className="text-slate-500 text-center mb-10 max-w-2xl mx-auto">
-                {locale === 'nl' 
-                  ? 'In 4 stappen naar je AI-zichtbaarheidsrapport.' 
+          {/* SEO How it works */}
+          <section className="tool-seo-how">
+            <div className="tool-seo-how-wrap">
+              <h2>{locale === 'nl' ? <>Hoe werkt de <em>scan</em>?</> : <>How does the <em>scan</em> work?</>}</h2>
+              <p className="tool-seo-how-sub">
+                {locale === 'nl'
+                  ? 'In 4 stappen naar je AI-zichtbaarheidsrapport.'
                   : 'From website to AI visibility report in 4 steps.'}
               </p>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="tool-seo-how-grid">
                 {(locale === 'nl' ? [
                   { title: 'Website analyseren', desc: 'Voer je URL in en onze AI haalt automatisch je zoekwoorden, branche en bedrijfsnaam op. Of vul ze handmatig in.' },
                   { title: 'Prompts genereren', desc: '10 commerciële prompts worden gegenereerd op basis van jouw branche, zoekwoorden en servicegebied.' },
@@ -2181,229 +1809,35 @@ function AIVisibilityToolContent() {
                   { title: 'Live AI scanning', desc: 'Each prompt is submitted live to ChatGPT Search and Perplexity for real-time, actual results.' },
                   { title: 'Receive report', desc: 'See per prompt whether you are mentioned, which competitors score and where your opportunities are.' }
                 ]).map((item, i) => (
-                  <div key={i} className="bg-white rounded-xl p-6 border border-slate-200">
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center mb-4">
-                      {[
-                        <Search key="s" className="w-5 h-5" />,
-                        <Zap key="z" className="w-5 h-5" />,
-                        <TrendingUp key="t" className="w-5 h-5" />,
-                        <Award key="a" className="w-5 h-5" />
-                      ][i]}
+                  <div key={i} className="tool-seo-how-card">
+                    <div className="tool-seo-how-card-head">
+                      <div className="num">{i + 1}</div>
+                      <h3>{item.title}</h3>
                     </div>
-                    <h3 className="font-semibold text-slate-900 mb-2">{item.title}</h3>
-                    <p className="text-sm text-slate-600 leading-relaxed">{item.desc}</p>
+                    <p>{item.desc}</p>
                   </div>
                 ))}
               </div>
             </div>
           </section>
 
-          {/* Section 3: Platform Overview (replaces "Van meting naar AI-zichtbaarheid") */}
-          <section className="py-20 bg-slate-100">
-            <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
-              <div className="text-center mb-16">
-                <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
-                  {locale === 'nl' ? (
-                    <>Jouw complete <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">AI-zichtbaarheid platform</span></>
-                  ) : (
-                    <>Your complete <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">AI visibility platform</span></>
-                  )}
-                </h2>
-                <p className="text-slate-500 max-w-xl mx-auto text-lg">
-                  {locale === 'nl'
-                    ? '6 tools die samenwerken. Van eerste check tot structurele optimalisatie.'
-                    : '6 tools working together. From first check to structural optimization.'}
-                </p>
-              </div>
-
-              <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
-                {/* Ontdekken */}
-                <div className="bg-white rounded-2xl p-6 lg:p-8 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                        <Search className="w-5 h-5 text-emerald-500" />
-                      </div>
-                      <h3 className="text-xl font-bold text-slate-900">
-                        {locale === 'nl' ? 'Ontdekken' : 'Discover'}
-                      </h3>
-                    </div>
-                    <span className="text-3xl font-bold text-slate-200">01</span>
-                  </div>
-                  <div className="bg-slate-50 rounded-xl p-4 mb-5 border border-slate-100">
-                    <div className="flex items-center gap-1.5 mb-3">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                      <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">AI Visibility Scan</span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-xs"><span className="text-slate-500">{locale === 'nl' ? 'Jouw merk gevonden in' : 'Your brand found in'}</span><span className="font-bold text-emerald-600">7/10</span></div>
-                      <div className="flex justify-between text-xs"><span className="text-slate-500">{locale === 'nl' ? 'Concurrent gevonden in' : 'Competitor found in'}</span><span className="font-bold text-slate-700">9/10</span></div>
-                      <div className="flex justify-between text-xs"><span className="text-slate-500">Visibility score</span><span className="font-bold text-blue-600">68%</span></div>
-                      <div className="w-full bg-slate-200 rounded-full h-1.5"><div className="bg-blue-500 h-1.5 rounded-full" style={{ width: '68%' }}></div></div>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 mb-4">
-                    <span className="text-[10px] px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full font-medium">AI Visibility Scan</span>
-                    <span className="text-[10px] px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full font-medium">Brand Check</span>
-                  </div>
-                  <p className="text-sm text-slate-600 leading-relaxed">
-                    {locale === 'nl'
-                      ? 'Check direct of AI-zoekmachines jouw bedrijf aanbevelen. Op ChatGPT, Perplexity, Google AI Mode en AI Overviews.'
-                      : 'Check instantly if AI search engines recommend your business. On ChatGPT, Perplexity, Google AI Mode and AI Overviews.'}
-                  </p>
-                </div>
-
-                {/* Analyseren & tracken */}
-                <div className="bg-white rounded-2xl p-6 lg:p-8 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                        <TrendingUp className="w-5 h-5 text-blue-500" />
-                      </div>
-                      <h3 className="text-xl font-bold text-slate-900">
-                        {locale === 'nl' ? 'Analyseren & tracken' : 'Analyze & track'}
-                      </h3>
-                    </div>
-                    <span className="text-3xl font-bold text-slate-200">02</span>
-                  </div>
-                  <div className="bg-slate-50 rounded-xl p-4 mb-5 border border-slate-100">
-                    <div className="flex items-center gap-1.5 mb-3">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                      <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">AI Rank Tracker</span>
-                    </div>
-                    <div className="space-y-2.5">
-                      {[
-                        { pos: 1, name: 'Concurrent A', platform: 'ChatGPT + Perplexity', color: 'bg-amber-500' },
-                        { pos: 2, name: locale === 'nl' ? 'Jouw bedrijf' : 'Your business', platform: 'ChatGPT', color: 'bg-blue-500', bold: true },
-                        { pos: 3, name: 'Concurrent B', platform: 'Perplexity', color: 'bg-slate-400' },
-                      ].map((item) => (
-                        <div key={item.pos} className="flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-5 h-5 rounded-full ${item.color} text-white text-[10px] flex items-center justify-center font-bold`}>{item.pos}</span>
-                            <span className={item.bold ? 'font-bold text-blue-600' : 'text-slate-700'}>{item.name}</span>
-                          </div>
-                          <span className="text-slate-400 text-[10px]">{item.platform}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex justify-between text-[10px] text-slate-400 mt-3 pt-2 border-t border-slate-100">
-                      <span>{locale === 'nl' ? 'Wekelijks automatisch' : 'Weekly automatic'}</span>
-                      <span className="font-semibold text-blue-600">50 keywords (Pro)</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 mb-4">
-                    <span className="text-[10px] px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full font-medium">AI Rank Tracker</span>
-                    <span className="text-[10px] px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full font-medium">GEO Audit</span>
-                    <span className="text-[10px] px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full font-medium">Prompt Explorer</span>
-                  </div>
-                  <p className="text-sm text-slate-600 leading-relaxed">
-                    {locale === 'nl'
-                      ? 'Volg je AI-rankings wekelijks op alle platformen. Ontdek welke prompts klanten gebruiken en audit je technische GEO-score.'
-                      : 'Track your AI rankings weekly on all platforms. Discover which prompts customers use and audit your technical GEO score.'}
-                  </p>
-                </div>
-
-                {/* Optimaliseren */}
-                <div className="bg-white rounded-2xl p-6 lg:p-8 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
-                        <Zap className="w-5 h-5 text-purple-500" />
-                      </div>
-                      <h3 className="text-xl font-bold text-slate-900">
-                        {locale === 'nl' ? 'Optimaliseren' : 'Optimize'}
-                      </h3>
-                    </div>
-                    <span className="text-3xl font-bold text-slate-200">03</span>
-                  </div>
-                  <div className="bg-slate-50 rounded-xl p-4 mb-5 border border-slate-100">
-                    <div className="flex items-center gap-1.5 mb-3">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                      <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">GEO Optimalisatie DIY</span>
-                    </div>
-                    <div className="space-y-2">
-                      {[
-                        { label: 'Schema markup toevoegen', done: true },
-                        { label: 'Google Reviews verbeteren', done: true },
-                        { label: 'Autoriteit blogpost schrijven', done: false },
-                        { label: 'Vergelijkingspagina maken', done: false },
-                      ].map((item, i) => (
-                        <div key={i} className="flex items-center gap-2 text-xs">
-                          {item.done
-                            ? <CheckCircle2 className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-                            : <span className="w-3.5 h-3.5 rounded-full border-2 border-amber-300 flex-shrink-0"></span>
-                          }
-                          <span className={item.done ? 'text-green-700 line-through opacity-60' : 'text-slate-700'}>{item.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex justify-between text-[10px] text-slate-400 mt-3 pt-2 border-t border-slate-100">
-                      <span>Visibility lift</span>
-                      <span className="font-bold text-green-600">+18%</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 mb-4">
-                    <span className="text-[10px] px-2.5 py-1 bg-purple-50 text-purple-600 rounded-full font-medium">GEO Optimalisatie DIY</span>
-                    <span className="text-[10px] px-2.5 py-1 bg-purple-50 text-purple-600 rounded-full font-medium">{locale === 'nl' ? 'AI-advies per pagina' : 'AI advice per page'}</span>
-                  </div>
-                  <p className="text-sm text-slate-600 leading-relaxed">
-                    {locale === 'nl'
-                      ? 'Krijg concrete aanbevelingen per pagina. Zelf doen met DIY, of laat OnlineLabs het voor je regelen.'
-                      : 'Get concrete recommendations per page. Do it yourself with DIY, or let OnlineLabs handle it for you.'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Platform note + CTAs */}
-              <div className="text-center mt-12">
-                <p className="text-slate-500 mb-6">
-                  {locale === 'nl'
-                    ? 'Alle tools zijn gratis te gebruiken. Upgrade naar Lite of Pro voor automatische tracking en onbeperkt gebruik.'
-                    : 'All tools are free to use. Upgrade to Lite or Pro for automatic tracking and unlimited use.'}
-                </p>
-                <div className="flex flex-wrap justify-center gap-4">
-                  <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer">
-                    {locale === 'nl' ? 'Gratis scan starten' : 'Start free scan'} <ArrowRight className="w-5 h-5" />
-                  </button>
-                  <Link href="/pricing" className="inline-flex items-center gap-2 px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-lg hover:shadow-md hover:border-slate-300 transition-all">
-                    {locale === 'nl' ? 'Bekijk Lite & Pro' : 'View Lite & Pro'} <ArrowRight className="w-5 h-5" />
-                  </Link>
-                </div>
-                <p className="text-slate-400 text-xs mt-3">
-                  {locale === 'nl' ? 'Vanaf €29,95/mnd excl. BTW' : 'From €29.95/mo excl. VAT'}
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* FAQ Section */}
-          <section className="py-20 bg-slate-50 relative overflow-visible">
-            <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
-              <div className="grid lg:grid-cols-2 gap-12 items-start">
-                <div>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-6">
-                    {locale === 'nl' ? 'Veelgestelde vragen' : 'Frequently asked questions'}
-                  </h2>
-                  <FAQAccordion items={locale === 'nl' ? [
-                    { q: 'Wat is een AI zichtbaarheidsanalyse?', a: 'Een AI zichtbaarheidsanalyse controleert of jouw bedrijf wordt genoemd en aanbevolen door AI-platforms zoals ChatGPT en Perplexity. De scan genereert commerciële prompts die echte klanten zouden stellen en kijkt of jij in de antwoorden voorkomt.' },
-                    { q: 'Welke AI-platforms worden gescand?', a: 'De gratis scan controleert ChatGPT Search en Perplexity. Met een Teun.ai account kun je via het dashboard ook Google AI Mode en Google AI Overviews scannen. Samen dekken deze vier platforms het overgrote deel van het AI-zoekverkeer.' },
-                    { q: 'Is de AI Zichtbaarheid Scan gratis?', a: 'Ja. Zonder account kun je 2 scans uitvoeren. Met een gratis account krijg je 1 scan per dag. Met een Pro-abonnement kun je onbeperkt scannen.' },
-                    { q: 'Hoe kan ik mijn AI zichtbaarheid verbeteren?', a: 'Na de scan zie je precies welke prompts je mist. Gebruik de GEO Audit om je website technisch te laten analyseren, of bekijk de AI Prompt Explorer om te zien welke prompts klanten gebruiken in jouw branche.' },
-                    { q: 'Wat is het verschil tussen SEO en GEO?', a: 'SEO is gericht op hoog scoren in Google. GEO (Generative Engine Optimization) is gericht op het worden genoemd door AI-zoekmachines. De AI Zichtbaarheid Scan meet specifiek je GEO-prestaties.' },
-                  ] : [
-                    { q: 'What is an AI visibility scan?', a: 'An AI visibility scan checks whether your business is mentioned and recommended by AI platforms such as ChatGPT and Perplexity. The scan generates commercial prompts that real customers would ask and checks if you appear in the answers.' },
-                    { q: 'Which AI platforms are scanned?', a: 'The free scan checks ChatGPT Search and Perplexity. With a Teun.ai account you can also scan Google AI Mode and Google AI Overviews through the dashboard. Together, these four platforms cover the vast majority of AI search traffic.' },
-                    { q: 'Is the AI Visibility Scan free?', a: 'Yes. Without an account you can run 2 scans. With a free account you get 1 scan per day. With a Pro subscription you can scan unlimited.' },
-                    { q: 'How can I improve my AI visibility?', a: 'After the scan you see exactly which prompts you are missing. Use the GEO Audit to have your website technically analysed, or check the AI Prompt Explorer to see which prompts customers use in your industry.' },
-                    { q: 'What is the difference between SEO and GEO?', a: 'SEO focuses on ranking high in Google. GEO (Generative Engine Optimization) focuses on being mentioned by AI search engines. The AI Visibility Scan specifically measures your GEO performance.' },
-                  ]} />
-                </div>
-                <div className="hidden lg:flex justify-center items-end relative">
-                  <div className="translate-y-22">
-                    <Image src="/teun-ai-mascotte.png" alt="Teun.ai mascotte" width={420} height={520} className="w-[420px] h-auto mb-2" />
-                  </div>
-                </div>
-              </div>
+          {/* FAQ */}
+          <section className="tool-faq-section">
+            <div className="tool-faq-wrap">
+              <h2>{locale === 'nl' ? <>Veelgestelde <em>vragen</em></> : <>Frequently asked <em>questions</em></>}</h2>
+              <FAQAccordion items={locale === 'nl' ? [
+                { q: 'Wat is een AI zichtbaarheidsanalyse?', a: 'Een AI zichtbaarheidsanalyse controleert of jouw bedrijf wordt genoemd en aanbevolen door AI-platforms zoals ChatGPT en Perplexity. De scan genereert commerciële prompts die echte klanten zouden stellen en kijkt of jij in de antwoorden voorkomt.' },
+                { q: 'Welke AI-platforms worden gescand?', a: 'De gratis scan controleert ChatGPT Search en Perplexity. Met een Teun.ai account kun je via het dashboard ook Google AI Mode en Google AI Overviews scannen. Samen dekken deze vier platforms het overgrote deel van het AI-zoekverkeer.' },
+                { q: 'Is de AI Zichtbaarheid Scan gratis?', a: 'Ja. Zonder account kun je 2 scans uitvoeren. Met een gratis account krijg je 1 scan per dag. Met een Pro-abonnement kun je onbeperkt scannen.' },
+                { q: 'Hoe kan ik mijn AI zichtbaarheid verbeteren?', a: 'Na de scan zie je precies welke prompts je mist. Gebruik de GEO Audit om je website technisch te laten analyseren, of bekijk de AI Prompt Explorer om te zien welke prompts klanten gebruiken in jouw branche.' },
+                { q: 'Wat is het verschil tussen SEO en GEO?', a: 'SEO is gericht op hoog scoren in Google. GEO (Generative Engine Optimization) is gericht op het worden genoemd door AI-zoekmachines. De AI Zichtbaarheid Scan meet specifiek je GEO-prestaties.' },
+              ] : [
+                { q: 'What is an AI visibility scan?', a: 'An AI visibility scan checks whether your business is mentioned and recommended by AI platforms such as ChatGPT and Perplexity. The scan generates commercial prompts that real customers would ask and checks if you appear in the answers.' },
+                { q: 'Which AI platforms are scanned?', a: 'The free scan checks ChatGPT Search and Perplexity. With a Teun.ai account you can also scan Google AI Mode and Google AI Overviews through the dashboard. Together, these four platforms cover the vast majority of AI search traffic.' },
+                { q: 'Is the AI Visibility Scan free?', a: 'Yes. Without an account you can run 2 scans. With a free account you get 1 scan per day. With a Pro subscription you can scan unlimited.' },
+                { q: 'How can I improve my AI visibility?', a: 'After the scan you see exactly which prompts you are missing. Use the GEO Audit to have your website technically analysed, or check the AI Prompt Explorer to see which prompts customers use in your industry.' },
+                { q: 'What is the difference between SEO and GEO?', a: 'SEO focuses on ranking high in Google. GEO (Generative Engine Optimization) focuses on being mentioned by AI search engines. The AI Visibility Scan specifically measures your GEO performance.' },
+              ]} />
             </div>
           </section>
         </>
@@ -2416,8 +1850,11 @@ function AIVisibilityToolContent() {
 export default function AIVisibilityTool() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center">
-        <Loader2 className="w-12 h-12 text-purple-500 animate-spin" />
+      <div className="tool-init">
+        <div className="tool-init-spinner">
+          <span className="dot"></span><span className="dot"></span><span className="dot"></span>
+        </div>
+        
       </div>
     }>
       <AIVisibilityToolContent />

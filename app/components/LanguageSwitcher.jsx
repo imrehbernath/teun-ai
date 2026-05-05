@@ -13,7 +13,11 @@ const pathMapping = {
   '/about-us': '/over-ons',
 };
 
-export default function LanguageSwitcher() {
+/**
+ * LanguageSwitcher
+ * @param {string} variant - 'cream' (default, voor lichte cream header) of 'dark' (voor donkere navy header)
+ */
+export default function LanguageSwitcher({ variant = 'cream' }) {
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
@@ -36,6 +40,62 @@ export default function LanguageSwitcher() {
     router.replace(targetPath, { locale: newLocale });
   };
 
+  // Cream variant — voor lichte (cream) header
+  if (variant === 'cream') {
+    return (
+      <div
+        style={{
+          display: 'inline-flex',
+          background: 'var(--bg-2, #F2ECDF)',
+          borderRadius: '8px',
+          padding: '3px',
+          fontFamily: 'var(--font-mono), monospace',
+          fontSize: '11px',
+        }}
+      >
+        <button
+          onClick={() => switchLocale('nl')}
+          style={{
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontWeight: 500,
+            background: locale === 'nl' ? '#fff' : 'transparent',
+            color: locale === 'nl' ? 'var(--ink, #0F1730)' : 'var(--ink-3, #6B7391)',
+            boxShadow: locale === 'nl' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+            fontFamily: 'inherit',
+            fontSize: 'inherit',
+          }}
+          aria-label="Nederlands"
+        >
+          NL
+        </button>
+        <button
+          onClick={() => switchLocale('en')}
+          style={{
+            padding: '4px 10px',
+            borderRadius: '6px',
+            fontWeight: 500,
+            background: locale === 'en' ? '#fff' : 'transparent',
+            color: locale === 'en' ? 'var(--ink, #0F1730)' : 'var(--ink-3, #6B7391)',
+            boxShadow: locale === 'en' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+            fontFamily: 'inherit',
+            fontSize: 'inherit',
+          }}
+          aria-label="English"
+        >
+          EN
+        </button>
+      </div>
+    );
+  }
+
+  // Dark variant — originele styling (voor donkere headers, behoud backwards-compat)
   return (
     <div className="flex items-center gap-1 bg-white/10 rounded-lg p-0.5">
       <button

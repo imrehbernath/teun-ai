@@ -1,16 +1,20 @@
+// app/[locale]/tools/ai-prompt-discovery/page.jsx
+// AI Prompt Discovery - Search Console queries → AI prompt insights
+// Cream/Lora/spark editorial design (matches AI Visibility + Brand Check + Rank Tracker)
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Search, ArrowRight, TrendingUp, Eye, BarChart3, Sparkles, Loader2, Unplug, ChevronDown, Globe, Database } from 'lucide-react'
+import { useState, useEffect, Suspense } from 'react'
+import {
+  Search, ArrowRight, TrendingUp, Eye, BarChart3, Sparkles, Loader2, Unplug,
+  ChevronDown, Globe, Database, Check, Trophy, Target, Lock
+} from 'lucide-react'
 import { Link } from '@/i18n/navigation'
 import { useLocale } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
-import Image from 'next/image'
-import { Suspense } from 'react'
 import ToolsCrossSell from '@/app/components/ToolsCrossSell'
 
 // ============================================
-// HELPERS
+// HELPERS (business logic — ongewijzigd)
 // ============================================
 function cleanQuery(q) {
   return q.replace(/\.\s*my\s+location\s+is\s+\w+\.?$/i, '').replace(/\s+/g, ' ').trim()
@@ -81,8 +85,8 @@ function AIPromptDiscoveryContent() {
   const [hideBranded, setHideBranded] = useState(true)
   const [showOther, setShowOther] = useState(false)
   const [openFaq, setOpenFaq] = useState(0)
+  const [faqCategory, setFaqCategory] = useState('all')
 
-  // Check connection on mount (works for logged in AND anonymous via session_token cookie)
   useEffect(() => {
     checkConnection()
   }, [])
@@ -105,7 +109,6 @@ function AIPromptDiscoveryContent() {
     setLoading(false)
   }
 
-  // Auto-fetch when property selected
   useEffect(() => { if (selectedProperty && connected) fetchPrompts() }, [selectedProperty])
 
   const fetchPrompts = async () => {
@@ -159,7 +162,6 @@ function AIPromptDiscoveryContent() {
     setFetching(false)
   }
 
-  // Connect - goes directly to Google OAuth (anonymous supported via session_token)
   const connectGSC = () => {
     const returnUrl = isNL ? '/tools/ai-prompt-discovery' : '/en/tools/ai-prompt-discovery'
     window.location.href = `/api/auth/google?returnUrl=${encodeURIComponent(returnUrl)}`
@@ -173,18 +175,20 @@ function AIPromptDiscoveryContent() {
     setSelectedProperty(null)
   }
 
-  // Categorize
   const base = allPrompts.filter(p => p.words >= 8).filter(p => !hideBranded || !p.branded)
   const commercial = base.filter(p => p.category === 'commercial').sort((a, b) => b.impressions - a.impressions)
   const aiOverview = base.filter(p => p.category === 'ai_overview').sort((a, b) => b.impressions - a.impressions)
   const other = base.filter(p => p.category === 'other').sort((a, b) => b.impressions - a.impressions)
   const allFiltered = [...commercial, ...aiOverview, ...other]
 
-  const toggle = (q) => { const s = new Set(selected); s.has(q) ? s.delete(q) : s.size < 10 && s.add(q); setSelected(s) }
+  const toggle = (q) => {
+    const s = new Set(selected)
+    s.has(q) ? s.delete(q) : s.size < 10 && s.add(q)
+    setSelected(s)
+  }
 
   const scanSelected = () => {
     const list = [...selected]
-    // Store prompts in sessionStorage (AI Visibility page reads from here)
     sessionStorage.setItem('teun_custom_prompts', JSON.stringify(list))
     const params = new URLSearchParams()
     if (brandName) params.set('company', brandName)
@@ -193,7 +197,7 @@ function AIPromptDiscoveryContent() {
       const website = selectedProperty.replace('sc-domain:', '').replace(/\/$/, '')
       params.set('website', website.startsWith('http') ? website : `https://${website}`)
     }
-    params.set('customPrompts', 'true')  // flag, not data
+    params.set('customPrompts', 'true')
     params.set('autostart', 'true')
     window.location.href = `/${locale === 'en' ? 'en/' : ''}tools/ai-visibility?${params.toString()}`
   }
@@ -203,446 +207,592 @@ function AIPromptDiscoveryContent() {
   const hasResults = connected && !fetching && allPrompts.length > 0
   const showSEOContent = !hasResults && !fetching
 
-  // ── Components ──
+  // ── PromptRow ──
   const PromptRow = ({ p }) => {
     const sel = selected.has(p.query)
     let pg = ''
     try { pg = new URL(p.page).pathname } catch (e) { pg = p.page }
     return (
-      <div onClick={() => toggle(p.query)} className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors ${sel ? 'bg-emerald-50 border-l-2 border-emerald-500' : 'hover:bg-slate-50 border-l-2 border-transparent'}`}>
-        <div className="mt-0.5 shrink-0">
-          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition ${sel ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300'}`}>
-            {sel && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
-          </div>
+      <div onClick={() => toggle(p.query)} className={`apd-prompt-row${sel ? ' apd-prompt-row-sel' : ''}`}>
+        <div className={`apd-checkbox${sel ? ' apd-checkbox-sel' : ''}`}>
+          {sel && <Check className="w-3 h-3" strokeWidth={3} />}
         </div>
-        <div className="flex-1 min-w-0">
-          <p className={`text-sm leading-relaxed ${sel ? 'text-emerald-900 font-medium' : 'text-slate-700'}`}>{
-            (() => {
-              let text = p.query.charAt(0).toUpperCase() + p.query.slice(1)
-              // Capitalize Dutch/common city names
-              const cities = ['amsterdam','rotterdam','utrecht','den haag','eindhoven','groningen','tilburg','almere','breda','nijmegen','haarlem','arnhem','zaanstad','amersfoort','apeldoorn','den bosch','s-hertogenbosch','maastricht','leiden','dordrecht','zoetermeer','zwolle','deventer','delft','alkmaar','hilversum','brugge','antwerpen','gent','brussel','nederland','netherlands','holland','europe','europa']
-              cities.forEach(city => {
-                const re = new RegExp(`\\b${city}\\b`, 'gi')
-                text = text.replace(re, city.split(/[\s-]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(city.includes('-') ? '-' : ' '))
-              })
-              return text
-            })()
-          }</p>
-          {pg && <p className="text-xs text-slate-400 mt-0.5 truncate">{pg}</p>}
+        <div className="apd-prompt-content">
+          <p className="apd-prompt-text">{(() => {
+            let text = p.query.charAt(0).toUpperCase() + p.query.slice(1)
+            const cities = ['amsterdam','rotterdam','utrecht','den haag','eindhoven','groningen','tilburg','almere','breda','nijmegen','haarlem','arnhem','zaanstad','amersfoort','apeldoorn','den bosch','s-hertogenbosch','maastricht','leiden','dordrecht','zoetermeer','zwolle','deventer','delft','alkmaar','hilversum','brugge','antwerpen','gent','brussel','nederland','netherlands','holland','europe','europa']
+            cities.forEach(city => {
+              const re = new RegExp(`\\b${city}\\b`, 'gi')
+              text = text.replace(re, city.split(/[\s-]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(city.includes('-') ? '-' : ' '))
+            })
+            return text
+          })()}</p>
+          {pg && <p className="apd-prompt-page">{pg}</p>}
+        </div>
+        {p.impressions > 0 && (
+          <div className="apd-prompt-stats">
+            <span className="apd-prompt-imp">{p.impressions.toLocaleString(isNL ? 'nl-NL' : 'en-US')}</span>
+            <span className="apd-prompt-imp-label">{isNL ? 'imp.' : 'imp.'}</span>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const SectionHeader = ({ icon, title, count, subtitle, dotColor }) => (
+    <div className="apd-section-head">
+      <span className="apd-section-dot" style={{ background: dotColor }} />
+      <div className="apd-section-text">
+        <p className="apd-section-title">{title} <span className="apd-section-count">({count})</span></p>
+        <p className="apd-section-sub">{subtitle}</p>
+      </div>
+      {icon && <div className="apd-section-icon">{icon}</div>}
+    </div>
+  )
+
+  // ── FAQ data ──
+  const faqItems = isNL ? [
+    { cat: 'product', q: 'Wat zijn AI-prompts in Search Console?', a: 'Google Search Console toont steeds vaker lange, conversatie-achtige zoekopdrachten. Deze komen waarschijnlijk van Google AI Mode, AI Overviews en de invloed van ChatGPT op zoekgedrag. Wij filteren deze automatisch eruit en categoriseren ze.' },
+    { cat: 'privacy', q: 'Is mijn data veilig?', a: 'Ja. We hebben alleen-lezen toegang tot je Search Console via Google OAuth. We wijzigen niets, slaan geen queries op en delen je data niet met derden. Je kunt de koppeling op elk moment verwijderen.' },
+    { cat: 'product', q: 'Wat is het verschil tussen commercieel en AI Overview?', a: 'Commerciele prompts zijn queries waarbij iemand een bureau, specialist of dienstverlener zoekt. AI Overview prompts komen specifiek uit Google AI Mode en bevatten locatie-metadata. Beide zijn waardevol voor je AI-zichtbaarheid.' },
+    { cat: 'results', q: 'Wat kan ik met de resultaten doen?', a: 'Selecteer de meest relevante prompts en scan ze in onze AI Visibility tool. Zo zie je of je ook in ChatGPT en Perplexity wordt genoemd op deze vragen.' },
+    { cat: 'product', q: 'Verschilt dit van de AI Visibility Scan?', a: 'Ja. De AI Visibility Scan genereert prompts op basis van je website. AI Prompt Discovery laat zien welke prompts echte gebruikers al typen en waar jij al op gevonden wordt. Samen geven ze het complete plaatje.' },
+  ] : [
+    { cat: 'product', q: 'What are AI prompts in Search Console?', a: 'Google Search Console increasingly shows long, conversational queries. These likely come from Google AI Mode, AI Overviews, and ChatGPT\'s influence on search behavior. We automatically filter and categorize these.' },
+    { cat: 'privacy', q: 'Is my data safe?', a: 'Yes. We have read-only access via Google OAuth. We don\'t change anything, don\'t store queries, and never share your data. You can disconnect at any time.' },
+    { cat: 'product', q: 'What\'s the difference between commercial and AI Overview?', a: 'Commercial prompts are queries where someone is looking for an agency, specialist, or service provider. AI Overview prompts specifically come from Google AI Mode and contain location metadata. Both are valuable for AI visibility.' },
+    { cat: 'results', q: 'What can I do with the results?', a: 'Select the most relevant prompts and scan them in our AI Visibility tool to check if you\'re mentioned in ChatGPT and Perplexity.' },
+    { cat: 'product', q: 'How is this different from AI Visibility Scan?', a: 'AI Visibility Scan generates prompts based on your website. AI Prompt Discovery shows which prompts real users already type. Together they give the complete picture.' },
+  ]
+
+  // Loading
+  if (loading) {
+    return (
+      <div className="tool-init">
+        <div className="tool-init-spinner">
+          <span className="dot"></span>
+          <span className="dot"></span>
+          <span className="dot"></span>
         </div>
       </div>
     )
   }
 
-  const SectionHeader = ({ icon, color, title, count, subtitle }) => (
-    <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border-b border-slate-100">
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${color}`}>{icon}</div>
-      <div className="flex-1">
-        <p className="text-sm font-bold text-slate-900">{title} <span className="text-slate-400 font-normal">({count})</span></p>
-        <p className="text-xs text-slate-500">{subtitle}</p>
-      </div>
-    </div>
-  )
-
-  const faqItems = isNL ? [
-    { q: 'Wat zijn AI-prompts in Search Console?', a: 'Google Search Console toont steeds vaker lange, conversatie-achtige zoekopdrachten. Deze komen waarschijnlijk van Google AI Mode, AI Overviews en de invloed van ChatGPT op zoekgedrag. Wij filteren deze automatisch eruit en categoriseren ze.' },
-    { q: 'Is mijn data veilig?', a: 'Ja. We hebben alleen-lezen toegang tot je Search Console via Google OAuth. We wijzigen niets, slaan geen queries op en delen je data niet met derden. Je kunt de koppeling op elk moment verwijderen.' },
-    { q: 'Wat is het verschil tussen commercieel en AI Overview?', a: 'Commerciele prompts zijn queries waarbij iemand een bureau, specialist of dienstverlener zoekt. AI Overview prompts komen specifiek uit Google AI Mode en bevatten locatie-metadata. Beide zijn waardevol voor je AI-zichtbaarheid.' },
-    { q: 'Wat kan ik met de resultaten doen?', a: 'Selecteer de meest relevante prompts en scan ze in onze AI Visibility tool. Zo zie je of je ook in ChatGPT en Perplexity wordt genoemd op deze vragen.' },
-    { q: 'Verschilt dit van de AI Visibility Scan?', a: 'Ja. De AI Visibility Scan genereert prompts op basis van je website. AI Prompt Discovery laat zien welke prompts echte gebruikers al typen en waar jij al op gevonden wordt. Samen geven ze het complete plaatje.' },
-  ] : [
-    { q: 'What are AI prompts in Search Console?', a: 'Google Search Console increasingly shows long, conversational queries. These likely come from Google AI Mode, AI Overviews, and ChatGPT\'s influence on search behavior. We automatically filter and categorize these.' },
-    { q: 'Is my data safe?', a: 'Yes. We have read-only access via Google OAuth. We don\'t change anything, don\'t store queries, and never share your data. You can disconnect at any time.' },
-    { q: 'What\'s the difference between commercial and AI Overview?', a: 'Commercial prompts are queries where someone is looking for an agency, specialist, or service provider. AI Overview prompts specifically come from Google AI Mode and contain location metadata. Both are valuable for AI visibility.' },
-    { q: 'What can I do with the results?', a: 'Select the most relevant prompts and scan them in our AI Visibility tool to check if you\'re mentioned in ChatGPT and Perplexity.' },
-    { q: 'How is this different from AI Visibility Scan?', a: 'AI Visibility Scan generates prompts based on your website. AI Prompt Discovery shows which prompts real users already type. Together they give the complete picture.' },
-  ]
-
-  // Loading
-  if (loading) {
-    return <div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="w-8 h-8 text-emerald-500 animate-spin" /></div>
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 relative">
-      {/* Animation styles */}
-      <style>{`
-        @keyframes tool-float-slow {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -25px) scale(1.08); }
-          66% { transform: translate(-25px, 15px) scale(0.95); }
-        }
-        @keyframes tool-float-medium {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(-40px, 30px) scale(1.1); }
-        }
-        .tool-orb-1 { animation: tool-float-slow 22s ease-in-out infinite; }
-        .tool-orb-2 { animation: tool-float-medium 18s ease-in-out infinite; animation-delay: -4s; }
-        .tool-orb-3 { animation: tool-float-slow 26s ease-in-out infinite reverse; animation-delay: -8s; }
-        @media (prefers-reduced-motion: reduce) {
-          .tool-orb-1, .tool-orb-2, .tool-orb-3 { animation: none; }
-        }
-      `}</style>
+    <div className="tool-page apd-page">
+      <div className="tool-wrap apd-wrap">
 
-      {/* Animated background orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="tool-orb-1 absolute -top-32 -right-32 lg:top-[-10%] lg:right-[5%] w-[300px] h-[300px] lg:w-[450px] lg:h-[450px] rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 40%, transparent 70%)' }} />
-        <div className="tool-orb-2 absolute -bottom-24 -left-24 lg:bottom-[-15%] lg:left-[-5%] w-[250px] h-[250px] lg:w-[400px] lg:h-[400px] rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(139, 92, 246, 0.10) 0%, rgba(139, 92, 246, 0.03) 40%, transparent 70%)' }} />
-        <div className="tool-orb-3 absolute top-[50%] right-[8%] w-[120px] h-[120px] lg:w-[180px] lg:h-[180px] rounded-full hidden lg:block"
-          style={{ background: 'radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 60%)' }} />
-      </div>
-
-      {/* ══ HERO + CONNECT ══ */}
-      <section className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
-        <div className="text-center mb-8">
-          <span className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-700 text-sm font-medium mb-4">
-            <Search className="w-3.5 h-3.5" />
-            AI Prompt Discovery
-          </span>
-          <h1 className="text-3xl sm:text-4xl md:text-[2.75rem] font-bold text-slate-900 leading-tight mb-4">
-            {isNL
-              ? <>Op welke AI-prompts<br />word je al gevonden?</>
-              : <>Which AI prompts<br />already find your business?</>}
+        {/* Hero */}
+        <div className="tool-hero">
+          <div className="tool-eyebrow">{isNL ? 'AI PROMPT DISCOVERY' : 'AI PROMPT DISCOVERY'}</div>
+          <h1>
+            {isNL ? (
+              <>Ontdek welke <em>AI-prompts</em> je klanten al typen</>
+            ) : (
+              <>Discover which <em>AI prompts</em> your customers already type</>
+            )}
           </h1>
-          <p className="text-slate-600 text-base sm:text-lg mb-1">
+          <p className="tool-hero-sub">
             {isNL
-              ? <>Koppel je Search Console en ontdek in <strong className="text-slate-800">30 seconden</strong> welke commerciele en AI Overview prompts al naar jouw website leiden.</>
-              : <>Connect your Search Console and discover in <strong className="text-slate-800">30 seconds</strong> which commercial and AI Overview prompts already lead to your website.</>}
+              ? 'Filter conversatie-achtige queries uit je Search Console data. Zie welke commerciele AI-prompts naar je site leiden, en welke kansen je nog mist.'
+              : 'Filter conversational queries from your Search Console data. See which commercial AI prompts lead to your site, and which opportunities you\'re missing.'}
           </p>
-          <div className="flex justify-center gap-3 mt-3 mb-6">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-slate-200 bg-white text-sm text-slate-600"><span className="w-2 h-2 rounded-full bg-emerald-400" />Google AI Mode</span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-slate-200 bg-white text-sm text-slate-600"><span className="w-2 h-2 rounded-full bg-emerald-400" />AI Overviews</span>
+          <div className="tool-trust-pills">
+            <span className="tool-trust-pill"><span className="pulse-dot" style={{ background: '#10B981' }} />Search Console</span>
+            <span className="tool-trust-pill"><span className="pulse-dot" style={{ background: '#6366F1' }} />ChatGPT &amp; Perplexity</span>
+            <span className="tool-trust-pill"><span className="pulse-dot" style={{ background: '#3B82F6' }} />Google AI Mode</span>
           </div>
         </div>
 
-        {/* Connect card (shown when not connected and not fetching) */}
+        {/* Connect card (not connected) */}
         {connected === false && (
-          <div className="bg-white rounded-xl shadow-lg shadow-slate-200/50 border border-slate-200 p-8 text-center">
-            <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Globe className="w-7 h-7 text-emerald-600" />
+          <div className="apd-connect-card" id="apd-connect">
+            <div className="apd-connect-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32" />
+                <circle cx="12" cy="12" r="9" />
+              </svg>
             </div>
-            <button onClick={connectGSC}
-              className="w-full bg-[#292956] text-white font-semibold px-6 py-3.5 rounded-xl hover:bg-[#1e1e45] transition-all flex items-center justify-center gap-3 cursor-pointer text-lg mb-4">
-              <svg className="w-5 h-5" viewBox="0 0 24 24"><path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fillOpacity=".7"/><path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fillOpacity=".5"/><path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fillOpacity=".3"/><path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fillOpacity=".5"/></svg>
-              {isNL ? 'Koppel Search Console' : 'Connect Search Console'}
+            <h2 className="apd-connect-title">
+              {isNL ? <>Koppel je <em>Search Console</em></> : <>Connect your <em>Search Console</em></>}
+            </h2>
+            <p className="apd-connect-sub">
+              {isNL
+                ? 'We analyseren automatisch je queries van de afgelopen 90 dagen en filteren de AI-prompts eruit.'
+                : 'We automatically analyze your queries from the last 90 days and filter out the AI prompts.'}
+            </p>
+            <button onClick={connectGSC} className="teun-scan-btn apd-connect-btn">
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fillOpacity=".7"/>
+                <path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fillOpacity=".5"/>
+                <path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fillOpacity=".3"/>
+                <path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fillOpacity=".5"/>
+              </svg>
+              {isNL ? 'Verbind met Google' : 'Connect with Google'}
             </button>
-            <p className="text-xs text-slate-400">{isNL ? 'Gratis. Alleen-lezen toegang. Geen account nodig.' : 'Free. Read-only access. No account needed.'}</p>
-            {error && <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{error}</div>}
+            <p className="apd-connect-hint">
+              <Lock className="w-3 h-3 apd-connect-hint-icon" />
+              <span>{isNL ? 'Gratis · Alleen-lezen toegang · Geen account nodig' : 'Free · Read-only access · No account needed'}</span>
+            </p>
+            {error && <div className="tool-error apd-error">{error}</div>}
           </div>
         )}
 
-        {/* Checking connection */}
-        {connected === null && (
-          <div className="text-center py-8">
-            <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mx-auto mb-3" />
-            <p className="text-slate-500 text-sm">{isNL ? 'Verbinding controleren...' : 'Checking connection...'}</p>
+        {/* Connection check */}
+        {connected === null && !loading && (
+          <div className="apd-checking">
+            <Loader2 className="w-6 h-6 animate-spin" />
+            <p>{isNL ? 'Verbinding controleren...' : 'Checking connection...'}</p>
           </div>
         )}
 
-        {/* Fetching prompts */}
+        {/* Fetching */}
         {connected && fetching && (
-          <div className="text-center py-12">
-            <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mx-auto mb-4" />
-            <p className="text-slate-600 font-medium">{isNL ? 'AI-prompts ophalen uit Search Console...' : 'Fetching AI prompts...'}</p>
-            <p className="text-sm text-slate-400 mt-2">{isNL ? 'We analyseren je queries van de afgelopen 90 dagen' : 'Analyzing last 90 days'}</p>
+          <div className="apd-fetching">
+            <div className="apd-fetching-spinner">
+              <Loader2 className="w-7 h-7 animate-spin" />
+            </div>
+            <p className="apd-fetching-title">
+              {isNL ? <>AI-prompts ophalen uit <em>Search Console</em></> : <>Fetching AI prompts from <em>Search Console</em></>}
+            </p>
+            <p className="apd-fetching-sub">
+              {isNL ? 'We analyseren je queries van de afgelopen 90 dagen' : 'Analyzing last 90 days of queries'}
+            </p>
           </div>
         )}
-      </section>
 
-      {/* ══ RESULTS ══ */}
-      {hasResults && (
-        <section className="max-w-4xl mx-auto px-4 sm:px-6 pb-8">
-          {/* Toolbar */}
-          <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4 flex flex-wrap items-center gap-3">
-            <div className="relative">
-              <button onClick={() => properties.length > 1 && setShowPicker(!showPicker)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700 font-medium cursor-pointer">
-                <Globe className="w-3.5 h-3.5" />{selectedProperty ? pLabel(selectedProperty) : 'Property'}{properties.length > 1 && <ChevronDown className="w-3 h-3" />}
-              </button>
-              {showPicker && properties.length > 1 && (
-                <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-10 min-w-[240px]">
-                  {properties.map(p => (
-                    <button key={p.url} onClick={() => { setSelectedProperty(p.url); setShowPicker(false); try { setBrandName(new URL(p.url.replace('sc-domain:', 'https://')).hostname.replace('www.', '').split('.')[0]) } catch(e){} }}
-                      className={`block w-full text-left px-4 py-2 text-sm hover:bg-slate-50 cursor-pointer ${p.url === selectedProperty ? 'text-emerald-700 font-medium' : 'text-slate-600'}`}>
-                      {pLabel(p.url)}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <input type="text" value={brandName} onChange={(e) => {
-              setBrandName(e.target.value)
-              const b = e.target.value.toLowerCase().trim()
-              setAllPrompts(prev => prev.map(p => ({ ...p, branded: b && (p.query.toLowerCase().includes(b) || p.query.toLowerCase().includes(b.replace(/\s+/g, ''))) })))
-            }} placeholder={isNL ? 'Bedrijfsnaam' : 'Brand name'} className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-700 w-36 focus:outline-none focus:border-emerald-500" />
-            <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-              <input type="checkbox" checked={hideBranded} onChange={(e) => setHideBranded(e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500" />
-              Non-branded
-            </label>
-            <div className="ml-auto">
-              <button onClick={disconnect} className="text-sm text-slate-400 hover:text-red-500 flex items-center gap-1 transition cursor-pointer" title={isNL ? 'Ontkoppel' : 'Disconnect'}>
-                <Unplug className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
+        {/* Connected + has results */}
+        {connected && !fetching && allPrompts.length > 0 && (
+          <div className="apd-results">
 
-          {/* Stats */}
-          <div className="bg-gradient-to-r from-[#1E1E3F] via-[#2D2D5F] to-[#1E1E3F] rounded-2xl p-4 sm:p-6 mb-4 text-white">
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div><p className="text-2xl sm:text-3xl font-bold">{commercial.length}</p><p className="text-xs sm:text-sm text-slate-300">{isNL ? 'Commercieel' : 'Commercial'}</p></div>
-              <div><p className="text-2xl sm:text-3xl font-bold">{aiOverview.length}</p><p className="text-xs sm:text-sm text-slate-300">AI Overviews</p></div>
-              <div><p className="text-2xl sm:text-3xl font-bold">{other.length}</p><p className="text-xs sm:text-sm text-slate-300">{isNL ? 'Overig' : 'Other'}</p></div>
-            </div>
-            <p className="text-center text-xs text-slate-400 mt-3">{isNL ? 'Laatste 90 dagen' : 'Last 90 days'}</p>
-          </div>
-
-          {/* Selection CTA */}
-          {selected.size > 0 && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
-              <div className="flex-1">
-                <p className="font-semibold text-emerald-800 text-sm">{selected.size} prompt{selected.size > 1 ? 's' : ''} {isNL ? 'geselecteerd' : 'selected'}</p>
-                <p className="text-xs text-emerald-600">{isNL ? 'Scan in ChatGPT en Perplexity' : 'Scan in ChatGPT and Perplexity'}</p>
+            {/* Property bar */}
+            <div className="apd-property-bar">
+              <div className="apd-property-picker-wrap">
+                <button
+                  onClick={() => properties.length > 1 && setShowPicker(!showPicker)}
+                  className="apd-property-pill"
+                  aria-expanded={showPicker}
+                >
+                  <Globe className="w-4 h-4" />
+                  <span>{selectedProperty ? pLabel(selectedProperty) : '—'}</span>
+                  {properties.length > 1 && <ChevronDown className={`w-4 h-4 apd-chevron${showPicker ? ' apd-chevron-open' : ''}`} />}
+                </button>
+                {showPicker && (
+                  <div className="apd-property-dropdown">
+                    {properties.map(p => (
+                      <button
+                        key={p.url}
+                        onClick={() => {
+                          setSelectedProperty(p.url)
+                          setShowPicker(false)
+                          try { setBrandName(new URL(p.url.replace('sc-domain:', 'https://')).hostname.replace('www.', '').split('.')[0]) } catch(e){}
+                        }}
+                        className={`apd-property-option${p.url === selectedProperty ? ' apd-property-option-active' : ''}`}
+                      >
+                        {pLabel(p.url)}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-              <button onClick={scanSelected} className="px-5 py-2.5 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-semibold text-sm hover:shadow-lg transition flex items-center gap-2 cursor-pointer">
-                <Sparkles className="w-4 h-4" />{isNL ? 'Scan in AI Visibility' : 'Scan in AI Visibility'}<ArrowRight className="w-3.5 h-3.5" />
+
+              <label className="apd-toggle-label">
+                <input type="checkbox" checked={hideBranded} onChange={(e) => setHideBranded(e.target.checked)} />
+                <span>{isNL ? 'Verberg branded queries' : 'Hide branded queries'}</span>
+              </label>
+
+              <button onClick={disconnect} className="apd-disconnect" title={isNL ? 'Ontkoppel' : 'Disconnect'}>
+                <Unplug className="w-3.5 h-3.5" />
+                <span>{isNL ? 'Ontkoppel' : 'Disconnect'}</span>
               </button>
             </div>
-          )}
 
-          {/* CTA when few/no commercial prompts */}
-          {commercial.length < 3 && (
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-6 mb-6 text-center">
-              <p className="font-bold text-slate-900 mb-2">
-                {isNL
-                  ? commercial.length === 0 ? 'Geen commerciele AI-prompts gevonden' : `Slechts ${commercial.length} commerciele prompt${commercial.length > 1 ? 's' : ''} gevonden`
-                  : commercial.length === 0 ? 'No commercial AI prompts found' : `Only ${commercial.length} commercial prompt${commercial.length > 1 ? 's' : ''} found`}
-              </p>
-              <p className="text-sm text-slate-600 mb-4">
-                {isNL
-                  ? 'Ontdek op welke commerciele prompts potentiele klanten zoeken en of ze jou vinden in ChatGPT en Perplexity.'
-                  : 'Discover which commercial prompts potential customers use and whether they find you in ChatGPT and Perplexity.'}
-              </p>
-              <Link href="/tools/ai-visibility"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-semibold hover:shadow-lg transition">
-                <Sparkles className="w-4 h-4" />
-                {isNL ? 'Doe een AI Visibility Scan' : 'Run an AI Visibility Scan'}
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+            {/* Stats */}
+            <div className="apd-stats">
+              <div className="apd-stat">
+                <p className="apd-stat-num">{commercial.length}</p>
+                <p className="apd-stat-label">{isNL ? 'Commercieel' : 'Commercial'}</p>
+              </div>
+              <div className="apd-stat">
+                <p className="apd-stat-num">{aiOverview.length}</p>
+                <p className="apd-stat-label">AI Overviews</p>
+              </div>
+              <div className="apd-stat">
+                <p className="apd-stat-num">{other.length}</p>
+                <p className="apd-stat-label">{isNL ? 'Overig' : 'Other'}</p>
+              </div>
+              <p className="apd-stats-meta">{isNL ? 'Laatste 90 dagen · Search Console data' : 'Last 90 days · Search Console data'}</p>
             </div>
-          )}
 
-          {/* ═══ COMMERCIAL ═══ */}
-          {commercial.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-6">
-              <SectionHeader icon={<Sparkles className="w-4 h-4 text-amber-600" />} color="bg-amber-100"
-                title={isNL ? 'Commerciele AI-prompts' : 'Commercial AI prompts'} count={commercial.length}
-                subtitle={isNL ? 'Prompts waarbij iemand een bureau, specialist of dienstverlener zoekt' : 'Prompts where someone is looking for an agency, specialist or service provider'} />
-              <div className="divide-y divide-slate-50">{commercial.slice(0, 30).map((p, i) => <PromptRow key={`c-${i}`} p={p} />)}</div>
-              {commercial.length > 30 && <div className="px-4 py-2 bg-slate-50 text-center text-xs text-slate-400 border-t border-slate-100">+{commercial.length - 30} {isNL ? 'meer' : 'more'}</div>}
-            </div>
-          )}
-
-          {/* ═══ AI OVERVIEW ═══ */}
-          {aiOverview.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-6">
-              <SectionHeader
-                icon={<svg className="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>}
-                color="bg-blue-100"
-                title="Google AI Overview prompts" count={aiOverview.length}
-                subtitle={isNL ? 'Queries uit Google AI Mode en AI Overviews' : 'Queries from Google AI Mode and AI Overviews'} />
-              <div className="divide-y divide-slate-50">{aiOverview.slice(0, 30).map((p, i) => <PromptRow key={`ai-${i}`} p={p} />)}</div>
-              {aiOverview.length > 30 && <div className="px-4 py-2 bg-slate-50 text-center text-xs text-slate-400 border-t border-slate-100">+{aiOverview.length - 30} {isNL ? 'meer' : 'more'}</div>}
-            </div>
-          )}
-
-          {/* ═══ OTHER (collapsible) ═══ */}
-          {other.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-6">
-              <button onClick={() => setShowOther(!showOther)} className="w-full cursor-pointer">
-                <SectionHeader icon={<Search className="w-4 h-4 text-slate-500" />} color="bg-slate-100"
-                  title={isNL ? 'Overige lange queries' : 'Other long queries'} count={other.length}
-                  subtitle={isNL ? 'Informatieve en overige prompt-achtige zoekopdrachten' : 'Informational and other prompt-like queries'} />
-              </button>
-              {showOther && <div className="divide-y divide-slate-50">{other.slice(0, 50).map((p, i) => <PromptRow key={`o-${i}`} p={p} />)}</div>}
-            </div>
-          )}
-
-          {allFiltered.length === 0 && <div className="p-8 text-center text-slate-400 bg-white rounded-2xl border border-slate-100">{isNL ? 'Geen prompt-achtige queries gevonden.' : 'No prompt-like queries found.'}</div>}
-
-          {selected.size === 0 && allFiltered.length > 0 && (
-            <p className="text-center text-sm text-slate-400 mt-2 mb-6">{isNL ? 'Klik op prompts om ze te selecteren (max 10), scan ze daarna in ChatGPT en Perplexity.' : 'Click prompts to select (max 10), then scan in ChatGPT and Perplexity.'}</p>
-          )}
-
-          <ToolsCrossSell currentTool="ai-prompt-discovery" locale={locale} />
-        </section>
-      )}
-
-      {/* Empty state */}
-      {connected && !fetching && allPrompts.length === 0 && !error && (
-        <div className="max-w-md mx-auto text-center py-8 px-4">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
-            <p className="text-xl font-bold text-slate-900 mb-2">{isNL ? 'Geen AI-prompts gevonden' : 'No AI prompts found'}</p>
-            <p className="text-sm text-slate-500 mb-4">{isNL ? 'Geen lange queries gevonden voor deze property.' : 'No long queries found for this property.'}</p>
-
-            {properties.length > 1 && (
-              <div className="mt-4">
-                <p className="text-xs text-slate-500 mb-2">{isNL ? 'Selecteer een andere property:' : 'Select a different property:'}</p>
-                <div className="space-y-2">
-                  {properties.map(p => (
-                    <button
-                      key={p.url}
-                      onClick={() => { setSelectedProperty(p.url); setAllPrompts([]); try { setBrandName(new URL(p.url.replace('sc-domain:', 'https://')).hostname.replace('www.', '').split('.')[0]) } catch(e){} }}
-                      className={`block w-full text-left px-4 py-2.5 rounded-lg text-sm transition cursor-pointer ${
-                        p.url === selectedProperty
-                          ? 'bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium'
-                          : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100'
-                      }`}
-                    >
-                      <Globe className="w-3.5 h-3.5 inline mr-2" />
-                      {pLabel(p.url)}
-                    </button>
-                  ))}
+            {/* Selection action bar */}
+            {selected.size > 0 && (
+              <div className="apd-action-bar">
+                <div>
+                  <p className="apd-action-title">
+                    {selected.size} {isNL ? `prompt${selected.size > 1 ? 's' : ''} geselecteerd` : `prompt${selected.size > 1 ? 's' : ''} selected`}
+                  </p>
+                  <p className="apd-action-sub">
+                    {isNL ? 'Scan ze in ChatGPT en Perplexity' : 'Scan in ChatGPT and Perplexity'}
+                  </p>
                 </div>
+                <button onClick={scanSelected} className="teun-scan-btn apd-action-btn">
+                  <Sparkles className="w-4 h-4" />
+                  {isNL ? `Scan ${selected.size} prompts` : `Scan ${selected.size} prompts`}
+                </button>
               </div>
             )}
 
-            <button onClick={disconnect} className="mt-4 text-xs text-slate-400 hover:text-red-500 transition cursor-pointer">
+            {/* Pro upsell — when results visible */}
+            {selected.size === 0 && allFiltered.length > 0 && (
+              <div className="tool-account-cta apd-upsell">
+                <h3>
+                  {isNL
+                    ? <>Track je AI-prompts <em>elke week automatisch</em></>
+                    : <>Track your AI prompts <em>automatically every week</em></>}
+                </h3>
+                <p>
+                  {isNL
+                    ? 'Met Pro krijg je wekelijks nieuwe AI-prompts uit je Search Console én scan je ze automatisch in ChatGPT, Perplexity en Google AI Mode. Geen handmatig werk meer.'
+                    : 'With Pro you get fresh AI prompts from your Search Console every week and scan them automatically in ChatGPT, Perplexity and Google AI Mode. No more manual work.'}
+                </p>
+                <Link href={isNL ? '/pricing' : '/en/pricing'} className="tool-account-cta-btn">
+                  {isNL ? 'Bekijk Lite & Pro' : 'View Lite & Pro'}
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <p className="small">{isNL ? 'Vanaf €29,95/mnd · Maandelijks opzegbaar' : 'From €29.95/mo · Cancel anytime'}</p>
+              </div>
+            )}
+
+            {/* Commercial prompts */}
+            {commercial.length > 0 && (
+              <div className="apd-section">
+                <SectionHeader
+                  icon={<Sparkles className="w-4 h-4" />}
+                  title={isNL ? 'Commerciele prompts' : 'Commercial prompts'}
+                  count={commercial.length}
+                  subtitle={isNL ? 'Klanten zoeken naar bureaus, specialisten of dienstverleners' : 'Customers searching for agencies, specialists or service providers'}
+                  dotColor="#E8623A"
+                />
+                <div className="apd-prompt-list">
+                  {commercial.slice(0, 30).map((p, i) => <PromptRow key={`c-${i}`} p={p} />)}
+                </div>
+                {commercial.length > 30 && (
+                  <div className="apd-section-more">+{commercial.length - 30} {isNL ? 'meer' : 'more'}</div>
+                )}
+              </div>
+            )}
+
+            {/* AI Overview */}
+            {aiOverview.length > 0 && (
+              <div className="apd-section">
+                <SectionHeader
+                  icon={<Database className="w-4 h-4" />}
+                  title="AI Overview queries"
+                  count={aiOverview.length}
+                  subtitle={isNL ? 'Queries uit Google AI Mode met locatie-context' : 'Queries from Google AI Mode with location context'}
+                  dotColor="#3B82F6"
+                />
+                <div className="apd-prompt-list">
+                  {aiOverview.slice(0, 30).map((p, i) => <PromptRow key={`ai-${i}`} p={p} />)}
+                </div>
+                {aiOverview.length > 30 && (
+                  <div className="apd-section-more">+{aiOverview.length - 30} {isNL ? 'meer' : 'more'}</div>
+                )}
+              </div>
+            )}
+
+            {/* Other (collapsible) */}
+            {other.length > 0 && (
+              <div className="apd-section">
+                <button onClick={() => setShowOther(!showOther)} className="apd-section-toggle">
+                  <SectionHeader
+                    icon={<ChevronDown className={`w-4 h-4 apd-chevron${showOther ? ' apd-chevron-open' : ''}`} />}
+                    title={isNL ? 'Overige AI-prompts' : 'Other AI prompts'}
+                    count={other.length}
+                    subtitle={isNL ? 'Klik om alle informatieve queries te tonen' : 'Click to show all informational queries'}
+                    dotColor="#94A3B8"
+                  />
+                </button>
+                {showOther && (
+                  <div className="apd-prompt-list">
+                    {other.slice(0, 50).map((p, i) => <PromptRow key={`o-${i}`} p={p} />)}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {allFiltered.length === 0 && (
+              <div className="apd-empty-state">
+                {isNL ? 'Geen prompt-achtige queries gevonden.' : 'No prompt-like queries found.'}
+              </div>
+            )}
+
+            {allFiltered.length > 0 && (
+              <p className="apd-help-line">
+                {isNL
+                  ? 'Klik op prompts om ze te selecteren (max 10), scan ze daarna in ChatGPT en Perplexity.'
+                  : 'Click prompts to select (max 10), then scan in ChatGPT and Perplexity.'}
+              </p>
+            )}
+
+            {/* Cross-sell other tools */}
+            <ToolsCrossSell currentTool="ai-prompt-discovery" locale={locale} />
+          </div>
+        )}
+
+        {/* Connected but no prompts */}
+        {connected && !fetching && allPrompts.length === 0 && (
+          <div className="apd-no-results">
+            <div className="apd-no-results-icon"><Search className="w-7 h-7" /></div>
+            <h2>{isNL ? 'Geen AI-prompts gevonden' : 'No AI prompts found'}</h2>
+            <p>
+              {isNL
+                ? 'We vonden geen lange queries voor deze property. Mogelijk is je site nog niet veel zichtbaar in AI-resultaten.'
+                : 'We found no long queries for this property. Your site may not yet be visible in AI results.'}
+            </p>
+            {properties.length > 1 && (
+              <div className="apd-no-results-properties">
+                <p className="apd-no-results-label">{isNL ? 'Probeer een andere property:' : 'Try a different property:'}</p>
+                {properties.filter(p => p.url !== selectedProperty).map(p => (
+                  <button
+                    key={p.url}
+                    onClick={() => {
+                      setSelectedProperty(p.url)
+                      try { setBrandName(new URL(p.url.replace('sc-domain:', 'https://')).hostname.replace('www.', '').split('.')[0]) } catch(e){}
+                    }}
+                    className="apd-property-option"
+                  >
+                    {pLabel(p.url)}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button onClick={disconnect} className="apd-no-results-disconnect">
               {isNL ? 'Ontkoppel Search Console' : 'Disconnect Search Console'}
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* ══ SEO CONTENT (only when no results) ══ */}
+      {/* SEO content */}
       {showSEOContent && (
         <>
-          <section className="max-w-3xl mx-auto px-4 sm:px-6 pt-20 pb-16">
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 leading-tight">
-              {isNL ? <>Jouw klanten zoeken al via AI.<br /><span className="text-[#7C3AED]">Maar vinden ze jou?</span></> : <>Your customers already search via AI.<br /><span className="text-[#7C3AED]">But do they find you?</span></>}
-            </h2>
-            <p className="text-slate-600 leading-relaxed mb-4">
-              {isNL
-                ? 'Google Search Console bevat steeds meer lange, conversatie-achtige zoekopdrachten. Dit zijn queries die voortkomen uit AI Mode, AI Overviews en het veranderende zoekgedrag door ChatGPT. Deze tool analyseert je Search Console data en filtert automatisch de AI-prompts eruit.'
-                : 'Google Search Console increasingly contains long, conversational queries. These are queries stemming from AI Mode, AI Overviews, and changing search behavior driven by ChatGPT. This tool analyzes your Search Console data and automatically filters out the AI prompts.'}
-            </p>
-            <p className="text-slate-600 leading-relaxed">
-              {isNL
-                ? 'We splitsen de resultaten in drie categorieen: commerciele prompts (iemand zoekt een bureau of specialist), Google AI Overview queries (met locatie-metadata), en overige informatieve vragen. Zo weet je precies waar je kansen liggen.'
-                : 'We split results into three categories: commercial prompts (someone looking for an agency or specialist), Google AI Overview queries (with location metadata), and other informational questions. So you know exactly where your opportunities are.'}
-            </p>
+          {/* SEO Intro */}
+          <section className="tool-seo-intro">
+            <div className="tool-wrap" style={{ paddingTop: 0, paddingBottom: 0 }}>
+              <h2>
+                {isNL
+                  ? <>Jouw klanten zoeken al via <em>AI</em></>
+                  : <>Your customers already search via <em>AI</em></>}
+              </h2>
+              <p>
+                {isNL
+                  ? 'Google Search Console bevat steeds meer lange, conversatie-achtige zoekopdrachten. Dit zijn queries die voortkomen uit AI Mode, AI Overviews en het veranderende zoekgedrag door ChatGPT. Deze tool analyseert je Search Console data en filtert automatisch de AI-prompts eruit.'
+                  : 'Google Search Console increasingly contains long, conversational queries. These are queries stemming from AI Mode, AI Overviews, and changing search behavior driven by ChatGPT. This tool analyzes your Search Console data and automatically filters out the AI prompts.'}
+              </p>
+              <p>
+                {isNL
+                  ? 'We splitsen de resultaten in drie categorieen: commerciele prompts (iemand zoekt een bureau of specialist), Google AI Overview queries (met locatie-metadata), en overige informatieve vragen. Zo weet je precies waar je kansen liggen.'
+                  : 'We split results into three categories: commercial prompts (someone looking for an agency or specialist), Google AI Overview queries (with location metadata), and other informational questions. So you know exactly where your opportunities are.'}
+              </p>
+            </div>
           </section>
 
-          <section className="bg-slate-50 py-16">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6">
-              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 text-center mb-4">{isNL ? 'Wat ontdekken we?' : 'What do we discover?'}</h2>
-              <p className="text-slate-500 text-center mb-10 max-w-2xl mx-auto">{isNL ? 'We categoriseren je Search Console queries automatisch in drie groepen.' : 'We automatically categorize your Search Console queries into three groups.'}</p>
-              <div className="grid sm:grid-cols-3 gap-6">
+          {/* What we discover (3-grid) */}
+          <section className="tool-seo-how">
+            <div className="tool-seo-how-wrap">
+              <h2>
+                {isNL ? <>Wat <em>ontdekken</em> we?</> : <>What do we <em>discover</em>?</>}
+              </h2>
+              <p className="tool-seo-how-sub">
+                {isNL
+                  ? 'We categoriseren je Search Console queries automatisch in drie groepen.'
+                  : 'We automatically categorize your Search Console queries into three groups.'}
+              </p>
+              <div className="tool-seo-how-grid">
                 {[
-                  { icon: <Sparkles className="w-5 h-5" />, title: isNL ? 'Commerciele prompts' : 'Commercial prompts', desc: isNL ? 'Queries waarbij iemand een bureau, specialist of dienstverlener zoekt. Dit zijn je waardevolste leads.' : 'Queries where someone is looking for an agency, specialist or service provider. Your most valuable leads.' },
-                  { icon: <Database className="w-5 h-5" />, title: 'AI Overview queries', desc: isNL ? 'Queries die uit Google AI Mode en AI Overviews komen. Herkenbaar aan locatie-metadata die Google meestuurt.' : 'Queries coming from Google AI Mode and AI Overviews. Recognizable by location metadata.' },
-                  { icon: <Eye className="w-5 h-5" />, title: isNL ? 'Overige AI-prompts' : 'Other AI prompts', desc: isNL ? 'Langere informatieve queries die niet in de andere categorieen vallen maar wel prompt-achtig zijn.' : 'Longer informational queries that don\'t fit other categories but are still prompt-like.' },
+                  {
+                    title: isNL ? 'Commerciele prompts' : 'Commercial prompts',
+                    desc: isNL
+                      ? 'Queries waarbij iemand een bureau, specialist of dienstverlener zoekt. Dit zijn je waardevolste leads.'
+                      : 'Queries where someone is looking for an agency, specialist or service provider. Your most valuable leads.'
+                  },
+                  {
+                    title: 'AI Overview queries',
+                    desc: isNL
+                      ? 'Queries die uit Google AI Mode en AI Overviews komen. Herkenbaar aan locatie-metadata die Google meestuurt.'
+                      : 'Queries coming from Google AI Mode and AI Overviews. Recognizable by location metadata.'
+                  },
+                  {
+                    title: isNL ? 'Overige AI-prompts' : 'Other AI prompts',
+                    desc: isNL
+                      ? 'Langere informatieve queries die niet in de andere categorieen vallen maar wel prompt-achtig zijn.'
+                      : 'Longer informational queries that don\'t fit other categories but are still prompt-like.'
+                  }
                 ].map((item, i) => (
-                  <div key={i} className="bg-white rounded-xl p-6 border border-slate-200">
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center mb-4">{item.icon}</div>
-                    <h3 className="font-semibold text-slate-900 mb-2">{item.title}</h3>
-                    <p className="text-sm text-slate-600 leading-relaxed">{item.desc}</p>
+                  <div key={i} className="tool-seo-how-card">
+                    <div className="tool-seo-how-card-head">
+                      <span className="num">{String(i + 1).padStart(2, '0')}</span>
+                    </div>
+                    <h3>{item.title}</h3>
+                    <p>{item.desc}</p>
                   </div>
                 ))}
               </div>
             </div>
           </section>
 
-          <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-4 text-center">
-              {isNL ? <>Eenmalig koppelen,<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">wij doen de rest</span></> : <>Connect once,<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">we do the rest</span></>}
-            </h2>
-            <p className="text-slate-600 leading-relaxed text-center mb-8 max-w-2xl mx-auto">
-              {isNL
-                ? 'Na het koppelen analyseren we automatisch je queries van de afgelopen 90 dagen. Geen handmatige exports of regex filters nodig.'
-                : 'After connecting, we automatically analyze your queries from the last 90 days. No manual exports or regex filters needed.'}
-            </p>
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
-              <div className="space-y-5">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-sm font-bold text-blue-600">1</span>
-                  </div>
-                  <div className="bg-slate-50 rounded-xl rounded-tl-sm px-4 py-3 text-sm text-slate-700 border border-slate-100">{isNL ? 'Koppel je Google Search Console (alleen-lezen, geen account nodig)' : 'Connect your Google Search Console (read-only, no account needed)'}</div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-sm font-bold text-blue-600">2</span>
-                  </div>
-                  <div className="bg-slate-50 rounded-xl rounded-tl-sm px-4 py-3 text-sm text-slate-700 border border-slate-100">{isNL ? 'We filteren alle 8+ woorden queries en categoriseren ze automatisch' : 'We filter all 8+ word queries and categorize them automatically'}</div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Sparkles className="w-4 h-4 text-emerald-500" />
-                  </div>
-                  <div className="bg-slate-50 rounded-xl rounded-tl-sm px-4 py-3 border border-slate-100">
-                    <p className="text-sm text-slate-700">{isNL ? 'Selecteer prompts en scan ze direct in ChatGPT en Perplexity' : 'Select prompts and scan them directly in ChatGPT and Perplexity'}</p>
-                    <p className="text-sm text-emerald-600 font-medium mt-1">{isNL ? 'Van data naar actie in 30 seconden' : 'From data to action in 30 seconds'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Pricing CTA */}
-          <section className="py-16 bg-white">
-            <div className="max-w-3xl mx-auto px-5 sm:px-6 lg:px-8 text-center">
-              <p className="text-slate-500 mb-6">
+          {/* Final CTA */}
+          <section className="teun-final" aria-labelledby="apd-final-heading">
+            <div className="wrap">
+              <h2 id="apd-final-heading">
+                {isNL ? (
+                  <>Verover de <em>prompts</em>.<br />Voor je concurrent ze ziet.</>
+                ) : (
+                  <>Capture the <em>prompts</em>.<br />Before your competitor does.</>
+                )}
+              </h2>
+              <p>
                 {isNL
-                  ? 'Alle tools zijn gratis te gebruiken. Upgrade naar Lite of Pro voor automatische tracking en onbeperkt gebruik.'
-                  : 'All tools are free to use. Upgrade to Lite or Pro for automatic tracking and unlimited use.'}
+                  ? 'Je Search Console zit vol met AI-prompts die niemand nog analyseert. Eenmalig koppelen, en je weet wat klanten typen, waar ze landen, en waar je kansen mist.'
+                  : 'Your Search Console is full of AI prompts no one analyzes. Connect once and you\'ll know what customers type, where they land, and what opportunities you\'re missing.'}
               </p>
-              <div className="flex flex-wrap justify-center gap-4">
-                <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-bold text-lg hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer">
-                  {isNL ? 'Search Console koppelen' : 'Connect Search Console'} <ArrowRight className="w-5 h-5" />
+              <div className="btns">
+                <button
+                  onClick={() => {
+                    if (connected === false) connectGSC()
+                    else document.getElementById('apd-connect')?.scrollIntoView({ behavior: 'smooth' })
+                  }}
+                  className="btn-primary"
+                >
+                  {isNL ? 'Search Console koppelen' : 'Connect Search Console'} <span aria-hidden="true">→</span>
                 </button>
-                <Link href="/pricing" className="inline-flex items-center gap-2 px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold text-lg hover:shadow-md hover:border-slate-300 transition-all">
-                  {isNL ? 'Bekijk Lite & Pro' : 'View Lite & Pro'} <ArrowRight className="w-5 h-5" />
+                <Link href={isNL ? '/pricing' : '/en/pricing'} className="btn-secondary">
+                  {isNL ? 'Bekijk Lite & Pro' : 'View Lite & Pro'}
                 </Link>
               </div>
-              <p className="text-slate-400 text-xs mt-3">
-                {isNL ? 'Vanaf €29,95/mnd excl. BTW' : 'From €29.95/mo excl. VAT'}
-              </p>
             </div>
           </section>
 
-          {/* FAQ with Teun */}
-          <section className="py-20 bg-slate-50 relative overflow-visible">
-            <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
-              <div className="grid lg:grid-cols-2 gap-12 items-start">
-                <div>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-6">{isNL ? 'Veelgestelde vragen' : 'Frequently asked questions'}</h2>
-                  <div className="space-y-4">
-                    {faqItems.map((item, i) => (
-                      <div key={i} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                        <button onClick={() => setOpenFaq(openFaq === i ? -1 : i)} className="w-full flex items-center justify-between p-6 text-left cursor-pointer">
-                          <div className="flex items-center gap-4">
-                            <span className="text-slate-400 font-mono text-sm">{String(i + 1).padStart(2, '0')}</span>
-                            <span className="font-semibold text-slate-900">{item.q}</span>
-                          </div>
-                          <svg className={`w-5 h-5 text-slate-400 transition-transform flex-shrink-0 ml-2 ${openFaq === i ? 'rotate-45' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                        </button>
-                        {openFaq === i && <div className="px-6 pb-6 pt-0"><p className="text-slate-600 pl-10">{item.a}</p></div>}
-                      </div>
+          {/* FAQ */}
+          {(() => {
+            const catLabels = isNL
+              ? { all: 'Alles', product: 'Product', privacy: 'Privacy', results: 'Resultaten' }
+              : { all: 'All', product: 'Product', privacy: 'Privacy', results: 'Results' }
+
+            const faqCounts = {
+              all: faqItems.length,
+              product: faqItems.filter(i => i.cat === 'product').length,
+              privacy: faqItems.filter(i => i.cat === 'privacy').length,
+              results: faqItems.filter(i => i.cat === 'results').length
+            }
+
+            const filteredFaq = faqCategory === 'all'
+              ? faqItems
+              : faqItems.filter(i => i.cat === faqCategory)
+
+            return (
+              <section className="teun-faq" id="faq" aria-labelledby="apd-faq-heading">
+                <div className="wrap">
+                  <div className="teun-faq-head">
+                    <div className="teun-faq-eyebrow">
+                      {isNL ? 'VRAGEN & ANTWOORDEN' : 'QUESTIONS & ANSWERS'}
+                    </div>
+                    <h2 id="apd-faq-heading">
+                      {isNL ? (
+                        <>Alles wat je wilt weten <em>voor je koppelt.</em></>
+                      ) : (
+                        <>Everything you want to know <em>before you connect.</em></>
+                      )}
+                    </h2>
+                    <p className="sub">
+                      {isNL
+                        ? 'Geen bot-antwoorden, geen marketingpraat. De echte uitleg, geschreven door ons team.'
+                        : 'No bot answers, no marketing speak. Real explanations, written by our team.'}
+                    </p>
+                  </div>
+
+                  <div className="teun-faq-cats" role="tablist">
+                    {[
+                      { id: 'all',     count: faqCounts.all },
+                      { id: 'product', count: faqCounts.product },
+                      { id: 'privacy', count: faqCounts.privacy },
+                      { id: 'results', count: faqCounts.results }
+                    ].map(({ id, count }) => (
+                      <button
+                        key={id}
+                        className={faqCategory === id ? 'active' : ''}
+                        onClick={() => { setFaqCategory(id); setOpenFaq(0) }}
+                        role="tab"
+                        aria-selected={faqCategory === id}
+                      >
+                        {catLabels[id]}
+                        <span className="count">{count}</span>
+                      </button>
                     ))}
                   </div>
-                </div>
-                <div className="hidden lg:flex justify-center items-end relative">
-                  <div className="translate-y-20" style={{ marginTop: '5px' }}>
-                    <Image src="/teun-ai-mascotte.png" alt={isNL ? 'Teun helpt je' : 'Teun helps you'} width={420} height={530} className="drop-shadow-xl" />
+
+                  <div className="teun-faq-list">
+                    {filteredFaq.map((item, i) => (
+                      <details
+                        key={`${faqCategory}-${i}`}
+                        className="teun-faq-item"
+                        open={openFaq === i}
+                        onToggle={(e) => { if (e.target.open) setOpenFaq(i) }}
+                      >
+                        <summary>
+                          <span className="num">{String(i + 1).padStart(2, '0')}</span>
+                          <h3 className="q">{item.q}</h3>
+                          <span className="cat-chip">{catLabels[item.cat]}</span>
+                          <span className="toggle" aria-hidden="true">
+                            <svg viewBox="0 0 12 12" fill="none">
+                              <path d="M2 6h8M6 2v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                            </svg>
+                          </span>
+                        </summary>
+                        <div className="answer-wrap">
+                          <div className="answer">{item.a}</div>
+                        </div>
+                      </details>
+                    ))}
+                  </div>
+
+                  <div className="teun-faq-help">
+                    <div>
+                      <h3>
+                        {isNL ? <>Nog vragen? <em>We helpen je.</em></> : <>Still got questions? <em>We&rsquo;re here.</em></>}
+                      </h3>
+                      <p>
+                        {isNL
+                          ? 'Stuur ons een mail of plan een gesprek van 15 minuten. Geen verkooppraat, gewoon antwoorden.'
+                          : 'Reach us by email or book a 15-minute call. No sales pitch, just answers.'}
+                      </p>
+                    </div>
+                    <div className="teun-faq-help-actions">
+                      <a href="mailto:hallo@teun.ai" className="teun-faq-help-btn primary">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                          <path d="M2 3h10v8H2z M2 3l5 4 5-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        hallo@teun.ai
+                      </a>
+                      <a
+                        href="https://calendly.com/imre-onlinelabs/teun-ai-demo"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="teun-faq-help-btn secondary"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                          <rect x="2" y="3" width="10" height="9" rx="1" stroke="currentColor" strokeWidth="1.5" />
+                          <path d="M2 6h10M5 1v3M9 1v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                        {isNL ? 'Plan een gesprek' : 'Book a call'}
+                      </a>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </section>
+              </section>
+            )
+          })()}
         </>
       )}
     </div>
@@ -651,7 +801,15 @@ function AIPromptDiscoveryContent() {
 
 export default function AIPromptDiscoveryPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><Loader2 className="w-8 h-8 text-emerald-500 animate-spin" /></div>}>
+    <Suspense fallback={
+      <div className="tool-init">
+        <div className="tool-init-spinner">
+          <span className="dot"></span>
+          <span className="dot"></span>
+          <span className="dot"></span>
+        </div>
+      </div>
+    }>
       <AIPromptDiscoveryContent />
     </Suspense>
   )
