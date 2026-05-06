@@ -37,5 +37,5 @@ export async function generateMetadata({ params }) {
 }
 
 export default function DashboardLayout({ children }) {
-  return <>{children}</>
+  return <div className="teun-dashboard-layout">{children}</div>
 }

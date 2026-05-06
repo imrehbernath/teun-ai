@@ -22,6 +22,48 @@ const EXTENSION_ID = 'jjhjnmkanlmjhmobcgemjakkjdbkkfmk'
 // ── Sub Components ──
 // ═══════════════════════════════════════════════
 
+// ============================================
+// LOGO COMPONENT — teun◍ai (matcht site header)
+// ============================================
+function DashTeunLogo({ size = 22 }) {
+  return (
+    <span
+      style={{
+        fontFamily: 'var(--font-poppins), sans-serif',
+        fontWeight: 700,
+        fontSize: `${size}px`,
+        letterSpacing: '-0.045em',
+        color: 'var(--ink)',
+        display: 'inline-flex',
+        alignItems: 'center',
+        lineHeight: 1,
+      }}
+    >
+      teun
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: `${size}px`,
+          height: `${size}px`,
+          borderRadius: '50%',
+          background: 'var(--spark)',
+          color: '#fff',
+          fontSize: `${Math.round(size * 0.6)}px`,
+          fontWeight: 700,
+          margin: '0 3px',
+          position: 'relative',
+          top: '-1px',
+        }}
+      >
+        ◍
+      </span>
+      <span style={{ color: 'var(--ink)', fontWeight: 700 }}>ai</span>
+    </span>
+  );
+}
+
 function StatCard({ label, value, sub, accent, small }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 px-6 py-5 flex-1 min-w-0">
@@ -1373,10 +1415,10 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
           {/* Navy accent bar */}
           <div className="h-1" style={{ background: '#292956' }} />
 
-          {/* Logo - text only */}
+          {/* Logo */}
           <div className="px-5 pt-5 pb-4">
             <Link href={lp(locale, '/')} className="no-underline">
-              <div className="text-[20px] font-black tracking-tight leading-none" style={{ color: '#292956' }}>teun.ai</div>
+              <DashTeunLogo size={22} />
             </Link>
           </div>
 
@@ -1627,8 +1669,8 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                       </div>
                       <div className="text-[11px] text-amber-700 mt-0.5">
                         {locale === 'nl'
-                          ? 'Installeer de Chrome extensie voor resultaten direct uit ChatGPT 5.2 — 1-op-1 met wat gebruikers zien op ChatGPT.com'
-                          : 'Install the Chrome extension for results straight from ChatGPT 5.2 — matching exactly what users see on ChatGPT.com'}
+                          ? 'Installeer de Chrome extensie voor resultaten direct uit ChatGPT 5.5 — 1-op-1 met wat gebruikers zien op ChatGPT.com'
+                          : 'Install the Chrome extension for results straight from ChatGPT 5.5 — matching exactly what users see on ChatGPT.com'}
                       </div>
                     </div>
                   </div>
