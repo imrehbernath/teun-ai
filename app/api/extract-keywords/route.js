@@ -242,11 +242,16 @@ async function scrapeWebsite(url) {
     try {
       console.log(`🔗 ScraperAPI basic: ${tryUrl}`)
       const html = await fetchViaScraperApi(tryUrl, { ultra: false })
-      if (!isGarbagePage(html) && html.length > 500) {
-        console.log(`✅ ScraperAPI basic OK: ${tryUrl} (${html.length} chars)`)
-        return { success: true, html, method: 'basic', finalUrl: tryUrl }
+      console.log(`📄 BASIC HTML preview (${html.length} chars): ${html.slice(0, 500).replace(/\s+/g, ' ')}`)
+      if (html.length > 500) {
+        const garbage = isGarbagePage(html)
+        console.log(`🔍 BASIC isGarbagePage = ${garbage}`)
+        if (!garbage) {
+          console.log(`✅ ScraperAPI basic OK: ${tryUrl} (${html.length} chars)`)
+          return { success: true, html, method: 'basic', finalUrl: tryUrl }
+        }
       }
-      warnings.push(`basic (${tryUrl}): garbage or too short (${html.length} chars)`)
+      warnings.push(`basic (${tryUrl}): rejected (${html.length} chars)`)
     } catch (error) {
       warnings.push(`basic (${tryUrl}): ${error.message}`)
       console.log(`⚠️ ScraperAPI basic failed for ${tryUrl}: ${error.message}`)
