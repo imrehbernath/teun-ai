@@ -37,7 +37,6 @@ function isGarbagePage(html) {
     'cf-browser-verification', 'challenge-platform', '_cf_chl',
     'attention required', 'ddos protection', 'security check',
     'checking if the site connection is secure', 'please turn javascript on',
-    'enable javascript and cookies', 'ray id',
     // Bot protection
     'access denied', 'bot protection', 'are you a robot',
     // Parking / placeholder
