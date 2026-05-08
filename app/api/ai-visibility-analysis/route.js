@@ -1816,7 +1816,7 @@ async function analyzeWithChatGPT(prompt, companyName, serviceArea = null, isNL 
           'Authorization': `Bearer ${OPENAI_API_KEY}`
         },
         body: JSON.stringify({
-          model: 'gpt-4o-search-preview',
+          model: 'gpt-5-search-api',
           web_search_options: {
             search_context_size: 'medium',
             user_location: userLocation
