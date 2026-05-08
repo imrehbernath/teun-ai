@@ -45,7 +45,11 @@ function isGarbagePage(html) {
     'under construction', 'coming soon', 'website binnenkort beschikbaar',
   ]
   
-  if (garbageSignals.some(s => htmlLower.includes(s))) return true
+  const matchedSignal = garbageSignals.find(s => htmlLower.includes(s))
+  if (matchedSignal) {
+    console.log(`🚨 isGarbagePage matched signal: "${matchedSignal}"`)
+    return true
+  }
   
   // Very thin content = probably a challenge page
   const hasH1 = /<h1[^>]*>/i.test(html)
@@ -55,7 +59,10 @@ function isGarbagePage(html) {
     .replace(/<[^>]+>/g, '')
     .trim()
   
-  if (bodyText.length < 300 && !hasH1) return true
+  if (bodyText.length < 300 && !hasH1) {
+    console.log(`🚨 isGarbagePage: thin content (${bodyText.length} chars, hasH1=${hasH1})`)
+    return true
+  }
   
   return false
 }
