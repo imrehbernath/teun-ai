@@ -4,7 +4,6 @@ import Anthropic from '@anthropic-ai/sdk'
 import { isBlockedUrl, getLanguageBlockError } from '@/lib/language-guard'
 
 export const dynamic = 'force-dynamic'
-// Vercel function timeout — direct (10s) + basic (45s) + ultra (70s) in worst case
 export const maxDuration = 120
 
 const CORS_HEADERS = {
@@ -37,6 +36,7 @@ function isGarbagePage(html) {
     'cf-browser-verification', 'challenge-platform', '_cf_chl',
     'attention required', 'ddos protection', 'security check',
     'checking if the site connection is secure', 'please turn javascript on',
+    'enable javascript and cookies', 'ray id',
     // Bot protection
     'access denied', 'bot protection', 'are you a robot',
     // Parking / placeholder
@@ -44,11 +44,7 @@ function isGarbagePage(html) {
     'under construction', 'coming soon', 'website binnenkort beschikbaar',
   ]
   
-  const matchedSignal = garbageSignals.find(s => htmlLower.includes(s))
-  if (matchedSignal) {
-    console.log(`🚨 isGarbagePage matched signal: "${matchedSignal}"`)
-    return true
-  }
+  if (garbageSignals.some(s => htmlLower.includes(s))) return true
   
   // Very thin content = probably a challenge page
   const hasH1 = /<h1[^>]*>/i.test(html)
@@ -58,10 +54,7 @@ function isGarbagePage(html) {
     .replace(/<[^>]+>/g, '')
     .trim()
   
-  if (bodyText.length < 300 && !hasH1) {
-    console.log(`🚨 isGarbagePage: thin content (${bodyText.length} chars, hasH1=${hasH1})`)
-    return true
-  }
+  if (bodyText.length < 300 && !hasH1) return true
   
   return false
 }
@@ -155,15 +148,10 @@ async function fetchViaScraperApi(url, { ultra = false } = {}) {
   })
 
   if (ultra) {
-    // Max-quality config — residential IPs + ultra_premium bypass.
-    // Costs 75 credits per request. Use only when basic fails.
-    // follow_redirect=false + NO render: needed to bypass DDoS-Guard.
-    // DDoS-Guard's JS challenge loops infinitely with rendering on.
     params.set('premium', 'true')
     params.set('ultra_premium', 'true')
     params.set('follow_redirect', 'false')
   } else {
-    // Basic tier uses JS rendering for SPA/client-rendered sites
     params.set('render', 'true')
     params.set('premium', 'true')
   }
@@ -184,10 +172,8 @@ async function fetchViaScraperApi(url, { ultra = false } = {}) {
 }
 
 // ============================================================
-// SCRAPE WEBSITE — 3-staps fallback strategie
-//   1. Direct fetch  (FREE, snel, ~50% sites werken)
-//   2. ScraperAPI basic (premium + render, ~5 credits)
-//   3. ScraperAPI ultra (residential + bypass, 75 credits — laatste redmiddel)
+// SCRAPE WEBSITE
+// Tiered: 1) Direct fetch (free) → 2) ScraperAPI basic → 3) ScraperAPI ultra (75 credits)
 // ============================================================
 async function scrapeWebsite(url) {
   let normalizedUrl = url.trim()
@@ -195,13 +181,13 @@ async function scrapeWebsite(url) {
     normalizedUrl = 'https://' + normalizedUrl
   }
 
+  // Also prepare www variant
   const urlObj = new URL(normalizedUrl)
   const hasWww = urlObj.hostname.startsWith('www.')
   const wwwUrl = hasWww ? normalizedUrl : normalizedUrl.replace('://', '://www.')
 
-  const warnings = []
-
-  // ── Attempt 1: Direct fetch (FREE) ──
+  // ── Attempt 1: Direct fetch (FREE, no ScraperAPI credits) ──
+  // Works for ~70% of sites (WordPress, static sites, most CMS)
   for (const tryUrl of [normalizedUrl, wwwUrl]) {
     try {
       console.log(`🌐 Direct fetch: ${tryUrl}`)
@@ -222,66 +208,51 @@ async function scrapeWebsite(url) {
           console.log(`✅ Direct fetch OK: ${tryUrl} (${html.length} chars)`)
           return { success: true, html, method: 'direct', finalUrl: tryUrl }
         }
-        warnings.push(`direct (${tryUrl}): garbage or too short (${html.length} chars)`)
+        console.log(`⚠️ Direct fetch got garbage/thin page for ${tryUrl}`)
       } else {
-        warnings.push(`direct (${tryUrl}): HTTP ${response.status}`)
+        console.log(`⚠️ Direct fetch HTTP ${response.status} for ${tryUrl}`)
       }
     } catch (error) {
-      warnings.push(`direct (${tryUrl}): ${error.message}`)
       console.log(`⚠️ Direct fetch failed for ${tryUrl}: ${error.message}`)
     }
   }
 
-  // ── Attempt 2: ScraperAPI basic (render + premium) ──
+  // ── Attempt 2: ScraperAPI basic (premium + render) ──
   if (!SCRAPER_API_KEY) {
-    console.log(`❌ No SCRAPER_API_KEY configured`)
-    return { success: false, error: 'Website kon niet gescraped worden (mogelijk sterke bot-protectie)', warnings }
+    console.log(`⚠️ SCRAPER_API_KEY not configured — skipping ScraperAPI`)
+    return { success: false, error: 'Website kon niet gescraped worden (ScraperAPI niet geconfigureerd)' }
   }
 
   for (const tryUrl of [normalizedUrl, wwwUrl]) {
     try {
       console.log(`🔗 ScraperAPI basic: ${tryUrl}`)
       const html = await fetchViaScraperApi(tryUrl, { ultra: false })
-      console.log(`📄 BASIC HTML preview (${html.length} chars): ${html.slice(0, 500).replace(/\s+/g, ' ')}`)
-      if (html.length > 500) {
-        const garbage = isGarbagePage(html)
-        console.log(`🔍 BASIC isGarbagePage = ${garbage}`)
-        if (!garbage) {
-          console.log(`✅ ScraperAPI basic OK: ${tryUrl} (${html.length} chars)`)
-          return { success: true, html, method: 'basic', finalUrl: tryUrl }
-        }
+      if (!isGarbagePage(html) && html.length > 500) {
+        console.log(`✅ ScraperAPI basic OK: ${tryUrl} (${html.length} chars)`)
+        return { success: true, html, method: 'scraperapi-basic', finalUrl: tryUrl }
       }
-      warnings.push(`basic (${tryUrl}): rejected (${html.length} chars)`)
+      console.log(`⚠️ ScraperAPI basic got garbage/thin page for ${tryUrl}`)
     } catch (error) {
-      warnings.push(`basic (${tryUrl}): ${error.message}`)
       console.log(`⚠️ ScraperAPI basic failed for ${tryUrl}: ${error.message}`)
     }
   }
 
   // ── Attempt 3: ScraperAPI ultra (75 credits) — laatste redmiddel ──
-  // Reserved voor sites met aggressieve protection (DDoS-Guard, Cloudflare challenge loops, Wordfence)
   for (const tryUrl of [normalizedUrl, wwwUrl]) {
     try {
       console.log(`🚀 ScraperAPI ultra: ${tryUrl}`)
       const html = await fetchViaScraperApi(tryUrl, { ultra: true })
       if (!isGarbagePage(html) && html.length > 500) {
         console.log(`✅ ScraperAPI ultra OK: ${tryUrl} (${html.length} chars)`)
-        return { success: true, html, method: 'ultra', finalUrl: tryUrl }
+        return { success: true, html, method: 'scraperapi-ultra', finalUrl: tryUrl }
       }
-      warnings.push(`ultra (${tryUrl}): garbage or too short (${html.length} chars)`)
+      console.log(`⚠️ ScraperAPI ultra got garbage/thin page for ${tryUrl}`)
     } catch (error) {
-      warnings.push(`ultra (${tryUrl}): ${error.message}`)
       console.log(`⚠️ ScraperAPI ultra failed for ${tryUrl}: ${error.message}`)
     }
   }
 
-  console.log(`❌ All scrape attempts failed for ${normalizedUrl}`)
-  console.log(`Warnings:`, warnings)
-  return {
-    success: false,
-    error: 'Website kon niet gescraped worden (mogelijk sterke bot-protectie)',
-    warnings
-  }
+  return { success: false, error: 'Website kon niet gescraped worden (mogelijk sterke bot-protectie)' }
 }
 
 
