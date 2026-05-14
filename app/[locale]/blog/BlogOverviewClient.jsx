@@ -1,43 +1,16 @@
 // app/[locale]/blog/BlogOverviewClient.jsx
 'use client'
 
-import { useState } from 'react'
 import { Link } from '@/i18n/navigation'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 
-const POSTS_PER_PAGE = 6
-
 export default function BlogOverviewClient({ posts, locale }) {
   const t = useTranslations('blog')
-  const [currentPage, setCurrentPage] = useState(1)
-
-  const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE)
-  const startIndex = (currentPage - 1) * POSTS_PER_PAGE
-  const paginatedPosts = posts.slice(startIndex, startIndex + POSTS_PER_PAGE)
 
   const stripHtml = (html) => {
     if (!html) return ''
     return html.replace(/<[^>]*>/g, '').replace(/\[&hellip;\]|&hellip;/g, '...').trim()
-  }
-
-  const getPageNumbers = () => {
-    const pages = []
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i)
-    } else {
-      pages.push(1, 2, 3)
-      if (currentPage > 4) pages.push('...')
-      if (currentPage > 3 && currentPage < totalPages - 2) pages.push(currentPage)
-      if (currentPage < totalPages - 3) pages.push('...')
-      pages.push(totalPages - 1, totalPages)
-    }
-    return [...new Set(pages)]
-  }
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page)
-    document.getElementById('bov-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const dateLocale = locale === 'en' ? 'en-GB' : 'nl-NL'
@@ -50,8 +23,8 @@ export default function BlogOverviewClient({ posts, locale }) {
         </div>
       ) : (
         <div className="bov-grid" id="bov-grid">
-          {paginatedPosts.map((post, index) => {
-            const isAboveFold = index < 3 && currentPage === 1
+          {posts.map((post, index) => {
+            const isAboveFold = index < 3
             return (
               <Link
                 key={post.id}
@@ -105,51 +78,6 @@ export default function BlogOverviewClient({ posts, locale }) {
               </Link>
             )
           })}
-        </div>
-      )}
-
-      {totalPages > 1 && (
-        <div className="bov-pagination">
-          <button
-            onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="bov-page-nav"
-            aria-label={t('previous')}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="m15 18-6-6 6-6"/>
-            </svg>
-            {t('previous')}
-          </button>
-
-          <div className="bov-page-numbers">
-            {getPageNumbers().map((page, i) => (
-              page === '...' ? (
-                <span key={`ellipsis-${i}`} className="bov-page-ellipsis">…</span>
-              ) : (
-                <button
-                  key={page}
-                  onClick={() => handlePageChange(page)}
-                  className={`bov-page-num ${currentPage === page ? 'active' : ''}`}
-                  aria-current={currentPage === page ? 'page' : undefined}
-                >
-                  {page}
-                </button>
-              )
-            ))}
-          </div>
-
-          <button
-            onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="bov-page-nav"
-            aria-label={t('next')}
-          >
-            {t('next')}
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="m9 18 6-6-6-6"/>
-            </svg>
-          </button>
         </div>
       )}
     </>
