@@ -837,10 +837,23 @@ export async function POST(request) {
       console.error('[GEO Scan] Claude advice error:', e.message)
     }
     
+    const h1 = extractedContent.headings.find(h => h.level === 1)?.text || ''
+    const subHeadings = extractedContent.headings
+      .filter(h => h.level === 2 || h.level === 3)
+      .slice(0, 15)
+      .map(h => ({ level: h.level, text: h.text }))
+
     return NextResponse.json({
       ...results,
       customAdvice,
       detectedLanguage: pageLang,
+      pageContent: {
+        title: extractedContent.title || '',
+        metaDesc: extractedContent.metaDesc || '',
+        h1,
+        headings: subHeadings,
+        contentExcerpt: extractedContent.bodyExcerpt || '',
+      },
       scanned: true
     })
     
@@ -872,8 +885,8 @@ function extractContentForClaude(html, url) {
     if (text) headings.push({ level: parseInt(hMatch[1]), text })
   }
   
-  // Body text (first 3000 chars for Claude)
-  const bodyText = html
+  // Body text (first 3000 chars for Claude advice, 6000 chars for optimization prompt)
+  const bodyStripped = html
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
     .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
@@ -882,7 +895,8 @@ function extractContentForClaude(html, url) {
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 3000)
+  const bodyText = bodyStripped.slice(0, 3000)
+  const bodyExcerpt = bodyStripped.slice(0, 6000)
   
   // Schema types
   const schemaTypes = []
@@ -905,7 +919,7 @@ function extractContentForClaude(html, url) {
   // FAQ content detection
   const hasFaq = /<[^>]*(?:faq|veelgestelde|frequently)/i.test(html)
   
-  return { title, metaDesc, headings, bodyText, schemaTypes, internalLinks, externalLinks, wordCount, hasFaq, url }
+  return { title, metaDesc, headings, bodyText, bodyExcerpt, schemaTypes, internalLinks, externalLinks, wordCount, hasFaq, url }
 }
 
 // ============================================

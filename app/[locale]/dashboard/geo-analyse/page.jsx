@@ -10,12 +10,14 @@ import {
   GripVertical, Link2, FileText, Download, AlertCircle,
   ChevronDown, ChevronUp, ExternalLink, Sparkles, Target,
   BarChart3, Zap, BookOpen, Database, MessageSquare,
-  Eye, TrendingUp, Award, Pencil, Play, RefreshCw, XCircle, AlertTriangle
+  Eye, TrendingUp, Award, Pencil, Play, RefreshCw, XCircle, AlertTriangle,
+  Clipboard, ClipboardCheck
 } from 'lucide-react'
 import { useTranslations, useLocale } from 'next-intl'
 import Image from 'next/image'
 import useClientAccess from '../hooks/useClientAccess'
 import ClientBanner from '../components/ClientBanner'
+import { generateOptimizationPrompt } from '@/lib/generateOptimizationPrompt'
 
 // ============================================
 // GEO CHECKLIST DATA (Complete from Excel)
@@ -258,6 +260,8 @@ function GEOAnalyseContent() {
   
   // Werklijst expanded state
   const [expandedPage, setExpandedPage] = useState(null)
+  const [copiedPromptPage, setCopiedPromptPage] = useState(null)
+  const [rescanningPage, setRescanningPage] = useState(null)
   
   // Google AI Mode Scan
   const [googleAiScanning, setGoogleAiScanning] = useState(false)
@@ -378,7 +382,23 @@ function GEOAnalyseContent() {
     // Load existing websites first
     await loadExistingWebsites(user.id)
     await checkGoogleConnection()
-    
+
+    // Fresh analysis requested: wipe session + scan state, force step 1
+    if (searchParams.get('fresh') === '1') {
+      clearSession()
+      setStep(1)
+      setMatches([])
+      setGeoResults({})
+      setScPages([])
+      setManualChecks({})
+      setOverallScore(null)
+      setCsvFileName('')
+      setCsvError('')
+      router.replace('/dashboard/geo-analyse', { scroll: false })
+      setLoading(false)
+      return
+    }
+
     // Try to restore session AFTER loading websites
     const savedSession = loadSession()
     const viewResults = searchParams.get('view') === 'results'
@@ -1481,6 +1501,7 @@ function GEOAnalyseContent() {
         
         if (response.ok) {
           const data = await response.json()
+          const gscMatch = scPages.find(p => p.page === pageUrl) || null
           results[pageUrl] = {
             checklist: data.checklist || {},
             score: data.score || 0,
@@ -1489,6 +1510,13 @@ function GEOAnalyseContent() {
             issues: data.issues || [],
             customAdvice: data.customAdvice || [],
             wordCount: data.wordCount || 0,
+            pageContent: data.pageContent || null,
+            gscData: gscMatch ? {
+              position: gscMatch.position,
+              impressions: gscMatch.impressions,
+              clicks: gscMatch.clicks,
+              ctr: gscMatch.ctr,
+            } : null,
             scanned: true
           }
         } else {
@@ -1514,6 +1542,50 @@ function GEOAnalyseContent() {
     
     calculateOverallScore(results)
     savePageScoresToDB(results)
+  }
+
+  // Rescan one page after the user has applied optimizations.
+  // Reuses /api/geo-scan-page but only updates that single row in geoResults.
+  const rescanSinglePage = async (pageUrl) => {
+    setRescanningPage(pageUrl)
+    try {
+      const response = await fetch('/api/geo-scan-page', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: pageUrl, locale, companyName })
+      })
+      if (!response.ok) throw new Error('Scan failed')
+      const data = await response.json()
+      const gscMatch = scPages.find(p => p.page === pageUrl) || null
+      const existingGsc = geoResults[pageUrl]?.gscData || null
+      const updated = {
+        ...geoResults,
+        [pageUrl]: {
+          checklist: data.checklist || {},
+          score: data.score || 0,
+          scores: data.scores || {},
+          scoreLabel: data.scoreLabel || '',
+          issues: data.issues || [],
+          customAdvice: data.customAdvice || [],
+          wordCount: data.wordCount || 0,
+          pageContent: data.pageContent || null,
+          gscData: gscMatch ? {
+            position: gscMatch.position,
+            impressions: gscMatch.impressions,
+            clicks: gscMatch.clicks,
+            ctr: gscMatch.ctr,
+          } : existingGsc,
+          scanned: true,
+        },
+      }
+      setGeoResults(updated)
+      calculateOverallScore(updated)
+      savePageScoresToDB({ [pageUrl]: updated[pageUrl] })
+    } catch (e) {
+      console.error('Rescan failed:', e)
+    } finally {
+      setRescanningPage(null)
+    }
   }
 
   const calculateOverallScore = (geoResults) => {
@@ -1566,6 +1638,8 @@ function GEOAnalyseContent() {
               score: result.score || 0,
               source: 'geo-analyse',
               matchedPrompt: matches.find(m => m.page === pageUrl)?.prompt || null,
+              pageContent: result.pageContent || null,
+              gscData: result.gscData || null,
             },
           }),
         })
@@ -1612,6 +1686,8 @@ function GEOAnalyseContent() {
           issues: r.data.issues || [],
           customAdvice: r.data.customAdvice || [],
           wordCount: r.data.wordCount || 0,
+          pageContent: r.data.pageContent || null,
+          gscData: r.data.gscData || null,
           scanned: true,
         }
         if (r.data.matchedPrompt) {
@@ -3625,19 +3701,82 @@ function GEOAnalyseContent() {
 
                               {/* Page actions */}
                               <div className="flex items-center justify-between pt-1">
-                                <a
-                                  href={pageUrl.startsWith('http') ? pageUrl : `https://${pageUrl}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1"
-                                >
-                                  <ExternalLink className="w-3 h-3" />
-                                  {locale === 'nl' ? 'Open pagina' : 'Open page'}
-                                </a>
+                                <div className="flex items-center gap-4">
+                                  <a
+                                    href={pageUrl.startsWith('http') ? pageUrl : `https://${pageUrl}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1"
+                                  >
+                                    <ExternalLink className="w-3 h-3" />
+                                    {locale === 'nl' ? 'Open pagina' : 'Open page'}
+                                  </a>
+                                  <button
+                                    onClick={() => rescanSinglePage(pageUrl)}
+                                    disabled={rescanningPage === pageUrl}
+                                    className="text-xs text-slate-500 hover:text-[#292956] flex items-center gap-1 cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                                  >
+                                    {rescanningPage === pageUrl ? (
+                                      <>
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                        {locale === 'nl' ? 'Opnieuw scannen...' : 'Rescanning...'}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <RefreshCw className="w-3 h-3" />
+                                        {locale === 'nl' ? 'Opnieuw scannen' : 'Rescan'}
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
                                 <span className="text-[10px] text-slate-300">
                                   {result.wordCount || 0} {locale === 'nl' ? 'woorden' : 'words'}
                                 </span>
                               </div>
+
+                              {/* Copy Claude optimization prompt */}
+                              {(() => {
+                                const pagePrompts = matches.filter(m => m.page === pageUrl).map(m => m.prompt)
+                                if (pagePrompts.length === 0) return null
+                                const pageAiResults = existingAiResults.filter(r => pagePrompts.includes(r.prompt))
+                                const isCopied = copiedPromptPage === pageUrl
+                                return (
+                                  <div className="pt-2 border-t border-slate-100">
+                                    <button
+                                      onClick={() => {
+                                        const promptText = generateOptimizationPrompt({
+                                          pageUrl,
+                                          pageContent: result.pageContent || {},
+                                          prompts: pagePrompts,
+                                          aiResults: pageAiResults,
+                                          gscData: result.gscData || null,
+                                        })
+                                        navigator.clipboard.writeText(promptText)
+                                        setCopiedPromptPage(pageUrl)
+                                        setTimeout(() => {
+                                          setCopiedPromptPage(prev => prev === pageUrl ? null : prev)
+                                        }, 2000)
+                                      }}
+                                      className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-[#292956] text-white rounded-xl font-semibold text-sm hover:bg-[#292956]/90 transition cursor-pointer"
+                                    >
+                                      {isCopied ? (
+                                        <>
+                                          <ClipboardCheck className="w-4 h-4" />
+                                          {t('promptCopied')}
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Clipboard className="w-4 h-4" />
+                                          {t('copyOptimizationPrompt')}
+                                        </>
+                                      )}
+                                    </button>
+                                    <p className="text-[11px] text-slate-400 text-center mt-2">
+                                      {t('copyOptimizationPromptHelp')}
+                                    </p>
+                                  </div>
+                                )
+                              })()}
                             </div>
                           )}
                         </div>

@@ -2771,7 +2771,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                           <Zap className="w-4 h-4" />
                           {locale === 'nl' ? 'Bekijk werklijst' : 'View worklist'}
                         </a>
-                        <a href={lp(locale, `/dashboard/geo-analyse?company=${encodeURIComponent(activeCompany?.name || '')}`)}
+                        <a href={lp(locale, `/dashboard/geo-analyse?company=${encodeURIComponent(activeCompany?.name || '')}&fresh=1`)}
                           className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg border border-slate-200 text-slate-700 text-[14px] font-medium no-underline hover:bg-slate-50 transition">
                           <RefreshCw className="w-4 h-4" />
                           {locale === 'nl' ? 'Nieuwe analyse' : 'New analysis'}
