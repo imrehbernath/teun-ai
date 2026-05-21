@@ -866,37 +866,106 @@ export async function POST(request) {
 // ============================================
 // EXTRACT CONTENT FOR CLAUDE
 // ============================================
+// Remove consecutive identical blocks (eg auto-scroll carousels that ship the
+// same slides twice in static HTML). Also drops longer blocks (>= 60 chars)
+// that repeat anywhere later in the text. Short repeats stay intact so common
+// boilerplate phrases like "Lees meer" survive.
+function dedupeBlocks(text) {
+  if (!text) return ''
+  const blocks = text.split(/\n{2,}/)
+  const seenLong = new Set()
+  const out = []
+  let lastBlock = null
+  for (const raw of blocks) {
+    const block = raw.trim()
+    if (!block) continue
+    if (block === lastBlock) continue
+    if (block.length >= 60) {
+      if (seenLong.has(block)) continue
+      seenLong.add(block)
+    }
+    out.push(block)
+    lastBlock = block
+  }
+  return out.join('\n\n')
+}
+
+// Decode named + numeric HTML entities to plain text.
+// Runs up to 3 passes to handle double-encoded sources (eg &amp;amp;).
+function decodeHtmlEntities(text) {
+  if (!text) return ''
+  let result = String(text)
+  for (let i = 0; i < 3; i++) {
+    const before = result
+    result = result
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&#0?39;/g, "'")
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&euro;/g, '€')
+      .replace(/&copy;/g, '©')
+      .replace(/&reg;/g, '®')
+      .replace(/&trade;/g, '™')
+      .replace(/&hellip;/g, '…')
+      .replace(/&ndash;/g, '-')
+      .replace(/&mdash;/g, ', ')
+      .replace(/&#(\d+);/g, (_, code) => {
+        try { return String.fromCodePoint(parseInt(code, 10)) } catch { return _ }
+      })
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, code) => {
+        try { return String.fromCodePoint(parseInt(code, 16)) } catch { return _ }
+      })
+      .replace(/&amp;/g, '&')
+    if (result === before) break
+  }
+  return result
+}
+
 function extractContentForClaude(html, url) {
   // Title
   const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
-  const title = titleMatch ? titleMatch[1].trim() : ''
-  
+  const title = titleMatch ? decodeHtmlEntities(titleMatch[1].trim()) : ''
+
   // Meta description
   const metaMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i) ||
                     html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']description["']/i)
-  const metaDesc = metaMatch ? metaMatch[1].trim() : ''
-  
+  const metaDesc = metaMatch ? decodeHtmlEntities(metaMatch[1].trim()) : ''
+
   // Headings (first 20)
   const headings = []
   const headingRegex = /<h([1-6])[^>]*>(.*?)<\/h\1>/gis
   let hMatch
   while ((hMatch = headingRegex.exec(html)) !== null && headings.length < 20) {
-    const text = hMatch[2].replace(/<[^>]+>/g, '').trim()
+    const text = decodeHtmlEntities(hMatch[2].replace(/<[^>]+>/g, '').trim())
     if (text) headings.push({ level: parseInt(hMatch[1]), text })
   }
-  
+
   // Body text (first 3000 chars for Claude advice, 6000 chars for optimization prompt)
-  const bodyStripped = html
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
-    .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
-    .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-  const bodyText = bodyStripped.slice(0, 3000)
-  const bodyExcerpt = bodyStripped.slice(0, 6000)
+  // Strip in two phases so we can still dedupe block-level content (carousels
+  // that ship the same slides multiple times in static HTML are a frequent
+  // duplicate source).
+  const bodyBlocks = decodeHtmlEntities(
+    html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
+      .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
+      .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
+      .replace(/<\/(p|div|section|article|li|ul|ol|h[1-6]|blockquote|tr|table)>/gi, '\n\n')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n[ \t]+/g, '\n')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+  )
+  const bodyDeduped = dedupeBlocks(bodyBlocks)
+  // Single-line variant for the legacy bodyText field used by Claude advice.
+  const bodyText = bodyDeduped.replace(/\s+/g, ' ').slice(0, 3000)
+  const bodyExcerpt = bodyDeduped.slice(0, 6000)
   
   // Schema types
   const schemaTypes = []

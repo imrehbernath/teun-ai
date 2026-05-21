@@ -18,6 +18,7 @@ import Image from 'next/image'
 import useClientAccess from '../hooks/useClientAccess'
 import ClientBanner from '../components/ClientBanner'
 import { generateOptimizationPrompt } from '@/lib/generateOptimizationPrompt'
+import { extractKeywordsFromPrompt } from '@/lib/extractKeywordsFromPrompt'
 
 // ============================================
 // GEO CHECKLIST DATA (Complete from Excel)
@@ -1446,6 +1447,64 @@ function GEOAnalyseContent() {
     return pageObj.page.toLowerCase().includes(pageSearch.toLowerCase())
   })
 
+  // Fetch GSC query matches for a (page, prompts) combination. Returns
+  // { [promptText]: { keywords: [...], queries: [...] } } or null if GSC is
+  // not connected. Stays silent on errors so a missing GSC link never blocks
+  // the scan flow.
+  const fetchPromptGscData = async (pageUrl, prompts) => {
+    if (!prompts || prompts.length === 0) return null
+    const siteUrl = selectedProperty || companyWebsite || ''
+    if (!siteUrl) return null
+
+    const result = {}
+    let anySuccess = false
+    let notConnected = false
+
+    for (const promptText of prompts) {
+      const keywords = extractKeywordsFromPrompt(promptText)
+      if (keywords.length === 0) {
+        result[promptText] = { keywords: [], queries: [] }
+        continue
+      }
+      try {
+        const response = await fetch('/api/search-console/queries-for-prompt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ siteUrl, page: pageUrl, keywords, daysBack: 30 })
+        })
+        if (response.status === 401) {
+          notConnected = true
+          break
+        }
+        if (!response.ok) {
+          result[promptText] = { keywords, queries: [] }
+          continue
+        }
+        const data = await response.json()
+        // Flatten: list of unique queries across all keywords, dedup by query string.
+        const allQueries = []
+        const seenQueries = new Set()
+        for (const kw of keywords) {
+          const queries = data.keywords?.[kw] || []
+          for (const q of queries) {
+            if (seenQueries.has(q.query)) continue
+            seenQueries.add(q.query)
+            allQueries.push({ ...q, matchedKeyword: kw })
+          }
+        }
+        result[promptText] = { keywords, queries: allQueries }
+        anySuccess = true
+      } catch (e) {
+        console.error('[GSC] fetch error for prompt', promptText.slice(0, 40), e.message)
+        result[promptText] = { keywords, queries: [] }
+      }
+    }
+
+    if (notConnected) return { connected: false, perPrompt: {} }
+    if (!anySuccess && Object.keys(result).length === 0) return null
+    return { connected: true, perPrompt: result }
+  }
+
   // ============================================
   // STEP 4: GEO CHECKLIST SCAN
   // ============================================
@@ -1501,7 +1560,8 @@ function GEOAnalyseContent() {
         
         if (response.ok) {
           const data = await response.json()
-          const gscMatch = scPages.find(p => p.page === pageUrl) || null
+          const pagePrompts = matches.filter(m => m.page === pageUrl).map(m => m.prompt)
+          const promptGscData = await fetchPromptGscData(pageUrl, pagePrompts)
           results[pageUrl] = {
             checklist: data.checklist || {},
             score: data.score || 0,
@@ -1511,12 +1571,7 @@ function GEOAnalyseContent() {
             customAdvice: data.customAdvice || [],
             wordCount: data.wordCount || 0,
             pageContent: data.pageContent || null,
-            gscData: gscMatch ? {
-              position: gscMatch.position,
-              impressions: gscMatch.impressions,
-              clicks: gscMatch.clicks,
-              ctr: gscMatch.ctr,
-            } : null,
+            promptGscData,
             scanned: true
           }
         } else {
@@ -1556,8 +1611,13 @@ function GEOAnalyseContent() {
       })
       if (!response.ok) throw new Error('Scan failed')
       const data = await response.json()
-      const gscMatch = scPages.find(p => p.page === pageUrl) || null
-      const existingGsc = geoResults[pageUrl]?.gscData || null
+      const pagePrompts = matches.filter(m => m.page === pageUrl).map(m => m.prompt)
+      // GSC barely moves within minutes after a page edit, so reuse the
+      // existing matches if we have them; only fetch when we have nothing.
+      let promptGscData = geoResults[pageUrl]?.promptGscData || null
+      if (!promptGscData) {
+        promptGscData = await fetchPromptGscData(pageUrl, pagePrompts)
+      }
       const updated = {
         ...geoResults,
         [pageUrl]: {
@@ -1569,12 +1629,7 @@ function GEOAnalyseContent() {
           customAdvice: data.customAdvice || [],
           wordCount: data.wordCount || 0,
           pageContent: data.pageContent || null,
-          gscData: gscMatch ? {
-            position: gscMatch.position,
-            impressions: gscMatch.impressions,
-            clicks: gscMatch.clicks,
-            ctr: gscMatch.ctr,
-          } : existingGsc,
+          promptGscData,
           scanned: true,
         },
       }
@@ -1639,7 +1694,7 @@ function GEOAnalyseContent() {
               source: 'geo-analyse',
               matchedPrompt: matches.find(m => m.page === pageUrl)?.prompt || null,
               pageContent: result.pageContent || null,
-              gscData: result.gscData || null,
+              promptGscData: result.promptGscData || null,
             },
           }),
         })
@@ -1687,7 +1742,7 @@ function GEOAnalyseContent() {
           customAdvice: r.data.customAdvice || [],
           wordCount: r.data.wordCount || 0,
           pageContent: r.data.pageContent || null,
-          gscData: r.data.gscData || null,
+          promptGscData: r.data.promptGscData || null,
           scanned: true,
         }
         if (r.data.matchedPrompt) {
@@ -3749,7 +3804,8 @@ function GEOAnalyseContent() {
                                           pageContent: result.pageContent || {},
                                           prompts: pagePrompts,
                                           aiResults: pageAiResults,
-                                          gscData: result.gscData || null,
+                                          promptGscData: result.promptGscData || null,
+                                          locale,
                                         })
                                         navigator.clipboard.writeText(promptText)
                                         setCopiedPromptPage(pageUrl)
