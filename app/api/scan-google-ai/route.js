@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
+export const maxDuration = 60;
+
 const SERPAPI_KEY = process.env.SERPAPI_KEY
 
 // Detect language from prompt texts
@@ -331,7 +333,7 @@ export async function POST(request) {
     }
 
     const body = await request.json()
-    const { companyName, website, category, prompts, changedPrompts, skipSave } = body
+    const { companyName, website, category, prompts, changedPrompts, skipSave, appendToScanId } = body
 
     if (!companyName) {
       return NextResponse.json({ error: 'Company name is required' }, { status: 400 })
@@ -384,9 +386,34 @@ export async function POST(request) {
 
     console.log(`Google AI Mode scan: lang=${lang}, ${prompts.length} prompts, incremental=${incrementalMode && prevResultsByQuery.size > 0}`)
 
-    // Create scan record (skip if single-prompt sequential mode)
+    // Create or fetch scan record (skip if single-prompt sequential mode).
+    // Append-mode: caller geeft een bestaande scanId mee; we vullen die record
+    // aan in plaats van een nieuwe row te maken (gebruikt voor Pro chunking
+    // wanneer >10 prompts in batches gescand worden).
     let scan = null
-    if (!skipSave) {
+    let existingResults = []
+    let existingPromptsList = []
+    let existingFoundCount = 0
+    let existingHasAiResponseCount = 0
+
+    if (appendToScanId && !skipSave) {
+      const { data: existingScan, error: fetchError } = await supabase
+        .from('google_ai_scans')
+        .select('id, prompts, results, found_count, has_ai_overview_count')
+        .eq('id', appendToScanId)
+        .eq('user_id', user.id)
+        .single()
+
+      if (fetchError || !existingScan) {
+        console.error('Error fetching scan to append:', fetchError?.message)
+        return NextResponse.json({ error: 'Scan to append not found' }, { status: 404 })
+      }
+      scan = existingScan
+      existingResults = Array.isArray(existingScan.results) ? existingScan.results : []
+      existingPromptsList = Array.isArray(existingScan.prompts) ? existingScan.prompts : []
+      existingFoundCount = existingScan.found_count || 0
+      existingHasAiResponseCount = existingScan.has_ai_overview_count || 0
+    } else if (!skipSave) {
       const { data: scanData, error: insertError } = await supabase
         .from('google_ai_scans')
         .insert({
@@ -453,14 +480,22 @@ export async function POST(request) {
     }
     console.log(`Google AI Mode: ran ${scanCount} SerpAPI calls (${results.length - scanCount} reused)`)
 
-    // Update scan record with results (skip if single-prompt mode)
+    // Update scan record with results (skip if single-prompt mode).
+    // Append-mode: merge nieuwe results en prompts in de bestaande row.
     if (!skipSave && scan) {
+      const mergedResults = appendToScanId ? [...existingResults, ...results] : results
+      const mergedPrompts = appendToScanId ? [...existingPromptsList, ...prompts] : prompts
+      const mergedFoundCount = appendToScanId ? existingFoundCount + foundCount : foundCount
+      const mergedHasAiResponseCount = appendToScanId ? existingHasAiResponseCount + hasAiResponseCount : hasAiResponseCount
+
       const { error: updateError } = await supabase
         .from('google_ai_scans')
         .update({
-          results: results,
-          found_count: foundCount,
-          has_ai_overview_count: hasAiResponseCount,
+          results: mergedResults,
+          prompts: mergedPrompts,
+          total_queries: mergedPrompts.length,
+          found_count: mergedFoundCount,
+          has_ai_overview_count: mergedHasAiResponseCount,
           status: 'completed'
         })
         .eq('id', scan.id)

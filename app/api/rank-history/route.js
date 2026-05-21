@@ -65,6 +65,9 @@ export async function GET(request) {
             latestFull[row.tracked_keyword_id][row.platform] = {
               position: row.position,
               found: row.found,
+              // found=true zonder position betekent dat brand wel in de tekst zit
+              // maar niet in de top-N ranking (zie lib/rank-scanner.js).
+              mentionedInText: row.found === true && row.position === null,
               totalResults: row.total_results,
               rankings: row.rankings || [],
               snippet: row.snippet || '',

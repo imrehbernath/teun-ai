@@ -530,7 +530,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'SerpAPI key not configured' }, { status: 500 })
     }
 
-    const { companyName, website, prompts, changedPrompts, skipSave, transformedQueries: preTransformed, fresh } = await request.json()
+    const { companyName, website, prompts, changedPrompts, skipSave, transformedQueries: preTransformed, fresh, appendToScanId } = await request.json()
 
     if (!companyName || !prompts || prompts.length === 0) {
       return NextResponse.json({ error: 'companyName en prompts zijn verplicht' }, { status: 400 })
@@ -542,7 +542,8 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    const promptsToScan = prompts.slice(0, 10)
+    // Frontend bepaalt batch-grootte op basis van tier (Lite cap 10, Pro chunkt onbeperkt in batches ≤ 10).
+    const promptsToScan = prompts
     const lang = detectLanguageFromPrompts(promptsToScan)
 
     // ─── Incremental scan support ───
@@ -650,9 +651,50 @@ export async function POST(request) {
     const foundCount = results.filter(r => r.companyMentioned).length
     const hasAiOverviewCount = results.filter(r => r.hasAiOverview).length
 
-    // Save to database
-    let scanRecord = null
-    if (!skipSave) {
+    // Save to database.
+    // Append-mode: caller geeft een bestaande scanId mee; we vullen die record aan
+    // in plaats van een nieuwe row te maken (gebruikt voor Pro chunking >10 prompts).
+    let mergedScanId = null
+    let mergedTotalQueries = promptsToScan.length
+    let mergedFoundCount = foundCount
+    let mergedHasAiOverviewCount = hasAiOverviewCount
+
+    if (appendToScanId && !skipSave) {
+      const { data: existingScan, error: fetchError } = await supabase
+        .from('google_ai_overview_scans')
+        .select('id, prompts, results, found_count, has_ai_overview_count')
+        .eq('id', appendToScanId)
+        .eq('user_id', user.id)
+        .single()
+
+      if (fetchError || !existingScan) {
+        console.error('Error fetching scan to append:', fetchError?.message)
+        return NextResponse.json({ error: 'Scan to append not found' }, { status: 404 })
+      }
+
+      const existingResults = Array.isArray(existingScan.results) ? existingScan.results : []
+      const existingPromptsList = Array.isArray(existingScan.prompts) ? existingScan.prompts : []
+      const mergedResults = [...existingResults, ...results]
+      const mergedPrompts = [...existingPromptsList, ...promptsToScan]
+      mergedFoundCount = (existingScan.found_count || 0) + foundCount
+      mergedHasAiOverviewCount = (existingScan.has_ai_overview_count || 0) + hasAiOverviewCount
+      mergedTotalQueries = mergedPrompts.length
+      mergedScanId = existingScan.id
+
+      const { error: updateError } = await supabase
+        .from('google_ai_overview_scans')
+        .update({
+          prompts: mergedPrompts,
+          results: mergedResults,
+          found_count: mergedFoundCount,
+          has_ai_overview_count: mergedHasAiOverviewCount,
+          total_queries: mergedTotalQueries,
+          status: 'completed'
+        })
+        .eq('id', existingScan.id)
+
+      if (updateError) console.error('Database update error:', updateError)
+    } else if (!skipSave) {
       const { data: dbRecord, error: dbError } = await supabase
         .from('google_ai_overview_scans')
         .insert({
@@ -670,17 +712,17 @@ export async function POST(request) {
         .single()
 
       if (dbError) console.error('Database error:', dbError)
-      scanRecord = dbRecord
+      mergedScanId = dbRecord?.id || null
     }
 
     return NextResponse.json({
       success: true,
-      scanId: scanRecord?.id || null,
+      scanId: mergedScanId,
       companyName,
       lang,
-      totalQueries: promptsToScan.length,
-      foundCount,
-      hasAiOverviewCount,
+      totalQueries: mergedTotalQueries,
+      foundCount: mergedFoundCount,
+      hasAiOverviewCount: mergedHasAiOverviewCount,
       results
     })
 

@@ -2718,7 +2718,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
               userId={userId}
               locale={locale}
               activeCompany={activeCompany}
-              isPro={isPro}
+              isProTier={isProTier}
             />
           )}
 

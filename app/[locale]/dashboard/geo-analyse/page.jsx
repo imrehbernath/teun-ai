@@ -267,9 +267,12 @@ function GEOAnalyseContent() {
   // Google AI Mode Scan
   const [googleAiScanning, setGoogleAiScanning] = useState(false)
   const [googleAiProgress, setGoogleAiProgress] = useState(0)
-  
+
   // Google AI Overview Scan
   const [googleAiOverviewScanning, setGoogleAiOverviewScanning] = useState(false)
+
+  // Subscription tier (voor prompt cap: Lite=10, Pro=onbeperkt via chunking)
+  const [subscriptionTier, setSubscriptionTier] = useState(null) // null | 'free' | 'lite' | 'pro'
   
   // Expanded platform results
   const [expandedPlatform, setExpandedPlatform] = useState(null) // 'perplexity' | 'chatgpt' | 'googleAi' | 'googleAiOverview' | null
@@ -379,7 +382,22 @@ function GEOAnalyseContent() {
       return
     }
     setUser(user)
-    
+
+    // Resolve subscription tier (admin → pro, profile.subscription_tier voor betaalde users,
+    // legacy null tier → pro consistent met lib/beta-config.js).
+    const adminEmails = ['imre@onlinelabs.nl', 'hallo@onlinelabs.nl']
+    if (adminEmails.includes(user.email)) {
+      setSubscriptionTier('pro')
+    } else {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_status, subscription_tier')
+        .eq('id', user.id)
+        .single()
+      const isPaid = ['active', 'canceling'].includes(profile?.subscription_status)
+      setSubscriptionTier(isPaid ? (profile.subscription_tier || 'pro') : 'free')
+    }
+
     // Load existing websites first
     await loadExistingWebsites(user.id)
     await checkGoogleConnection()
@@ -1128,77 +1146,95 @@ function GEOAnalyseContent() {
   // ============================================
   // GOOGLE AI MODE SCAN
   // ============================================
+  // Lite: 1 batch van max 10 prompts. Pro: chunkt alle prompts in batches van 10
+  // en gebruikt appendToScanId zodat alles in één google_ai_scans row blijft staan.
   const runGoogleAiModeScan = async () => {
     if (existingPrompts.length === 0) {
       alert(t('noPromptsSelectCompany'))
       return
     }
-    
+
     setGoogleAiScanning(true)
     setGoogleAiProgress(0)
-    
+
     try {
-      // Scan max 10 prompts for Google AI Mode (API credits)
-      const promptsToScan = existingPrompts.slice(0, 10)
-      
-      console.log('Starting Google AI Mode scan for:', companyName)
-      console.log('Prompts:', promptsToScan)
-      
-      const response = await fetch('/api/scan-google-ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          companyName,
-          website: companyWebsite,
-          category: companyCategory,
-          prompts: promptsToScan
+      const BATCH_SIZE = 10
+      const isProTier = subscriptionTier === 'pro'
+      const promptsToScan = isProTier ? existingPrompts : existingPrompts.slice(0, BATCH_SIZE)
+
+      const batches = []
+      for (let i = 0; i < promptsToScan.length; i += BATCH_SIZE) {
+        batches.push(promptsToScan.slice(i, i + BATCH_SIZE))
+      }
+
+      console.log(`Starting Google AI Mode scan for: ${companyName} (${batches.length} batch(es), tier=${subscriptionTier})`)
+
+      const allGoogleResults = []
+      let totalFound = 0
+      let totalQueries = 0
+      let scanId = null
+
+      for (let b = 0; b < batches.length; b++) {
+        const batch = batches[b]
+        const response = await fetch('/api/scan-google-ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            companyName,
+            website: companyWebsite,
+            category: companyCategory,
+            prompts: batch,
+            ...(scanId ? { appendToScanId: scanId } : {}),
+          })
         })
-      })
-      
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || t('scanFailed'))
-      }
-      
-      const data = await response.json()
-      console.log('Google AI Mode scan results:', data)
-      
-      // Update existingAiResults with Google AI Mode results
-      if (data.results && data.results.length > 0) {
-        const googleResults = data.results.map(r => ({
-          prompt: r.query,
-          mentioned: r.companyMentioned,
-          snippet: r.aiResponsePreview || '',
-          competitors: r.competitors || [],
-          platform: 'google'
-        }))
-        
-        // Merge with existing results or replace
-        const existingNonGoogle = existingAiResults.filter(r => r.platform !== 'google')
-        setExistingAiResults([...existingNonGoogle, ...googleResults])
-        
-        // Also update the selectedExistingWebsite if available
-        if (selectedExistingWebsite) {
-          const updatedWebsite = { ...selectedExistingWebsite }
-          updatedWebsite.combinedResults = updatedWebsite.combinedResults || {
-            perplexity: { mentioned: 0, total: 0, results: [] },
-            chatgpt: { mentioned: 0, total: 0, results: [] },
-            googleAi: { mentioned: 0, total: 0, results: [] },
-            googleAiOverview: { mentioned: 0, total: 0, results: [] }
-          }
-          updatedWebsite.combinedResults.googleAi = {
-            mentioned: data.foundCount || 0,
-            total: data.totalQueries || 0,
-            results: googleResults
-          }
-          setSelectedExistingWebsite(updatedWebsite)
+
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || t('scanFailed'))
         }
-        
-        alert(t('aiModeScanComplete', { found: data.foundCount, total: data.totalQueries, company: companyName }))
+
+        const data = await response.json()
+        if (b === 0 && data.scanId) scanId = data.scanId
+
+        if (data.results && data.results.length > 0) {
+          const googleResults = data.results.map(r => ({
+            prompt: r.query,
+            mentioned: r.companyMentioned,
+            snippet: r.aiResponsePreview || '',
+            competitors: r.competitors || [],
+            platform: 'google'
+          }))
+          allGoogleResults.push(...googleResults)
+          totalFound += data.foundCount || 0
+          totalQueries += data.totalQueries || 0
+        }
+
+        setGoogleAiProgress(Math.round(((b + 1) / batches.length) * 100))
       }
-      
-      setGoogleAiProgress(100)
-      
+
+      // Merge into existing AI results state
+      const existingNonGoogle = existingAiResults.filter(r => r.platform !== 'google')
+      setExistingAiResults([...existingNonGoogle, ...allGoogleResults])
+
+      // Update selectedExistingWebsite combinedResults if available
+      if (selectedExistingWebsite) {
+        const updatedWebsite = { ...selectedExistingWebsite }
+        updatedWebsite.combinedResults = updatedWebsite.combinedResults || {
+          perplexity: { mentioned: 0, total: 0, results: [] },
+          chatgpt: { mentioned: 0, total: 0, results: [] },
+          googleAi: { mentioned: 0, total: 0, results: [] },
+          googleAiOverview: { mentioned: 0, total: 0, results: [] }
+        }
+        updatedWebsite.combinedResults.googleAi = {
+          mentioned: totalFound,
+          total: totalQueries,
+          results: allGoogleResults
+        }
+        setSelectedExistingWebsite(updatedWebsite)
+      }
+
+      alert(t('aiModeScanComplete', { found: totalFound, total: totalQueries, company: companyName }))
+
     } catch (error) {
       console.error('Google AI Mode scan error:', error)
       alert(t('aiModeScanError') + ': ' + error.message)
@@ -1210,6 +1246,8 @@ function GEOAnalyseContent() {
   // ============================================
   // GOOGLE AI OVERVIEW SCAN
   // ============================================
+  // Lite: 1 batch van max 10 prompts. Pro: chunkt alle prompts in batches van 10
+  // en gebruikt appendToScanId zodat alles in één google_ai_overview_scans row blijft staan.
   const runGoogleAiOverviewScan = async () => {
     if (existingPrompts.length === 0) {
       alert(t('noPromptsSelectCompany'))
@@ -1219,62 +1257,83 @@ function GEOAnalyseContent() {
     setGoogleAiOverviewScanning(true)
 
     try {
-      const promptsToScan = existingPrompts.slice(0, 10)
+      const BATCH_SIZE = 10
+      const isProTier = subscriptionTier === 'pro'
+      const promptsToScan = isProTier ? existingPrompts : existingPrompts.slice(0, BATCH_SIZE)
 
-      console.log('Starting Google AI Overview scan for:', companyName)
-
-      const response = await fetch('/api/scan-google-ai-overview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          companyName,
-          website: companyWebsite,
-          category: companyCategory,
-          prompts: promptsToScan
-        })
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || t('scanFailed'))
+      const batches = []
+      for (let i = 0; i < promptsToScan.length; i += BATCH_SIZE) {
+        batches.push(promptsToScan.slice(i, i + BATCH_SIZE))
       }
 
-      const data = await response.json()
-      console.log('Google AI Overview scan results:', data)
+      console.log(`Starting Google AI Overview scan for: ${companyName} (${batches.length} batch(es), tier=${subscriptionTier})`)
 
-      if (data.results && data.results.length > 0) {
-        const overviewResults = data.results.map(r => ({
-          prompt: r.query,
-          mentioned: r.companyMentioned,
-          hasAiOverview: r.hasAiOverview,
-          snippet: r.aiOverviewText || '',
-          competitors: r.competitorsMentioned || [],
-          platform: 'google_overview'
-        }))
+      const allOverviewResults = []
+      let totalFound = 0
+      let totalOverviews = 0
+      let totalQueries = 0
+      let scanId = null
 
-        // Merge with existing results
-        const existingNonOverview = existingAiResults.filter(r => r.platform !== 'google_overview')
-        setExistingAiResults([...existingNonOverview, ...overviewResults])
+      for (let b = 0; b < batches.length; b++) {
+        const batch = batches[b]
+        const response = await fetch('/api/scan-google-ai-overview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            companyName,
+            website: companyWebsite,
+            category: companyCategory,
+            prompts: batch,
+            ...(scanId ? { appendToScanId: scanId } : {}),
+          })
+        })
 
-        // Update selectedExistingWebsite
-        if (selectedExistingWebsite) {
-          const updatedWebsite = { ...selectedExistingWebsite }
-          updatedWebsite.combinedResults = updatedWebsite.combinedResults || {
-            perplexity: { mentioned: 0, total: 0, results: [] },
-            chatgpt: { mentioned: 0, total: 0, results: [] },
-            googleAi: { mentioned: 0, total: 0, results: [] },
-            googleAiOverview: { mentioned: 0, total: 0, results: [] }
-          }
-          updatedWebsite.combinedResults.googleAiOverview = {
-            mentioned: data.foundCount || 0,
-            total: data.totalQueries || 0,
-            results: overviewResults
-          }
-          setSelectedExistingWebsite(updatedWebsite)
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || t('scanFailed'))
         }
 
-        alert(t('overviewScanComplete', { overviews: data.hasAiOverviewCount, total: data.totalQueries, found: data.foundCount, company: companyName }))
+        const data = await response.json()
+        if (b === 0 && data.scanId) scanId = data.scanId
+
+        if (data.results && data.results.length > 0) {
+          const overviewResults = data.results.map(r => ({
+            prompt: r.query,
+            mentioned: r.companyMentioned,
+            hasAiOverview: r.hasAiOverview,
+            snippet: r.aiOverviewText || '',
+            competitors: r.competitorsMentioned || [],
+            platform: 'google_overview'
+          }))
+          allOverviewResults.push(...overviewResults)
+          totalFound = data.foundCount || totalFound
+          totalOverviews = data.hasAiOverviewCount || totalOverviews
+          totalQueries = data.totalQueries || totalQueries
+        }
       }
+
+      // Merge with existing AI results state
+      const existingNonOverview = existingAiResults.filter(r => r.platform !== 'google_overview')
+      setExistingAiResults([...existingNonOverview, ...allOverviewResults])
+
+      // Update selectedExistingWebsite combinedResults if available
+      if (selectedExistingWebsite) {
+        const updatedWebsite = { ...selectedExistingWebsite }
+        updatedWebsite.combinedResults = updatedWebsite.combinedResults || {
+          perplexity: { mentioned: 0, total: 0, results: [] },
+          chatgpt: { mentioned: 0, total: 0, results: [] },
+          googleAi: { mentioned: 0, total: 0, results: [] },
+          googleAiOverview: { mentioned: 0, total: 0, results: [] }
+        }
+        updatedWebsite.combinedResults.googleAiOverview = {
+          mentioned: totalFound,
+          total: totalQueries,
+          results: allOverviewResults
+        }
+        setSelectedExistingWebsite(updatedWebsite)
+      }
+
+      alert(t('overviewScanComplete', { overviews: totalOverviews, total: totalQueries, found: totalFound, company: companyName }))
 
     } catch (error) {
       console.error('Google AI Overview scan error:', error)

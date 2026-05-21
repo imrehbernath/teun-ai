@@ -1,80 +1,103 @@
-// app/api/rank-history/route.js
-// Haal rank history op voor grafieken
+// app/api/cron/rank-scan/route.js
+// Dagelijkse Vercel cron coordinator voor auto rank-scanning (Pro users).
+// Spreidt Pro users met auto_scan_enabled=true over 7 dagen via hash(userId) % 7,
+// chunkt elk users' keywords in batches van 3 en stuurt elke batch fire-and-forget
+// naar /api/cron/scan-user (zodat de coordinator binnen 60s blijft).
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
+const BATCH_SIZE = 3;
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+function hashUserId(userId) {
+  let h = 0;
+  for (let i = 0; i < userId.length; i++) h = ((h << 5) - h + userId.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+function getBaseUrl() {
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '');
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return 'http://localhost:3000';
+}
+
+function authorized(request) {
+  if (!process.env.CRON_SECRET) return false;
+  const header = request.headers.get('authorization') || '';
+  return header === `Bearer ${process.env.CRON_SECRET}`;
+}
+
 export async function GET(request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const keywordId = searchParams.get('keywordId');
-    const days = parseInt(searchParams.get('days') || '30');
-    
-    if (!userId) {
-      return NextResponse.json({ error: 'userId verplicht' }, { status: 400 });
-    }
-    
-    const since = new Date();
-    since.setDate(since.getDate() - days);
-    
-    let query = supabase
-      .from('rank_history')
-      .select('tracked_keyword_id, platform, position, found, scanned_at')
-      .eq('user_id', userId)
-      .gte('scanned_at', since.toISOString())
-      .order('scanned_at', { ascending: true });
-    
-    if (keywordId) {
-      query = query.eq('tracked_keyword_id', keywordId);
-    }
-    
-    const { data, error } = await query;
-    if (error) throw error;
-    
-    // Group by keyword_id for easy chart rendering
-    const grouped = {};
-    for (const row of data) {
-      if (!grouped[row.tracked_keyword_id]) {
-        grouped[row.tracked_keyword_id] = [];
-      }
-      grouped[row.tracked_keyword_id].push({
-        platform: row.platform,
-        position: row.position,
-        found: row.found,
-        date: row.scanned_at,
-      });
-    }
-    
-    // Also build chart-ready data: per scan date, all 3 platform positions
-    const chartData = {};
-    for (const row of data) {
-      const dateKey = new Date(row.scanned_at).toISOString().split('T')[0];
-      const kwKey = row.tracked_keyword_id;
-      const compositeKey = `${kwKey}_${dateKey}`;
-      
-      if (!chartData[kwKey]) chartData[kwKey] = {};
-      if (!chartData[kwKey][dateKey]) {
-        chartData[kwKey][dateKey] = { date: dateKey };
-      }
-      chartData[kwKey][dateKey][row.platform] = row.position;
-    }
-    
-    // Convert to arrays per keyword
-    const charts = {};
-    for (const [kwId, dates] of Object.entries(chartData)) {
-      charts[kwId] = Object.values(dates).sort((a, b) => a.date.localeCompare(b.date));
-    }
-    
-    return NextResponse.json({ history: grouped, charts });
-    
-  } catch (error) {
-    console.error('Rank history GET error:', error);
-    return NextResponse.json({ error: 'Ophalen mislukt' }, { status: 500 });
+  if (!authorized(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const dayIndex = new Date().getUTCDay(); // 0=Sunday .. 6=Saturday
+
+  const { data: profiles, error: profErr } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('auto_scan_enabled', true)
+    .in('subscription_status', ['active', 'canceling'])
+    .eq('subscription_tier', 'pro');
+
+  if (profErr) {
+    console.error('[Cron] Profile query error:', profErr.message);
+    return NextResponse.json({ error: 'Profile query failed' }, { status: 500 });
+  }
+
+  const todayUsers = (profiles || []).filter(p => hashUserId(p.id) % 7 === dayIndex);
+
+  const baseUrl = getBaseUrl();
+  let totalBatchesDispatched = 0;
+  let usersProcessed = 0;
+
+  for (const profile of todayUsers) {
+    const { data: keywords, error: kwErr } = await supabase
+      .from('tracked_keywords')
+      .select('id')
+      .eq('user_id', profile.id);
+
+    if (kwErr) {
+      console.error(`[Cron] Keywords query error for ${profile.id}:`, kwErr.message);
+      continue;
+    }
+    if (!keywords?.length) continue;
+
+    usersProcessed++;
+
+    for (let i = 0; i < keywords.length; i += BATCH_SIZE) {
+      const batch = keywords.slice(i, i + BATCH_SIZE).map(k => k.id);
+
+      // Fire-and-forget: catch om unhandled rejection te voorkomen, niet awaiten op het scan-resultaat.
+      fetch(`${baseUrl}/api/cron/scan-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.CRON_SECRET}`,
+        },
+        body: JSON.stringify({ userId: profile.id, keywordIds: batch }),
+        keepalive: true,
+      }).catch(err => console.error(`[Cron] Dispatch error for ${profile.id}:`, err.message));
+
+      totalBatchesDispatched++;
+    }
+  }
+
+  console.log(`[Cron] Day ${dayIndex}: ${usersProcessed} users, ${totalBatchesDispatched} batches dispatched`);
+
+  return NextResponse.json({
+    dayIndex,
+    usersMatched: todayUsers.length,
+    usersProcessed,
+    batchesDispatched: totalBatchesDispatched,
+  });
 }

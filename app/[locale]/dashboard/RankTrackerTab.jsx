@@ -72,6 +72,11 @@ function PlatformScoreCard({ platformKey, result, locale }) {
             #{result.position} {isNL ? 'van' : 'of'} {result.totalResults || '?'}
           </span>
         )}
+        {result.mentionedInText && !result.position && !hasError && (
+          <span className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-700">
+            {isNL ? 'Genoemd in tekst' : 'Mentioned in text'}
+          </span>
+        )}
         {!result.found && !hasError && (
           <span className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-red-50 text-red-500">
             {isNL ? 'Niet gevonden' : 'Not found'}
@@ -92,6 +97,11 @@ function PlatformScoreCard({ platformKey, result, locale }) {
             </>
           ) : hasError ? (
             <p className="text-[14px] text-slate-400 m-0">{isNL ? 'Scan mislukt' : 'Scan failed'}</p>
+          ) : result.mentionedInText ? (
+            <>
+              <p className="font-bold text-amber-700 text-[14px] m-0">{isNL ? 'Genoemd zonder ranking' : 'Mentioned without ranking'}</p>
+              <p className="text-[12px] text-slate-500 m-0 mt-0.5">{isNL ? 'Je bedrijf komt in het antwoord voor maar niet in de top 10 lijst.' : 'Your business appears in the response but not in the top 10 list.'}</p>
+            </>
           ) : (
             <>
               <p className="font-bold text-slate-500 text-[14px] m-0">{isNL ? 'Niet gerangschikt' : 'Not ranked'}</p>
@@ -282,27 +292,27 @@ function KeywordRow({ kw, latestFull, chartData, onDelete, onUpdate, expanded, o
           </div>
           <span className="text-[11px] text-slate-400">{kw.brand_name} · {kw.domain}</span>
         </div>
-        {/* Compact position badges */}
-        <div className="hidden sm:flex items-center gap-2">
+        {/* Compact position badges (label boven cijfer per platform) */}
+        <div className="hidden sm:flex items-end gap-5">
           {Object.entries(PLATFORMS).map(([key, pl]) => {
             const pos = kw.latestPositions?.[key]?.position ?? null;
             return (
-              <div key={key} className="flex items-center gap-1" title={pl.name}>
-                <span className={`w-2 h-2 rounded-full ${pl.dotClass}`} />
+              <div key={key} className="flex flex-col items-center gap-1.5 min-w-[64px]">
+                <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">{pl.name}</span>
                 <PositionBadge position={pos} size="small" />
               </div>
             );
           })}
         </div>
-        <div className="text-slate-400">{expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}</div>
+        <div className="text-slate-400 ml-1">{expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}</div>
       </button>
 
       {/* Mobile positions */}
       {!expanded && (
-        <div className="sm:hidden flex items-center gap-2 px-5 pb-3">
+        <div className="sm:hidden flex items-end justify-around gap-3 px-5 pb-4">
           {Object.entries(PLATFORMS).map(([key, pl]) => (
-            <div key={key} className="flex items-center gap-1">
-              <span className={`w-2 h-2 rounded-full ${pl.dotClass}`} />
+            <div key={key} className="flex flex-col items-center gap-1">
+              <span className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold">{pl.name}</span>
               <PositionBadge position={kw.latestPositions?.[key]?.position ?? null} size="small" />
             </div>
           ))}
@@ -387,7 +397,7 @@ function KeywordRow({ kw, latestFull, chartData, onDelete, onUpdate, expanded, o
 // ════════════════════════════════════════
 // MAIN TAB
 // ════════════════════════════════════════
-export default function RankTrackerTab({ userId, locale, activeCompany, isPro }) {
+export default function RankTrackerTab({ userId, locale, activeCompany, isProTier }) {
   const [keywords, setKeywords] = useState([]);
   const [charts, setCharts] = useState({});
   const [latestFull, setLatestFull] = useState({});
@@ -396,6 +406,9 @@ export default function RankTrackerTab({ userId, locale, activeCompany, isPro })
   const [showAddForm, setShowAddForm] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [days, setDays] = useState(30);
+  const [autoScanEnabled, setAutoScanEnabled] = useState(false);
+  const [autoScanSaving, setAutoScanSaving] = useState(false);
+  const [autoScanNextAt, setAutoScanNextAt] = useState(null);
   const isNL = locale === 'nl';
 
   const fetchData = useCallback(async () => {
@@ -415,6 +428,41 @@ export default function RankTrackerTab({ userId, locale, activeCompany, isPro })
   }, [userId, days]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    if (!isProTier) return;
+    fetch('/api/auto-scan').then(r => r.json()).then(d => {
+      if (typeof d?.enabled === 'boolean') setAutoScanEnabled(d.enabled);
+      setAutoScanNextAt(d?.nextScanAt || null);
+    }).catch(() => {});
+  }, [isProTier]);
+
+  const toggleAutoScan = async () => {
+    if (autoScanSaving) return;
+    const next = !autoScanEnabled;
+    setAutoScanSaving(true);
+    setAutoScanEnabled(next);
+    try {
+      const res = await fetch('/api/auto-scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: next }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        setAutoScanEnabled(!next);
+        console.error('Auto-scan toggle failed:', d?.error);
+      } else if (typeof d?.enabled === 'boolean') {
+        setAutoScanEnabled(d.enabled);
+      }
+      setAutoScanNextAt(d?.nextScanAt || null);
+    } catch (err) {
+      setAutoScanEnabled(!next);
+      console.error('Auto-scan toggle error:', err);
+    } finally {
+      setAutoScanSaving(false);
+    }
+  };
 
   const handleAdd = async (data) => {
     try {
@@ -456,8 +504,34 @@ export default function RankTrackerTab({ userId, locale, activeCompany, isPro })
     <div className="space-y-5">
       {/* Controls */}
       <div className="flex items-center justify-between">
-        <div className="text-[12px] text-slate-400">
-          {tier?.cronEnabled ? (isNL ? '2x per week automatisch gescand' : 'Scanned twice a week') : ''}
+        <div className="text-[12px] text-slate-500">
+          {isProTier ? (
+            <div className="flex items-center gap-3 flex-wrap">
+              <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={autoScanEnabled}
+                  onClick={toggleAutoScan}
+                  disabled={autoScanSaving}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${autoScanEnabled ? 'bg-emerald-500' : 'bg-slate-300'} ${autoScanSaving ? 'opacity-60 cursor-wait' : 'cursor-pointer'}`}
+                >
+                  <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition ${autoScanEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
+                </button>
+                <span>{isNL ? '1x per week automatisch scannen' : 'Scan weekly (automatic)'}</span>
+              </label>
+              {autoScanEnabled && autoScanNextAt && (
+                <span className="text-[11px] text-slate-400">
+                  {isNL ? 'Volgende: ' : 'Next: '}
+                  {new Date(autoScanNextAt).toLocaleString(isNL ? 'nl-NL' : 'en-GB', {
+                    weekday: 'short', day: 'numeric', month: 'short',
+                    hour: '2-digit', minute: '2-digit',
+                    timeZone: 'Europe/Amsterdam',
+                  })}
+                </span>
+              )}
+            </div>
+          ) : ''}
         </div>
         <div className="flex items-center gap-2">
           <select value={days} onChange={e => setDays(Number(e.target.value))} className="text-[12px] bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-slate-600 focus:outline-none cursor-pointer">
@@ -473,12 +547,12 @@ export default function RankTrackerTab({ userId, locale, activeCompany, isPro })
         </div>
       </div>
 
-      {/* Upgrade banner */}
-      {tier && !tier.cronEnabled && filteredKeywords.length > 0 && (
+      {/* Upgrade banner: auto-tracking is Pro-only */}
+      {tier && !isProTier && filteredKeywords.length > 0 && (
         <div className="rounded-xl px-5 py-4 flex items-center justify-between flex-wrap gap-3" style={{ background: '#292956' }}>
           <div>
-            <p className="font-semibold text-[13px] text-white m-0">{isNL ? 'Automatische tracking vanaf Starter' : 'Automatic tracking from Starter'}</p>
-            <p className="text-white/60 text-[11px] m-0 mt-0.5">{isNL ? '2x per week scans, 20 keywords, positie-grafiek over tijd' : '2x/week scans, 20 keywords, position chart over time'}</p>
+            <p className="font-semibold text-[13px] text-white m-0">{isNL ? 'Automatische tracking vanaf Pro' : 'Automatic tracking from Pro'}</p>
+            <p className="text-white/60 text-[11px] m-0 mt-0.5">{isNL ? '1x per week scans, 50 keywords, positie-grafiek over tijd' : 'Weekly scans, 50 keywords, position chart over time'}</p>
           </div>
           <a href={isNL ? '/pricing' : '/en/pricing'} className="bg-white text-slate-800 font-semibold text-[12px] px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors no-underline">
             {isNL ? 'Bekijk plannen' : 'View plans'}
