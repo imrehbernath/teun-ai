@@ -6,6 +6,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { BETA_CONFIG } from '@/lib/beta-config';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -41,20 +42,30 @@ export async function GET(request) {
   }
 
   const dayIndex = new Date().getUTCDay(); // 0=Sunday .. 6=Saturday
+  const url = new URL(request.url);
+  const force = url.searchParams.get('force') === '1';
 
+  // Selecteer profielen met auto-scan aan; filter daarna in JS op Pro OR admin-email.
+  // Admin-bypass is consistent met de rest van de codebase (zie lib/beta-config.js).
   const { data: profiles, error: profErr } = await supabase
     .from('profiles')
-    .select('id')
+    .select('id, email, subscription_tier')
     .eq('auto_scan_enabled', true)
-    .in('subscription_status', ['active', 'canceling'])
-    .eq('subscription_tier', 'pro');
+    .in('subscription_status', ['active', 'canceling']);
 
   if (profErr) {
     console.error('[Cron] Profile query error:', profErr.message);
     return NextResponse.json({ error: 'Profile query failed' }, { status: 500 });
   }
 
-  const todayUsers = (profiles || []).filter(p => hashUserId(p.id) % 7 === dayIndex);
+  const adminEmails = BETA_CONFIG.ADMIN_EMAILS || [];
+  const eligible = (profiles || []).filter(p =>
+    p.subscription_tier === 'pro' || adminEmails.includes(p.email)
+  );
+
+  const todayUsers = force
+    ? eligible
+    : eligible.filter(p => hashUserId(p.id) % 7 === dayIndex);
 
   const baseUrl = getBaseUrl();
   let totalBatchesDispatched = 0;
@@ -94,10 +105,109 @@ export async function GET(request) {
 
   console.log(`[Cron] Day ${dayIndex}: ${usersProcessed} users, ${totalBatchesDispatched} batches dispatched`);
 
+  // ─────────────────────────────────────────────────────────────
+  // AI Visibility weekly auto-scan (commerciële prompts uit tool_integrations).
+  // Zelfde Pro-users + zelfde dayIndex-spreiding als de Rank Tracker hierboven.
+  // Per user pakken we de meest recente tool_integrations rij met commercial_prompts
+  // en doen een fire-and-forget POST naar /api/scan-selected-prompts met
+  // writeHistory: true. Die endpoint schrijft 2 rijen naar visibility_history
+  // (chatgpt + perplexity) zodat de dashboard-grafiek wekelijks een datapoint krijgt.
+  let visibilityIntegrationsDispatched = 0;
+  let visibilityUsersProcessed = 0;
+
+  for (const profile of todayUsers) {
+    const { data: integrations, error: intErr } = await supabase
+      .from('tool_integrations')
+      .select('id, company_name, website, company_category, commercial_prompts')
+      .eq('user_id', profile.id)
+      .not('commercial_prompts', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (intErr) {
+      console.error(`[Cron AIV] Integrations query error for ${profile.id}:`, intErr.message);
+      continue;
+    }
+
+    const integration = integrations?.[0];
+    const prompts = (integration?.commercial_prompts || [])
+      .map(p => (typeof p === 'string' ? p : (p?.prompt || p?.text || p?.query || p?.ai_prompt || '')))
+      .filter(Boolean);
+
+    if (!integration || prompts.length === 0) continue;
+
+    visibilityUsersProcessed++;
+
+    fetch(`${baseUrl}/api/scan-selected-prompts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.CRON_SECRET}`,
+      },
+      body: JSON.stringify({
+        integrationId: integration.id,
+        prompts,
+        companyName: integration.company_name,
+        website: integration.website,
+        branche: integration.company_category,
+        location: null,
+        writeHistory: true,
+      }),
+      keepalive: true,
+    }).catch(err => console.error(`[Cron AIV] Dispatch error for ${profile.id}:`, err.message));
+
+    // Google AI Mode (SerpAPI) — apart endpoint, fire-and-forget.
+    fetch(`${baseUrl}/api/scan-google-ai`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.CRON_SECRET}`,
+      },
+      body: JSON.stringify({
+        userId: profile.id,
+        integrationId: integration.id,
+        companyName: integration.company_name,
+        website: integration.website,
+        category: integration.company_category,
+        prompts,
+        skipSave: true,
+        writeHistory: true,
+      }),
+      keepalive: true,
+    }).catch(err => console.error(`[Cron AIM] Dispatch error for ${profile.id}:`, err.message));
+
+    // Google AI Overviews (SerpAPI) — apart endpoint, fire-and-forget.
+    fetch(`${baseUrl}/api/scan-google-ai-overview`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.CRON_SECRET}`,
+      },
+      body: JSON.stringify({
+        userId: profile.id,
+        integrationId: integration.id,
+        companyName: integration.company_name,
+        website: integration.website,
+        prompts,
+        skipSave: true,
+        writeHistory: true,
+      }),
+      keepalive: true,
+    }).catch(err => console.error(`[Cron AIO] Dispatch error for ${profile.id}:`, err.message));
+
+    visibilityIntegrationsDispatched++;
+  }
+
+  console.log(`[Cron AIV] Day ${dayIndex}: ${visibilityUsersProcessed} users, ${visibilityIntegrationsDispatched} integrations dispatched`);
+
   return NextResponse.json({
     dayIndex,
     usersMatched: todayUsers.length,
     usersProcessed,
     batchesDispatched: totalBatchesDispatched,
+    visibility: {
+      usersProcessed: visibilityUsersProcessed,
+      integrationsDispatched: visibilityIntegrationsDispatched,
+    },
   });
 }

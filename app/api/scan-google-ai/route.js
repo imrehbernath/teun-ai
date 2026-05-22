@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 export const maxDuration = 60;
@@ -333,7 +333,7 @@ export async function POST(request) {
     }
 
     const body = await request.json()
-    const { companyName, website, category, prompts, changedPrompts, skipSave, appendToScanId } = body
+    const { companyName, website, category, prompts, changedPrompts, skipSave, appendToScanId, userId: bodyUserId, integrationId, writeHistory } = body
 
     if (!companyName) {
       return NextResponse.json({ error: 'Company name is required' }, { status: 400 })
@@ -343,12 +343,26 @@ export async function POST(request) {
       return NextResponse.json({ error: 'At least one search query is required' }, { status: 400 })
     }
 
-    // Get authenticated user
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    // Authenticate: either as logged-in user (frontend flow) or via CRON_SECRET (cron flow).
+    // For cron we use a service client and trust the userId from the body.
+    const authHeader = request.headers.get('authorization') || ''
+    const isCronCall = !!process.env.CRON_SECRET && authHeader === `Bearer ${process.env.CRON_SECRET}`
 
-    if (!user) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    let supabase
+    let user
+    if (isCronCall) {
+      if (!bodyUserId) {
+        return NextResponse.json({ error: 'userId required for cron call' }, { status: 400 })
+      }
+      supabase = await createServiceClient()
+      user = { id: bodyUserId }
+    } else {
+      supabase = await createClient()
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+      user = authUser
     }
 
     // Detect language from prompt content
@@ -502,6 +516,46 @@ export async function POST(request) {
 
       if (updateError) {
         console.error('Error updating scan record:', updateError)
+      }
+    }
+
+    // Optional: write 1 summary row to visibility_history (used by the weekly cron
+    // to feed the dashboard chart with a google_ai_mode datapoint per run).
+    if (writeHistory && integrationId) {
+      try {
+        const totalMentionsSum = results.reduce((sum, r) => sum + (r.mentionCount || 0), 0)
+        const competitorCounts = {}
+        for (const r of results) {
+          for (const name of (r.competitorsMentioned || [])) {
+            if (!name || typeof name !== 'string') continue
+            const c = name.trim()
+            if (c.length < 2 || c.length > 80) continue
+            competitorCounts[c] = (competitorCounts[c] || 0) + 1
+          }
+        }
+        const top = Object.entries(competitorCounts).sort((a, b) => b[1] - a[1])[0]
+
+        const { error: histError } = await supabase
+          .from('visibility_history')
+          .insert({
+            user_id: user.id,
+            integration_id: integrationId,
+            platform: 'google_ai_mode',
+            prompts_total: prompts.length,
+            prompts_found: foundCount,
+            visibility_pct: prompts.length > 0 ? Math.round((foundCount / prompts.length) * 10000) / 100 : 0,
+            total_mentions: totalMentionsSum,
+            top_competitor: top ? top[0] : null,
+            top_competitor_count: top ? top[1] : null,
+          })
+
+        if (histError) {
+          console.error('[ScanGoogleAI] visibility_history insert error:', histError)
+        } else {
+          console.log(`[ScanGoogleAI] visibility_history: 1 row written (google_ai_mode) for integration ${integrationId}`)
+        }
+      } catch (e) {
+        console.error('[ScanGoogleAI] writeHistory failed:', e?.message)
       }
     }
 

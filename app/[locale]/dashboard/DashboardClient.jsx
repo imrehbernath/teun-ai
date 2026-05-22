@@ -143,10 +143,152 @@ function PlatformBar({ name, found, total, color, pct, label, notScanned, notSca
   )
 }
 
-function VisibilityChart({ data, t }) {
-  if (!data || data.length < 2) return null
+function AutoScanCard({ t, locale, isProTier }) {
+  // enabled = null while fetching so we don't flash "Uit" on remount (tab switch).
+  const [enabled, setEnabled] = useState(null)
+  const [nextAt, setNextAt] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+  const isNL = locale !== 'en'
+
+  useEffect(() => {
+    if (!isProTier) { setEnabled(false); setLoaded(true); return }
+    let cancelled = false
+    fetch('/api/auto-scan').then(r => r.json()).then(d => {
+      if (cancelled) return
+      setEnabled(typeof d?.enabled === 'boolean' ? d.enabled : false)
+      setNextAt(d?.nextScanAt || null)
+    }).catch(() => {
+      if (!cancelled) setEnabled(false)
+    }).finally(() => {
+      if (!cancelled) setLoaded(true)
+    })
+    return () => { cancelled = true }
+  }, [isProTier])
+
+  const toggle = async () => {
+    if (saving || !isProTier) return
+    const next = !enabled
+    setSaving(true)
+    setEnabled(next)
+    try {
+      const res = await fetch('/api/auto-scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: next }),
+      })
+      const d = await res.json()
+      if (!res.ok) setEnabled(!next)
+      else if (typeof d?.enabled === 'boolean') setEnabled(d.enabled)
+      setNextAt(d?.nextScanAt || null)
+    } catch {
+      setEnabled(!next)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!isProTier) {
+    return (
+      <div className="rounded-xl px-5 py-4 flex items-center justify-between flex-wrap gap-3 mb-6" style={{ background: '#292956' }}>
+        <div className="flex items-center gap-3">
+          <RefreshCw className="w-5 h-5 text-white/70 shrink-0" />
+          <div>
+            <p className="font-semibold text-[13px] text-white m-0">{t.autoScan.upgradeTitle}</p>
+            <p className="text-white/60 text-[11px] m-0 mt-0.5">{t.autoScan.upgradeBody}</p>
+          </div>
+        </div>
+        <a href={lp(locale, '/pricing')} className="bg-white text-slate-800 font-semibold text-[12px] px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors no-underline">
+          {t.autoScan.upgradeCta}
+        </a>
+      </div>
+    )
+  }
+
+  // While we don't know the real state yet, render a neutral skeleton row.
+  // Prevents the toggle from flashing "Uit" on tab-switch remount before the fetch resolves.
+  if (!loaded || enabled == null) {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 p-5 mb-6 flex items-center gap-4">
+        <div className="w-10 h-10 rounded-xl bg-slate-100 animate-pulse shrink-0" />
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="h-3.5 w-40 bg-slate-100 animate-pulse rounded" />
+          <div className="h-3 w-64 bg-slate-100 animate-pulse rounded" />
+        </div>
+        <div className="h-6 w-11 rounded-full bg-slate-200 animate-pulse shrink-0" />
+      </div>
+    )
+  }
+
+  const fmtLocale = isNL ? 'nl-NL' : 'en-GB'
+  const nextFormatted = nextAt && enabled
+    ? new Date(nextAt).toLocaleString(fmtLocale, {
+        weekday: 'short', day: 'numeric', month: 'short',
+        hour: '2-digit', minute: '2-digit',
+        timeZone: 'Europe/Amsterdam',
+      })
+    : null
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-5 mb-6 flex items-center gap-4">
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${enabled ? 'bg-emerald-50' : 'bg-slate-100'}`}>
+        <RefreshCw className={`w-5 h-5 ${enabled ? 'text-emerald-600' : 'text-slate-400'}`} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[14px] font-semibold text-slate-800">{t.autoScan.title}</div>
+        <div className="text-[12px] text-slate-500 mt-0.5">{t.autoScan.description}</div>
+        {nextFormatted && (
+          <div className="text-[11px] text-slate-400 mt-1.5">
+            {t.autoScan.nextScan}: {nextFormatted}
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <span className={`text-[11px] font-medium ${enabled ? 'text-emerald-600' : 'text-slate-400'}`}>
+          {enabled ? t.autoScan.statusOn : t.autoScan.statusOff}
+        </span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={enabled}
+          onClick={toggle}
+          disabled={saving}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${enabled ? 'bg-emerald-500' : 'bg-slate-300'} ${saving ? 'opacity-60 cursor-wait' : 'cursor-pointer'}`}
+        >
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function VisibilityChart({ data, t, locale }) {
+  // Last + next measurement (cron runs weekly per user via hash spreading).
+  const lastFullDate = data && data.length > 0 ? data[data.length - 1]?.fullDate : null
+  const lastDate = lastFullDate ? new Date(lastFullDate) : null
+  const nextDate = lastDate ? new Date(lastDate.getTime() + 7 * 24 * 60 * 60 * 1000) : null
+  const fmtLocale = locale === 'en' ? 'en-US' : 'nl-NL'
+  const fmtFull = (d) => d ? d.toLocaleDateString(fmtLocale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''
+  const fmtShort = (d) => d ? d.toLocaleDateString(fmtLocale, { day: 'numeric', month: 'short' }) : ''
+  const metaLine = lastDate && nextDate ? `${t.chart.lastUpdate}: ${fmtFull(lastDate)} · ${t.chart.nextUpdate}: ${fmtShort(nextDate)}` : null
+  if (!data || data.length < 2) {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+        <div className="mb-5">
+          <div className="text-[15px] font-semibold text-slate-800">{t.chart.title}</div>
+          <div className="text-[12px] text-slate-400 mt-0.5">{t.chart.subtitle}</div>
+          {metaLine && <div className="text-[11px] text-slate-500 mt-1.5">{metaLine}</div>}
+        </div>
+        <div className="flex flex-col items-center justify-center h-[200px] text-center px-4">
+          <div className="text-[13px] font-medium text-slate-700 mb-1">{t.chart.emptyTitle}</div>
+          <div className="text-[12px] text-slate-500 max-w-md">{t.chart.emptyBody}</div>
+        </div>
+      </div>
+    )
+  }
   const maxVal = 100
   const points = data.length
+  const hasData = (key) => data.some(d => d[key] != null)
   const buildPath = (key) => data.map((d, i) => {
     const x = (i / Math.max(points - 1, 1)) * 100
     const y = 100 - ((d[key] || 0) / maxVal) * 100
@@ -154,15 +296,40 @@ function VisibilityChart({ data, t }) {
   }).join(' ')
   const buildAreaPath = (key) => `${buildPath(key)} L 100 100 L 0 100 Z`
 
+  // Hover state for HubSpot-style tooltip with per-platform values
+  const [hoveredIndex, setHoveredIndex] = useState(null)
+  const plotRef = useRef(null)
+
+  const platforms = [
+    { key: 'total', label: t.chart.total, color: '#1e293b' },
+    { key: 'chatgpt', label: 'ChatGPT', color: PLATFORM_COLORS.chatgpt },
+    { key: 'perplexity', label: 'Perplexity', color: PLATFORM_COLORS.perplexity },
+    { key: 'google_ai_mode', label: 'Google AI Mode', color: PLATFORM_COLORS.googleAiMode },
+    { key: 'google_ai_overviews', label: 'AI Overviews', color: PLATFORM_COLORS.googleAiOverview },
+  ]
+
+  const handlePlotMouseMove = (e) => {
+    if (!plotRef.current || points === 0) return
+    const rect = plotRef.current.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const idx = Math.round((x / rect.width) * (points - 1))
+    setHoveredIndex(Math.max(0, Math.min(points - 1, idx)))
+  }
+
+  const hoveredPoint = hoveredIndex != null ? data[hoveredIndex] : null
+  const hoverXPct = hoveredIndex != null ? (hoveredIndex / Math.max(points - 1, 1)) * 100 : 0
+  const isHoveredOnRight = hoverXPct > 65
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
       <div className="flex justify-between items-center mb-5">
         <div>
           <div className="text-[15px] font-semibold text-slate-800">{t.chart.title}</div>
           <div className="text-[12px] text-slate-400 mt-0.5">{t.chart.subtitle}</div>
+          {metaLine && <div className="text-[11px] text-slate-500 mt-1.5">{metaLine}</div>}
         </div>
-        <div className="flex gap-4">
-          {[{ label: t.chart.total, color: '#1e293b' }, { label: 'ChatGPT', color: PLATFORM_COLORS.chatgpt }, { label: 'Perplexity', color: PLATFORM_COLORS.perplexity }].map(l => (
+        <div className="flex gap-4 flex-wrap">
+          {platforms.map(l => (
             <div key={l.label} className="flex items-center gap-1.5 text-[11px] text-slate-500">
               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: l.color }} /> {l.label}
             </div>
@@ -170,15 +337,75 @@ function VisibilityChart({ data, t }) {
         </div>
       </div>
       <div className="relative h-[220px] pl-10">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full">
-          {[0, 25, 50, 75, 100].map(v => <line key={v} x1="0" y1={100 - v} x2="100" y2={100 - v} stroke="#f1f5f9" strokeWidth="0.3" />)}
-          <path d={buildAreaPath('total')} fill="#1e293b" fillOpacity="0.05" />
-          <path d={buildPath('total')} fill="none" stroke="#1e293b" strokeWidth="0.8" />
-          <path d={buildPath('chatgpt')} fill="none" stroke={PLATFORM_COLORS.chatgpt} strokeWidth="0.5" strokeDasharray="1.5 1.5" />
-          <path d={buildPath('perplexity')} fill="none" stroke={PLATFORM_COLORS.perplexity} strokeWidth="0.5" strokeDasharray="1.5 1.5" />
-        </svg>
-        <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-[10px] text-slate-400 w-8 text-right pr-2">
+        {/* y-axis labels (kept outside the hover area) */}
+        <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-[10px] text-slate-400 w-8 text-right pr-2 pointer-events-none z-0">
           {['100%', '75%', '50%', '25%', '0%'].map(l => <span key={l}>{l}</span>)}
+        </div>
+
+        {/* Plot area = the SVG + overlay markers/tooltip. Hover happens only here. */}
+        <div
+          ref={plotRef}
+          className="relative w-full h-full"
+          onMouseMove={handlePlotMouseMove}
+          onMouseLeave={() => setHoveredIndex(null)}
+        >
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full">
+            {[0, 25, 50, 75, 100].map(v => <line key={v} x1="0" y1={100 - v} x2="100" y2={100 - v} stroke="#f1f5f9" strokeWidth="0.3" />)}
+            {hasData('total') && <path d={buildAreaPath('total')} fill="#1e293b" fillOpacity="0.05" style={{ transition: 'opacity 120ms', opacity: hoveredPoint ? 0.5 : 1 }} />}
+            {hasData('total') && <path d={buildPath('total')} fill="none" stroke="#1e293b" strokeWidth="0.8" />}
+            {hasData('chatgpt') && <path d={buildPath('chatgpt')} fill="none" stroke={PLATFORM_COLORS.chatgpt} strokeWidth="0.5" strokeDasharray="1.5 1.5" />}
+            {hasData('perplexity') && <path d={buildPath('perplexity')} fill="none" stroke={PLATFORM_COLORS.perplexity} strokeWidth="0.5" strokeDasharray="1.5 1.5" />}
+            {hasData('google_ai_mode') && <path d={buildPath('google_ai_mode')} fill="none" stroke={PLATFORM_COLORS.googleAiMode} strokeWidth="0.5" strokeDasharray="1.5 1.5" />}
+            {hasData('google_ai_overviews') && <path d={buildPath('google_ai_overviews')} fill="none" stroke={PLATFORM_COLORS.googleAiOverview} strokeWidth="0.5" strokeDasharray="1.5 1.5" />}
+            {/* vertical guide line on hover */}
+            {hoveredIndex != null && (
+              <line x1={hoverXPct} y1="0" x2={hoverXPct} y2="100" stroke="#94a3b8" strokeWidth="0.25" strokeDasharray="0.6 0.6" />
+            )}
+          </svg>
+
+          {/* Markers (HTML — circles stay round even with stretched viewBox) */}
+          {hoveredPoint && platforms.map(p => {
+            if (hoveredPoint[p.key] == null) return null
+            return (
+              <div
+                key={p.key}
+                className="absolute w-2.5 h-2.5 rounded-full border-2 border-white shadow pointer-events-none"
+                style={{
+                  left: `${hoverXPct}%`,
+                  top: `${100 - hoveredPoint[p.key]}%`,
+                  transform: 'translate(-50%, -50%)',
+                  background: p.color,
+                }}
+              />
+            )
+          })}
+
+          {/* Tooltip card */}
+          {hoveredPoint && (
+            <div
+              className="absolute bg-slate-800 text-white rounded-lg py-2.5 px-3 shadow-lg pointer-events-none z-10 min-w-[170px]"
+              style={{
+                left: `${hoverXPct}%`,
+                top: 0,
+                transform: isHoveredOnRight ? 'translate(calc(-100% - 12px), 0)' : 'translate(12px, 0)',
+              }}
+            >
+              <div className="text-[11px] font-semibold mb-2 pb-2 border-b border-white/15">{hoveredPoint.date}</div>
+              {platforms.map(p => {
+                const val = hoveredPoint[p.key]
+                if (val == null) return null
+                return (
+                  <div key={p.key} className="flex items-center justify-between gap-4 text-[11px] py-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: p.color }} />
+                      <span className={p.key === 'total' ? 'font-semibold' : ''}>{p.label}</span>
+                    </div>
+                    <span className="tabular-nums">{Number(val).toFixed(2)}%</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
       <div className="flex justify-between text-[10px] text-slate-400 mt-2 pl-10">
@@ -1304,7 +1531,8 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   const visibility = data?.visibility || {}
   const prompts = data?.prompts || []
   const competitors = data?.competitors || []
-  const visibilityTrend = data?.visibilityTrend || []
+  const visibilityHistory = data?.visibilityHistory || []
+  const visibilityTrend = visibilityHistory.length > 0 ? visibilityHistory : (data?.visibilityTrend || [])
   const rankChecks = data?.rankChecks || []
   const googleAiMode = data?.googleAiMode || { found: 0, total: 0, pct: 0 }
   const googleAiOverview = data?.googleAiOverview || { found: 0, total: 0, pct: 0 }
@@ -1721,7 +1949,9 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                 </div>
               )}
 
-              <VisibilityChart data={visibilityTrend} t={t} />
+              <AutoScanCard t={t} locale={locale} isProTier={isProTier} />
+
+              <VisibilityChart data={visibilityTrend} t={t} locale={locale} />
 
               <div className="grid grid-cols-2 gap-4 mb-6">
                 {/* Quick Wins */}

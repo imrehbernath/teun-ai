@@ -585,7 +585,7 @@ export async function GET(request) {
       total: promptCount > 0 ? Math.round((foundCount / promptCount) * 100) : 0,
     }
 
-    // Visibility trend
+    // Visibility trend (legacy: per handmatige tool_integrations scan)
     const companyScans = integrations.filter(s => new Date(s.created_at) >= new Date(sinceDate)).reverse()
     const visibilityTrend = companyScans.map(scan => {
       const v = calcVisibility(normalizeResults(scan.results))
@@ -595,6 +595,93 @@ export async function GET(request) {
         chatgpt: v.chatgpt, perplexity: v.perplexity, total: v.total,
       }
     })
+
+    // Visibility history (nieuw: per wekelijkse cron-run, single source of truth).
+    // Groepeert per scanned_at-timestamp en geeft per platform een waarde.
+    const historySinceDate = new Date(now - 84 * 24 * 60 * 60 * 1000).toISOString() // 12 weken
+    const integrationIds = (integrations || []).map(i => i.id)
+    let visibilityHistory = []
+    if (integrationIds.length > 0) {
+      const { data: histRows } = await db
+        .from('visibility_history')
+        .select('scanned_at, platform, visibility_pct, prompts_found, prompts_total, total_mentions, top_competitor, top_competitor_count, geo_score')
+        .eq('user_id', user.id)
+        .in('integration_id', integrationIds)
+        .gte('scanned_at', historySinceDate)
+        .order('scanned_at', { ascending: true })
+
+      // Group rows from the same cron-run together. Different platforms (chatgpt/
+       // perplexity vs google_ai_*) get written at different times because each scan
+       // has its own duration, so we bucket on the minute to merge them visually.
+      const bucketKey = (iso) => {
+        const d = new Date(iso)
+        d.setSeconds(0, 0)
+        return d.toISOString()
+      }
+
+      const byBucket = new Map()
+      // Track per-platform prompts_found + prompts_total per bucket so we can
+      // recompute the "total" line client-side as a lower bound that is always
+      // >= every individual platform line.
+      const bucketStats = new Map()
+
+      for (const row of (histRows || [])) {
+        const key = bucketKey(row.scanned_at)
+        if (!byBucket.has(key)) {
+          byBucket.set(key, {
+            date: new Date(row.scanned_at).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }),
+            fullDate: row.scanned_at,
+            chatgpt: null,
+            perplexity: null,
+            google_ai_mode: null,
+            google_ai_overviews: null,
+            total: null,
+            geoScore: null,
+            topCompetitor: null,
+            topCompetitorCount: null,
+          })
+          bucketStats.set(key, { maxFound: 0, maxTotal: 0, topComp: null, topCompCount: 0, geoScore: null })
+        }
+        const point = byBucket.get(key)
+        const stats = bucketStats.get(key)
+        const pct = Number(row.visibility_pct) || 0
+        const found = Number(row.prompts_found) || 0
+        const total = Number(row.prompts_total) || 0
+
+        if (row.platform === 'chatgpt') point.chatgpt = pct
+        else if (row.platform === 'perplexity') point.perplexity = pct
+        else if (row.platform === 'google_ai_mode') point.google_ai_mode = pct
+        else if (row.platform === 'google_ai_overviews') point.google_ai_overviews = pct
+
+        // Track stats from every platform row (incl. the legacy 'total' row for geo + top competitor).
+        if (row.platform !== 'total') {
+          if (found > stats.maxFound) stats.maxFound = found
+          if (total > stats.maxTotal) stats.maxTotal = total
+          const compCount = Number(row.top_competitor_count) || 0
+          if (row.top_competitor && compCount > stats.topCompCount) {
+            stats.topComp = row.top_competitor
+            stats.topCompCount = compCount
+          }
+        } else {
+          if (row.geo_score != null) stats.geoScore = row.geo_score
+        }
+      }
+
+      // Compute the consolidated total per bucket as a lower bound:
+      //   total_found_est = max(prompts_found across platforms)
+      //   total_pct = total_found_est / max_prompts_total * 100
+      for (const [key, point] of byBucket.entries()) {
+        const stats = bucketStats.get(key)
+        if (stats && stats.maxTotal > 0) {
+          point.total = Math.round((stats.maxFound / stats.maxTotal) * 10000) / 100
+        }
+        point.geoScore = stats?.geoScore ?? null
+        point.topCompetitor = stats?.topComp ?? null
+        point.topCompetitorCount = stats?.topCompCount || null
+      }
+
+      visibilityHistory = Array.from(byBucket.values())
+    }
 
     return NextResponse.json({
       user: { id: user.id, email: user.email, fullName: profile?.full_name || null, companyName: profile?.company_name || null },
@@ -607,6 +694,7 @@ export async function GET(request) {
       prompts: promptDetails,
       competitors,
       visibilityTrend,
+      visibilityHistory,
       rankChecks: (rankChecks || []).map(rc => {
         const chatgptResult = rc.results?.chatgpt || {}
         const perplexityResult = rc.results?.perplexity || {}
@@ -724,6 +812,27 @@ export async function DELETE(request) {
     // These are per-query results, skip if user has multiple companies
     // to avoid deleting data from other companies
     deleted.chatgpt_live_scans = 0
+
+    // 4a. Get tool_integrations IDs first so we can clean visibility_history (FK-safe).
+    const { data: integrationRows } = await db
+      .from('tool_integrations')
+      .select('id')
+      .eq('user_id', user.id)
+      .ilike('company_name', company)
+
+    if (integrationRows && integrationRows.length > 0) {
+      const integrationIds = integrationRows.map(r => r.id)
+      const { data: dvh, error: evh } = await db
+        .from('visibility_history')
+        .delete()
+        .eq('user_id', user.id)
+        .in('integration_id', integrationIds)
+        .select('id')
+      deleted.visibility_history = dvh?.length || 0
+      if (evh) console.error('Delete visibility_history error:', evh)
+    } else {
+      deleted.visibility_history = 0
+    }
 
     const { data: d1, error: e1 } = await db
       .from('tool_integrations')

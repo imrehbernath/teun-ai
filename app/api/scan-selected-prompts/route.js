@@ -252,7 +252,7 @@ export async function POST(request) {
     // Uses service client for all DB operations
     const supabase = await createServiceClient()
 
-    const { integrationId, prompts, companyName, website, branche, location } = await request.json()
+    const { integrationId, prompts, companyName, website, branche, location, writeHistory } = await request.json()
 
     if (!integrationId || !prompts || prompts.length === 0) {
       return NextResponse.json({ error: 'Missing integrationId or prompts' }, { status: 400 })
@@ -309,6 +309,108 @@ export async function POST(request) {
       .from('prompt_discovery_results')
       .update({ status: 'scanned' })
       .eq('scan_integration_id', integrationId)
+
+    // Optionally write summary rows to visibility_history (used by the weekly cron
+    // to feed the dashboard "Zichtbaarheid over tijd" chart with one datapoint per run).
+    if (writeHistory) {
+      try {
+        const { data: integrationRow } = await supabase
+          .from('tool_integrations')
+          .select('user_id')
+          .eq('id', integrationId)
+          .single()
+
+        const userId = integrationRow?.user_id
+        if (userId) {
+          const summarize = (platformKey, label) => {
+            const arr = results[platformKey] || []
+            const found = arr.filter(r => r.company_mentioned).length
+            const total = arr.length
+            const mentions = arr.reduce((sum, r) => sum + (r.mentions_count || 0), 0)
+
+            const competitorCounts = {}
+            for (const r of arr) {
+              for (const name of (r.competitors_mentioned || [])) {
+                if (!name || typeof name !== 'string') continue
+                const cleaned = name.trim()
+                if (cleaned.length < 2 || cleaned.length > 80) continue
+                competitorCounts[cleaned] = (competitorCounts[cleaned] || 0) + 1
+              }
+            }
+            const top = Object.entries(competitorCounts).sort((a, b) => b[1] - a[1])[0]
+
+            return {
+              user_id: userId,
+              integration_id: integrationId,
+              platform: label,
+              prompts_total: total,
+              prompts_found: found,
+              visibility_pct: total > 0 ? Math.round((found / total) * 10000) / 100 : 0,
+              total_mentions: mentions,
+              top_competitor: top ? top[0] : null,
+              top_competitor_count: top ? top[1] : null,
+            }
+          }
+
+          // Total = prompts where company was mentioned in at least one platform.
+          // Aggregating per-platform percentages with avg() is misleading, so we
+          // count unique prompts found across chatgpt+perplexity.
+          const chatgptArr = results.chatgpt || []
+          const perplexityArr = results.perplexity || []
+          const totalPromptCount = Math.max(chatgptArr.length, perplexityArr.length)
+          let totalFound = 0
+          let totalMentionsSum = 0
+          const totalCompetitorCounts = {}
+          for (let i = 0; i < totalPromptCount; i++) {
+            const cg = chatgptArr[i]
+            const px = perplexityArr[i]
+            if (cg?.company_mentioned || px?.company_mentioned) totalFound++
+            totalMentionsSum += (cg?.mentions_count || 0) + (px?.mentions_count || 0)
+            for (const name of (cg?.competitors_mentioned || [])) {
+              if (!name || typeof name !== 'string') continue
+              const c = name.trim()
+              if (c.length < 2 || c.length > 80) continue
+              totalCompetitorCounts[c] = (totalCompetitorCounts[c] || 0) + 1
+            }
+            for (const name of (px?.competitors_mentioned || [])) {
+              if (!name || typeof name !== 'string') continue
+              const c = name.trim()
+              if (c.length < 2 || c.length > 80) continue
+              totalCompetitorCounts[c] = (totalCompetitorCounts[c] || 0) + 1
+            }
+          }
+          const totalTop = Object.entries(totalCompetitorCounts).sort((a, b) => b[1] - a[1])[0]
+
+          const rows = [
+            summarize('chatgpt', 'chatgpt'),
+            summarize('perplexity', 'perplexity'),
+            {
+              user_id: userId,
+              integration_id: integrationId,
+              platform: 'total',
+              prompts_total: totalPromptCount,
+              prompts_found: totalFound,
+              visibility_pct: totalPromptCount > 0 ? Math.round((totalFound / totalPromptCount) * 10000) / 100 : 0,
+              total_mentions: totalMentionsSum,
+              top_competitor: totalTop ? totalTop[0] : null,
+              top_competitor_count: totalTop ? totalTop[1] : null,
+            },
+          ]
+
+          const { error: histError } = await supabase
+            .from('visibility_history')
+            .insert(rows)
+
+          if (histError) {
+            console.error('[ScanSelected] visibility_history insert error:', histError)
+          } else {
+            console.log(`[ScanSelected] visibility_history: 2 rows written for integration ${integrationId}`)
+          }
+        }
+      } catch (e) {
+        console.error('[ScanSelected] writeHistory failed:', e?.message)
+      }
+    }
 
     // Slack notification with PRO badge (fire-and-forget)
     if (process.env.SLACK_WEBHOOK_URL) {
