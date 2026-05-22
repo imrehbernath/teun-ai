@@ -688,6 +688,7 @@ function Footer() {
                 <li><Link href={isEn ? '/about-us' : '/over-ons'}>{isEn ? 'About us' : 'Over ons'}</Link></li>
                 <li><Link href="/pricing">{isEn ? 'Pricing' : 'Prijzen'}</Link></li>
                 <li><Link href="/wordpress-plugin">{isEn ? 'WordPress Plugin' : 'WordPress Plugin'}</Link></li>
+                <li><Link href="/updates">Teun.ai updates</Link></li>
               </ul>
             </div>
 

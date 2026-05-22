@@ -58,6 +58,7 @@ export default async function sitemap() {
     { path: '/tools/ai-prompt-discovery', changeFrequency: 'weekly', priority: 0.8 },
     { path: '/wordpress-plugin', changeFrequency: 'monthly', priority: 0.7 },
     { path: '/pricing', changeFrequency: 'weekly', priority: 0.7 },
+    { path: '/updates', changeFrequency: 'monthly', priority: 0.5 },
   ];
 
   const staticPages = multiLangPages.flatMap((page) => [

@@ -23,7 +23,7 @@ export default function LanguageSwitcher({ variant = 'cream' }) {
   const pathname = usePathname();
 
   // Verberg switcher op NL-only pagina's (blog, auteur, blog post slugs)
-  const knownMultiLangPaths = ['/', '/tools', '/login', '/signup', '/privacyverklaring', '/privacy', '/dashboard', '/wordpress-plugin', '/pricing', '/over-ons', '/about-us'];
+  const knownMultiLangPaths = ['/', '/tools', '/login', '/signup', '/privacyverklaring', '/privacy', '/dashboard', '/wordpress-plugin', '/pricing', '/over-ons', '/about-us', '/updates'];
   const isNlOnlyPage = nlOnlyPrefixes.some((prefix) => pathname.startsWith(prefix));
   const isKnownPath = knownMultiLangPaths.some(
     (path) => pathname === path || pathname.startsWith(path + '/')

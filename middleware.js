@@ -26,6 +26,7 @@ const knownEnglishPaths = [
   '/en/pricing',
   '/en/wordpress-plugin',
   '/en/about-us',
+  '/en/updates',
 ];
 
 export default function middleware(request) {
