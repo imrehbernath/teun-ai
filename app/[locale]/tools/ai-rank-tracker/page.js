@@ -343,7 +343,7 @@ function RankTrackerContent() {
         : `${tierLabel} · ${tierKeywords} keywords automatisch tracken`)
     : !user
       ? (locale === 'en' ? '2 free checks · Log in for 2 per week' : '2x gratis proberen · Log in voor 2x per week')
-      : (locale === 'en' ? '2 per week manual · Lite/Pro: unlimited' : '2x per week handmatig · Lite/Pro: onbeperkt');
+      : (locale === 'en' ? '2 per week manual · Pro: unlimited + automatic weekly tracking' : '2x per week handmatig · Pro: onbeperkt + automatische wekelijkse tracking');
 
   return (
     <div className="tool-page art-page">
@@ -453,8 +453,8 @@ function RankTrackerContent() {
                   className="art-error-link art-error-link-strong"
                 >
                   {locale === 'en'
-                    ? 'Upgrade to Lite or Pro for unlimited tracking'
-                    : 'Upgrade naar Lite of Pro voor onbeperkt tracken'} <ArrowRight className="w-3.5 h-3.5" />
+                    ? 'Upgrade to Pro for automatic weekly tracking'
+                    : 'Upgrade naar Pro voor automatische wekelijkse tracking'} <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               )}
             </div>
@@ -573,15 +573,15 @@ function RankTrackerContent() {
 
               const subline = isInvisible
                 ? (locale === 'en'
-                    ? `${competitorSet.size} competitors are being recommended. This is just 1 keyword. Track up to 50 keywords automatically with Pro.`
-                    : `${competitorSet.size} concurrenten worden wél aanbevolen. Dit is slechts 1 zoekwoord. Track tot 50 keywords automatisch met Pro.`)
+                    ? `${competitorSet.size} competitors are being recommended. This is just 1 keyword. Pro tracks up to 50 keywords automatically every week.`
+                    : `${competitorSet.size} concurrenten worden wél aanbevolen. Dit is slechts 1 zoekwoord. Pro tracker volgt 50 keywords elke week automatisch.`)
                 : isWeak
                   ? (locale === 'en'
-                      ? `${competitorSet.size} competitors rank higher. Track up to 50 keywords automatically with Pro.`
-                      : `${competitorSet.size} concurrenten staan hoger. Track tot 50 keywords automatisch met Pro.`)
+                      ? `${competitorSet.size} competitors rank higher. Pro tracks up to 50 keywords automatically every week.`
+                      : `${competitorSet.size} concurrenten staan hoger. Pro tracker volgt 50 keywords elke week automatisch.`)
                   : (locale === 'en'
-                      ? 'This is just 1 keyword. Track up to 50 keywords automatically with Pro.'
-                      : 'Dit is slechts 1 zoekwoord. Track tot 50 keywords automatisch met Pro.');
+                      ? 'This is just 1 keyword. Pro tracks up to 50 keywords automatically every week.'
+                      : 'Dit is slechts 1 zoekwoord. Pro tracker volgt 50 keywords elke week automatisch.');
 
               return (
                 <div className="tool-account-cta art-cta">
@@ -601,7 +601,7 @@ function RankTrackerContent() {
                         href={locale === 'en' ? '/en/pricing' : '/pricing'}
                         className="art-cta-link"
                       >
-                        {locale === 'en' ? 'Or upgrade to Lite or Pro for unlimited' : 'Of upgrade naar Lite of Pro voor onbeperkt'} <ArrowRight className="w-3.5 h-3.5" />
+                        {locale === 'en' ? 'Or upgrade to Pro for automatic weekly tracking' : 'Of upgrade naar Pro voor automatische wekelijkse tracking'} <ArrowRight className="w-3.5 h-3.5" />
                       </Link>
                     </>
                   ) : isPro ? (
@@ -615,13 +615,13 @@ function RankTrackerContent() {
                         href={locale === 'en' ? '/en/pricing' : '/pricing'}
                         className="tool-account-cta-btn"
                       >
-                        {locale === 'en' ? 'Upgrade to Lite or Pro' : 'Upgrade naar Lite of Pro'}
+                        {locale === 'en' ? 'Upgrade to Pro' : 'Upgrade naar Pro'}
                         <ArrowRight className="w-4 h-4" />
                       </Link>
                       <p className="small">
                         {locale === 'en'
-                          ? 'From €29.95/mo · Automatic weekly tracking · Cancel anytime'
-                          : 'Vanaf €29,95/mnd · Automatische wekelijkse tracking · Maandelijks opzegbaar'}
+                          ? 'Pro €49.95/mo · 50 keywords tracked automatically every week · Cancel anytime'
+                          : 'Pro €49,95/mnd · 50 keywords elke week automatisch tracken · Maandelijks opzegbaar'}
                       </p>
                     </>
                   )}

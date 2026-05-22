@@ -61,7 +61,7 @@ export default function PricingPage() {
 
   const features = [
     // KEY DIFFERENCES (highlighted at top)
-    { name: isNL ? 'Automatische keyword tracking' : 'Automatic keyword tracking', free: null, lite: '20 keywords', pro: '50 keywords', freeStatus: 'cross', liteStatus: 'check', proStatus: 'check', differ: true },
+    { name: isNL ? 'Keyword tracking' : 'Keyword tracking', free: null, lite: isNL ? '20 keywords handmatig' : '20 keywords manual', pro: isNL ? '50 keywords automatisch wekelijks' : '50 keywords automatic weekly', freeStatus: 'cross', liteStatus: 'check', proStatus: 'check', differ: true },
     { name: isNL ? 'GEO Analyse (prompts)' : 'GEO Analysis (prompts)', free: null, lite: '10 prompts', pro: isNL ? 'Onbeperkt' : 'Unlimited', freeStatus: 'cross', liteStatus: 'check', proStatus: 'check', differ: true },
     { name: isNL ? 'Support' : 'Support', free: null, lite: isNL ? 'E-mail' : 'Email', pro: isNL ? 'Telefonisch + e-mail' : 'Phone + email', freeStatus: 'cross', liteStatus: 'check', proStatus: 'check', differ: true },
 
@@ -93,17 +93,17 @@ export default function PricingPage() {
   ]
 
   const faqs = isNL ? [
-    { cat: 'product', q: 'Wat is het verschil tussen Lite en Pro?', a: 'Beide pakketten geven onbeperkt toegang tot alle tools en GEO Optimalisatie DIY. De verschillen: Lite volgt 20 keywords automatisch en bevat 10 GEO Analyse prompts met e-mail support. Pro volgt 50 keywords, heeft onbeperkte GEO Analyse prompts en telefonische support.' },
+    { cat: 'product', q: 'Wat is het verschil tussen Lite en Pro?', a: 'Beide pakketten geven onbeperkt toegang tot alle tools en GEO Optimalisatie DIY. De verschillen: Lite kan 20 keywords handmatig tracken en bevat 10 GEO Analyse prompts met e-mail support. Pro volgt 50 keywords automatisch wekelijks, heeft onbeperkte GEO Analyse prompts en telefonische support.' },
     { cat: 'billing', q: 'Kan ik op elk moment opzeggen?', a: 'Ja. Geen contracten, geen opzegtermijn. Je houdt toegang tot het einde van je betaalperiode.' },
     { cat: 'product', q: 'Welke AI platforms worden gescand?', a: 'ChatGPT Search, Perplexity, Google AI Mode en Google AI Overviews. Alle platforms zijn inbegrepen bij elk pakket, zonder extra kosten per platform.' },
-    { cat: 'product', q: 'Wat is automatische keyword tracking?', a: 'Je stelt je keywords eenmalig in. Teun.ai checkt automatisch wekelijks je posities op alle AI-platformen en toont trends over tijd. Gratis gebruikers kunnen 2x per week handmatig scannen.' },
+    { cat: 'product', q: 'Wat is automatische keyword tracking?', a: 'Stel je keywords eenmalig in. Teun.ai checkt automatisch wekelijks je posities op alle AI-platformen en toont trends over tijd. Automatische tracking is een Pro-feature (50 keywords). Lite kan 20 keywords handmatig tracken, gratis gebruikers 2x per week scannen.' },
     { cat: 'billing', q: 'Is er een gratis proefperiode?', a: 'Alle 6 tools zijn gratis te gebruiken met limieten. Zo ervaar je precies wat Teun.ai kan. Geen trial nodig, gewoon proberen.' },
     { cat: 'billing', q: 'Kan ik upgraden van Lite naar Pro?', a: 'Ja, je kunt op elk moment upgraden. Je betaalt direct het verschil en krijgt meteen toegang tot 50 keywords en onbeperkte GEO Analyse prompts.' },
   ] : [
-    { cat: 'product', q: 'What is the difference between Lite and Pro?', a: 'Both plans give unlimited access to all tools and GEO Optimization DIY. The differences: Lite tracks 20 keywords automatically and includes 10 GEO Analysis prompts with email support. Pro tracks 50 keywords, has unlimited GEO Analysis prompts and phone support.' },
+    { cat: 'product', q: 'What is the difference between Lite and Pro?', a: 'Both plans give unlimited access to all tools and GEO Optimization DIY. The differences: Lite supports 20 keywords with manual tracking and includes 10 GEO Analysis prompts with email support. Pro tracks 50 keywords automatically every week, has unlimited GEO Analysis prompts and phone support.' },
     { cat: 'billing', q: 'Can I cancel at any time?', a: 'Yes. No contracts, no notice period. You keep access until the end of your billing period.' },
     { cat: 'product', q: 'Which AI platforms are scanned?', a: 'ChatGPT Search, Perplexity, Google AI Mode and Google AI Overviews. All platforms included with every plan, no extra costs per platform.' },
-    { cat: 'product', q: 'What is automatic keyword tracking?', a: 'You set your keywords once. Teun.ai automatically checks your positions on all AI platforms weekly and shows trends over time. Free users can scan manually 2 times per week.' },
+    { cat: 'product', q: 'What is automatic keyword tracking?', a: 'Set your keywords once. Teun.ai checks your positions automatically every week on all AI platforms and shows trends over time. Automatic tracking is a Pro feature (50 keywords). Lite supports 20 keywords with manual tracking, free users 2 per week.' },
     { cat: 'billing', q: 'Is there a free trial?', a: 'All 6 tools are free to use with limits. Experience exactly what Teun.ai can do. No trial needed, just try it.' },
     { cat: 'billing', q: 'Can I upgrade from Lite to Pro?', a: 'Yes, you can upgrade at any time. You pay the difference immediately and get instant access to 50 keywords and unlimited GEO Analysis prompts.' },
   ]
@@ -230,7 +230,7 @@ export default function PricingPage() {
                 </p>
               )}
               <p className="prc-card-desc">
-                {isNL ? '20 keywords automatisch tracken, 10 GEO prompts en alle tools onbeperkt.' : '20 keywords automatic tracking, 10 GEO prompts and all tools unlimited.'}
+                {isNL ? '20 keywords handmatig tracken, 10 GEO prompts en alle tools onbeperkt.' : '20 keywords manual tracking, 10 GEO prompts and all tools unlimited.'}
               </p>
 
               <button
@@ -329,8 +329,8 @@ export default function PricingPage() {
             </h2>
             <p className="prc-section-sub">
               {isNL
-                ? 'Automatische keyword tracking, GEO Optimalisatie DIY met Search Console integratie en AI-advies per pagina.'
-                : 'Automatic keyword tracking, GEO Optimization DIY with Search Console integration and AI advice per page.'}
+                ? 'Keyword tracking met grafieken over tijd, GEO Optimalisatie DIY met Search Console integratie en AI-advies per pagina.'
+                : 'Keyword tracking with trends over time, GEO Optimization DIY with Search Console integration and AI advice per page.'}
             </p>
           </div>
 
