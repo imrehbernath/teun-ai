@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { RANK_TRACKER_TIERS } from '@/lib/rank-tracker-tiers';
 import { runLiveScan } from '@/lib/rank-scanner';
+import { generateKeywordPrompt } from '@/lib/keyword-prompt-generator';
 
 export const maxDuration = 120;
 
@@ -35,28 +36,9 @@ async function getUserTier(userId) {
   return RANK_TRACKER_TIERS[tierKey] || RANK_TRACKER_TIERS.free;
 }
 
-// ── PROMPT GENERATOR (copy van ai-rank-tracker/route.js) ──
-function generatePrompt(keyword, serviceArea, locale = 'nl') {
-  const kw = keyword.trim(); const area = serviceArea?.trim() || '';
-  let cleanKw = kw;
-  if (area && kw.toLowerCase().includes(area.toLowerCase())) { cleanKw = kw.replace(new RegExp(area, 'i'), '').trim().replace(/\s+in\s*$/i, '').trim(); }
-  if (locale === 'nl') { cleanKw = cleanKw.replace(/^(de\s+)?beste\s+/i, '').trim(); } else { cleanKw = cleanKw.replace(/^(the\s+)?best\s+/i, '').trim(); }
-  const inArea = area ? ` in ${area}` : ''; const cleanLower = cleanKw.toLowerCase();
-  if (locale === 'en') {
-    if (['have built','have made','have designed','get installed','buy','rent','book','order','arrange','hire'].some(v => cleanLower.includes(v))) return `I want to ${cleanKw}${inArea}. Which companies can you recommend?`;
-    if (['improve','optimize','build','design','develop','fix','repair','install','create','set up','manage','grow','boost','increase'].some(v => cleanLower.includes(v))) return `I want to ${cleanKw}${inArea}. Which company or specialist would you recommend for this?`;
-    if (/\b(agency|company|firm|specialist|consultant|expert|service|studio|practice|lawyer|doctor|clinic)\b/i.test(cleanKw)) return `Can you recommend a good ${cleanKw}${inArea}?`;
-    return `I'm looking for a specialist in ${cleanKw}${inArea}. Which companies would you recommend?`;
-  }
-  if (['laten maken','laten bouwen','laten ontwerpen','laten aanleggen','laten renoveren','laten schilderen','laten verbouwen','laten installeren','laten drukken','laten repareren','laten behangen','laten stucen','kopen','huren','boeken','bestellen','regelen','aanvragen','inhuren'].some(v => cleanLower.includes(v))) return `Ik wil ${cleanKw}${inArea}. Welke bedrijven kun je aanbevelen?`;
-  const foundVerb = ['verbeteren','optimaliseren','ontwikkelen','uitbesteden','opzetten','automatiseren','beheren','analyseren','upgraden','redesignen','verduurzamen','isoleren','verbouwen','renoveren','schilderen'].find(v => cleanLower.includes(v));
-  if (foundVerb) { const vi = cleanLower.indexOf(foundVerb); const sub = cleanKw.substring(0, vi).trim(); if (sub) return `Ik wil mijn ${sub} ${foundVerb}${inArea}. Welk bedrijf of bureau raad je aan?`; return `Ik wil ${cleanKw}${inArea}. Welk bedrijf raad je aan?`; }
-  if (/\b(bureau|bedrijf|specialist|adviseur|advocaat|kantoor|praktijk|studio|consultant|coach|trainer|installateur|aannemer|loodgieter|schilder|monteur)\b/i.test(cleanKw)) return `Kun je een goed ${cleanKw}${inArea} aanbevelen?`;
-  return `Ik zoek een specialist in ${cleanKw}${inArea}. Welk bedrijf raad je aan?`;
-}
-
-// Scan helpers (stripMarkdown, scanChatGPT, scanPerplexity, scanGoogleAI, runLiveScan)
-// staan in lib/rank-scanner.js, gedeeld met de cron worker.
+// Prompt-generatie (Claude met rule-based fallback) staat in
+// lib/keyword-prompt-generator.js, gedeeld met /api/ai-rank-tracker.
+// Scan helpers staan in lib/rank-scanner.js, gedeeld met de cron worker.
 
 // ── GET ──
 export async function GET(request) {
@@ -92,7 +74,7 @@ export async function POST(request) {
     const { count } = await supabase.from('tracked_keywords').select('*', { count: 'exact', head: true }).eq('user_id', userId);
     if (count >= tier.maxKeywords) return NextResponse.json({ error: `Maximum ${tier.maxKeywords} keywords bereikt`, limitReached: true }, { status: 403 });
     const comps = (competitors || []).slice(0, tier.maxCompetitors);
-    const generatedPrompt = customPrompt || generatePrompt(keyword, serviceArea, locale);
+    const generatedPrompt = customPrompt || await generateKeywordPrompt({ keyword, serviceArea, locale });
     const { data, error } = await supabase.from('tracked_keywords').insert({ user_id: userId, keyword: keyword.trim(), generated_prompt: generatedPrompt, service_area: serviceArea?.trim() || null, domain: domain.trim(), brand_name: brandName.trim(), competitors: comps }).select().single();
     if (error) { if (error.code === '23505') return NextResponse.json({ error: 'Dit keyword track je al' }, { status: 409 }); throw error; }
     // Live scan
@@ -115,7 +97,7 @@ export async function PATCH(request) {
     if (keyword !== undefined) updates.keyword = keyword;
     if (serviceArea !== undefined) updates.service_area = serviceArea;
     if (brandName !== undefined) updates.brand_name = brandName;
-    if (keyword && !generatedPrompt) updates.generated_prompt = generatePrompt(keyword, serviceArea || undefined, locale);
+    if (keyword && !generatedPrompt) updates.generated_prompt = await generateKeywordPrompt({ keyword, serviceArea: serviceArea || undefined, locale });
 
     // Geen veld-updates (bv. pure rescan-knop): skip de UPDATE, anders crasht
     // Supabase op een lege SET clausule met PGRST116.

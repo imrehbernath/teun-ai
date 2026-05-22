@@ -511,8 +511,8 @@ function RankTrackerContent() {
                   <p className="art-prompt-text">&ldquo;{generatedPrompt}&rdquo;</p>
                   <p className="art-prompt-hint">
                     {locale === 'en'
-                      ? 'This prompt was sent to ChatGPT, Perplexity and Google AI Mode'
-                      : 'Deze prompt is verstuurd naar ChatGPT, Perplexity en Google AI Mode'}
+                      ? 'Sent via the official APIs of ChatGPT, Perplexity and Google AI Mode — a clean scan, untainted by your own account or search history.'
+                      : 'Verstuurd via de officiële APIs van ChatGPT, Perplexity en Google AI Mode — een schone scan, niet gekleurd door je eigen account of zoekgeschiedenis.'}
                   </p>
                 </div>
               </div>
