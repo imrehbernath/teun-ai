@@ -1617,6 +1617,8 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
     { label: t.sidebar.brandCheck, href: lp(locale, '/tools/brand-check') },
     { label: 'GEO Audit', onClick: () => setActiveTab('audit') },
     { label: t.sidebar.geoAnalyse, href: lp(locale, '/dashboard/geo-analyse'), tag: isPro ? (isLiteTier ? '10' : null) : 'PRO' },
+    { label: locale === 'nl' ? 'Chrome extensie' : 'Chrome extension', href: locale === 'nl' ? '/chrome-extensie' : '/en/chrome-extension' },
+    { label: locale === 'nl' ? 'WordPress plugin' : 'WordPress plugin', href: lp(locale, '/wordpress-plugin') },
   ]
 
   const subtitle = (t.subtitles[activeTab] || (activeTab === 'rank-tracker' ? (locale === 'nl' ? 'Volg je AI-ranking per keyword over tijd' : 'Track your AI ranking per keyword over time') : ''))?.replace('{company}', activeCompany?.name || '').replace('van  op', 'van je bedrijf op').replace('of  in', 'of your company in')
@@ -1884,31 +1886,6 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
               {/* Google AI scan CTA — show when no Google AI data yet */}
              <GoogleAISection t={t} locale={locale} prompts={prompts} activeCompany={activeCompany} onScanComplete={() => { fetchData(); setActiveTab('prompts') }} googleAiMode={googleAiMode} googleAiOverview={googleAiOverview} isPro={isPro} />
 
-              {/* Chrome Extension CTA — show when no extension data and extension not installed */}
-              {!extensionInstalled && !data?.hasExtensionData && data && totalPrompts > 0 && (
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
-                      <Globe className="w-4.5 h-4.5 text-amber-600" />
-                    </div>
-                    <div>
-                      <div className="text-[13px] font-semibold text-amber-900">
-                        {locale === 'nl' ? 'Nauwkeurigere ChatGPT resultaten beschikbaar' : 'More accurate ChatGPT results available'}
-                      </div>
-                      <div className="text-[11px] text-amber-700 mt-0.5">
-                        {locale === 'nl'
-                          ? 'Installeer de Chrome extensie voor resultaten direct uit ChatGPT 5.5 — 1-op-1 met wat gebruikers zien op ChatGPT.com'
-                          : 'Install the Chrome extension for results straight from ChatGPT 5.5 — matching exactly what users see on ChatGPT.com'}
-                      </div>
-                    </div>
-                  </div>
-                  <a href="https://chromewebstore.google.com/detail/jjhjnmkanlmjhmobcgemjakkjdbkkfmk" target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 bg-white border border-amber-300 rounded-lg px-3.5 py-2 hover:bg-amber-50 transition no-underline whitespace-nowrap shrink-0">
-                    <Zap className="w-3 h-3" />
-                    {locale === 'nl' ? 'Installeer extensie' : 'Install extension'}
-                  </a>
-                </div>
-              )}
               {/* Extension connected but no scan data yet */}
               {extensionInstalled && !data?.hasExtensionData && data && totalPrompts > 0 && (
                 <div className="bg-gradient-to-r from-cyan-50 to-sky-50 border border-cyan-200 rounded-xl p-4 flex items-center justify-between">

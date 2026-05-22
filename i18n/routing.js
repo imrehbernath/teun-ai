@@ -19,5 +19,9 @@ export const routing = defineRouting({
       nl: '/privacyverklaring',
       en: '/privacy',
     },
+    '/chrome-extensie': {
+      nl: '/chrome-extensie',
+      en: '/chrome-extension',
+    },
   },
 });

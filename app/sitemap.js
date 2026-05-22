@@ -92,6 +92,12 @@ export default async function sitemap() {
       changeFrequency: 'monthly',
       priority: 0.5,
     },
+    {
+      nl: '/chrome-extensie',
+      en: '/en/chrome-extension',
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
   ];
 
   const diffSlugEntries = differentSlugPages.flatMap((page) => {

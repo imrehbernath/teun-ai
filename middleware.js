@@ -25,6 +25,7 @@ const knownEnglishPaths = [
   '/en/dashboard',
   '/en/pricing',
   '/en/wordpress-plugin',
+  '/en/chrome-extension',
   '/en/about-us',
   '/en/updates',
 ];

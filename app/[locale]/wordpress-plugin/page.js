@@ -330,7 +330,7 @@ export default function WordPressPluginPage() {
             >
               {isNL ? 'Download gratis plugin' : 'Download free plugin'} <span aria-hidden="true">→</span>
             </a>
-            <Link href="/blog" className="btn-secondary">
+            <Link href="/geo-optimalisatie" className="btn-secondary">
               {isNL ? 'Lees over GEO' : 'Read about GEO'}
             </Link>
           </div>

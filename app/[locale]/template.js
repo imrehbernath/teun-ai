@@ -481,7 +481,10 @@ function Footer() {
   const t = useTranslations('footer');
   const locale = useLocale();
   const isEn = locale === 'en';
-  const currentYear = new Date().getFullYear();
+  const [currentYear, setCurrentYear] = useState(2026);
+    useEffect(() => {
+      setCurrentYear(new Date().getFullYear());
+    }, []);
   const [email, setEmail] = useState('');
 
   const handleSubscribe = (e) => {
@@ -688,6 +691,7 @@ function Footer() {
                 <li><Link href={isEn ? '/about-us' : '/over-ons'}>{isEn ? 'About us' : 'Over ons'}</Link></li>
                 <li><Link href="/pricing">{isEn ? 'Pricing' : 'Prijzen'}</Link></li>
                 <li><Link href="/wordpress-plugin">{isEn ? 'WordPress Plugin' : 'WordPress Plugin'}</Link></li>
+                <li><Link href="/chrome-extensie">{isEn ? 'Chrome Extension' : 'Chrome Extensie'}</Link></li>
                 <li><Link href="/updates">Teun.ai updates</Link></li>
               </ul>
             </div>
@@ -736,10 +740,10 @@ function Footer() {
                 <rect y="160" width="640" height="160" fill="#FFF" />
                 <rect y="320" width="640" height="160" fill="#21468B" />
               </svg>
-              <span className="copy-text">
-                © {currentYear} teun.ai · {isEn ? 'Made in Amsterdam by' : 'Gemaakt in Amsterdam door'}
-                <a href="https://www.onlinelabs.nl" target="_blank" rel="noopener noreferrer">OnlineLabs</a>
-              </span>
+             <span className="copy-text">
+              © {currentYear} teun.ai · {isEn ? 'Made in Amsterdam by' : 'Gemaakt in Amsterdam door'}
+              <a href="https://www.onlinelabs.nl" target="_blank" rel="noopener noreferrer">OnlineLabs</a>
+            </span>
             </span>
             <div className="links">
               <Link href="/privacyverklaring">Privacy</Link>
