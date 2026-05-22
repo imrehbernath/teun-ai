@@ -174,7 +174,7 @@ function parseHtml(html) {
 async function extractKeywords(parsed, lang = 'nl') {
   const isNl = lang === 'nl'
   const msg = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 800,
     system: isNl
       ? `Je bent een expert in zoekwoord-extractie voor Nederlandse websites. Je taak is om de 10 belangrijkste zoekwoorden te identificeren waarmee KLANTEN naar dit bedrijf zouden zoeken.
@@ -480,7 +480,7 @@ Examples of other cluster names:
 ONLY the JSON array, no extra text.`
 
   const msg = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 8000,
     system: systemPrompt,
     messages: [{ role: 'user', content: userPrompt }]

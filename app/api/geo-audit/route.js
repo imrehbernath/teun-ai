@@ -1236,7 +1236,7 @@ Genereer een COMMERCIËLE Nederlandse vraag die een potentiële klant aan ChatGP
 Geef ALLEEN de JSON.`
 
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 2000,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }]
@@ -1325,7 +1325,7 @@ Filter uit: "${companyName}", "${hostname}"
 Antwoord als JSON array: ["bedrijf1", "bedrijf2"]`
 
       const parseResult = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 500,
         system: isEn ? 'Extract company names. Provide ONLY a JSON array of strings. No markdown, no explanation.' : 'Extraheer bedrijfsnamen. Geef ALLEEN een JSON array van strings. Geen markdown, geen uitleg.',
         messages: [{ role: 'user', content: extractPrompt }]

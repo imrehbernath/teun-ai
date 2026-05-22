@@ -171,7 +171,7 @@ async function generateCommercialPrompts(companyName, category, scQueries, pages
   
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 2000,
       messages: [{
         role: 'user',
@@ -442,7 +442,7 @@ async function generateAIInsights(
     }
     
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1500,
       messages: [{
         role: 'user',

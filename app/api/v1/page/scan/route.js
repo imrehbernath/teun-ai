@@ -638,7 +638,7 @@ async function analyzeContentWithClaude(extracted, pageUrl) {
     const schemaText = (extracted.structuredDataTypes || []).join(', ') || 'Geen'
 
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1500,
       system: `Je bent een GEO (Generative Engine Optimization) expert. Analyseer webpagina's op AI-geschiktheid. Antwoord ALTIJD als pure JSON. Geen markdown, geen backticks, geen uitleg.`,
       messages: [{

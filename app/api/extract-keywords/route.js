@@ -323,7 +323,7 @@ async function generateFallbackKeywords(companyName, category, lang = 'nl') {
   const isNl = lang === 'nl'
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 500,
       system: isNl
         ? `Je bent een expert in zoekwoord-extractie voor Nederlandse bedrijven. Antwoord ALTIJD in het Nederlands. Geef ALLEEN JSON terug.`
@@ -436,7 +436,7 @@ export async function POST(request) {
 
     // Step 4: Extract keywords with Claude (bilingual)
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 800,
       system: isNl
         ? `Je bent een expert in zoekwoord-extractie voor Nederlandse websites. Je analyseert pagina-content en bepaalt welke zoekwoorden potentiële klanten zouden gebruiken om dit bedrijf te vinden. Antwoord ALTIJD in het Nederlands. Geef ALLEEN JSON terug.`

@@ -150,7 +150,7 @@ export async function POST(request) {
       const promptList = prompts.map((p, i) => `${i + 1}. ${p}`).join('\n')
 
       const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1024,
         system: getSystemPrompt(lang),
         messages: [{

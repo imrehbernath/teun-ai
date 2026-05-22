@@ -372,7 +372,7 @@ async function analyzeWebsiteForKeywords(websiteUrl, companyName, companyCategor
     
     // Step 3: Analyze with Claude (now with nav items, H3s, service links)
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1000,
       system: isNL 
         ? `Je bent een expert in het analyseren van websites voor zoekwoord-extractie en commerciële intentie.
@@ -1177,7 +1177,7 @@ RULES:
 
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 2000,
       system: isNL 
         ? `Je genereert 10 zoekvragen die echte mensen zouden typen in ChatGPT of Perplexity.
@@ -1216,6 +1216,8 @@ VERPLICHTE REGELS:
    - "Wat kost..." / "Hoeveel kost..." / "Wat is de prijs van..." (levert prijsinformatie, geen bedrijven)
    - "Wat is het verschil tussen..." / "Kan iemand uitleggen..." (levert uitleg, geen bedrijven)
    - "Heeft iemand ervaring met..." zonder te vragen naar een specifiek bedrijf (levert meningen, geen bedrijven)
+   - "Hoe werkt..." / "Hoe regel ik..." (levert uitleg van een proces, geen bedrijfsnamen)
+   - "Waarom kiezen voor..." / "Waarom zou ik..." (levert voor- en nadelen, geen bedrijfsnamen)
    CATEGORIEËN:
    - AANBEVELING: "Wie kan mij helpen met...", "Ken je een goed bedrijf voor..."
    - BESTE: "Welk bedrijf is het beste voor...", "Wie is de beste ... in Nederland?"
@@ -1333,6 +1335,8 @@ REQUIRED RULES:
    - "How much does..." / "What does ... cost?" / "What is the price of..." (returns pricing info, not companies)
    - "What's the difference between..." / "Can someone explain..." (returns explanations, not companies)
    - "Has anyone tried..." without asking for a specific company (returns opinions, not companies)
+   - "How does ... work" / "How do I..." (returns a process explanation, not company names)
+   - "Why choose..." / "Why should I..." (returns pros and cons, not company names)
    CATEGORIES:
    - RECOMMENDATION: "Who can help me with...", "Do you know a good company for..."
    - BEST: "Which company is best for...", "Who is the best ... in the market?"

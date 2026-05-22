@@ -1090,7 +1090,7 @@ IMPORTANT:
 Reply ONLY with a JSON array, no markdown, no backticks.`
 
   const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-6',
     max_tokens: 2000,
     system: isNL
       ? 'Je bent een GEO specialist. Geef ALLEEN een JSON array terug. Geen markdown, geen uitleg, geen backticks.'
