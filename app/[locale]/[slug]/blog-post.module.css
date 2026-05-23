@@ -352,8 +352,8 @@
   border: none;
   border-top: 1px solid var(--line);
   height: 0;
-  margin-top: 32px;
-  margin-bottom: 20px;
+  margin-top: 32px !important;
+  margin-bottom: 20px !important;
 }
 
 /* Voorkom dat de eerste paragraaf na de hr extra ruimte toevoegt */
