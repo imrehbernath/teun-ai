@@ -2069,125 +2069,131 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
 
               <AutoScanCard t={t} locale={locale} isProTier={isProTier} />
 
-              {/* Speelveld-ranking: top 6 inclusief eigen company.
-                  Eigen count = aantal prompts waarin je gevonden bent;
-                  concurrenten = appearances (unieke prompts waarin ze genoemd worden). */}
-              {(() => {
-                const ownCount = visibility.found || 0
-                const ownName = activeCompany?.name || (locale === 'nl' ? 'Jouw bedrijf' : 'Your company')
-                const speelveld = [
-                  { name: ownName, count: ownCount, isUser: true },
-                  ...competitors.map(c => ({ name: c.name, count: c.appearances || c.mentions || 0, isUser: false })),
-                ].sort((a, b) => b.count - a.count).slice(0, 6)
-                const medals = ['🥇', '🥈', '🥉']
-                const userPos = speelveld.findIndex(s => s.isUser) + 1
-                return (
-                  <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="text-[15px] font-semibold text-slate-800">
-                        {locale === 'nl' ? 'Speelveld' : 'Playing field'}
-                      </div>
-                      {userPos > 0 && (
-                        <span className="text-[11px] text-slate-500">
-                          {locale === 'nl' ? `Jouw positie: ${userPos}` : `Your position: ${userPos}`}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[12px] text-slate-400 mb-4">
-                      {locale === 'nl'
-                        ? `Wie wordt het vaakst genoemd in jouw ${totalPrompts} prompts`
-                        : `Who gets mentioned most across your ${totalPrompts} prompts`}
-                    </div>
-                    <div className="space-y-1.5">
-                      {speelveld.map((row, idx) => (
-                        <div
-                          key={idx}
-                          className={`flex items-center gap-3 py-2.5 px-3 rounded-lg transition ${row.isUser ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50'}`}
-                        >
-                          <span className={`w-7 text-center font-bold ${idx < 3 ? 'text-[16px]' : 'text-[13px] text-slate-400'}`}>
-                            {idx < 3 ? medals[idx] : `${idx + 1}.`}
-                          </span>
-                          <span className={`flex-1 truncate text-[13px] ${row.isUser ? 'font-bold text-emerald-700' : 'font-medium text-slate-800'}`}>
-                            {row.name}
-                            {row.isUser && <span className="ml-2 text-[10px] uppercase tracking-wider text-emerald-600 font-semibold">{locale === 'nl' ? 'jij' : 'you'}</span>}
-                          </span>
-                          <span className={`text-[13px] font-bold ${row.isUser ? 'text-emerald-700' : 'text-slate-800'}`}>
-                            {row.count}×
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })()}
+              <VisibilityChart data={visibilityTrend} t={t} locale={locale} />
 
-              {/* GEO Optimalisatie DIY USP-card.
-                  Bij score-data (geoAnalyseResults aanwezig): toont score + "bekijk werklijst".
-                  Anders: prominente start-CTA met USP-bullets. */}
-              <div className="rounded-xl p-6 mb-6 border" style={{ background: 'linear-gradient(135deg, #EDE9FE, #F5F3FF)', borderColor: '#C4B5FD40' }}>
-                {geoAnalyseResults ? (
-                  <div className="flex items-start gap-5 flex-wrap">
-                    <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0">
-                      <Sparkles className="w-6 h-6 text-blue-500" />
-                    </div>
-                    <div className="flex-1 min-w-[240px]">
-                      <div className="text-[15px] font-bold text-slate-800 mb-1">
-                        {locale === 'nl' ? 'Jouw GEO Optimalisatie' : 'Your GEO Optimization'}
+              {/* Speelveld + GEO Optimalisatie USP-card, 50/50 naast elkaar.
+                  Speelveld telt eigen vs concurrenten op appearances.
+                  GEO-card toont score bij bestaande Analyse, anders start-CTA. */}
+              <div className="grid grid-cols-2 gap-4 mb-6 items-stretch">
+                {(() => {
+                  const ownCount = visibility.found || 0
+                  const ownName = activeCompany?.name || (locale === 'nl' ? 'Jouw bedrijf' : 'Your company')
+                  const speelveld = [
+                    { name: ownName, count: ownCount, isUser: true },
+                    ...competitors.map(c => ({ name: c.name, count: c.appearances || c.mentions || 0, isUser: false })),
+                  ].sort((a, b) => b.count - a.count).slice(0, 6)
+                  const medals = ['🥇', '🥈', '🥉']
+                  const userPos = speelveld.findIndex(s => s.isUser) + 1
+                  return (
+                    <div className="bg-white rounded-xl border border-slate-200 p-6">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="text-[15px] font-semibold text-slate-800">
+                          {locale === 'nl' ? 'Speelveld' : 'Playing field'}
+                        </div>
+                        {userPos > 0 && (
+                          <span className="text-[11px] text-slate-500">
+                            {locale === 'nl' ? `Jouw positie: ${userPos}` : `Your position: ${userPos}`}
+                          </span>
+                        )}
                       </div>
-                      <div className="text-[13px] text-slate-600 leading-relaxed mb-3">
+                      <div className="text-[12px] text-slate-400 mb-4">
                         {locale === 'nl'
-                          ? `Gemiddelde score van ${geoAnalyseResults.pages.length} pagina's. Werk de adviezen af om hoger te scoren in AI-zoekmachines.`
-                          : `Average score across ${geoAnalyseResults.pages.length} pages. Work through the recommendations to score higher in AI search.`}
+                          ? `Wie wordt het vaakst genoemd in jouw ${totalPrompts} prompts`
+                          : `Who gets mentioned most across your ${totalPrompts} prompts`}
+                      </div>
+                      <div className="space-y-1.5">
+                        {speelveld.map((row, idx) => (
+                          <div
+                            key={idx}
+                            className={`flex items-center gap-3 py-2.5 px-3 rounded-lg transition ${row.isUser ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50'}`}
+                          >
+                            <span className={`w-7 text-center font-bold ${idx < 3 ? 'text-[16px]' : 'text-[13px] text-slate-400'}`}>
+                              {idx < 3 ? medals[idx] : `${idx + 1}.`}
+                            </span>
+                            <span className={`flex-1 truncate text-[13px] ${row.isUser ? 'font-bold text-emerald-700' : 'font-medium text-slate-800'}`}>
+                              {row.name}
+                              {row.isUser && <span className="ml-2 text-[10px] uppercase tracking-wider text-emerald-600 font-semibold">{locale === 'nl' ? 'jij' : 'you'}</span>}
+                            </span>
+                            <span className={`text-[13px] font-bold ${row.isUser ? 'text-emerald-700' : 'text-slate-800'}`}>
+                              {row.count}×
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                <div className="rounded-xl p-6 border flex flex-col" style={{ background: 'linear-gradient(135deg, #EDE9FE, #F5F3FF)', borderColor: '#C4B5FD40' }}>
+                  {geoAnalyseResults ? (
+                    <>
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0">
+                          <Sparkles className="w-5 h-5 text-blue-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[15px] font-bold text-slate-800 leading-snug">
+                            {locale === 'nl' ? 'Jouw GEO Optimalisatie' : 'Your GEO Optimization'}
+                          </div>
+                          <div className="text-[11px] text-slate-500 mt-0.5">
+                            {geoAnalyseResults.pages.length} {locale === 'nl' ? "pagina's" : 'pages'}
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className={`text-[28px] font-black leading-none ${geoAnalyseResults.avgScore >= 70 ? 'text-emerald-600' : geoAnalyseResults.avgScore >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                            {geoAnalyseResults.avgScore}
+                          </div>
+                          <div className="text-[9px] text-slate-500 uppercase tracking-wider mt-0.5">{locale === 'nl' ? 'gem. score' : 'avg. score'}</div>
+                        </div>
+                      </div>
+                      <div className="text-[13px] text-slate-600 leading-relaxed mb-4 flex-1">
+                        {locale === 'nl'
+                          ? 'Werk de adviezen per pagina af om hoger te scoren in AI-zoekmachines.'
+                          : 'Work through the per-page recommendations to score higher in AI search.'}
                       </div>
                       <Link
                         href={lp(locale, `/dashboard/geo-analyse?view=results&company=${encodeURIComponent(activeCompany?.name || '')}`)}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white text-[13px] font-semibold no-underline hover:opacity-90 transition-opacity"
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white text-[13px] font-semibold no-underline hover:opacity-90 transition-opacity self-start"
                         style={{ background: '#292956' }}
                       >
                         <Zap className="w-3.5 h-3.5" />
                         {locale === 'nl' ? 'Bekijk werklijst' : 'View worklist'}
                       </Link>
-                    </div>
-                    <div className="text-center pl-4 border-l border-violet-200">
-                      <div className={`text-[36px] font-black leading-none ${geoAnalyseResults.avgScore >= 70 ? 'text-emerald-600' : geoAnalyseResults.avgScore >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
-                        {geoAnalyseResults.avgScore}
-                      </div>
-                      <div className="text-[10px] text-slate-500 uppercase tracking-wider mt-1">{locale === 'nl' ? 'gem. score' : 'avg. score'}</div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-5 flex-wrap">
-                    <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0">
-                      <Sparkles className="w-6 h-6 text-blue-500" />
-                    </div>
-                    <div className="flex-1 min-w-[240px]">
-                      <div className="text-[15px] font-bold text-slate-800 mb-1">
-                        {locale === 'nl' ? 'Start met je GEO Optimalisatie' : 'Start your GEO Optimization'}
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0">
+                          <Sparkles className="w-5 h-5 text-blue-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[15px] font-bold text-slate-800 leading-snug">
+                            {locale === 'nl' ? 'Start met je GEO Optimalisatie' : 'Start your GEO Optimization'}
+                          </div>
+                        </div>
                       </div>
                       <div className="text-[13px] text-slate-600 leading-relaxed mb-3">
                         {locale === 'nl'
                           ? 'Verbeter je AI-zichtbaarheid stap voor stap met de DIY checklist en concreet AI-advies per pagina.'
                           : 'Improve your AI visibility step by step with the DIY checklist and concrete AI advice per page.'}
                       </div>
-                      <div className="flex gap-4 flex-wrap text-[11px] text-slate-600 mb-4">
-                        <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> {locale === 'nl' ? 'AI-advies per pagina' : 'AI advice per page'}</span>
-                        <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> {locale === 'nl' ? 'Search Console integratie' : 'Search Console integration'}</span>
-                        <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> {locale === 'nl' ? 'Checklist met scores' : 'Checklist with scores'}</span>
+                      <div className="flex flex-col gap-1.5 text-[11px] text-slate-600 mb-4 flex-1">
+                        <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> {locale === 'nl' ? 'AI-advies per pagina' : 'AI advice per page'}</span>
+                        <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> {locale === 'nl' ? 'Search Console integratie' : 'Search Console integration'}</span>
+                        <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> {locale === 'nl' ? 'Checklist met scores' : 'Checklist with scores'}</span>
                       </div>
                       <Link
                         href={lp(locale, `/dashboard/geo-analyse?company=${encodeURIComponent(activeCompany?.name || '')}`)}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white text-[13px] font-semibold no-underline hover:opacity-90 transition-opacity"
+                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-white text-[13px] font-semibold no-underline hover:opacity-90 transition-opacity self-start"
                         style={{ background: '#292956' }}
                       >
                         <Zap className="w-3.5 h-3.5" />
                         {locale === 'nl' ? 'Start GEO Analyse' : 'Start GEO Analysis'}
                       </Link>
-                    </div>
-                  </div>
-                )}
+                    </>
+                  )}
+                </div>
               </div>
-
-              <VisibilityChart data={visibilityTrend} t={t} locale={locale} />
 
               <div className="grid grid-cols-2 gap-4 mb-6">
                 {/* Quick Wins */}
