@@ -343,6 +343,24 @@
   font-weight: 500;
   border: 1px solid var(--line);
 }
+/* ============================================
+   SEPARATOR / HR
+   ============================================ */
+
+.blogContent hr,
+.blogContent :global(.wp-block-separator) {
+  border: none;
+  border-top: 1px solid var(--line);
+  height: 0;
+  margin-top: 32px;
+  margin-bottom: 20px;
+}
+
+/* Voorkom dat de eerste paragraaf na de hr extra ruimte toevoegt */
+.blogContent hr + p,
+.blogContent :global(.wp-block-separator) + p {
+  margin-top: 0;
+}
 
 /* ============================================
    TABLE OF CONTENTS - Navy ipv paars
