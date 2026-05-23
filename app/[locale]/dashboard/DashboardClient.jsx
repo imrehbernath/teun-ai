@@ -1886,46 +1886,6 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
               {/* Google AI scan CTA — show when no Google AI data yet */}
              <GoogleAISection t={t} locale={locale} prompts={prompts} activeCompany={activeCompany} onScanComplete={() => { fetchData(); setActiveTab('prompts') }} googleAiMode={googleAiMode} googleAiOverview={googleAiOverview} isPro={isPro} />
 
-              {/* Extension connected but no scan data yet */}
-              {extensionInstalled && !data?.hasExtensionData && data && totalPrompts > 0 && (
-                <div className="bg-gradient-to-r from-cyan-50 to-sky-50 border border-cyan-200 rounded-xl p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-cyan-100 rounded-lg flex items-center justify-center shrink-0">
-                      <CheckCircle2 className="w-4.5 h-4.5 text-cyan-600" />
-                    </div>
-                    <div>
-                      <div className="text-[13px] font-semibold text-cyan-900">
-                        {locale === 'nl' ? 'Chrome extensie verbonden' : 'Chrome extension connected'}
-                      </div>
-                      <div className="text-[11px] text-cyan-700 mt-0.5">
-                        {locale === 'nl'
-                          ? 'Open de extensie op ChatGPT.com en start een scan om resultaten direct uit ChatGPT 5.2 te zien.'
-                          : 'Open the extension on ChatGPT.com and start a scan to see results straight from ChatGPT 5.2.'}
-                      </div>
-                    </div>
-                  </div>
-                  <a href="https://chatgpt.com" target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-cyan-800 bg-white border border-cyan-300 rounded-lg px-3.5 py-2 hover:bg-cyan-50 transition no-underline whitespace-nowrap shrink-0">
-                    <Play className="w-3 h-3" />
-                    {locale === 'nl' ? 'Start scan' : 'Start scan'}
-                  </a>
-                </div>
-              )}
-              {/* Extension active badge */}
-              {data?.hasExtensionData && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <div className="text-[12px] text-emerald-800">
-                    <span className="font-semibold">ChatGPT 5.2 {locale === 'nl' ? 'resultaten via Chrome extensie' : 'results via Chrome extension'}</span>
-                    {data.extensionScanDate && (
-                      <span className="text-emerald-600 ml-1.5">
-                        · {new Date(data.extensionScanDate).toLocaleDateString(locale === 'nl' ? 'nl-NL' : 'en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-
               <AutoScanCard t={t} locale={locale} isProTier={isProTier} />
 
               <VisibilityChart data={visibilityTrend} t={t} locale={locale} />
