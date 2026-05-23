@@ -1280,11 +1280,16 @@ function ScanInProgress({ locale, company, onRefresh }) {
     return () => clearInterval(stepInterval)
   }, [locale])
 
-  // Auto-refresh: background check without affecting loading state
+  // Auto-refresh: background check without affecting loading state.
+  // Belangrijk: ALTIJD de actieve company meegeven, anders valt de dashboard-API
+  // terug op uniqueCompanies[0] en kan deze poll data van een ander bedrijf binnen-
+  // halen (waarna we per ongeluk de scan-done check uitvoeren op de verkeerde data).
   useEffect(() => {
     const checkScanDone = async () => {
       try {
-        const res = await fetch(`/api/dashboard?period=90d&_t=${Date.now()}`)
+        const params = new URLSearchParams({ period: '90d', _t: String(Date.now()) })
+        if (company) params.set('company', company)
+        const res = await fetch(`/api/dashboard?${params.toString()}`)
         const data = await res.json()
         // Scan is done when actual platform results exist
         if ((data.visibility?.chatgptTotal || 0) > 0 || (data.visibility?.perplexityTotal || 0) > 0) {
@@ -1296,7 +1301,7 @@ function ScanInProgress({ locale, company, onRefresh }) {
     // Max 3 min timeout — force refresh
     const timeout = setTimeout(() => onRefresh?.(), 180000)
     return () => { clearInterval(refresher); clearTimeout(timeout) }
-  }, [onRefresh])
+  }, [onRefresh, company])
 
   const T = locale === 'nl' ? {
     title: 'We analyseren je AI-zichtbaarheid',
@@ -1384,7 +1389,14 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   const [editablePrompts, setEditablePrompts] = useState([])
   const [editingIdx, setEditingIdx] = useState(null)
   const [rescanning, setRescanning] = useState(false)
-  const [rescanProgress, setRescanProgress] = useState({ current: 0, total: 0, phase: '' })
+  const [rescanProgress, setRescanProgress] = useState({
+    percent: 0,
+    phaseLabel: '',
+    stepIndex: 0,
+    totalSteps: 0,
+    promptCount: 0,
+  })
+  const rescanRampRef = useRef(null)
   // Tier-aware weekteller voor handmatige AI Visibility scans, gedeeld
   // tussen Visibility-tab en Prompts-tab. Wordt geladen via
   // /api/ai-visibility/scan-quota en herladen na elke scan-actie.
@@ -1406,6 +1418,13 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   const [geoAnalyseResults, setGeoAnalyseResults] = useState(null) // { pages: [...], lastScan: Date }
 
   useEffect(() => { document.body.classList.add('dashboard-active'); return () => document.body.classList.remove('dashboard-active') }, [])
+
+  useEffect(() => () => {
+    if (rescanRampRef.current) {
+      clearInterval(rescanRampRef.current)
+      rescanRampRef.current = null
+    }
+  }, [])
 
  // ✨ Claim anonieme scan data bij eerste dashboard load
   // Runs BEFORE initial fetchData to prevent empty state flash
@@ -2303,8 +2322,51 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
               const hasGoogleAiMode = (googleAiMode.total || 0) > 0
               const hasGoogleAiOverview = (googleAiOverview.total || 0) > 0
 
+              // Dynamische phases-lijst: alleen wat we daadwerkelijk gaan scannen.
+              // estimatedMs is een grove gok per platform; binnen die tijd ramp-t
+              // de balk naar 90% van de phase, daarna snap naar 100% bij voltooien.
+              const phases = [{ key: 'cgp', estimatedMs: Math.max(60000, allPromptTexts.length * 9000) }]
+              if (hasGoogleAiMode) phases.push({ key: 'aimode', estimatedMs: Math.max(25000, allPromptTexts.length * 3500) })
+              if (hasGoogleAiOverview) phases.push({ key: 'aio', estimatedMs: Math.max(35000, allPromptTexts.length * 5000) })
+              const totalSteps = phases.length
+              const phaseSpan = 95 / totalSteps // 0-95, laatste 5% bij done
+
+              const stopRamp = () => {
+                if (rescanRampRef.current) {
+                  clearInterval(rescanRampRef.current)
+                  rescanRampRef.current = null
+                }
+              }
+              const startRamp = (from, to, durationMs) => {
+                stopRamp()
+                const cap = from + (to - from) * 0.9
+                const start = Date.now()
+                rescanRampRef.current = setInterval(() => {
+                  const ratio = Math.min((Date.now() - start) / durationMs, 1)
+                  const next = from + (cap - from) * ratio
+                  setRescanProgress(prev => ({ ...prev, percent: Math.max(prev.percent, next) }))
+                  if (ratio >= 1) stopRamp()
+                }, 400)
+              }
+              const enterPhase = (idx) => {
+                const from = idx * phaseSpan
+                const to = (idx + 1) * phaseSpan
+                setRescanProgress({
+                  percent: Math.max(2, from + 2),
+                  phaseKey: phases[idx].key,
+                  stepIndex: idx + 1,
+                  totalSteps,
+                  promptCount: allPromptTexts.length,
+                })
+                startRamp(from + 2, to, phases[idx].estimatedMs)
+              }
+              const finishPhase = (idx) => {
+                stopRamp()
+                setRescanProgress(prev => ({ ...prev, percent: (idx + 1) * phaseSpan }))
+              }
+
               setRescanning(true)
-              setRescanProgress({ current: 0, total: allPromptTexts.length, phase: 'ChatGPT & Perplexity' })
+              enterPhase(0)
 
               // Phase 0: Update tool_integrations.commercial_prompts FIRST.
               // Without this, the dashboard API keeps serving old prompts from
@@ -2318,6 +2380,8 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                   })
                 } catch (err) { console.error('Update prompts error:', err) }
               }
+
+              let stepIdx = 0
 
               // Phase 1: ChatGPT + Perplexity via /api/scan-selected-prompts.
               // Schrijft tool_integrations.results (percentage + tabel bewegen)
@@ -2337,10 +2401,12 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                   })
                 })
               } catch (err) { console.error('ChatGPT/Perplexity rescan error:', err) }
+              finishPhase(stepIdx)
+              stepIdx++
 
               // Phase 2: Google AI Mode (alleen als al eerder gescand)
               if (hasGoogleAiMode) {
-                setRescanProgress({ current: 0, total: 1, phase: 'Google AI Mode' })
+                enterPhase(stepIdx)
                 try {
                   const body = incremental
                     ? { companyName: company, website, prompts: allPromptTexts, changedPrompts, writeHistory: true, integrationId }
@@ -2351,11 +2417,13 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                     body: JSON.stringify(body)
                   })
                 } catch (err) { console.error('Google AI Mode rescan error:', err) }
+                finishPhase(stepIdx)
+                stepIdx++
               }
 
               // Phase 3: Google AI Overviews (alleen als al eerder gescand)
               if (hasGoogleAiOverview) {
-                setRescanProgress({ current: 0, total: 1, phase: 'AI Overviews' })
+                enterPhase(stepIdx)
                 try {
                   const body = incremental
                     ? { companyName: company, website, prompts: allPromptTexts, changedPrompts, writeHistory: true, integrationId }
@@ -2366,10 +2434,14 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                     body: JSON.stringify(body)
                   })
                 } catch (err) { console.error('AI Overview rescan error:', err) }
+                finishPhase(stepIdx)
+                stepIdx++
               }
 
               // Wait briefly for Supabase commit propagation, then refetch
               // with verse data before exiting rescan mode (prevents stale UI).
+              stopRamp()
+              setRescanProgress(prev => ({ ...prev, percent: 100 }))
               await new Promise(r => setTimeout(r, 800))
               await fetchData()
               loadAiVisibilityQuota()
@@ -2383,31 +2455,60 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
             return (
               <div className="space-y-4">
                 {/* Rescan progress overlay */}
-                {rescanning && (
-                  <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-6">
-                    <div className="flex items-center gap-3 mb-3">
-                      <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
-                      <div className="text-[14px] font-semibold text-indigo-900">
-                        {locale === 'nl' ? 'Alle platformen opnieuw scannen...' : 'Rescanning all platforms...'}
+                {rescanning && (() => {
+                  const phaseLabels = {
+                    cgp: locale === 'nl' ? 'ChatGPT en Perplexity' : 'ChatGPT and Perplexity',
+                    aimode: 'Google AI Mode',
+                    aio: 'Google AI Overview',
+                  }
+                  const phaseSubtitles = {
+                    cgp: locale === 'nl'
+                      ? `${rescanProgress.promptCount} prompts worden gescand. Dit duurt een paar minuten.`
+                      : `Scanning ${rescanProgress.promptCount} prompts. This takes a few minutes.`,
+                    aimode: locale === 'nl'
+                      ? `${rescanProgress.promptCount} prompts worden gescand op Google AI Mode.`
+                      : `Scanning ${rescanProgress.promptCount} prompts on Google AI Mode.`,
+                    aio: locale === 'nl'
+                      ? `${rescanProgress.promptCount} prompts worden gescand op Google AI Overview.`
+                      : `Scanning ${rescanProgress.promptCount} prompts on Google AI Overview.`,
+                  }
+                  const phaseLabel = phaseLabels[rescanProgress.phaseKey] || ''
+                  const phaseSubtitle = phaseSubtitles[rescanProgress.phaseKey]
+                    || (locale === 'nl' ? 'Resultaten worden opgehaald.' : 'Fetching results.')
+                  const pct = Math.max(0, Math.min(100, Math.round(rescanProgress.percent || 0)))
+                  return (
+                    <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-6">
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <div className="flex items-center gap-3">
+                          <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
+                          <div className="text-[14px] font-semibold text-indigo-900">
+                            {locale === 'nl' ? 'Scans worden uitgevoerd' : 'Scans in progress'}
+                          </div>
+                        </div>
+                        {rescanProgress.totalSteps > 1 && rescanProgress.stepIndex > 0 && (
+                          <div className="text-[12px] text-indigo-600 font-medium">
+                            {locale === 'nl'
+                              ? `Stap ${rescanProgress.stepIndex} van ${rescanProgress.totalSteps}`
+                              : `Step ${rescanProgress.stepIndex} of ${rescanProgress.totalSteps}`}
+                          </div>
+                        )}
+                      </div>
+                      {phaseLabel && (
+                        <div className="text-[13px] text-indigo-700 mb-2">{phaseLabel}</div>
+                      )}
+                      <div className="h-2 bg-indigo-100 rounded overflow-hidden">
+                        <div
+                          className="h-full bg-indigo-500 rounded transition-all duration-500 ease-out"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-3 mt-2">
+                        <div className="text-[11px] text-indigo-500">{phaseSubtitle}</div>
+                        <div className="text-[11px] text-indigo-600 font-medium tabular-nums">{pct}%</div>
                       </div>
                     </div>
-                    <div className="text-[13px] text-indigo-700 mb-2">{rescanProgress.phase}</div>
-                    <div className="h-2 bg-indigo-100 rounded overflow-hidden">
-                      <div className="h-full bg-indigo-500 rounded transition-all duration-500" style={{
-                        width: rescanProgress.phase === 'ChatGPT & Perplexity'
-                          ? '40%'
-                          : rescanProgress.phase === 'Google AI Mode' ? '70%' : '90%'
-                      }} />
-                    </div>
-                    <div className="text-[11px] text-indigo-500 mt-2">
-                      {rescanProgress.phase === 'ChatGPT & Perplexity'
-                        ? (locale === 'nl'
-                            ? `${rescanProgress.total} prompts op ChatGPT en Perplexity, dit kan een paar minuten duren...`
-                            : `${rescanProgress.total} prompts on ChatGPT and Perplexity, this can take a few minutes...`)
-                        : locale === 'nl' ? 'Even geduld...' : 'Please wait...'}
-                    </div>
-                  </div>
-                )}
+                  )
+                })()}
 
                 {/* Rescan-balk bovenaan, direct zichtbaar zodra er prompts zijn */}
                 {hasPrompts && !rescanning && (

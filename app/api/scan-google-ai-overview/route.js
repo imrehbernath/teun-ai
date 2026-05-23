@@ -236,9 +236,13 @@ function detectCompanyMention({ companyName, website, aiText, sources }) {
 // ══════════════════════════════════════════════════════
 
 async function runGoogleAioSearch({ searchQuery, companyName, website, lang, fresh = false }) {
-  const gl = lang === 'en' ? 'us' : 'nl'
-  const hl = lang === 'en' ? 'en' : 'nl'
-  const googleDomain = lang === 'nl' ? 'google.nl' : 'google.com'
+  // SerpAPI's AIO retrieval is stabiel/officieel ondersteund alleen voor hl=en +
+  // een beperkte set gl's. Met NL hl/gl krijg je wel een page_token-stub maar de
+  // expanded fetch faalt structureel. Daarom hardcoden we EN-context voor AIO.
+  // Google AI Mode (andere route) blijft gewoon NL.
+  const gl = 'us'
+  const hl = 'en'
+  const googleDomain = 'google.com'
 
   const common = new URLSearchParams({
     engine: 'google',
@@ -248,7 +252,8 @@ async function runGoogleAioSearch({ searchQuery, companyName, website, lang, fre
     google_domain: googleDomain,
     num: '10'
   })
-  if (fresh) common.set('no_cache', 'true')
+  // We bootsen exact de werkende browser-test na: geen no_cache, geen json_restrictor.
+  // Beide eerder geprobeerd maar dat brak de follow-up retrieval.
 
   // Try mobile first (81% of AIOs), then desktop as fallback
   for (const device of ['mobile', 'desktop']) {
@@ -268,27 +273,40 @@ async function runGoogleAioSearch({ searchQuery, companyName, website, lang, fre
     const rawAioDetected = !!aiOverview
     let tokenFetchSucceeded = false
 
-    // Fetch full AIO via page_token if available
-    if (aiOverview?.page_token) {
-      console.log(`[${device}] Found page_token for "${searchQuery}", fetching full AIO...`)
-      const tokenParams = new URLSearchParams({
-        engine: 'google_ai_overview',
-        page_token: aiOverview.page_token,
-        api_key: SERPAPI_KEY
-      })
+    // Tijdelijke debug-log: laat zien wat SerpAPI in het initial ai_overview-blok
+    // terugstuurt (alleen page_token+serpapi_link, of al text_blocks/references).
+    if (aiOverview) {
+      console.log(`[${device}] AIO raw for "${searchQuery}":`, JSON.stringify(aiOverview, null, 2).slice(0, 2000))
+    }
+
+    // Fetch full AIO via serpapi_link (voorkeur) of page_token (fallback)
+    if (aiOverview?.serpapi_link || aiOverview?.page_token) {
+      console.log(`[${device}] Found AIO follow-up for "${searchQuery}", fetching full AIO...`)
+
+      // SerpAPI's eigen doorverwijzing voor deferred AIO-fetches als die meekomt;
+      // anders bouwen we de URL zelf met engine=google_ai_overview + page_token.
+      // Geen no_cache: de werkende browser-test gebruikt hem ook niet.
+      const aioUrl = aiOverview.serpapi_link
+        ? `${aiOverview.serpapi_link}${aiOverview.serpapi_link.includes('?') ? '&' : '?'}api_key=${SERPAPI_KEY}`
+        : `https://serpapi.com/search.json?${new URLSearchParams({
+            engine: 'google_ai_overview',
+            page_token: aiOverview.page_token,
+            api_key: SERPAPI_KEY
+          }).toString()}`
 
       try {
         const tokenPayload = await fetchJsonWithRetry(
-          `https://serpapi.com/search.json?${tokenParams.toString()}`,
-          { retries: 1, timeoutMs: 12000 }
+          aioUrl,
+          { retries: 1, timeoutMs: 20000 }
         )
+        console.log(`[${device}] AIO follow-up keys:`, Object.keys(tokenPayload || {}))
         const normalized = normalizeAiOverviewPayload(tokenPayload)
         if (normalized) {
           aiOverview = normalized
           tokenFetchSucceeded = true
         }
       } catch (e) {
-        console.log(`[${device}] page_token fetch failed: ${e.message}, using initial data`)
+        console.log(`[${device}] AIO follow-up failed: ${e.message}, using initial data`)
         // keep initial aiOverview
       }
     }
@@ -407,60 +425,67 @@ function detectLanguageFromPrompts(prompts) {
 
 function getTransformSystemPrompt(lang) {
   if (lang === 'en') {
-    return `You are an expert in Google AI Overviews. Your task: convert commercial AI prompts into informational Google search queries that TRIGGER AI Overviews.
+    return `You are an expert in Google AI Overviews. Your task: convert commercial AI prompts into SHORT Google search queries that produce an expanded AI Overview WITH local business citations.
 
-AI OVERVIEW TRIGGER RULES (based on research):
-- AI Overviews appear in 90-100% of informational "what/how/when/why" queries
-- Long-tail queries (7+ words) trigger AIOs 50%+ of the time
-- Queries about costs, steps, comparisons, pros/cons have the highest trigger rate
-- Decision-oriented queries ("when to hire", "how to choose") trigger AIOs for business citations
-- Practical expertise questions win over encyclopedia definitions
+GOAL:
+Long or complex queries (12+ words with modifiers like "for X", "that combines Y") only trigger an inline preview AIO without an expanded version, and Google does NOT cite businesses in those. Short buying-guide queries (5-8 words) trigger an expanded AIO in which Google does name local businesses.
 
-CONVERSION RULES:
-- Each query should be 6-12 words (long-tail = higher AIO chance)
-- MUST start with a trigger word: "what", "how", "when", "why", "difference between", "costs of", "steps to", "pros and cons"
-- Convert "find me a provider" into "when do I need this service" or "how does this work" or "what does this cost"
-- Keep the INDUSTRY/TOPIC but change intent from transactional to informational
-- NO company names or "best/top/good"
-- City names ARE allowed when they add local context (local queries trigger business citations)
+CORE RULES:
+- Maximum 9 words per query. Aim for 5-7. Shorter is better. Multi-word cities ("The Hague", "New York") count as one location.
+- 1 concept + city. STRIP all subclauses such as "for AI search visibility", "with experience in ChatGPT", "that combines SEO and conversion", "for measurable growth". Keep only the core service + city.
+- City name MANDATORY to keep when present in the original prompt. Local intent is the strongest driver for business citations.
+- No city in the original? Keep the query short and investigative without a city.
+- NO company names.
+- Avoid bare superlatives like "best/top". "A good X" in choice context is fine.
+
+TRIGGER FORMS (prefer "what does X cost" because it is shortest):
+- "what does [service] cost in [city]" (strongly preferred)
+- "how to find a good [service] in [city]" (alternative for variation)
+- "what to look for in [service] [city]" (only when others do not fit)
 
 EXAMPLES:
-- "Which SEO agencies in Amsterdam are good" -> "when should you hire an SEO specialist"
-- "Recommend a good real estate lawyer" -> "what does a real estate lawyer cost per hour"
-- "Best web design agency for webshops" -> "how much does a professional webshop cost"
-- "Which accountants handle international tax" -> "how does international tax work for businesses"
-- "Find a reliable contractor for renovation" -> "steps to take when renovating your home"
-- "Good physiotherapist for back pain" -> "when to see a physiotherapist for back pain"
+- "I'm looking for an experienced SEO agency in Amsterdam that also helps with AI search visibility" -> "what does an SEO agency cost in Amsterdam"
+- "Which SEO agency in Amsterdam has experience with AI visibility in ChatGPT and Perplexity?" -> "how to find a good SEO agency in Amsterdam"
+- "Looking for an SEO specialist in Amsterdam with proven results" -> "what does an SEO specialist cost in Amsterdam"
+- "Which online marketing agency in Amsterdam combines SEO, speed and conversion?" -> "what does a marketing agency cost in Amsterdam"
+- "I'm looking for an agency in Amsterdam to optimize my WordPress site for Google and AI platforms" -> "what does WordPress optimization cost in Amsterdam"
+- "Looking for GEO experts in Amsterdam for LLM visibility in ChatGPT" -> "what does GEO optimization cost in Amsterdam"
+- "Recommend a good real estate lawyer in The Hague" -> "what does a real estate lawyer cost in The Hague"
+- "Which notary in Eindhoven is reliable for a mortgage deed" -> "what does a notary cost in Eindhoven"
+- "I'm looking for an experienced physiotherapist for back pain in Utrecht" -> "what does a physiotherapist cost in Utrecht"
 
 Reply ONLY with a JSON array of strings, one per prompt, in the same order. No explanation.`
   }
 
-  return `Je bent een expert in Google AI Overviews. Je taak: zet commerciele AI-prompts om naar informatieve Google-zoekopdrachten die AI Overviews TRIGGEREN.
+  return `Je bent een expert in Google AI Overviews. Je taak: zet commerciele AI-prompts om naar KORTE Google-zoekopdrachten die een uitgebreide AI Overview MET lokale bedrijfsvermelding opleveren.
 
-AI OVERVIEW TRIGGER REGELS (gebaseerd op onderzoek):
-- AI Overviews verschijnen bij 90-100% van informatieve "wat/hoe/wanneer/waarom" vragen
-- Long-tail queries (7+ woorden) triggeren AIOs in 50%+ van gevallen
-- Vragen over kosten, stappenplannen, vergelijkingen, voor-/nadelen hebben de hoogste trigger-kans
-- Beslissingsvragen ("wanneer inhuren", "hoe kiezen") triggeren AIOs met bedrijfscitaties
-- Praktische expertisevragen winnen van encyclopedische definities
+DOEL:
+Lange of complexe queries (12+ woorden met modifiers zoals "voor X", "die Y combineert") leveren alleen een inline preview-AIO op zonder uitgebreide versie, en Google citeert daar GEEN bedrijven in. Korte buying-guide queries (5-8 woorden) leveren wel een uitgebreide AIO op waarin Google lokale bedrijven noemt.
 
-CONVERSIEREGELS:
-- Elke query moet 6-12 woorden zijn (long-tail = hogere AIO-kans)
-- MOET beginnen met een triggerwoord: "wat kost", "hoe werkt", "wanneer", "waarom", "verschil tussen", "stappenplan voor", "voor- en nadelen van"
-- Zet "vind een aanbieder" om naar "wanneer heb ik dit nodig" of "hoe werkt dit" of "wat kost dit"
-- Behoud de BRANCHE/HET ONDERWERP maar verander de intentie van transactioneel naar informationeel
-- GEEN bedrijfsnamen of "beste/top/goede"
-- Plaatsnamen MOGEN als ze lokale context toevoegen (lokale queries triggeren bedrijfscitaties)
+KERNREGELS:
+- Maximaal 9 woorden per query. Richt op 5-7. Korter is beter. Multi-woord steden ("Den Haag") tellen als 1 locatie.
+- 1 concept + stad. STRIP alle bijzinnen zoals "voor AI-vindbaarheid", "met ervaring in ChatGPT", "die SEO en GEO combineert", "voor meetbare groei". Alleen kern-branche + stad blijven over.
+- Plaatsnaam VERPLICHT BEHOUDEN als die in de originele prompt staat. Lokale intentie is de sterkste driver voor bedrijfscitaties.
+- Geen plaatsnaam in origineel? Houd de query kort en investigatief zonder stad.
+- GEEN bedrijfsnamen.
+- Vermijd kale superlatieven als "beste/top". "Een goede X" in keuze-context mag wel.
+
+TRIGGERVORMEN (gebruik bij voorkeur "wat kost", want dat is het kortst):
+- "wat kost [dienst] in [stad]" (sterk voorkeur)
+- "hoe vind je een goed [dienst] in [stad]" (alternatief voor variatie)
+- "waar moet je op letten bij [dienst] [stad]" (alleen als anders niet past)
 
 VOORBEELDEN:
-- "Welk SEO bureau in Amsterdam is goed" -> "wanneer SEO specialist inhuren voor je website"
-- "Kun je een goede vastgoedadvocaat aanbevelen" -> "wat kost een vastgoedadvocaat per uur"
-- "Beste webdesign bureau voor webshops" -> "hoeveel kost een professionele webshop laten maken"
-- "Welke accountants doen internationale belastingen" -> "hoe werkt internationale belastingaangifte voor bedrijven"
-- "Zoek een betrouwbare aannemer voor verbouwing" -> "stappenplan verbouwing woning wat komt erbij kijken"
-- "Goede fysiotherapeut voor rugpijn" -> "wanneer naar fysiotherapeut bij rugklachten"
-- "Ik zoek een ervaren SEO specialist in Amsterdam" -> "wat kost SEO uitbesteden aan een specialist"
-- "Welk online marketing bureau combineert SEO en website snelheid" -> "verschil tussen SEO en website snelheid optimalisatie"
+- "Ik zoek een ervaren SEO bureau in Amsterdam dat ook helpt met vindbaarheid in AI-zoekmachines" -> "wat kost een SEO bureau in Amsterdam"
+- "Welk SEO bureau in Amsterdam heeft ervaring met AI-zichtbaarheid in ChatGPT en Perplexity?" -> "hoe vind je een goed SEO bureau in Amsterdam"
+- "Op zoek naar een SEO specialist in Amsterdam met aantoonbare resultaten" -> "wat kost een SEO specialist in Amsterdam"
+- "Welk online marketing bureau in Amsterdam combineert SEO, snelheid en conversie?" -> "wat kost een marketingbureau in Amsterdam"
+- "Ik zoek een bureau in Amsterdam dat mijn WordPress website kan optimaliseren voor Google en AI" -> "wat kost WordPress optimalisatie in Amsterdam"
+- "Zoek GEO experts in Amsterdam voor LLM-zichtbaarheid in ChatGPT" -> "wat kost GEO optimalisatie in Amsterdam"
+- "Welk bureau in Nederland is gespecialiseerd in GEO optimalisatie en AI-vindbaarheid?" -> "wat kost GEO optimalisatie voor bedrijven"
+- "Kun je een goede vastgoedadvocaat in Den Haag aanbevelen" -> "wat kost een vastgoedadvocaat in Den Haag"
+- "Welke notaris in Eindhoven is betrouwbaar voor een hypotheekakte" -> "wat kost een notaris in Eindhoven"
+- "Ik zoek een ervaren fysiotherapeut voor rugklachten in Utrecht" -> "wat kost een fysiotherapeut in Utrecht"
 
 Antwoord ALLEEN met een JSON array van strings, een per prompt, in dezelfde volgorde. Geen uitleg.`
 }
@@ -505,18 +530,27 @@ function fallbackTransform(prompt) {
   let q = prompt.trim().replace(/[?!.]+$/, '')
 
   q = q
-    .replace(/^(?:kun je|welke|geef|noem|heb je|ken je|wat zijn de|lijst|can you|which|give|list|what are the)\s+(?:mij |me |een aantal |de |het |some |the )?(?:beste|top|goede|betrouwbare|ervaren|gerenommeerde|best|top|good|reliable|experienced)?\s*/i, '')
-    .replace(/\s+(?:in|te|near|around)\s+(?:amsterdam|rotterdam|den haag|utrecht|eindhoven|nederland|london|new york|los angeles)\b/gi, '')
+    // Transactionele aanhef eraf (kun je / welke / ik zoek / can you / which / ...).
+    .replace(/^(?:kun je|kunt u|welke|welk|geef(?: mij| me)?|noem|heb je|ken je|wat zijn de|lijst|ik zoek(?: een)?|can you|which|give(?: me)?|list|what are the|i'?m looking for(?: an?)?|find(?: me)?(?: an?)?)\s+/i, '')
+    // Kale superlatieven eraf
+    .replace(/\b(beste|top|goede|betrouwbare|ervaren|gerenommeerde|best|good|reliable|experienced)\s+/gi, '')
+    // Trailing "is goed/beste/best/good/betrouwbaar" patronen
+    .replace(/\s+(?:is|are|zijn)\s+(?:beste|goed|goede|best|good|reliable|betrouwbaar)\.?$/i, '')
     .replace(/\s+/g, ' ')
     .trim()
 
-  // Add AIO trigger prefix if missing
-  if (!/^(wat|hoe|wanneer|waarom|verschil|what|how|when|why|difference)/i.test(q)) {
+  // Cap input op 6 woorden zodat totaal (incl. "wat kost"-prefix) binnen ~8 blijft.
+  // Lange queries triggeren alleen een preview-AIO zonder bedrijfsvermeldingen.
+  const inputWords = q.split(/\s+/).filter(Boolean)
+  if (inputWords.length > 6) q = inputWords.slice(0, 6).join(' ')
+
+  // Begint al met een bedrijf-zoekende triggervorm? Laat staan, anders prefix met "wat kost".
+  const alreadyTrigger = /^(wat kost|hoe vind|waar moet je op letten|what does|how to find|what to look)/i.test(q)
+  if (!alreadyTrigger) {
     q = `wat kost ${q}`
   }
 
   if (q.length < 5) q = prompt.split(' ').slice(0, 5).join(' ')
-  if (q.length > 80) q = q.substring(0, 80).replace(/\s\w*$/, '')
 
   return { searchQuery: q, originalPrompt: prompt }
 }
@@ -595,7 +629,8 @@ export async function POST(request) {
 
     console.log(`AI Overview scan: lang=${lang}, ${promptsToScan.length} prompts, fresh=${!!fresh}, incremental=${incrementalMode && prevResultsByQuery.size > 0}`)
 
-    // Transform prompts
+    // Transform prompts in de oorspronkelijke taal. NL prompts → NL search queries.
+    // De SerpAPI-context wordt apart naar hl=en/gl=us geforceerd in runGoogleAioSearch.
     let transformedQueries
     if (preTransformed && Array.isArray(preTransformed) && preTransformed.length === promptsToScan.length) {
       console.log('Using pre-transformed queries from frontend')

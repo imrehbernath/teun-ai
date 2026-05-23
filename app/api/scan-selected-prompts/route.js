@@ -7,6 +7,12 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { upsertVisibilityHistoryRows } from '@/lib/visibility-history'
+import {
+  extractCompetitorsFromChatGPT,
+  extractCompetitorsFromPerplexity,
+  getPerplexityCompetitorSystemPrompt,
+  stripCompetitorBlock,
+} from '@/lib/competitor-extract'
 
 // Vercel function timeout — 10 prompts × 2 platforms = needs time
 export const maxDuration = 300
@@ -61,43 +67,8 @@ async function scanChatGPT(prompt, companyName, website, location) {
       if (mentionCount === 0) mentionCount = 1
     }
 
-    // Extract competitors (handles multiple ChatGPT response formats)
-    const competitors = []
-    const lines = text.split('\n')
-    for (const line of lines) {
-      const trimmed = line.trim()
-      let name = null
-
-      // Format 1: **[Name](url)** or [Name](url)
-      const linkMatch = trimmed.match(/\*?\*?\[([^\]]{2,60})\]\([^)]+\)\*?\*?/)
-      if (linkMatch) name = linkMatch[1]
-
-      // Format 2: **Name** at start of line (bold heading)
-      if (!name) {
-        const boldMatch = trimmed.match(/^(?:[•📌🔹\-\d]+[.)]*\s*)?\*\*([^*]{2,60})\*\*/)
-        if (boldMatch) name = boldMatch[1]
-      }
-
-      // Format 3: Numbered list: 1. Name – description
-      if (!name) {
-        const listMatch = trimmed.match(/^(?:[•📌🔹\d]+[.)]*\s*)\*?\*?([\p{L}\p{N}][\p{L}\p{N}\s&'.-]+?)\*?\*?\s*[–—\-:]/u)
-        if (listMatch) name = listMatch[1]
-      }
-
-      // Format 4: ### Name (markdown heading)
-      if (!name) {
-        const headingMatch = trimmed.match(/^#{1,4}\s+(.{2,60})/)
-        if (headingMatch) name = headingMatch[1].replace(/\*\*/g, '').trim()
-      }
-
-      if (name) {
-        name = name.replace(/\*\*/g, '').replace(/\[.*?\]\(.*?\)/g, '').trim()
-        // Skip if it's the company itself or too short/long
-        if (name.length >= 2 && name.length <= 60 && !variants.some(v => name.toLowerCase().includes(v))) {
-          competitors.push(name)
-        }
-      }
-    }
+    // Extract competitors via gedeelde lib (zelfde filter als ai-visibility-analysis)
+    const competitors = extractCompetitorsFromChatGPT(text, companyName)
 
     // Extract sources/citations from search results
     const sources = []
@@ -113,7 +84,7 @@ async function scanChatGPT(prompt, companyName, website, location) {
       ai_prompt: prompt,
       company_mentioned: mentioned,
       mentions_count: mentionCount,
-      competitors_mentioned: [...new Set(competitors)].slice(0, 10),
+      competitors_mentioned: competitors,
       simulated_ai_response_snippet: text.slice(0, 1500),
       sources,
     }
@@ -146,7 +117,7 @@ async function scanPerplexity(prompt, companyName, website, location) {
         messages: [
           {
             role: 'system',
-            content: `Je bent een behulpzame assistent die informatie geeft over bedrijven en diensten in Nederland${location ? `, specifiek in ${location}` : ''}. Antwoord ALTIJD in het Nederlands. Noem ALLEEN bedrijven die daadwerkelijk in Nederland actief zijn. Geef uitgebreide antwoorden met concrete bedrijfsnamen.`
+            content: getPerplexityCompetitorSystemPrompt('nl', location)
           },
           { role: 'user', content: prompt }
         ],
@@ -180,42 +151,12 @@ async function scanPerplexity(prompt, companyName, website, location) {
       if (mentionCount === 0) mentionCount = 1
     }
 
-    // Extract competitors (handles multiple response formats)
-    const competitors = []
-    const pLines = text.split('\n')
-    for (const line of pLines) {
-      const trimmed = line.trim()
-      let name = null
+    // Extract competitors via gedeelde lib: eerst het ===BEDRIJVEN===-blok,
+    // fallback met de uitgebreide isValidCompetitorName-filter uit ai-visibility-analysis.
+    const competitors = extractCompetitorsFromPerplexity(text, companyName)
 
-      // Format 1: ### Name or ### Name (address)
-      const headingMatch = trimmed.match(/^#{1,4}\s+([^(]{2,60})/)
-      if (headingMatch) name = headingMatch[1].replace(/\*\*/g, '').trim()
-
-      // Format 2: **Name** at start of line
-      if (!name) {
-        const boldMatch = trimmed.match(/^(?:[•📌🔹\-\d]+[.)]*\s*)?\*\*([^*]{2,60})\*\*/)
-        if (boldMatch) name = boldMatch[1]
-      }
-
-      // Format 3: **[Name](url)**
-      if (!name) {
-        const linkMatch = trimmed.match(/\*?\*?\[([^\]]{2,60})\]\([^)]+\)\*?\*?/)
-        if (linkMatch) name = linkMatch[1]
-      }
-
-      // Format 4: Numbered list: 1. Name – description
-      if (!name) {
-        const listMatch = trimmed.match(/^(?:[•📌🔹\d]+[.)]*\s*)\*?\*?([\p{L}\p{N}][\p{L}\p{N}\s&'.-]+?)\*?\*?\s*[–—\-:]/u)
-        if (listMatch) name = listMatch[1]
-      }
-
-      if (name) {
-        name = name.replace(/\*\*/g, '').replace(/\[.*?\]\(.*?\)/g, '').trim()
-        if (name.length >= 2 && name.length <= 60 && !variants.some(v => name.toLowerCase().includes(v))) {
-          competitors.push(name)
-        }
-      }
-    }
+    // Strip het ===BEDRIJVEN===-blok uit de snippet die we naar de UI sturen
+    const cleanText = stripCompetitorBlock(text)
 
     // Extract sources from Perplexity citations
     const sources = (data.citations || []).map(url => {
@@ -228,8 +169,8 @@ async function scanPerplexity(prompt, companyName, website, location) {
       ai_prompt: prompt,
       company_mentioned: mentioned,
       mentions_count: mentionCount,
-      competitors_mentioned: [...new Set(competitors)].slice(0, 10),
-      simulated_ai_response_snippet: text.slice(0, 1500),
+      competitors_mentioned: competitors,
+      simulated_ai_response_snippet: cleanText.slice(0, 1500),
       sources,
     }
   } catch (err) {

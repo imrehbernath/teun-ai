@@ -2233,6 +2233,11 @@ function isValidCompetitorName(name, companyLower, excludeList, seen) {
     !/^(stap|punt|vraag|antwoord|optie|methode|strategie|voordeel|nadeel|step|point|question|answer|method|strategy|advantage|disadvantage)\s/i.test(name) &&
     // Not section headers from AI responses
     !/^(waar je op|goede opties|alternatieven|waarom deze|tips voor|hoe je|wat je|wanneer je|let hierop|onze aanbeveling|ons advies|meer informatie|verder lezen|bronnen|sources|references|see also|read more|further reading)\s/i.test(name) &&
+    // Niet typische label-fragmenten ("Past goed als", "Waarom interessant voor jou", "Past op")
+    !/^(past goed|waarom interessant|waarom kies|waarom is|wat maakt|hoe deze|kortom|tot slot|samengevat|opmerking)\b/i.test(name) &&
+    // Niet categorische combinatie met "/" (bv. "AI-zoekmachines / AI-visibility").
+    // & blijft toegestaan: zit vaak in bedrijfsnamen ("Sinck & Ko", "Jansen & Partners").
+    !/\s\/\s/.test(name) &&
     // Not Dutch instructions, actions, or descriptive headings
     !/^(documenteer|waarschuw|controleer|check|bekijk|overweeg|neem|zoek|bel|mail|schrijf|vraag|meld|maak|gebruik|vermijd|kies|vergelijk|probeer|start|stop|lees|ga naar|schakel|stel|plan|regel|evalueer|analyseer|optimaliseer|beoordeel|onderzoek|bespreek|registreer|download|upload|installeer|configureer|activeer|deactiveer)\s/i.test(name) &&
     // Not Dutch generic descriptive phrases (common patterns in AI responses)
@@ -2304,6 +2309,10 @@ function parseWithJS(rawOutput, companyName, isNL = true) {
       'website laten maken', 'website bouwen', 'website ontwerp',
       'zoekmachine optimalisatie', 'search engine optimization',
       'geo', 'geo optimalisatie', 'ai visibility', 'ai zichtbaarheid',
+      'ai-visibility', 'ai-zichtbaarheid', 'ai-zoekmachines', 'ai zoekmachines',
+      'ai-platform', 'ai platform', 'ai seo',
+      'website', 'internet marketing service',
+      'past goed als', 'waarom interessant voor jou',
     ])
 
     // Pattern 1: **Bold names** (on cleaned output without markdown links)
