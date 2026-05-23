@@ -59,8 +59,13 @@ export async function GET(request) {
   }
 
   const adminEmails = BETA_CONFIG.ADMIN_EMAILS || [];
+  // Legacy subscribers (subscription_tier === null + active) gelden als Pro,
+  // consistent met lib/beta-config.js, /api/auto-scan/route.js en
+  // /api/tracked-keywords/route.js.
   const eligible = (profiles || []).filter(p =>
-    p.subscription_tier === 'pro' || adminEmails.includes(p.email)
+    p.subscription_tier === 'pro' ||
+    p.subscription_tier == null ||
+    adminEmails.includes(p.email)
   );
 
   const todayUsers = force

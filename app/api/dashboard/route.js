@@ -83,9 +83,14 @@ function extractCompetitors(results) {
 }
 
 // —— Helper: build prompt details — INDEX-BASED ——
-function buildPromptDetails(results, commercialPrompts) {
+// previousResults = genormaliseerde tool_integrations.previous_results (optioneel).
+// Per prompt komen previousFound/previousMentionCount mee zodat de UI een
+// trendpijl kan tonen (verbeterd, verslechterd, gelijk).
+function buildPromptDetails(results, commercialPrompts, previousResults = null) {
   const chatgptResults = results?.chatgpt || []
   const perplexityResults = results?.perplexity || []
+  const prevChatgpt = previousResults?.chatgpt || []
+  const prevPerplexity = previousResults?.perplexity || []
 
   if (chatgptResults.length === 0 && perplexityResults.length === 0 && (!commercialPrompts || commercialPrompts.length === 0)) {
     return []
@@ -101,6 +106,10 @@ function buildPromptDetails(results, commercialPrompts) {
 
     const chatgpt = chatgptResults[i] || null
     const perplexity = perplexityResults[i] || null
+    // Vorige scan-data per prompt voor trendpijl-berekening.
+    // null = geen vorige meting beschikbaar (eerste scan ooit).
+    const prevCg = prevChatgpt[i] || null
+    const prevPx = prevPerplexity[i] || null
 
     details.push({
       id: i + 1,
@@ -112,6 +121,8 @@ function buildPromptDetails(results, commercialPrompts) {
         competitors: chatgpt?.competitors_mentioned || [],
         sources: (chatgpt?.sources || chatgpt?.references || chatgpt?.cited_sources || []).map(s => typeof s === 'string' ? s : (s?.link || s?.url || '')).filter(Boolean),
         fromExtension: chatgpt?._fromExtension || false,
+        previousFound: prevCg ? !!prevCg.company_mentioned : null,
+        previousMentionCount: prevCg ? (prevCg.mentions_count || 0) : null,
       },
       perplexity: {
         found: perplexity?.company_mentioned || false,
@@ -119,6 +130,8 @@ function buildPromptDetails(results, commercialPrompts) {
         snippet: perplexity?.simulated_ai_response_snippet || null,
         competitors: perplexity?.competitors_mentioned || [],
         sources: (perplexity?.sources || perplexity?.references || perplexity?.cited_sources || []).map(s => typeof s === 'string' ? s : (s?.link || s?.url || '')).filter(Boolean),
+        previousFound: prevPx ? !!prevPx.company_mentioned : null,
+        previousMentionCount: prevPx ? (prevPx.mentions_count || 0) : null,
       },
     })
   }
@@ -165,6 +178,36 @@ function normalizeResults(results) {
   return { chatgpt: [], perplexity: [] }
 }
 
+// —— Helper: normalize Google AI scan-results into a flat array ——
+function flattenGoogleAiResults(scan) {
+  const scanResults = scan?.results || []
+  if (Array.isArray(scanResults)) return scanResults
+  if (typeof scanResults === 'object') {
+    if (Array.isArray(scanResults.results)) return scanResults.results
+    for (const val of Object.values(scanResults)) {
+      if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'object') return val
+    }
+  }
+  return []
+}
+
+// —— Helper: build prompt-text → {found, mentionCount} map uit een vorige scan-rij ——
+// Wordt gebruikt voor de trendpijl per Google AI prompt: vergelijk huidige scan
+// (scans[0]) met de vorige rij (scans[1]) per prompt-tekst.
+function buildGoogleAiPrevMap(prevScan) {
+  const map = new Map()
+  if (!prevScan) return map
+  for (const r of flattenGoogleAiResults(prevScan)) {
+    const text = (r.query || r.ai_prompt || r.prompt || r.searchQuery || '').trim()
+    if (!text) continue
+    map.set(text, {
+      found: r.companyMentioned === true || r.company_mentioned === true || false,
+      mentionCount: r.mentionCount || r.mentions_count || 0,
+    })
+  }
+  return map
+}
+
 // —— Helper: process Google AI scan results ——
 // Detects company mentions from aiResponse text when no explicit flag exists
 // Extracts competitors from sources and aiResponse
@@ -172,6 +215,7 @@ function processGoogleAiResults(scans, companyName) {
   if (!scans || scans.length === 0) return { found: 0, total: 0, pct: 0, prompts: [] }
 
   const latest = scans[0]
+  const prevMap = buildGoogleAiPrevMap(scans[1] || null)
   const scanResults = latest.results || []
   const scanPrompts = latest.prompts || []
 
@@ -258,8 +302,10 @@ function processGoogleAiResults(scans, companyName) {
     }
     if (isMentioned && mentionCount === 0) mentionCount = 1
 
+    const promptText = (r.query || r.ai_prompt || r.prompt || r.searchQuery || getPromptText(scanPrompts[i]) || `Prompt ${i + 1}`).trim()
+    const prev = prevMap.get(promptText) || null
     return {
-      text: r.query || r.ai_prompt || r.prompt || r.searchQuery || getPromptText(scanPrompts[i]) || `Prompt ${i + 1}`,
+      text: promptText,
       searchQuery: r.searchQuery || null,
       found: isMentioned,
       hasAiOverview: r.hasAiOverview || r.hasAiResponse || false,
@@ -267,6 +313,8 @@ function processGoogleAiResults(scans, companyName) {
       snippet: responseText || null,
       competitors: r.competitorsInSources || r.competitorsMentioned || r.competitors_mentioned || competitorNames,
       sources: sources,
+      previousFound: prev ? prev.found : null,
+      previousMentionCount: prev ? prev.mentionCount : null,
     }
   })
 
@@ -311,7 +359,7 @@ export async function GET(request) {
 
     const { data: allIntegrations, error: intError } = await db
       .from('tool_integrations')
-      .select('id, company_name, website, company_category, commercial_prompts, results, total_company_mentions, prompts_count, created_at')
+      .select('id, company_name, website, company_category, commercial_prompts, results, previous_results, total_company_mentions, prompts_count, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
@@ -514,7 +562,8 @@ export async function GET(request) {
     }
 
     // ——— Process (using merged results with extension priority) ———
-    const promptDetails = buildPromptDetails(mergedResults, commercialPrompts)
+    const previousResults = normalizeResults(latestScan?.previous_results || null)
+    const promptDetails = buildPromptDetails(mergedResults, commercialPrompts, previousResults)
     const visibility = calcVisibility(mergedResults)
     const avgMentions = calcAvgMentions(promptDetails)
     const googleAiMode = processGoogleAiResults(googleAiScans, activeCompanyName)
@@ -610,12 +659,16 @@ export async function GET(request) {
         .gte('scanned_at', historySinceDate)
         .order('scanned_at', { ascending: true })
 
-      // Group rows from the same cron-run together. Different platforms (chatgpt/
-       // perplexity vs google_ai_*) get written at different times because each scan
-       // has its own duration, so we bucket on the minute to merge them visually.
+      // Group rows from the same day together. Different platforms (chatgpt/
+      // perplexity vs google_ai_*) get written at different times because each
+      // scan has its own duration; bucketing per day matches the upsert helper
+      // (lib/visibility-history.js) which keeps max 1 rij per platform per dag.
+      // Bucketing per minuut zou platforms uit dezelfde scan-ronde in aparte
+      // chartpoints splitsen, waardoor de herberekende "total" naar 0 kan
+      // zakken als alleen het laatste platform in die bucket zit.
       const bucketKey = (iso) => {
         const d = new Date(iso)
-        d.setSeconds(0, 0)
+        d.setHours(0, 0, 0, 0)
         return d.toISOString()
       }
 

@@ -64,11 +64,33 @@ function DashTeunLogo({ size = 22 }) {
   );
 }
 
-function StatCard({ label, value, sub, accent, small }) {
+function StatCard({ label, value, sub, accent, small, delta, deltaLabel }) {
+  // delta = number (verschil t.o.v. vorige meting). null = geen vorige meting.
+  // Stable bij delta === 0, up bij > 0, down bij < 0.
+  const hasDelta = typeof delta === 'number'
+  const deltaClass = !hasDelta
+    ? ''
+    : delta > 0
+      ? 'text-emerald-600 bg-emerald-50'
+      : delta < 0
+        ? 'text-red-500 bg-red-50'
+        : 'text-slate-400 bg-slate-50'
+  const deltaText = !hasDelta
+    ? null
+    : delta === 0
+      ? (deltaLabel || '0')
+      : `${delta > 0 ? '+' : ''}${delta}%`
   return (
     <div className="bg-white rounded-xl border border-slate-200 px-6 py-5 flex-1 min-w-0">
       <div className="text-[11px] text-slate-400 font-medium tracking-wider uppercase mb-2">{label}</div>
-      <div className={`font-bold leading-tight truncate ${small ? 'text-[16px]' : 'text-[28px]'}`} style={{ color: accent || '#1e293b' }}>{value}</div>
+      <div className="flex items-baseline gap-2">
+        <div className={`font-bold leading-tight truncate ${small ? 'text-[16px]' : 'text-[28px]'}`} style={{ color: accent || '#1e293b' }}>{value}</div>
+        {hasDelta && (
+          <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-md ${deltaClass}`}>
+            {deltaText}
+          </span>
+        )}
+      </div>
       {sub && <div className="text-[12px] text-slate-500 mt-1.5">{sub}</div>}
     </div>
   )
@@ -271,7 +293,7 @@ function VisibilityChart({ data, t, locale }) {
   const fmtFull = (d) => d ? d.toLocaleDateString(fmtLocale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''
   const fmtShort = (d) => d ? d.toLocaleDateString(fmtLocale, { day: 'numeric', month: 'short' }) : ''
   const metaLine = lastDate && nextDate ? `${t.chart.lastUpdate}: ${fmtFull(lastDate)} · ${t.chart.nextUpdate}: ${fmtShort(nextDate)}` : null
-  if (!data || data.length < 2) {
+  if (!data || data.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
         <div className="mb-5">
@@ -282,6 +304,45 @@ function VisibilityChart({ data, t, locale }) {
         <div className="flex flex-col items-center justify-center h-[200px] text-center px-4">
           <div className="text-[13px] font-medium text-slate-700 mb-1">{t.chart.emptyTitle}</div>
           <div className="text-[12px] text-slate-500 max-w-md">{t.chart.emptyBody}</div>
+        </div>
+      </div>
+    )
+  }
+  // Eén datapunt: toon het als startpunt-kaart met alle 4 platforms naast elkaar
+  // plus de "total". Een echte lijn vereist minimaal twee punten; die verschijnt
+  // automatisch zodra de gebruiker nog een dag scant of de wekelijkse cron loopt.
+  if (data.length === 1) {
+    const d = data[0]
+    const fmtPct = (v) => v == null ? '—' : `${Math.round(Number(v))}%`
+    const platformRows = [
+      { key: 'total', label: locale === 'nl' ? 'Totaal' : 'Total', color: '#1e293b' },
+      { key: 'chatgpt', label: 'ChatGPT', color: PLATFORM_COLORS.chatgpt },
+      { key: 'perplexity', label: 'Perplexity', color: PLATFORM_COLORS.perplexity },
+      { key: 'google_ai_mode', label: 'Google AI Mode', color: PLATFORM_COLORS.googleAiMode },
+      { key: 'google_ai_overviews', label: 'AI Overviews', color: PLATFORM_COLORS.googleAiOverview },
+    ]
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+        <div className="mb-5">
+          <div className="text-[15px] font-semibold text-slate-800">{t.chart.title}</div>
+          <div className="text-[12px] text-slate-400 mt-0.5">{t.chart.subtitle}</div>
+          {metaLine && <div className="text-[11px] text-slate-500 mt-1.5">{metaLine}</div>}
+        </div>
+        <div className="grid grid-cols-5 gap-3 mb-4">
+          {platformRows.map((p) => (
+            <div key={p.key} className="bg-slate-50 rounded-lg p-3">
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
+                <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">{p.label}</span>
+              </div>
+              <div className="text-[18px] font-bold text-slate-800">{fmtPct(d[p.key])}</div>
+            </div>
+          ))}
+        </div>
+        <div className="text-[12px] text-slate-500 leading-relaxed">
+          {locale === 'nl'
+            ? 'Dit is je startpunt. Zodra de volgende scan binnen is, verschijnt hier een lijn met de trend.'
+            : 'This is your starting point. The trend line appears as soon as the next scan completes.'}
         </div>
       </div>
     )
@@ -433,17 +494,31 @@ function GoogleAISection({ t, locale, prompts, activeCompany, onScanComplete, go
   const [liveResults, setLiveResults] = useState({ aiMode: [], aiOverview: [] })
   const [transformedMap, setTransformedMap] = useState({})
   const [error, setError] = useState(null)
+  // Tier-aware weekteller voor handmatige AI Visibility scans.
+  // Wordt geladen via /api/ai-visibility/scan-quota en geherladen na elke scan.
+  const [quota, setQuota] = useState(null)
 
   const hasData = (googleAiMode?.total || 0) > 0 || (googleAiOverview?.total || 0) > 0
   const promptTexts = prompts.map(p => p.text).filter(Boolean)
   const company = activeCompany?.name
   const website = activeCompany?.website || ''
 
-  // Daily limit
-  const today = new Date().toDateString()
-  const modeScannedToday = !isPro && googleAiMode?.lastScan && new Date(googleAiMode.lastScan).toDateString() === today
-  const overviewScannedToday = !isPro && googleAiOverview?.lastScan && new Date(googleAiOverview.lastScan).toDateString() === today
-  const allScannedToday = modeScannedToday && overviewScannedToday
+  const loadQuota = useCallback(async () => {
+    try {
+      const res = await fetch('/api/ai-visibility/scan-quota')
+      if (!res.ok) return
+      const data = await res.json()
+      setQuota(data)
+    } catch {}
+  }, [])
+
+  useEffect(() => { loadQuota() }, [loadQuota])
+
+  const quotaReached = !!quota && quota.allowed === false
+  const isAdminQuota = !!quota?.isAdmin
+  const isProQuota = !!quota?.isPro
+  const remaining = quota?.scansRemaining ?? null
+  const tierLimit = quota?.tierLimit ?? null
 
   // Overall progress percentage
   const getOverallProgress = () => {
@@ -470,6 +545,24 @@ function GoogleAISection({ t, locale, prompts, activeCompany, onScanComplete, go
 
   const startScan = async () => {
     if (!company || promptTexts.length === 0 || scanning) return
+
+    // Vooraf-check + registratie tegen het tier-weeklimiet.
+    // Admins (en andere bypass-paden) krijgen allowed=true zonder teller-verbruik.
+    try {
+      const qRes = await fetch('/api/ai-visibility/scan-quota', { method: 'POST' })
+      const qData = await qRes.json()
+      if (!qRes.ok || !qData.allowed) {
+        setQuota(qData)
+        setError(qData.message || (locale === 'nl' ? 'Je weeklimiet is bereikt.' : 'Your weekly limit has been reached.'))
+        return
+      }
+      setQuota(qData)
+    } catch (e) {
+      console.error('[Visibility] scan-quota error:', e)
+      setError(locale === 'nl' ? 'Kon limiet niet controleren. Probeer opnieuw.' : 'Could not verify limit. Please try again.')
+      return
+    }
+
     setScanning(true)
     setError(null)
     setLiveResults({ aiMode: [], aiOverview: [] })
@@ -619,6 +712,9 @@ function GoogleAISection({ t, locale, prompts, activeCompany, onScanComplete, go
       console.error('Google AI scan error:', err)
       setError(err.message)
     }
+
+    // Vernieuw weekteller na afronding (covert ook concurrent scans uit andere sessies).
+    loadQuota()
 
     setScanning(false)
     setPhase('')
@@ -792,34 +888,36 @@ function GoogleAISection({ t, locale, prompts, activeCompany, onScanComplete, go
             </div>
           )}
 
-          {/* ── Scan button ── */}
+          {/* ── Scan button + weekteller ── */}
           {!scanning && (
-            <div className="flex items-center gap-3">
-              {/* First scan: always show. Rescan: only PRO */}
-              {(!hasData || isPro) && (
-                <div className={!hasData && !allScannedToday ? 'relative' : ''}>
-                  {!hasData && !allScannedToday && (
-                    <div className="absolute inset-0 rounded-lg animate-ping opacity-20" style={{ background: 'linear-gradient(135deg, #292956, #3b3b8a)' }} />
-                  )}
-                  <button
-                    onClick={startScan}
-                    disabled={allScannedToday || promptTexts.length === 0}
-                    className={`relative inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white text-[12px] font-semibold border-none cursor-pointer hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed ${!hasData ? 'shadow-lg shadow-indigo-500/25' : 'shadow-sm'}`}
-                    style={{ background: 'linear-gradient(135deg, #292956, #3b3b8a)' }}
-                  >
-                    <Play className="w-3.5 h-3.5" />
-                    {hasData
-                      ? (locale === 'nl' ? 'Opnieuw scannen' : 'Rescan')
-                      : (t.googleScan?.scanBoth || (locale === 'nl' ? 'Scan Google AI' : 'Scan Google AI'))
-                    }
-                  </button>
-                </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className={!hasData && !quotaReached ? 'relative' : ''}>
+                {!hasData && !quotaReached && (
+                  <div className="absolute inset-0 rounded-lg animate-ping opacity-20" style={{ background: 'linear-gradient(135deg, #292956, #3b3b8a)' }} />
+                )}
+                <button
+                  onClick={startScan}
+                  disabled={quotaReached || promptTexts.length === 0}
+                  className={`relative inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white text-[12px] font-semibold border-none cursor-pointer hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed ${!hasData ? 'shadow-lg shadow-indigo-500/25' : 'shadow-sm'}`}
+                  style={{ background: 'linear-gradient(135deg, #292956, #3b3b8a)' }}
+                >
+                  <Play className="w-3.5 h-3.5" />
+                  {hasData
+                    ? (locale === 'nl' ? 'Opnieuw scannen' : 'Rescan')
+                    : (t.googleScan?.scanBoth || (locale === 'nl' ? 'Scan Google AI' : 'Scan Google AI'))
+                  }
+                </button>
+              </div>
+
+              {/* Weekteller (ook voor admin: toont Pro-preview, geen aftrek) */}
+              {quota && tierLimit != null && (
+                <span className="text-[11px] text-slate-400">
+                  {locale === 'nl'
+                    ? `nog ${remaining} van ${tierLimit} scans deze week`
+                    : `${remaining} of ${tierLimit} scans left this week`}
+                </span>
               )}
-              {hasData && !isPro && (
-                <Link href={lp(locale, '/pricing')} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-500 hover:text-slate-700 no-underline transition-colors">
-                  {locale === 'nl' ? 'Onbeperkt scannen?' : 'Unlimited scanning?'} <span className="font-semibold" style={{ color: '#292956' }}>PRO →</span>
-                </Link>
-              )}
+
               {hasData && (
                 <span className="text-[11px] text-slate-400">
                   AI Mode + AI Overviews
@@ -828,12 +926,23 @@ function GoogleAISection({ t, locale, prompts, activeCompany, onScanComplete, go
             </div>
           )}
 
-          {/* Daily limit notice */}
-          {(modeScannedToday || overviewScannedToday) && !scanning && (
-            <div className="text-[11px] text-slate-400 mt-2.5">
-              {locale === 'nl'
-                ? '✓ Vandaag al gescand. Kom morgen terug voor een nieuwe scan (BETA).'
-                : '✓ Already scanned today. Come back tomorrow for a new scan (BETA).'}
+          {/* Weeklimiet bereikt: upsell wijst naar automatisering (niet Pro) of toont resettijd (Pro) */}
+          {quotaReached && !scanning && (
+            <div className="text-[12px] text-slate-500 mt-2.5">
+              {isProQuota
+                ? (locale === 'nl'
+                    ? 'Je weeklimiet voor handmatige scans is bereikt. Volgende week kun je weer handmatig scannen, de automatische wekelijkse scan loopt gewoon door.'
+                    : 'Your weekly manual scan limit has been reached. Next week you can manually scan again; the automatic weekly scan continues.')
+                : (
+                  <>
+                    {locale === 'nl'
+                      ? 'Je weeklimiet is bereikt. Wil je dat dit automatisch elke week gebeurt? '
+                      : 'Your weekly limit has been reached. Want this to happen automatically every week? '}
+                    <Link href={lp(locale, '/pricing')} className="font-semibold no-underline" style={{ color: '#292956' }}>
+                      {locale === 'nl' ? 'Word Pro' : 'Go Pro'} →
+                    </Link>
+                  </>
+                )}
             </div>
           )}
 
@@ -1274,9 +1383,12 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   const [editMode, setEditMode] = useState(false)
   const [editablePrompts, setEditablePrompts] = useState([])
   const [editingIdx, setEditingIdx] = useState(null)
-  const [showConfirmRescan, setShowConfirmRescan] = useState(false)
   const [rescanning, setRescanning] = useState(false)
   const [rescanProgress, setRescanProgress] = useState({ current: 0, total: 0, phase: '' })
+  // Tier-aware weekteller voor handmatige AI Visibility scans, gedeeld
+  // tussen Visibility-tab en Prompts-tab. Wordt geladen via
+  // /api/ai-visibility/scan-quota en herladen na elke scan-actie.
+  const [aiVisibilityQuota, setAiVisibilityQuota] = useState(null)
   // Expandable prompt rows
   const [expandedPrompt, setExpandedPrompt] = useState(null)
 
@@ -1285,9 +1397,6 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   const [extensionInstalled, setExtensionInstalled] = useState(false)
   // Rank check deletion
   const [deletingRankCheck, setDeletingRankCheck] = useState(null)
-  const [promptsEditedOnce, setPromptsEditedOnce] = useState(() => {
-    try { return localStorage.getItem('teun_prompts_edited_' + userId) === 'true' } catch { return false }
-  })
   // Subscription state
   const [subscriptionStatus, setSubscriptionStatus] = useState(null) // 'free' | 'active' | 'canceling' | 'past_due' | 'canceled'
   const [subscriptionPlan, setSubscriptionPlan] = useState(null) // 'monthly' | 'annual'
@@ -1459,6 +1568,22 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
     }
   }, [selectedCompany, fetchData, locale])
 
+  // Laadt de tier-aware weekteller voor handmatige AI Visibility scans.
+  // Logica zit in /api/ai-visibility/scan-quota (canUserScan in lib/beta-config.js).
+  const loadAiVisibilityQuota = useCallback(async () => {
+    try {
+      const res = await fetch('/api/ai-visibility/scan-quota')
+      if (!res.ok) return
+      const data = await res.json()
+      setAiVisibilityQuota(data)
+    } catch {}
+  }, [])
+
+  // Laad quota bij eerste mount en bij tab-wissel naar Prompts.
+  useEffect(() => {
+    if (activeTab === 'prompts') loadAiVisibilityQuota()
+  }, [activeTab, loadAiVisibilityQuota])
+
   // Delete a single rank check
   const deleteRankCheck = useCallback(async (rankCheckId) => {
     setDeletingRankCheck(rankCheckId)
@@ -1533,6 +1658,15 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   const competitors = data?.competitors || []
   const visibilityHistory = data?.visibilityHistory || []
   const visibilityTrend = visibilityHistory.length > 0 ? visibilityHistory : (data?.visibilityTrend || [])
+  // Percentage-delta voor de "AI zichtbaarheid" StatCard: huidig - vorig uit de
+  // laatste twee visibility_history buckets. null = nog geen vorige meting.
+  const visibilityDelta = (() => {
+    if (!visibilityHistory || visibilityHistory.length < 2) return null
+    const last = visibilityHistory[visibilityHistory.length - 1]
+    const prev = visibilityHistory[visibilityHistory.length - 2]
+    if (last?.total == null || prev?.total == null) return null
+    return Math.round((Number(last.total) - Number(prev.total)) * 100) / 100
+  })()
   const rankChecks = data?.rankChecks || []
   const googleAiMode = data?.googleAiMode || { found: 0, total: 0, pct: 0 }
   const googleAiOverview = data?.googleAiOverview || { found: 0, total: 0, pct: 0 }
@@ -1877,14 +2011,20 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
           {activeTab === 'overview' && data && totalPrompts > 0 && ((visibility.chatgptTotal || 0) > 0 || (visibility.perplexityTotal || 0) > 0) && (
             <>
               <div className="flex gap-4 mb-6">
-                <StatCard label={t.stats.visibility} value={`${visibilityPct}%`} sub={`${totalFound}/${totalPrompts} ${t.stats.promptsFound}`} accent="#059669" />
+                <StatCard label={t.stats.visibility} value={`${visibilityPct}%`} sub={`${totalFound}/${totalPrompts} ${t.stats.promptsFound}`} accent="#059669" delta={visibilityDelta} deltaLabel={locale === 'nl' ? 'geen verandering' : 'no change'} />
                 <StatCard label={locale === 'nl' ? 'Platformvermeldingen' : 'Platform hits'} value={totalPlatformHits} sub={`ChatGPT ${chatgptFoundCount}/${totalPrompts} · Perplexity ${perplexityFoundCount}/${totalPrompts}${(googleAiMode.total || 0) > 0 ? ` · AI Mode ${googleAiMode.found || 0}/${googleAiMode.total}` : ''}${(googleAiOverview.total || 0) > 0 ? ` · AI Overview ${googleAiOverview.found || 0}/${googleAiOverview.total}` : ''}`} />
                 <StatCard label={t.stats.topCompetitor} value={data.topCompetitor?.name || '—'} sub={data.topCompetitor ? `${data.topCompetitor.appearances || data.topCompetitor.mentions}× ${locale === 'nl' ? 'in ' + totalPrompts + ' prompts' : 'in ' + totalPrompts + ' prompts'}` : ''} accent="#64748b" small />
                 <StatCard label={t.stats.lastScan} value={lastScanText} sub={lastScanDate} />
               </div>
 
-              {/* Google AI scan CTA — show when no Google AI data yet */}
-             <GoogleAISection t={t} locale={locale} prompts={prompts} activeCompany={activeCompany} onScanComplete={() => { fetchData(); setActiveTab('prompts') }} googleAiMode={googleAiMode} googleAiOverview={googleAiOverview} isPro={isPro} />
+              {/* Google AI scan CTA: alleen de EERSTE keer tonen.
+                  Vanaf het moment dat er Google AI Mode of AI Overview data is
+                  voor deze company, loopt Google AI mee in de prompt-rescan
+                  (zie het regeltje "scant ChatGPT, Perplexity en Google AI"
+                  bij de Prompts-tab). */}
+              {(googleAiMode.total || 0) === 0 && (googleAiOverview.total || 0) === 0 && (
+                <GoogleAISection t={t} locale={locale} prompts={prompts} activeCompany={activeCompany} onScanComplete={() => { fetchData(); setActiveTab('prompts') }} googleAiMode={googleAiMode} googleAiOverview={googleAiOverview} isPro={isPro} />
+              )}
 
               <AutoScanCard t={t} locale={locale} isProTier={isProTier} />
 
@@ -1949,69 +2089,112 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
               setEditingIdx(null)
               setEditMode(true)
             }
-            const cancelEditing = () => { setEditMode(false); setShowConfirmRescan(false); setEditingIdx(null) }
+            const cancelEditing = () => { setEditMode(false); setEditingIdx(null) }
             const updatePrompt = (idx, val) => setEditablePrompts(prev => prev.map((p, i) => i === idx ? val : p))
-            const hasChanges = editMode && editablePrompts.some((p, i) => prompts[i] && p !== prompts[i].text)
 
-            const confirmAndRescan = async () => {
-              // Alleen gewijzigde prompts identificeren
-              const changedIndices = editablePrompts
-                .map((p, i) => p.trim() !== (prompts[i]?.text || '').trim() ? i : -1)
-                .filter(i => i >= 0)
-              const changedPrompts = changedIndices.map(i => editablePrompts[i]).filter(p => p.trim().length > 0)
-              
+            const changedCount = editMode
+              ? editablePrompts.filter((p, i) => p.trim() !== (prompts[i]?.text || '').trim()).length
+              : 0
+            const hasChanges = changedCount > 0
+            const hasPrompts = (prompts?.length || 0) > 0
+
+            // Quota-state uit /api/ai-visibility/scan-quota
+            const quotaReached = !!aiVisibilityQuota && aiVisibilityQuota.allowed === false
+            const isAdminQuota = !!aiVisibilityQuota?.isAdmin
+            const isProQuota = !!aiVisibilityQuota?.isPro
+            const quotaRemaining = aiVisibilityQuota?.scansRemaining ?? null
+            const quotaTierLimit = aiVisibilityQuota?.tierLimit ?? null
+
+            // ChatGPT/Perplexity gaan via /api/scan-selected-prompts (zelfde endpoint
+            // als de wekelijkse cron, met writeHistory:true). Dat endpoint heeft géén
+            // incremental mode en scant altijd alle prompts, maar het is de enige
+            // route die tool_integrations.results EN visibility_history bijwerkt.
+            // Google AI Mode/Overviews blijven via hun eigen endpoints met
+            // changedPrompts-merge wanneer er wijzigingen zijn.
+            const runRescan = async () => {
+              if (rescanning || !hasPrompts) return
               const company = activeCompany?.name
               const website = activeCompany?.website || ''
               const category = activeCompany?.category || ''
-              if (!company || changedPrompts.length === 0) return
+              const integrationId = activeCompany?.id
+              if (!company || !integrationId) return
+
+              const allPromptTexts = editMode
+                ? editablePrompts.filter(p => p && p.trim().length > 0)
+                : prompts.slice(0, 10).map(p => p.text).filter(p => p && p.trim().length > 0)
+
+              const incremental = hasChanges
+              const changedIndices = incremental
+                ? editablePrompts
+                    .map((p, i) => p.trim() !== (prompts[i]?.text || '').trim() ? i : -1)
+                    .filter(i => i >= 0)
+                : []
+              const changedPrompts = incremental
+                ? changedIndices.map(i => editablePrompts[i]).filter(p => p.trim().length > 0)
+                : []
+
+              if (allPromptTexts.length === 0) return
+
+              // Vooraf-check + registratie tegen het tier-weeklimiet.
+              try {
+                const qRes = await fetch('/api/ai-visibility/scan-quota', { method: 'POST' })
+                const qData = await qRes.json()
+                setAiVisibilityQuota(qData)
+                if (!qRes.ok || !qData.allowed) return
+              } catch (e) {
+                console.error('[Prompts] scan-quota error:', e)
+                return
+              }
 
               const hasGoogleAiMode = (googleAiMode.total || 0) > 0
               const hasGoogleAiOverview = (googleAiOverview.total || 0) > 0
 
-              setShowConfirmRescan(false)
               setRescanning(true)
-              const total = changedPrompts.length
-              setRescanProgress({ current: 0, total, phase: 'ChatGPT & Perplexity' })
+              setRescanProgress({ current: 0, total: allPromptTexts.length, phase: 'ChatGPT & Perplexity' })
 
               // Phase 0: Update tool_integrations.commercial_prompts FIRST.
               // Without this, the dashboard API keeps serving old prompts from
               // tool_integrations even after the scan results are refreshed.
-              const scanId = activeCompany?.id
-              if (scanId) {
+              if (editMode) {
                 try {
-                  const allPrompts = editablePrompts.filter(p => p.trim().length > 0)
                   await fetch('/api/prompts/update', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ scanId, prompts: allPrompts })
+                    body: JSON.stringify({ scanId: integrationId, prompts: allPromptTexts })
                   })
                 } catch (err) { console.error('Update prompts error:', err) }
-              } else {
-                console.warn('[rescan] activeCompany.id missing, prompts will rescan but tool_integrations not updated')
               }
 
-              // Phase 1: ChatGPT + Perplexity (alleen gewijzigde prompts)
-              for (let i = 0; i < changedPrompts.length; i++) {
-                setRescanProgress({ current: i + 1, total, phase: 'ChatGPT & Perplexity' })
-                try {
-                  await fetch('/api/ai-visibility-check', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ companyName: company, query: changedPrompts[i], category })
+              // Phase 1: ChatGPT + Perplexity via /api/scan-selected-prompts.
+              // Schrijft tool_integrations.results (percentage + tabel bewegen)
+              // én visibility_history (grafiek beweegt), zelfde aanroep als de cron.
+              try {
+                await fetch('/api/scan-selected-prompts', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    integrationId,
+                    prompts: allPromptTexts,
+                    companyName: company,
+                    website,
+                    branche: category || null,
+                    location: null,
+                    writeHistory: true,
                   })
-                } catch (err) { console.error('Rescan error:', err) }
-                if (i < changedPrompts.length - 1) await new Promise(r => setTimeout(r, 1500))
-              }
+                })
+              } catch (err) { console.error('ChatGPT/Perplexity rescan error:', err) }
 
               // Phase 2: Google AI Mode (alleen als al eerder gescand)
               if (hasGoogleAiMode) {
                 setRescanProgress({ current: 0, total: 1, phase: 'Google AI Mode' })
                 try {
-                  const allPrompts = editablePrompts.filter(p => p.trim().length > 0)
+                  const body = incremental
+                    ? { companyName: company, website, prompts: allPromptTexts, changedPrompts, writeHistory: true, integrationId }
+                    : { companyName: company, website, prompts: allPromptTexts, writeHistory: true, integrationId }
                   await fetch('/api/scan-google-ai', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ companyName: company, website, prompts: allPrompts, changedPrompts })
+                    body: JSON.stringify(body)
                   })
                 } catch (err) { console.error('Google AI Mode rescan error:', err) }
               }
@@ -2020,34 +2203,28 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
               if (hasGoogleAiOverview) {
                 setRescanProgress({ current: 0, total: 1, phase: 'AI Overviews' })
                 try {
-                  const allPrompts = editablePrompts.filter(p => p.trim().length > 0)
+                  const body = incremental
+                    ? { companyName: company, website, prompts: allPromptTexts, changedPrompts, writeHistory: true, integrationId }
+                    : { companyName: company, website, prompts: allPromptTexts, writeHistory: true, integrationId }
                   await fetch('/api/scan-google-ai-overview', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ companyName: company, website, prompts: allPrompts, changedPrompts })
+                    body: JSON.stringify(body)
                   })
                 } catch (err) { console.error('AI Overview rescan error:', err) }
-              }
-
-              // Mark rescan as used (free users get 1 rescan)
-              if (!isPro) {
-                setPromptsEditedOnce(true)
-                try { localStorage.setItem('teun_prompts_edited_' + userId, 'true') } catch {}
               }
 
               // Wait briefly for Supabase commit propagation, then refetch
               // with verse data before exiting rescan mode (prevents stale UI).
               await new Promise(r => setTimeout(r, 800))
               await fetchData()
+              loadAiVisibilityQuota()
               setRescanning(false)
               setEditMode(false)
             }
 
-            // Info voor bevestigingsdialoog
-            const changedCount = editMode ? editablePrompts.filter((p, i) => p.trim() !== (prompts[i]?.text || '').trim()).length : 0
             const hasGoogleAiMode = (googleAiMode.total || 0) > 0
             const hasGoogleAiOverview = (googleAiOverview.total || 0) > 0
-            const platformNames = ['ChatGPT', 'Perplexity', ...(hasGoogleAiMode ? ['Google AI Mode'] : []), ...(hasGoogleAiOverview ? ['AI Overviews'] : [])].join(', ')
 
             return (
               <div className="space-y-4">
@@ -2064,15 +2241,102 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                     <div className="h-2 bg-indigo-100 rounded overflow-hidden">
                       <div className="h-full bg-indigo-500 rounded transition-all duration-500" style={{
                         width: rescanProgress.phase === 'ChatGPT & Perplexity'
-                          ? `${(rescanProgress.current / Math.max(rescanProgress.total, 1)) * 50}%`
+                          ? '40%'
                           : rescanProgress.phase === 'Google AI Mode' ? '70%' : '90%'
                       }} />
                     </div>
                     <div className="text-[11px] text-indigo-500 mt-2">
                       {rescanProgress.phase === 'ChatGPT & Perplexity'
-                        ? `${rescanProgress.current}/${rescanProgress.total} prompts`
+                        ? (locale === 'nl'
+                            ? `${rescanProgress.total} prompts op ChatGPT en Perplexity, dit kan een paar minuten duren...`
+                            : `${rescanProgress.total} prompts on ChatGPT and Perplexity, this can take a few minutes...`)
                         : locale === 'nl' ? 'Even geduld...' : 'Please wait...'}
                     </div>
+                  </div>
+                )}
+
+                {/* Rescan-balk bovenaan, direct zichtbaar zodra er prompts zijn */}
+                {hasPrompts && !rescanning && (
+                  <div className="bg-white rounded-xl border border-slate-200 p-4">
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <button
+                            onClick={runRescan}
+                            disabled={quotaReached}
+                            className="px-4 py-2 rounded-lg border-none text-[12px] font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+                            style={{ background: '#292956' }}
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            {hasChanges
+                              ? (locale === 'nl' ? `${changedCount} aangepaste prompt${changedCount > 1 ? 's' : ''} opnieuw scannen` : `Rescan ${changedCount} changed prompt${changedCount > 1 ? 's' : ''}`)
+                              : (locale === 'nl' ? 'Opnieuw scannen' : 'Rescan')}
+                          </button>
+                          {aiVisibilityQuota && quotaTierLimit != null && (
+                            <span className="text-[11px] text-slate-400">
+                              {locale === 'nl'
+                                ? `nog ${quotaRemaining} van ${quotaTierLimit} scans deze week`
+                                : `${quotaRemaining} of ${quotaTierLimit} scans left this week`}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-slate-400">
+                          {locale === 'nl' ? 'scant ChatGPT, Perplexity en Google AI' : 'scans ChatGPT, Perplexity and Google AI'}
+                        </span>
+                        {/* Zachte hint na recente scan: AI-resultaten veranderen
+                            zelden binnen een week. Geen harde cooldown. */}
+                        {(() => {
+                          const last = data?.lastScan ? new Date(data.lastScan) : null
+                          if (!last) return null
+                          const hoursAgo = (new Date() - last) / (1000 * 60 * 60)
+                          if (hoursAgo > 24 * 7 || hoursAgo < 0) return null
+                          return (
+                            <span className="text-[11px] text-slate-400 italic">
+                              {locale === 'nl'
+                                ? 'Je hebt recent gescand. AI-resultaten veranderen meestal niet binnen een week.'
+                                : 'You recently scanned. AI results usually do not change within a week.'}
+                            </span>
+                          )
+                        })()}
+                      </div>
+                      <div className="flex gap-2">
+                        {!editMode ? (
+                          <button
+                            onClick={startEditing}
+                            className="px-3 py-1.5 rounded-lg border border-slate-200 text-[12px] font-semibold text-slate-700 cursor-pointer hover:border-slate-300 hover:bg-slate-50 transition-all flex items-center gap-1.5 bg-white"
+                          >
+                            <Pencil className="w-3 h-3" /> {t.promptTracker.editPrompts}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={cancelEditing}
+                            className="px-3 py-1.5 rounded-lg border border-slate-200 text-[12px] font-medium text-slate-500 cursor-pointer hover:bg-slate-50 transition-all bg-white"
+                          >
+                            {locale === 'nl' ? 'Klaar met aanpassen' : 'Done editing'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Weeklimiet bereikt: upsell wijst naar automatisering (zelfde tekst als Visibility-tab) */}
+                    {quotaReached && (
+                      <div className="text-[12px] text-slate-500 mt-3">
+                        {isProQuota
+                          ? (locale === 'nl'
+                              ? 'Je weeklimiet voor handmatige scans is bereikt. Volgende week kun je weer handmatig scannen, de automatische wekelijkse scan loopt gewoon door.'
+                              : 'Your weekly manual scan limit has been reached. Next week you can manually scan again; the automatic weekly scan continues.')
+                          : (
+                            <>
+                              {locale === 'nl'
+                                ? 'Je weeklimiet is bereikt. Wil je dat dit automatisch elke week gebeurt? '
+                                : 'Your weekly limit has been reached. Want this to happen automatically every week? '}
+                              <Link href={lp(locale, '/pricing')} className="font-semibold no-underline" style={{ color: '#292956' }}>
+                                {locale === 'nl' ? 'Word Pro' : 'Go Pro'} →
+                              </Link>
+                            </>
+                          )}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -2082,77 +2346,15 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                       <span className="text-[14px] font-semibold text-slate-800">{prompts.length} prompts</span>
                       <span className="text-[12px] text-slate-400 ml-2">• {totalFound} {t.promptTracker.found} ({visibilityPct}%)</span>
                     </div>
-                    {!editMode && !rescanning && (
-                      <button
-                        onClick={startEditing}
-                        className="px-4 py-1.5 rounded-lg border border-slate-200 text-[12px] font-semibold text-slate-700 cursor-pointer hover:border-slate-300 hover:bg-slate-50 transition-all flex items-center gap-1.5 bg-white"
-                      >
-                        <Pencil className="w-3 h-3" /> {t.promptTracker.editPrompts}
-                      </button>
-                    )}
-                    {editMode && !rescanning && (
-                      <div className="flex gap-2">
-                        <button onClick={cancelEditing}
-                          className="px-3 py-1.5 rounded-lg border border-slate-200 text-[12px] font-medium text-slate-500 cursor-pointer hover:bg-slate-50 transition-all bg-white">
-                          {locale === 'nl' ? 'Annuleren' : 'Cancel'}
-                        </button>
-                        {promptsEditedOnce && !isPro ? (
-                          <Link
-                            href={locale === 'nl' ? '/pricing' : '/en/pricing'}
-                            className="px-4 py-1.5 rounded-lg border-none text-[12px] font-semibold text-white no-underline inline-flex items-center gap-1.5"
-                            style={{ background: '#292956' }}>
-                            <Crown className="w-3 h-3" />
-                            {locale === 'nl' ? 'Upgrade voor opnieuw scannen' : 'Upgrade to rescan'}
-                          </Link>
-                        ) : (
-                          <button onClick={() => hasChanges ? setShowConfirmRescan(true) : cancelEditing()}
-                            disabled={!hasChanges}
-                            className="px-4 py-1.5 rounded-lg border-none text-[12px] font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-                            style={{ background: '#292956' }}>
-                            <RefreshCw className="w-3 h-3 inline mr-1.5" />
-                            {locale === 'nl' ? 'Opslaan & opnieuw scannen' : 'Save & rescan'}
-                          </button>
-                        )}
-                      </div>
-                    )}
                   </div>
 
                   {/* Edit mode info */}
                   {editMode && !rescanning && (
                     <div className="px-6 py-3 bg-slate-50 border-b border-slate-100">
                       <div className="text-[12px] text-slate-600 leading-relaxed">
-                        {promptsEditedOnce && !isPro
-                          ? (locale === 'nl'
-                            ? 'Je hebt je gratis rescan al gebruikt. Upgrade naar Pro voor onbeperkt aanpassen en scannen.'
-                            : 'You have used your free rescan. Upgrade to Pro for unlimited editing and scanning.')
-                          : (locale === 'nl'
-                            ? 'Klik op een prompt om aan te passen. Na het opslaan worden alle platformen opnieuw gescand.'
-                            : 'Click a prompt to edit. After saving, all platforms will be rescanned.')}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Confirm rescan dialog */}
-                  {showConfirmRescan && (
-                    <div className="px-6 py-5 bg-slate-50 border-b border-slate-200">
-                      <div className="text-[14px] font-semibold text-slate-800 mb-2">
-                        {locale === 'nl' ? `${changedCount} aangepaste prompt${changedCount > 1 ? 's' : ''} opnieuw scannen?` : `Rescan ${changedCount} changed prompt${changedCount > 1 ? 's' : ''}?`}
-                      </div>
-                      <div className="text-[13px] text-slate-600 mb-4 leading-relaxed">
                         {locale === 'nl'
-                          ? `De aangepaste prompts worden opnieuw gescand op ${platformNames}. Dit duurt even.`
-                          : `The changed prompts will be rescanned on ${platformNames}. This takes a moment.`}
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => setShowConfirmRescan(false)}
-                          className="px-4 py-2 rounded-lg border border-slate-200 text-[12px] font-medium text-slate-600 cursor-pointer bg-white hover:bg-slate-50 transition-all">
-                          {locale === 'nl' ? 'Annuleren' : 'Cancel'}
-                        </button>
-                        <button onClick={confirmAndRescan}
-                          className="px-4 py-2 rounded-lg border-none text-[12px] font-semibold text-white cursor-pointer hover:opacity-90 transition-opacity"
-                          style={{ background: '#292956' }}>
-                          {locale === 'nl' ? 'Ja, opnieuw scannen' : 'Yes, rescan'}
-                        </button>
+                          ? 'Klik op een prompt om aan te passen. Druk daarna op "Opnieuw scannen" bovenaan om alleen je wijzigingen te herscannen.'
+                          : 'Click a prompt to edit. Then press "Rescan" at the top to rescan only your changes.'}
                       </div>
                     </div>
                   )}
@@ -2236,15 +2438,36 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                             <div className="text-center text-[11px] text-slate-300">—</div>
                             <div className="text-center"><span className="text-[10px] text-indigo-500 font-medium">{locale === 'nl' ? 'nieuw' : 'new'}</span></div>
                           </>
-                        ) : p ? (
-                          <>
-                            <div className="text-center"><MentionBadge found={p.chatgpt.found} mentionCount={p.chatgpt.mentionCount} /></div>
-                            <div className="text-center"><MentionBadge found={p.perplexity.found} mentionCount={p.perplexity.mentionCount} /></div>
-                            <div className="text-center">{googleAiMode.total > 0 ? <MentionBadge found={gaiPrompt?.found || false} mentionCount={gaiPrompt?.mentionCount || 0} /> : <span className="text-[11px] text-slate-300">—</span>}</div>
-                            <div className="text-center">{googleAiOverview.total > 0 ? <MentionBadge found={gaioPrompt?.found || false} mentionCount={gaioPrompt?.mentionCount || 0} /> : <span className="text-[11px] text-slate-300">—</span>}</div>
-                            <div className="text-center"><TrendBadge trend={anyFound ? 'stable' : 'down'} /></div>
-                          </>
-                        ) : (
+                        ) : p ? (() => {
+                          // Trendpijl per prompt: combineer voor-en-na over alle 4 platformen.
+                          // Telt alleen found-flips (was-niet→nu-wel = up, was-wel→nu-niet = down).
+                          // Geen vorige meting beschikbaar (previousFound === null): geen telling.
+                          let ups = 0, downs = 0
+                          const checks = [
+                            [p.chatgpt.found, p.chatgpt.previousFound],
+                            [p.perplexity.found, p.perplexity.previousFound],
+                            [gaiPrompt?.found, gaiPrompt?.previousFound],
+                            [gaioPrompt?.found, gaioPrompt?.previousFound],
+                          ]
+                          for (const [now, prev] of checks) {
+                            if (prev === null || prev === undefined) continue
+                            if (now && !prev) ups++
+                            else if (!now && prev) downs++
+                          }
+                          const trend = ups > downs ? 'up' : downs > ups ? 'down' : 'stable'
+                          return (
+                            <>
+                              <div className="text-center"><MentionBadge found={p.chatgpt.found} mentionCount={p.chatgpt.mentionCount} /></div>
+                              <div className="text-center"><MentionBadge found={p.perplexity.found} mentionCount={p.perplexity.mentionCount} /></div>
+                              <div className="text-center">{googleAiMode.total > 0 ? <MentionBadge found={gaiPrompt?.found || false} mentionCount={gaiPrompt?.mentionCount || 0} /> : <span className="text-[11px] text-slate-300">—</span>}</div>
+                              <div className="text-center">{googleAiOverview.total > 0 ? <MentionBadge found={gaioPrompt?.found || false} mentionCount={gaioPrompt?.mentionCount || 0} /> : <span className="text-[11px] text-slate-300">—</span>}</div>
+                              <div className="text-center" title={locale === 'nl'
+                                ? (trend === 'up' ? `${ups} platform${ups > 1 ? 'en' : ''} nieuw gevonden` : trend === 'down' ? `${downs} platform${downs > 1 ? 'en' : ''} niet meer gevonden` : 'geen verandering')
+                                : (trend === 'up' ? `Newly found on ${ups} platform${ups > 1 ? 's' : ''}` : trend === 'down' ? `Lost on ${downs} platform${downs > 1 ? 's' : ''}` : 'no change')
+                              }><TrendBadge trend={trend} /></div>
+                            </>
+                          )
+                        })() : (
                           <>
                             <div className="text-center text-[11px] text-slate-300">—</div>
                             <div className="text-center text-[11px] text-slate-300">—</div>

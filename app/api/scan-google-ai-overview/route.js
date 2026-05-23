@@ -1,6 +1,7 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { upsertVisibilityHistoryRow } from '@/lib/visibility-history'
 
 const SERPAPI_KEY = process.env.SERPAPI_KEY
 const anthropic = new Anthropic({
@@ -746,25 +747,18 @@ export async function POST(request) {
         }
         const top = Object.entries(competitorCounts).sort((a, b) => b[1] - a[1])[0]
 
-        const { error: histError } = await supabase
-          .from('visibility_history')
-          .insert({
-            user_id: user.id,
-            integration_id: integrationId,
-            platform: 'google_ai_overviews',
-            prompts_total: promptsToScan.length,
-            prompts_found: foundCount,
-            visibility_pct: promptsToScan.length > 0 ? Math.round((foundCount / promptsToScan.length) * 10000) / 100 : 0,
-            total_mentions: totalMentionsSum,
-            top_competitor: top ? top[0] : null,
-            top_competitor_count: top ? top[1] : null,
-          })
-
-        if (histError) {
-          console.error('[ScanAIO] visibility_history insert error:', histError)
-        } else {
-          console.log(`[ScanAIO] visibility_history: 1 row written (google_ai_overviews) for integration ${integrationId}`)
-        }
+        await upsertVisibilityHistoryRow(supabase, {
+          user_id: user.id,
+          integration_id: integrationId,
+          platform: 'google_ai_overviews',
+          prompts_total: promptsToScan.length,
+          prompts_found: foundCount,
+          visibility_pct: promptsToScan.length > 0 ? Math.round((foundCount / promptsToScan.length) * 10000) / 100 : 0,
+          total_mentions: totalMentionsSum,
+          top_competitor: top ? top[0] : null,
+          top_competitor_count: top ? top[1] : null,
+        })
+        console.log(`[ScanAIO] visibility_history: 1 row upserted (google_ai_overviews, day-bucket) for integration ${integrationId}`)
       } catch (e) {
         console.error('[ScanAIO] writeHistory failed:', e?.message)
       }

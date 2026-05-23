@@ -6,6 +6,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
+import { upsertVisibilityHistoryRows } from '@/lib/visibility-history'
 
 // Vercel function timeout — 10 prompts × 2 platforms = needs time
 export const maxDuration = 300
@@ -290,12 +291,21 @@ export async function POST(request) {
     const scanDuration = Date.now() - startTime
     console.log(`[ScanSelected] Scan complete in ${(scanDuration / 1000).toFixed(1)}s: ChatGPT ${chatgptFound}/${prompts.length}, Perplexity ${perplexityFound}/${prompts.length}`)
 
-    // Update tool_integrations with results
+    // Snapshot huidige results naar previous_results vóór de overschrijving,
+    // zodat de Prompts-tab een voor-en-na vergelijking per prompt kan tonen.
+    // Eerste scan: previous_results blijft NULL omdat oldRow.results dan ook null is.
+    const { data: oldRow } = await supabase
+      .from('tool_integrations')
+      .select('results')
+      .eq('id', integrationId)
+      .single()
+
     const { error: updateError } = await supabase
       .from('tool_integrations')
       .update({
         results,
         total_company_mentions: totalMentions,
+        previous_results: oldRow?.results ?? null,
       })
       .eq('id', integrationId)
 
@@ -397,15 +407,8 @@ export async function POST(request) {
             },
           ]
 
-          const { error: histError } = await supabase
-            .from('visibility_history')
-            .insert(rows)
-
-          if (histError) {
-            console.error('[ScanSelected] visibility_history insert error:', histError)
-          } else {
-            console.log(`[ScanSelected] visibility_history: 2 rows written for integration ${integrationId}`)
-          }
+          await upsertVisibilityHistoryRows(supabase, rows)
+          console.log(`[ScanSelected] visibility_history: ${rows.length} rows upserted (day-bucket) for integration ${integrationId}`)
         }
       } catch (e) {
         console.error('[ScanSelected] writeHistory failed:', e?.message)

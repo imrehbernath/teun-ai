@@ -61,7 +61,7 @@ export default function PricingPage() {
 
   const features = [
     // KEY DIFFERENCES (highlighted at top)
-    { name: isNL ? 'Keyword tracking' : 'Keyword tracking', free: null, lite: isNL ? '20 keywords handmatig' : '20 keywords manual', pro: isNL ? '50 keywords automatisch wekelijks' : '50 keywords automatic weekly', freeStatus: 'cross', liteStatus: 'check', proStatus: 'check', differ: true },
+    { name: isNL ? 'Keyword tracking' : 'Keyword tracking', free: isNL ? '2 keywords proberen' : 'Try 2 keywords', lite: isNL ? '20 keywords handmatig' : '20 keywords manual', pro: isNL ? '50 keywords automatisch wekelijks' : '50 keywords automatic weekly', freeStatus: 'limited', liteStatus: 'check', proStatus: 'check', differ: true },
     { name: isNL ? 'GEO Analyse (prompts)' : 'GEO Analysis (prompts)', free: null, lite: '10 prompts', pro: isNL ? 'Onbeperkt' : 'Unlimited', freeStatus: 'cross', liteStatus: 'check', proStatus: 'check', differ: true },
     { name: isNL ? 'Support' : 'Support', free: null, lite: isNL ? 'E-mail' : 'Email', pro: isNL ? 'Telefonisch + e-mail' : 'Phone + email', freeStatus: 'cross', liteStatus: 'check', proStatus: 'check', differ: true },
 
@@ -71,12 +71,12 @@ export default function PricingPage() {
     { name: isNL ? 'Search Console integratie' : 'Search Console integration', free: null, lite: true, pro: true, freeStatus: 'cross', liteStatus: 'check', proStatus: 'check' },
 
     // All tools
-    { name: 'AI Visibility Scan', free: isNL ? '1x per week' : '1x per week', lite: isNL ? 'Onbeperkt' : 'Unlimited', pro: isNL ? 'Onbeperkt' : 'Unlimited', freeStatus: 'limited', liteStatus: 'check', proStatus: 'check' },
-    { name: 'AI Rank Tracker', free: isNL ? '2x per week handmatig' : '2x per week manual', lite: isNL ? 'Onbeperkt' : 'Unlimited', pro: isNL ? 'Onbeperkt' : 'Unlimited', freeStatus: 'limited', liteStatus: 'check', proStatus: 'check' },
-    { name: 'Brand Check', free: isNL ? '1x per week' : '1x per week', lite: isNL ? 'Onbeperkt' : 'Unlimited', pro: isNL ? 'Onbeperkt' : 'Unlimited', freeStatus: 'limited', liteStatus: 'check', proStatus: 'check' },
-    { name: 'AI Prompt Explorer', free: isNL ? 'Beperkt' : 'Limited', lite: isNL ? 'Onbeperkt' : 'Unlimited', pro: isNL ? 'Onbeperkt' : 'Unlimited', freeStatus: 'limited', liteStatus: 'check', proStatus: 'check' },
+    { name: 'AI Visibility Scan', free: isNL ? '2x per week' : '2x per week', lite: isNL ? '3x per week handmatig' : '3x per week manual', pro: isNL ? 'Automatisch wekelijks + handmatig' : 'Automatic weekly + manual', freeStatus: 'limited', liteStatus: 'check', proStatus: 'check' },
+    { name: 'AI Rank Tracker', free: isNL ? '2 keywords proberen' : 'Try 2 keywords', lite: isNL ? '20 keywords handmatig' : '20 keywords manual', pro: isNL ? '50 keywords automatisch' : '50 keywords automatic', freeStatus: 'limited', liteStatus: 'check', proStatus: 'check' },
+    { name: 'Brand Check', free: isNL ? '1x per week' : '1x per week', lite: isNL ? 'Inbegrepen' : 'Included', pro: isNL ? 'Inbegrepen' : 'Included', freeStatus: 'limited', liteStatus: 'check', proStatus: 'check' },
+    { name: 'AI Prompt Explorer', free: isNL ? 'Beperkt' : 'Limited', lite: isNL ? 'Inbegrepen' : 'Included', pro: isNL ? 'Inbegrepen' : 'Included', freeStatus: 'limited', liteStatus: 'check', proStatus: 'check' },
     { name: 'AI Prompt Discovery', free: isNL ? 'Beperkt' : 'Limited', lite: isNL ? 'Inbegrepen' : 'Included', pro: isNL ? 'Inbegrepen' : 'Included', freeStatus: 'limited', liteStatus: 'check', proStatus: 'check' },
-    { name: 'GEO Audit', free: isNL ? '1x per week' : '1x per week', lite: isNL ? 'Onbeperkt' : 'Unlimited', pro: isNL ? 'Onbeperkt' : 'Unlimited', freeStatus: 'limited', liteStatus: 'check', proStatus: 'check' },
+    { name: 'GEO Audit', free: isNL ? '1x per week' : '1x per week', lite: isNL ? 'Inbegrepen' : 'Included', pro: isNL ? 'Inbegrepen' : 'Included', freeStatus: 'limited', liteStatus: 'check', proStatus: 'check' },
     { name: 'Chrome Extensie', free: isNL ? 'Inbegrepen' : 'Included', lite: isNL ? 'Inbegrepen' : 'Included', pro: isNL ? 'Inbegrepen' : 'Included', freeStatus: 'check', liteStatus: 'check', proStatus: 'check' },
     { name: 'WordPress Plugin', free: isNL ? 'Inbegrepen' : 'Included', lite: isNL ? 'Inbegrepen' : 'Included', pro: isNL ? 'Inbegrepen' : 'Included', freeStatus: 'check', liteStatus: 'check', proStatus: 'check' },
   ]
@@ -93,19 +93,19 @@ export default function PricingPage() {
   ]
 
   const faqs = isNL ? [
-    { cat: 'product', q: 'Wat is het verschil tussen Lite en Pro?', a: 'Beide pakketten geven onbeperkt toegang tot alle tools en GEO Optimalisatie DIY. De verschillen: Lite kan 20 keywords handmatig tracken en bevat 10 GEO Analyse prompts met e-mail support. Pro volgt 50 keywords automatisch wekelijks, heeft onbeperkte GEO Analyse prompts en telefonische support.' },
+    { cat: 'product', q: 'Wat is het verschil tussen Lite en Pro?', a: 'Het kernverschil is automatisering. Lite is om zelf te volgen: 20 keywords met handmatig scannen, 3 AI Visibility scans per week, historie en grafiek, 10 GEO Analyse prompts, e-mail support. Pro is om uit handen te geven: 50 keywords met automatische wekelijkse scan, 7 handmatige scans per week, onbeperkte GEO Analyse prompts en telefonische support.' },
     { cat: 'billing', q: 'Kan ik op elk moment opzeggen?', a: 'Ja. Geen contracten, geen opzegtermijn. Je houdt toegang tot het einde van je betaalperiode.' },
     { cat: 'product', q: 'Welke AI platforms worden gescand?', a: 'ChatGPT Search, Perplexity, Google AI Mode en Google AI Overviews. Alle platforms zijn inbegrepen bij elk pakket, zonder extra kosten per platform.' },
-    { cat: 'product', q: 'Wat is automatische keyword tracking?', a: 'Stel je keywords eenmalig in. Teun.ai checkt automatisch wekelijks je posities op alle AI-platformen en toont trends over tijd. Automatische tracking is een Pro-feature (50 keywords). Lite kan 20 keywords handmatig tracken, gratis gebruikers 2x per week scannen.' },
+    { cat: 'product', q: 'Wat is automatische keyword tracking?', a: 'Stel je keywords eenmalig in. Teun.ai checkt automatisch wekelijks je posities op alle AI-platformen en toont trends over tijd. Automatische tracking is uitsluitend een Pro-feature (50 keywords). Lite tracked 20 keywords, maar handmatig. Gratis gebruikers kunnen 2 keywords proberen.' },
     { cat: 'billing', q: 'Is er een gratis proefperiode?', a: 'Alle 6 tools zijn gratis te gebruiken met limieten. Zo ervaar je precies wat Teun.ai kan. Geen trial nodig, gewoon proberen.' },
-    { cat: 'billing', q: 'Kan ik upgraden van Lite naar Pro?', a: 'Ja, je kunt op elk moment upgraden. Je betaalt direct het verschil en krijgt meteen toegang tot 50 keywords en onbeperkte GEO Analyse prompts.' },
+    { cat: 'billing', q: 'Kan ik upgraden van Lite naar Pro?', a: 'Ja, je kunt op elk moment upgraden. Je betaalt direct het verschil en krijgt meteen toegang tot 50 keywords met automatische wekelijkse tracking en onbeperkte GEO Analyse prompts.' },
   ] : [
-    { cat: 'product', q: 'What is the difference between Lite and Pro?', a: 'Both plans give unlimited access to all tools and GEO Optimization DIY. The differences: Lite supports 20 keywords with manual tracking and includes 10 GEO Analysis prompts with email support. Pro tracks 50 keywords automatically every week, has unlimited GEO Analysis prompts and phone support.' },
+    { cat: 'product', q: 'What is the difference between Lite and Pro?', a: 'The core difference is automation. Lite is for self-tracking: 20 keywords with manual scanning, 3 AI Visibility scans per week, history and chart, 10 GEO Analysis prompts, email support. Pro hands it off: 50 keywords with automatic weekly scans, 7 manual scans per week, unlimited GEO Analysis prompts and phone support.' },
     { cat: 'billing', q: 'Can I cancel at any time?', a: 'Yes. No contracts, no notice period. You keep access until the end of your billing period.' },
     { cat: 'product', q: 'Which AI platforms are scanned?', a: 'ChatGPT Search, Perplexity, Google AI Mode and Google AI Overviews. All platforms included with every plan, no extra costs per platform.' },
-    { cat: 'product', q: 'What is automatic keyword tracking?', a: 'Set your keywords once. Teun.ai checks your positions automatically every week on all AI platforms and shows trends over time. Automatic tracking is a Pro feature (50 keywords). Lite supports 20 keywords with manual tracking, free users 2 per week.' },
+    { cat: 'product', q: 'What is automatic keyword tracking?', a: 'Set your keywords once. Teun.ai checks your positions automatically every week on all AI platforms and shows trends over time. Automatic tracking is exclusively a Pro feature (50 keywords). Lite tracks 20 keywords, but manually. Free users can try 2 keywords.' },
     { cat: 'billing', q: 'Is there a free trial?', a: 'All 6 tools are free to use with limits. Experience exactly what Teun.ai can do. No trial needed, just try it.' },
-    { cat: 'billing', q: 'Can I upgrade from Lite to Pro?', a: 'Yes, you can upgrade at any time. You pay the difference immediately and get instant access to 50 keywords and unlimited GEO Analysis prompts.' },
+    { cat: 'billing', q: 'Can I upgrade from Lite to Pro?', a: 'Yes, you can upgrade at any time. You pay the difference immediately and get instant access to 50 keywords with automatic weekly tracking and unlimited GEO Analysis prompts.' },
   ]
 
   const catLabels = isNL
@@ -230,7 +230,7 @@ export default function PricingPage() {
                 </p>
               )}
               <p className="prc-card-desc">
-                {isNL ? '20 keywords handmatig tracken, 10 GEO prompts en alle tools onbeperkt.' : '20 keywords manual tracking, 10 GEO prompts and all tools unlimited.'}
+                {isNL ? '20 keywords handmatig volgen, historie + grafiek, 10 GEO prompts, e-mail support.' : '20 keywords manual tracking, history + chart, 10 GEO prompts, email support.'}
               </p>
 
               <button
