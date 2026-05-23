@@ -1719,7 +1719,9 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   }, [activeCompany, selectedCompany])
 
   useEffect(() => {
-    if (activeTab === 'geo' && isPro) loadGeoAnalyseResults()
+    // Ook op de Overview-tab laden zodat de GEO USP-card de huidige score
+    // kan tonen i.p.v. de start-CTA wanneer er al een Analyse is gedaan.
+    if ((activeTab === 'geo' || activeTab === 'overview') && isPro) loadGeoAnalyseResults()
   }, [activeTab, isPro, loadGeoAnalyseResults, selectedCompany])
 
   const totalFound = visibility.found || 0
@@ -1850,11 +1852,33 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
 
           {/* Navigation */}
           <nav className="flex-1 px-3 pt-1 overflow-y-auto">
-            {tabs.map(tab => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg mb-0.5 text-[13px] transition-all text-left cursor-pointer border-none ${activeTab === tab.id ? 'font-semibold bg-white shadow-sm' : 'font-normal text-slate-600 hover:text-slate-800 hover:bg-white/60 bg-transparent'}`} style={activeTab === tab.id ? { borderLeft: '3px solid #292956', paddingLeft: '9px', color: '#292956' } : {}}>
-                <tab.Icon className={`w-4 h-4 shrink-0 ${activeTab === tab.id ? '' : 'text-slate-400'}`} style={activeTab === tab.id ? { color: '#292956' } : {}} /> {tab.label}
-              </button>
-            ))}
+            {tabs.map(tab => {
+              // Firefox-fix: transition-all + Tailwind bg-white in combinatie met
+              // border-none + inline borderLeft gaf intermitterend een volledig
+              // blauwe knop tijdens company-switches. Door background en border
+              // expliciet via inline style te zetten, en transition te beperken
+              // tot color/background/shadow, rendert Firefox stabiel.
+              const isActive = activeTab === tab.id
+              const baseStyle = {
+                background: isActive ? '#ffffff' : 'transparent',
+                color: isActive ? '#292956' : undefined,
+                borderTop: 0,
+                borderRight: 0,
+                borderBottom: 0,
+                borderLeft: isActive ? '3px solid #292956' : '3px solid transparent',
+                paddingLeft: '9px',
+              }
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center gap-2.5 pr-3 py-2.5 rounded-lg mb-0.5 text-[13px] transition-colors text-left cursor-pointer ${isActive ? 'font-semibold shadow-sm' : 'font-normal text-slate-600 hover:text-slate-800 hover:bg-white/60'}`}
+                  style={baseStyle}
+                >
+                  <tab.Icon className={`w-4 h-4 shrink-0 ${isActive ? '' : 'text-slate-400'}`} style={isActive ? { color: '#292956' } : {}} /> {tab.label}
+                </button>
+              )
+            })}
             <div className="h-px bg-slate-200 my-3" />
             <div className="text-[10px] text-slate-400 px-3 mb-2 uppercase tracking-[0.08em] font-semibold">{t.sidebar.tools}</div>
             {toolLinks.map(item => item.href ? (
@@ -1862,12 +1886,30 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                 <ArrowRight className="w-3.5 h-3.5 shrink-0 text-slate-400" /><span className="flex-1">{item.label}</span>
                 {item.tag && <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${item.tag === 'PRO' ? 'text-white' : 'bg-slate-200 text-slate-500'}`} style={item.tag === 'PRO' ? { background: '#292956' } : {}}>{item.tag}</span>}
               </Link>
-            ) : item.onClick ? (
-              <button key={item.label} onClick={item.onClick} className={`w-full flex items-center gap-2.5 px-3 py-2 text-[13px] transition-colors no-underline bg-transparent border-none cursor-pointer text-left rounded-lg ${activeTab === 'audit' && item.label === 'GEO Audit' ? 'bg-white shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-700 hover:bg-white/60'}`} style={activeTab === 'audit' && item.label === 'GEO Audit' ? { borderLeft: '3px solid #292956', paddingLeft: '9px', color: '#292956' } : {}}>
-                <ArrowRight className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'audit' && item.label === 'GEO Audit' ? '' : 'text-slate-400'}`} style={activeTab === 'audit' && item.label === 'GEO Audit' ? { color: '#292956' } : {}} /><span className="flex-1">{item.label}</span>
-                {item.tag && <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${item.tag === 'PRO' ? 'text-white' : 'bg-slate-200 text-slate-500'}`} style={item.tag === 'PRO' ? { background: '#292956' } : {}}>{item.tag}</span>}
-              </button>
-            ) : (
+            ) : item.onClick ? (() => {
+              // Zelfde Firefox-fix als de tabs-knoppen hierboven.
+              const isAuditActive = activeTab === 'audit' && item.label === 'GEO Audit'
+              const auditStyle = {
+                background: isAuditActive ? '#ffffff' : 'transparent',
+                color: isAuditActive ? '#292956' : undefined,
+                borderTop: 0,
+                borderRight: 0,
+                borderBottom: 0,
+                borderLeft: isAuditActive ? '3px solid #292956' : '3px solid transparent',
+                paddingLeft: '9px',
+              }
+              return (
+                <button
+                  key={item.label}
+                  onClick={item.onClick}
+                  className={`w-full flex items-center gap-2.5 pr-3 py-2 text-[13px] transition-colors no-underline cursor-pointer text-left rounded-lg ${isAuditActive ? 'shadow-sm font-semibold' : 'text-slate-500 hover:text-slate-700 hover:bg-white/60'}`}
+                  style={auditStyle}
+                >
+                  <ArrowRight className={`w-3.5 h-3.5 shrink-0 ${isAuditActive ? '' : 'text-slate-400'}`} style={isAuditActive ? { color: '#292956' } : {}} /><span className="flex-1">{item.label}</span>
+                  {item.tag && <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${item.tag === 'PRO' ? 'text-white' : 'bg-slate-200 text-slate-500'}`} style={item.tag === 'PRO' ? { background: '#292956' } : {}}>{item.tag}</span>}
+                </button>
+              )
+            })() : (
               <div key={item.label} className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-slate-400 cursor-default">
                 <ArrowRight className="w-3.5 h-3.5 shrink-0" /><span className="flex-1">{item.label}</span>
                 {item.tag && <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase bg-slate-200 text-slate-500">{item.tag}</span>}
@@ -2013,7 +2055,6 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
               <div className="flex gap-4 mb-6">
                 <StatCard label={t.stats.visibility} value={`${visibilityPct}%`} sub={`${totalFound}/${totalPrompts} ${t.stats.promptsFound}`} accent="#059669" delta={visibilityDelta} deltaLabel={locale === 'nl' ? 'geen verandering' : 'no change'} />
                 <StatCard label={locale === 'nl' ? 'Platformvermeldingen' : 'Platform hits'} value={totalPlatformHits} sub={`ChatGPT ${chatgptFoundCount}/${totalPrompts} · Perplexity ${perplexityFoundCount}/${totalPrompts}${(googleAiMode.total || 0) > 0 ? ` · AI Mode ${googleAiMode.found || 0}/${googleAiMode.total}` : ''}${(googleAiOverview.total || 0) > 0 ? ` · AI Overview ${googleAiOverview.found || 0}/${googleAiOverview.total}` : ''}`} />
-                <StatCard label={t.stats.topCompetitor} value={data.topCompetitor?.name || '—'} sub={data.topCompetitor ? `${data.topCompetitor.appearances || data.topCompetitor.mentions}× ${locale === 'nl' ? 'in ' + totalPrompts + ' prompts' : 'in ' + totalPrompts + ' prompts'}` : ''} accent="#64748b" small />
                 <StatCard label={t.stats.lastScan} value={lastScanText} sub={lastScanDate} />
               </div>
 
@@ -2027,6 +2068,124 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
               )}
 
               <AutoScanCard t={t} locale={locale} isProTier={isProTier} />
+
+              {/* Speelveld-ranking: top 6 inclusief eigen company.
+                  Eigen count = aantal prompts waarin je gevonden bent;
+                  concurrenten = appearances (unieke prompts waarin ze genoemd worden). */}
+              {(() => {
+                const ownCount = visibility.found || 0
+                const ownName = activeCompany?.name || (locale === 'nl' ? 'Jouw bedrijf' : 'Your company')
+                const speelveld = [
+                  { name: ownName, count: ownCount, isUser: true },
+                  ...competitors.map(c => ({ name: c.name, count: c.appearances || c.mentions || 0, isUser: false })),
+                ].sort((a, b) => b.count - a.count).slice(0, 6)
+                const medals = ['🥇', '🥈', '🥉']
+                const userPos = speelveld.findIndex(s => s.isUser) + 1
+                return (
+                  <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="text-[15px] font-semibold text-slate-800">
+                        {locale === 'nl' ? 'Speelveld' : 'Playing field'}
+                      </div>
+                      {userPos > 0 && (
+                        <span className="text-[11px] text-slate-500">
+                          {locale === 'nl' ? `Jouw positie: ${userPos}` : `Your position: ${userPos}`}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[12px] text-slate-400 mb-4">
+                      {locale === 'nl'
+                        ? `Wie wordt het vaakst genoemd in jouw ${totalPrompts} prompts`
+                        : `Who gets mentioned most across your ${totalPrompts} prompts`}
+                    </div>
+                    <div className="space-y-1.5">
+                      {speelveld.map((row, idx) => (
+                        <div
+                          key={idx}
+                          className={`flex items-center gap-3 py-2.5 px-3 rounded-lg transition ${row.isUser ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50'}`}
+                        >
+                          <span className={`w-7 text-center font-bold ${idx < 3 ? 'text-[16px]' : 'text-[13px] text-slate-400'}`}>
+                            {idx < 3 ? medals[idx] : `${idx + 1}.`}
+                          </span>
+                          <span className={`flex-1 truncate text-[13px] ${row.isUser ? 'font-bold text-emerald-700' : 'font-medium text-slate-800'}`}>
+                            {row.name}
+                            {row.isUser && <span className="ml-2 text-[10px] uppercase tracking-wider text-emerald-600 font-semibold">{locale === 'nl' ? 'jij' : 'you'}</span>}
+                          </span>
+                          <span className={`text-[13px] font-bold ${row.isUser ? 'text-emerald-700' : 'text-slate-800'}`}>
+                            {row.count}×
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* GEO Optimalisatie DIY USP-card.
+                  Bij score-data (geoAnalyseResults aanwezig): toont score + "bekijk werklijst".
+                  Anders: prominente start-CTA met USP-bullets. */}
+              <div className="rounded-xl p-6 mb-6 border" style={{ background: 'linear-gradient(135deg, #EDE9FE, #F5F3FF)', borderColor: '#C4B5FD40' }}>
+                {geoAnalyseResults ? (
+                  <div className="flex items-start gap-5 flex-wrap">
+                    <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0">
+                      <Sparkles className="w-6 h-6 text-blue-500" />
+                    </div>
+                    <div className="flex-1 min-w-[240px]">
+                      <div className="text-[15px] font-bold text-slate-800 mb-1">
+                        {locale === 'nl' ? 'Jouw GEO Optimalisatie' : 'Your GEO Optimization'}
+                      </div>
+                      <div className="text-[13px] text-slate-600 leading-relaxed mb-3">
+                        {locale === 'nl'
+                          ? `Gemiddelde score van ${geoAnalyseResults.pages.length} pagina's. Werk de adviezen af om hoger te scoren in AI-zoekmachines.`
+                          : `Average score across ${geoAnalyseResults.pages.length} pages. Work through the recommendations to score higher in AI search.`}
+                      </div>
+                      <Link
+                        href={lp(locale, `/dashboard/geo-analyse?view=results&company=${encodeURIComponent(activeCompany?.name || '')}`)}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white text-[13px] font-semibold no-underline hover:opacity-90 transition-opacity"
+                        style={{ background: '#292956' }}
+                      >
+                        <Zap className="w-3.5 h-3.5" />
+                        {locale === 'nl' ? 'Bekijk werklijst' : 'View worklist'}
+                      </Link>
+                    </div>
+                    <div className="text-center pl-4 border-l border-violet-200">
+                      <div className={`text-[36px] font-black leading-none ${geoAnalyseResults.avgScore >= 70 ? 'text-emerald-600' : geoAnalyseResults.avgScore >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                        {geoAnalyseResults.avgScore}
+                      </div>
+                      <div className="text-[10px] text-slate-500 uppercase tracking-wider mt-1">{locale === 'nl' ? 'gem. score' : 'avg. score'}</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-5 flex-wrap">
+                    <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0">
+                      <Sparkles className="w-6 h-6 text-blue-500" />
+                    </div>
+                    <div className="flex-1 min-w-[240px]">
+                      <div className="text-[15px] font-bold text-slate-800 mb-1">
+                        {locale === 'nl' ? 'Start met je GEO Optimalisatie' : 'Start your GEO Optimization'}
+                      </div>
+                      <div className="text-[13px] text-slate-600 leading-relaxed mb-3">
+                        {locale === 'nl'
+                          ? 'Verbeter je AI-zichtbaarheid stap voor stap met de DIY checklist en concreet AI-advies per pagina.'
+                          : 'Improve your AI visibility step by step with the DIY checklist and concrete AI advice per page.'}
+                      </div>
+                      <div className="flex gap-4 flex-wrap text-[11px] text-slate-600 mb-4">
+                        <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> {locale === 'nl' ? 'AI-advies per pagina' : 'AI advice per page'}</span>
+                        <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> {locale === 'nl' ? 'Search Console integratie' : 'Search Console integration'}</span>
+                        <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> {locale === 'nl' ? 'Checklist met scores' : 'Checklist with scores'}</span>
+                      </div>
+                      <Link
+                        href={lp(locale, `/dashboard/geo-analyse?company=${encodeURIComponent(activeCompany?.name || '')}`)}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-white text-[13px] font-semibold no-underline hover:opacity-90 transition-opacity"
+                        style={{ background: '#292956' }}
+                      >
+                        <Zap className="w-3.5 h-3.5" />
+                        {locale === 'nl' ? 'Start GEO Analyse' : 'Start GEO Analysis'}
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <VisibilityChart data={visibilityTrend} t={t} locale={locale} />
 
@@ -2058,7 +2217,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                   })()}
                 </div>
 
-                {/* Platform Breakdown — 4 platforms */}
+                {/* Platform Breakdown — 4 platforms (top-competitors-lijstje vervalt; staat nu boven in Speelveld) */}
                 <div className="bg-white rounded-xl border border-slate-200 p-6">
                   <div className="text-[15px] font-semibold text-slate-800 mb-1">{t.platform.title}</div>
                   <div className="text-[12px] text-slate-400 mb-5">{t.platform.subtitle}</div>
@@ -2066,17 +2225,6 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                   <PlatformBar name="Perplexity" found={visibility.perplexityFound || 0} total={visibility.perplexityTotal || 0} color={PLATFORM_COLORS.perplexity} pct={visibility.perplexity || 0} label={t.stats.promptsFound} />
                   <PlatformBar name="Google AI Mode" found={googleAiMode.found} total={googleAiMode.total} color={PLATFORM_COLORS.googleAiMode} pct={googleAiMode.pct} label={t.stats.promptsFound} notScanned={googleAiMode.total === 0} notScannedLabel={locale === 'nl' ? 'niet gescand' : 'not scanned'} />
                   <PlatformBar name="AI Overviews" found={googleAiOverview.found} total={googleAiOverview.total} color={PLATFORM_COLORS.googleAiOverview} pct={googleAiOverview.pct} label={t.stats.promptsFound} notScanned={googleAiOverview.total === 0} notScannedLabel={locale === 'nl' ? 'niet gescand' : 'not scanned'} />
-                  <div className="h-px bg-slate-100 my-5" />
-                  <div className="text-[13px] font-semibold text-slate-800 mb-3">{t.platform.topCompetitors}</div>
-                  {competitors.slice(0, 3).map((c, i) => (
-                    <div key={i} className="flex items-center justify-between py-2" style={{ borderBottom: i < 2 ? '1px solid #f1f5f9' : 'none' }}>
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">{i + 1}</span>
-                        <span className="text-[12px] text-slate-800 font-medium">{c.name}</span>
-                      </div>
-                      <span className="text-[12px] font-semibold text-slate-800">{c.appearances || c.mentions}×</span>
-                    </div>
-                  ))}
                 </div>
               </div>
             </>

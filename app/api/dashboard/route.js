@@ -650,6 +650,10 @@ export async function GET(request) {
     const historySinceDate = new Date(now - 84 * 24 * 60 * 60 * 1000).toISOString() // 12 weken
     const integrationIds = (integrations || []).map(i => i.id)
     let visibilityHistory = []
+    // Meest recente scanned_at uit alle visibility_history rijen voor deze
+    // company. Voedt het "Laatste scan"-veld; nauwkeuriger dan
+    // tool_integrations.created_at (dat blijft staan na rescans).
+    let lastVisibilityScanAt = null
     if (integrationIds.length > 0) {
       const { data: histRows } = await db
         .from('visibility_history')
@@ -658,6 +662,10 @@ export async function GET(request) {
         .in('integration_id', integrationIds)
         .gte('scanned_at', historySinceDate)
         .order('scanned_at', { ascending: true })
+
+      if (histRows && histRows.length > 0) {
+        lastVisibilityScanAt = histRows[histRows.length - 1].scanned_at
+      }
 
       // Group rows from the same day together. Different platforms (chatgpt/
       // perplexity vs google_ai_*) get written at different times because each
@@ -743,7 +751,11 @@ export async function GET(request) {
       visibility: adjustedVisibility,
       avgMentions,
       topCompetitor,
-      lastScan: latestScan?.created_at || null,
+      // Laatste echte scan-actie: max(scanned_at) uit visibility_history voor
+      // deze company. Wordt geschreven bij elke handmatige rescan en cron-run.
+      // Fallback naar tool_integrations.created_at als er nog geen
+      // visibility_history is (alleen de eerste wizard-scan gedaan).
+      lastScan: lastVisibilityScanAt || latestScan?.created_at || null,
       prompts: promptDetails,
       competitors,
       visibilityTrend,
