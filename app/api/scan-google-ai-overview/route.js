@@ -320,18 +320,43 @@ async function runGoogleAioSearch({ searchQuery, companyName, website, lang, fre
       break
     }
 
-    // Extract text
+    // Extract text + AIO references
     const aiText = extractAioText(aiOverview)
     const refData = extractReferences(aiOverview, companyName)
-    const mentionData = detectCompanyMention({ companyName, website, aiText, sources: refData.sources })
+
+    // Fallback op organic_results wanneer de expanded AIO faalt: SerpAPI levert
+    // wel een ai_overview-stub maar geen text_blocks/references. De gewone SERP-
+    // resultaten bevatten vaak alsnog ons bedrijf (bv. OnlineLabs op positie 6).
+    // Zonder deze fallback zou companyMentioned=false zijn terwijl Google ons wel
+    // toont in de eerste SERP-pagina.
+    const organicSources = Array.isArray(data.organic_results)
+      ? data.organic_results.map(r => ({
+          title: r.title || '',
+          link: r.link || '',
+          snippet: r.snippet || '',
+          domain: r.displayed_link || r.source || '',
+          position: r.position || null,
+          isCompany: false,
+          sourceType: 'organic',
+        }))
+      : []
+    const fallbackSources = refData.sources.length ? refData.sources : organicSources
+    const mentionData = detectCompanyMention({ companyName, website, aiText, sources: fallbackSources })
 
     const aioStatus = aiText.trim()
       ? 'present_with_text'
       : rawAioDetected
-        ? 'present_without_text'
+        ? 'present_with_token'
         : 'not_detected'
 
-    console.log(`[${device}] "${searchQuery}": aioStatus=${aioStatus}, mentioned=${mentionData.companyMentioned}, sources=${refData.sources.length}`)
+    // Fallback fragment: als de AIO geen tekst gaf, bouw een snippet uit de
+    // top organic snippets zodat de UI tenminste een leesbaar fragment toont
+    // (in plaats van een lege AIO-kaart) wanneer aioStatus = present_with_token.
+    const fallbackFragment = aiText.trim()
+      ? aiText
+      : organicSources.slice(0, 3).map(s => s.snippet).filter(Boolean).join(' ')
+
+    console.log(`[${device}] "${searchQuery}": aioStatus=${aioStatus}, mentioned=${mentionData.companyMentioned}, sources=${fallbackSources.length} (${refData.sources.length} aio + ${organicSources.length} organic)`)
 
     return {
       searchQuery,
@@ -341,11 +366,11 @@ async function runGoogleAioSearch({ searchQuery, companyName, website, lang, fre
       aioStatus,
       hasAiOverview: aioStatus !== 'not_detected',
       hasAiResponse: aioStatus === 'present_with_text',
-      aiOverviewText: aiText.slice(0, 4000),
-      textContent: aiText.slice(0, 4000),
-      aiResponse: aiText.slice(0, 4000),
-      sources: refData.sources,
-      references: refData.sources,
+      aiOverviewText: fallbackFragment.slice(0, 4000),
+      textContent: fallbackFragment.slice(0, 4000),
+      aiResponse: fallbackFragment.slice(0, 4000),
+      sources: fallbackSources,
+      references: fallbackSources,
       competitorsMentioned: refData.competitors,
       competitorsInSources: refData.competitors,
       companyMentioned: mentionData.companyMentioned,
@@ -438,20 +463,22 @@ CORE RULES:
 - NO company names.
 - Avoid bare superlatives like "best/top". "A good X" in choice context is fine.
 
-TRIGGER FORMS (prefer "what does X cost" because it is shortest):
-- "what does [service] cost in [city]" (strongly preferred)
-- "how to find a good [service] in [city]" (alternative for variation)
-- "what to look for in [service] [city]" (only when others do not fit)
+TRIGGER FORMS (vary across all three, do NOT use only one form):
+- "what does [service] cost in [city]"
+- "how to find a good [service] in [city]"
+- "what to look for when choosing [service] [city]"
+
+VARIATION RULE: Distribute your queries roughly evenly across the three forms. Avoid generating 10 queries that all start with "what does ... cost". Mix it up.
 
 EXAMPLES:
 - "I'm looking for an experienced SEO agency in Amsterdam that also helps with AI search visibility" -> "what does an SEO agency cost in Amsterdam"
 - "Which SEO agency in Amsterdam has experience with AI visibility in ChatGPT and Perplexity?" -> "how to find a good SEO agency in Amsterdam"
-- "Looking for an SEO specialist in Amsterdam with proven results" -> "what does an SEO specialist cost in Amsterdam"
+- "Looking for an SEO specialist in Amsterdam with proven results" -> "what to look for when choosing SEO specialist Amsterdam"
 - "Which online marketing agency in Amsterdam combines SEO, speed and conversion?" -> "what does a marketing agency cost in Amsterdam"
-- "I'm looking for an agency in Amsterdam to optimize my WordPress site for Google and AI platforms" -> "what does WordPress optimization cost in Amsterdam"
-- "Looking for GEO experts in Amsterdam for LLM visibility in ChatGPT" -> "what does GEO optimization cost in Amsterdam"
-- "Recommend a good real estate lawyer in The Hague" -> "what does a real estate lawyer cost in The Hague"
-- "Which notary in Eindhoven is reliable for a mortgage deed" -> "what does a notary cost in Eindhoven"
+- "I'm looking for an agency in Amsterdam to optimize my WordPress site for Google and AI platforms" -> "how to find good WordPress optimization Amsterdam"
+- "Looking for GEO experts in Amsterdam for LLM visibility in ChatGPT" -> "what to look for when choosing GEO optimization Amsterdam"
+- "Recommend a good real estate lawyer in The Hague" -> "how to find a good real estate lawyer in The Hague"
+- "Which notary in Eindhoven is reliable for a mortgage deed" -> "what to look for when choosing notary Eindhoven"
 - "I'm looking for an experienced physiotherapist for back pain in Utrecht" -> "what does a physiotherapist cost in Utrecht"
 
 Reply ONLY with a JSON array of strings, one per prompt, in the same order. No explanation.`
@@ -470,21 +497,23 @@ KERNREGELS:
 - GEEN bedrijfsnamen.
 - Vermijd kale superlatieven als "beste/top". "Een goede X" in keuze-context mag wel.
 
-TRIGGERVORMEN (gebruik bij voorkeur "wat kost", want dat is het kortst):
-- "wat kost [dienst] in [stad]" (sterk voorkeur)
-- "hoe vind je een goed [dienst] in [stad]" (alternatief voor variatie)
-- "waar moet je op letten bij [dienst] [stad]" (alleen als anders niet past)
+TRIGGERVORMEN (varieer over alle drie de vormen, niet alleen 1 gebruiken):
+- "wat kost [dienst] in [stad]"
+- "hoe vind je een goed [dienst] in [stad]"
+- "waar moet je op letten bij [dienst] [stad]"
+
+VARIATIE-REGEL: Verdeel je queries ongeveer gelijkmatig over de drie vormen. Vermijd 10 queries die allemaal beginnen met "wat kost". Wissel af.
 
 VOORBEELDEN:
 - "Ik zoek een ervaren SEO bureau in Amsterdam dat ook helpt met vindbaarheid in AI-zoekmachines" -> "wat kost een SEO bureau in Amsterdam"
 - "Welk SEO bureau in Amsterdam heeft ervaring met AI-zichtbaarheid in ChatGPT en Perplexity?" -> "hoe vind je een goed SEO bureau in Amsterdam"
-- "Op zoek naar een SEO specialist in Amsterdam met aantoonbare resultaten" -> "wat kost een SEO specialist in Amsterdam"
+- "Op zoek naar een SEO specialist in Amsterdam met aantoonbare resultaten" -> "waar moet je op letten bij SEO specialist Amsterdam"
 - "Welk online marketing bureau in Amsterdam combineert SEO, snelheid en conversie?" -> "wat kost een marketingbureau in Amsterdam"
-- "Ik zoek een bureau in Amsterdam dat mijn WordPress website kan optimaliseren voor Google en AI" -> "wat kost WordPress optimalisatie in Amsterdam"
-- "Zoek GEO experts in Amsterdam voor LLM-zichtbaarheid in ChatGPT" -> "wat kost GEO optimalisatie in Amsterdam"
+- "Ik zoek een bureau in Amsterdam dat mijn WordPress website kan optimaliseren voor Google en AI" -> "hoe vind je goede WordPress optimalisatie Amsterdam"
+- "Zoek GEO experts in Amsterdam voor LLM-zichtbaarheid in ChatGPT" -> "waar moet je op letten bij GEO optimalisatie Amsterdam"
 - "Welk bureau in Nederland is gespecialiseerd in GEO optimalisatie en AI-vindbaarheid?" -> "wat kost GEO optimalisatie voor bedrijven"
-- "Kun je een goede vastgoedadvocaat in Den Haag aanbevelen" -> "wat kost een vastgoedadvocaat in Den Haag"
-- "Welke notaris in Eindhoven is betrouwbaar voor een hypotheekakte" -> "wat kost een notaris in Eindhoven"
+- "Kun je een goede vastgoedadvocaat in Den Haag aanbevelen" -> "hoe vind je een goede vastgoedadvocaat in Den Haag"
+- "Welke notaris in Eindhoven is betrouwbaar voor een hypotheekakte" -> "waar moet je op letten bij notaris Eindhoven"
 - "Ik zoek een ervaren fysiotherapeut voor rugklachten in Utrecht" -> "wat kost een fysiotherapeut in Utrecht"
 
 Antwoord ALLEEN met een JSON array van strings, een per prompt, in dezelfde volgorde. Geen uitleg.`

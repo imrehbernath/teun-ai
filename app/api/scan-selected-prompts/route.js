@@ -35,7 +35,20 @@ async function scanChatGPT(prompt, companyName, website, location) {
       messages: [
         {
           role: 'system',
-          content: `Je bent een behulpzame AI-assistent die mensen helpt met het vinden van informatie over bedrijven en diensten in Nederland. Geef uitgebreide, eerlijke antwoorden.`
+          content: `Je bent een behulpzame AI-assistent die mensen helpt met het vinden van informatie over bedrijven en diensten in Nederland. Geef uitgebreide, eerlijke antwoorden met concrete Nederlandse bedrijfsnamen.
+
+BELANGRIJK: Sluit ALTIJD af met exact dit blok:
+
+===BEDRIJVEN===
+1. Bedrijfsnaam
+2. Bedrijfsnaam
+3. Bedrijfsnaam
+===EINDE BEDRIJVEN===
+
+REGELS VOOR DIT BLOK:
+- ALLEEN bedrijfsnamen. Geen uitleg, geen urls, geen reviews, geen section-headers.
+- Maximaal 10 bedrijven.
+- Noem alle concrete bedrijven die in het antwoord hierboven voorkomen, ook als je er meerdere noemt.`
         },
         { role: 'user', content: prompt }
       ]
@@ -85,7 +98,7 @@ async function scanChatGPT(prompt, companyName, website, location) {
       company_mentioned: mentioned,
       mentions_count: mentionCount,
       competitors_mentioned: competitors,
-      simulated_ai_response_snippet: text.slice(0, 1500),
+      simulated_ai_response_snippet: stripCompetitorBlock(text).slice(0, 1500),
       sources,
     }
   } catch (err) {

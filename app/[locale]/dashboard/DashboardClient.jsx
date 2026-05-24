@@ -1380,7 +1380,13 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   const [loading, setLoading] = useState(true)
   const initialLoadDone = useRef(false)
   const [error, setError] = useState(null)
-  const [selectedCompany, setSelectedCompany] = useState(null)
+  const [selectedCompany, setSelectedCompany] = useState(() => {
+    // Onthoud het laatst geopende bedrijf zodat we niet steeds defaulten naar
+    // uniqueCompanies[0] (vaak het laatst toegevoegde, niet wat de gebruiker
+    // het meest gebruikt). Lazy init voor SSR-safety.
+    if (typeof window === 'undefined') return null
+    return localStorage.getItem('teun-ai:lastCompany') || null
+  })
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(null) // company_name to confirm delete
   const [deleting, setDeleting] = useState(false)
@@ -1425,6 +1431,14 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
       rescanRampRef.current = null
     }
   }, [])
+
+  // Persist het actieve bedrijf zodat een refresh of nieuwe browser-sessie
+  // hetzelfde bedrijf opent in plaats van uniqueCompanies[0] (laatst toegevoegd).
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (selectedCompany) localStorage.setItem('teun-ai:lastCompany', selectedCompany)
+    else localStorage.removeItem('teun-ai:lastCompany')
+  }, [selectedCompany])
 
  // ✨ Claim anonieme scan data bij eerste dashboard load
   // Runs BEFORE initial fetchData to prevent empty state flash
@@ -2088,6 +2102,39 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
 
               <AutoScanCard t={t} locale={locale} isProTier={isProTier} />
 
+              {/* Hero-banner: nog geen GEO Analyse gedaan voor dit bedrijf?
+                  Hoog op de pagina prominent een CTA tonen, want de score is
+                  de centrale "verbeter"-metric naast de visibility-percentages. */}
+              {!geoAnalyseResults && activeCompany && (
+                <div className="rounded-xl p-6 mb-6 border" style={{ background: 'linear-gradient(135deg, #EDE9FE 0%, #DBEAFE 100%)', borderColor: '#C4B5FD60' }}>
+                  <div className="flex items-center justify-between gap-6 flex-wrap">
+                    <div className="flex items-start gap-4 min-w-0 flex-1">
+                      <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0">
+                        <Sparkles className="w-6 h-6 text-blue-500" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[18px] font-bold text-slate-800 mb-1">
+                          {locale === 'nl' ? 'Wat is je GEO score?' : 'What is your GEO score?'}
+                        </div>
+                        <div className="text-[13px] text-slate-600 leading-relaxed">
+                          {locale === 'nl'
+                            ? "Start nu met het verbeteren van je pagina's. AI-advies per pagina, Search Console koppeling en een concrete checklist met scores."
+                            : 'Start improving your pages now. AI advice per page, Search Console integration and a concrete checklist with scores.'}
+                        </div>
+                      </div>
+                    </div>
+                    <Link
+                      href={lp(locale, `/dashboard/geo-analyse?company=${encodeURIComponent(activeCompany?.name || '')}`)}
+                      className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg text-white text-[14px] font-semibold no-underline hover:opacity-90 transition-opacity shrink-0"
+                      style={{ background: '#292956' }}
+                    >
+                      <Zap className="w-4 h-4" />
+                      {locale === 'nl' ? 'Start GEO Analyse' : 'Start GEO Analysis'}
+                    </Link>
+                  </div>
+                </div>
+              )}
+
               <VisibilityChart data={visibilityTrend} t={t} locale={locale} />
 
               {/* Speelveld + GEO Optimalisatie USP-card, 50/50 naast elkaar.
@@ -2143,6 +2190,48 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                   )
                 })()}
 
+                {/* Platform Breakdown — naast Speelveld, gelijke hoogte via items-stretch */}
+                <div className="bg-white rounded-xl border border-slate-200 p-6">
+                  <div className="text-[15px] font-semibold text-slate-800 mb-1">{t.platform.title}</div>
+                  <div className="text-[12px] text-slate-400 mb-5">{t.platform.subtitle}</div>
+                  <PlatformBar name="ChatGPT" found={visibility.chatgptFound || 0} total={visibility.chatgptTotal || 0} color={PLATFORM_COLORS.chatgpt} pct={visibility.chatgpt || 0} label={t.stats.promptsFound} />
+                  <PlatformBar name="Perplexity" found={visibility.perplexityFound || 0} total={visibility.perplexityTotal || 0} color={PLATFORM_COLORS.perplexity} pct={visibility.perplexity || 0} label={t.stats.promptsFound} />
+                  <PlatformBar name="Google AI Mode" found={googleAiMode.found} total={googleAiMode.total} color={PLATFORM_COLORS.googleAiMode} pct={googleAiMode.pct} label={t.stats.promptsFound} notScanned={googleAiMode.total === 0} notScannedLabel={locale === 'nl' ? 'niet gescand' : 'not scanned'} />
+                  <PlatformBar name="AI Overviews" found={googleAiOverview.found} total={googleAiOverview.total} color={PLATFORM_COLORS.googleAiOverview} pct={googleAiOverview.pct} label={t.stats.promptsFound} notScanned={googleAiOverview.total === 0} notScannedLabel={locale === 'nl' ? 'niet gescand' : 'not scanned'} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-6 items-start">
+                {/* Quick Wins */}
+                <div className="bg-white rounded-xl border border-slate-200 p-6">
+                  <div className="text-[15px] font-semibold text-slate-800 mb-1">{t.quickWins.title}</div>
+                  <div className="text-[12px] text-slate-400 mb-4">{t.quickWins.subtitle}</div>
+                  {(() => {
+                    const wins = []
+                    const notFoundCount = prompts.filter((p, i) => !p.chatgpt.found && !p.perplexity.found && !googleAiMode.prompts?.[i]?.found && !googleAiOverview.prompts?.[i]?.found).length
+                    if (notFoundCount > 0) wins.push({ title: `${notFoundCount} ${t.promptsNotFound}`, desc: t.optimizeContent, impact: 'hoog', effort: 'medium' })
+                    if (competitors.length > 0) wins.push({ title: `${competitors[0].name} ${t.mentioned.replace('{count}', competitors[0].appearances || competitors[0].mentions)}`, desc: t.analyzeCompetitor, impact: 'hoog', effort: 'medium' })
+                    if (visibility.chatgpt !== visibility.perplexity) {
+                      const weaker = visibility.chatgpt < visibility.perplexity ? 'ChatGPT' : 'Perplexity'
+                      wins.push({ title: t.improveVisibility.replace('{platform}', weaker), desc: t.lowerScore.replace('{platform}', weaker), impact: 'medium', effort: 'laag' })
+                    }
+                    if (wins.length === 0) wins.push({ title: t.keepOptimizing, desc: t.onTrack, impact: 'medium', effort: 'laag' })
+                    return wins.slice(0, 3).map((w, i) => (
+                      <div key={i} className="p-3.5 bg-slate-50 rounded-[10px] mb-3 last:mb-0" style={{ borderLeft: '3px solid', borderLeftColor: w.impact === 'hoog' ? '#059669' : '#f59e0b' }}>
+                        <div className="text-[13px] font-semibold text-slate-800 mb-1">{w.title}</div>
+                        <div className="text-[12px] text-slate-500 leading-relaxed mb-2">{w.desc}</div>
+                        <div className="flex gap-1.5">
+                          <span className={`text-[10px] px-2 py-0.5 rounded font-semibold ${w.impact === 'hoog' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>{t.quickWins.impact}: {w.impact}</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded font-semibold bg-green-50 text-green-600">{t.quickWins.effort}: {w.effort}</span>
+                        </div>
+                      </div>
+                    ))
+                  })()}
+                </div>
+
+                {/* GEO Optimalisatie USP-card — rechtsonder, niet uitgerekt
+                    (items-start op de grid hierboven zorgt dat deze zijn natuurlijke
+                    hoogte houdt, ongeacht hoe lang Quick Wins is). */}
                 <div className="rounded-xl p-6 border flex flex-col" style={{ background: 'linear-gradient(135deg, #EDE9FE, #F5F3FF)', borderColor: '#C4B5FD40' }}>
                   {geoAnalyseResults ? (
                     <>
@@ -2165,7 +2254,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                           <div className="text-[9px] text-slate-500 uppercase tracking-wider mt-0.5">{locale === 'nl' ? 'gem. score' : 'avg. score'}</div>
                         </div>
                       </div>
-                      <div className="text-[13px] text-slate-600 leading-relaxed mb-4 flex-1">
+                      <div className="text-[13px] text-slate-600 leading-relaxed mb-4">
                         {locale === 'nl'
                           ? 'Werk de adviezen per pagina af om hoger te scoren in AI-zoekmachines.'
                           : 'Work through the per-page recommendations to score higher in AI search.'}
@@ -2196,7 +2285,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                           ? 'Verbeter je AI-zichtbaarheid stap voor stap met de DIY checklist en concreet AI-advies per pagina.'
                           : 'Improve your AI visibility step by step with the DIY checklist and concrete AI advice per page.'}
                       </div>
-                      <div className="flex flex-col gap-1.5 text-[11px] text-slate-600 mb-4 flex-1">
+                      <div className="flex flex-col gap-1.5 text-[11px] text-slate-600 mb-4">
                         <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> {locale === 'nl' ? 'AI-advies per pagina' : 'AI advice per page'}</span>
                         <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> {locale === 'nl' ? 'Search Console integratie' : 'Search Console integration'}</span>
                         <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> {locale === 'nl' ? 'Checklist met scores' : 'Checklist with scores'}</span>
@@ -2211,45 +2300,6 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                       </Link>
                     </>
                   )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                {/* Quick Wins */}
-                <div className="bg-white rounded-xl border border-slate-200 p-6">
-                  <div className="text-[15px] font-semibold text-slate-800 mb-1">{t.quickWins.title}</div>
-                  <div className="text-[12px] text-slate-400 mb-4">{t.quickWins.subtitle}</div>
-                  {(() => {
-                    const wins = []
-                    const notFoundCount = prompts.filter((p, i) => !p.chatgpt.found && !p.perplexity.found && !googleAiMode.prompts?.[i]?.found && !googleAiOverview.prompts?.[i]?.found).length
-                    if (notFoundCount > 0) wins.push({ title: `${notFoundCount} ${t.promptsNotFound}`, desc: t.optimizeContent, impact: 'hoog', effort: 'medium' })
-                    if (competitors.length > 0) wins.push({ title: `${competitors[0].name} ${t.mentioned.replace('{count}', competitors[0].appearances || competitors[0].mentions)}`, desc: t.analyzeCompetitor, impact: 'hoog', effort: 'medium' })
-                    if (visibility.chatgpt !== visibility.perplexity) {
-                      const weaker = visibility.chatgpt < visibility.perplexity ? 'ChatGPT' : 'Perplexity'
-                      wins.push({ title: t.improveVisibility.replace('{platform}', weaker), desc: t.lowerScore.replace('{platform}', weaker), impact: 'medium', effort: 'laag' })
-                    }
-                    if (wins.length === 0) wins.push({ title: t.keepOptimizing, desc: t.onTrack, impact: 'medium', effort: 'laag' })
-                    return wins.slice(0, 3).map((w, i) => (
-                      <div key={i} className="p-3.5 bg-slate-50 rounded-[10px] mb-3 last:mb-0" style={{ borderLeft: '3px solid', borderLeftColor: w.impact === 'hoog' ? '#059669' : '#f59e0b' }}>
-                        <div className="text-[13px] font-semibold text-slate-800 mb-1">{w.title}</div>
-                        <div className="text-[12px] text-slate-500 leading-relaxed mb-2">{w.desc}</div>
-                        <div className="flex gap-1.5">
-                          <span className={`text-[10px] px-2 py-0.5 rounded font-semibold ${w.impact === 'hoog' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>{t.quickWins.impact}: {w.impact}</span>
-                          <span className="text-[10px] px-2 py-0.5 rounded font-semibold bg-green-50 text-green-600">{t.quickWins.effort}: {w.effort}</span>
-                        </div>
-                      </div>
-                    ))
-                  })()}
-                </div>
-
-                {/* Platform Breakdown — 4 platforms (top-competitors-lijstje vervalt; staat nu boven in Speelveld) */}
-                <div className="bg-white rounded-xl border border-slate-200 p-6">
-                  <div className="text-[15px] font-semibold text-slate-800 mb-1">{t.platform.title}</div>
-                  <div className="text-[12px] text-slate-400 mb-5">{t.platform.subtitle}</div>
-                  <PlatformBar name="ChatGPT" found={visibility.chatgptFound || 0} total={visibility.chatgptTotal || 0} color={PLATFORM_COLORS.chatgpt} pct={visibility.chatgpt || 0} label={t.stats.promptsFound} />
-                  <PlatformBar name="Perplexity" found={visibility.perplexityFound || 0} total={visibility.perplexityTotal || 0} color={PLATFORM_COLORS.perplexity} pct={visibility.perplexity || 0} label={t.stats.promptsFound} />
-                  <PlatformBar name="Google AI Mode" found={googleAiMode.found} total={googleAiMode.total} color={PLATFORM_COLORS.googleAiMode} pct={googleAiMode.pct} label={t.stats.promptsFound} notScanned={googleAiMode.total === 0} notScannedLabel={locale === 'nl' ? 'niet gescand' : 'not scanned'} />
-                  <PlatformBar name="AI Overviews" found={googleAiOverview.found} total={googleAiOverview.total} color={PLATFORM_COLORS.googleAiOverview} pct={googleAiOverview.pct} label={t.stats.promptsFound} notScanned={googleAiOverview.total === 0} notScannedLabel={locale === 'nl' ? 'niet gescand' : 'not scanned'} />
                 </div>
               </div>
             </>

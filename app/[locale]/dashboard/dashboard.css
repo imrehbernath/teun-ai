@@ -77,8 +77,13 @@ body.dashboard-active aside.fixed.left-0[style*="#fafaf8"] {
   background: #FCFAF5 !important;
 }
 
-/* Keep navy for logo and company avatar (inline #292956) */
-body.dashboard-active aside.fixed.left-0 [style*="#292956"] {
+/* Keep navy for logo and company avatar (inline background #292956). Specifiek
+   matchen op background, anders raakt deze regel ook actieve nav-buttons waar
+   #292956 alleen als color/border-color staat. */
+body.dashboard-active aside.fixed.left-0 [style*="background:#292956"],
+body.dashboard-active aside.fixed.left-0 [style*="background: #292956"],
+body.dashboard-active aside.fixed.left-0 [style*="background-color:#292956"],
+body.dashboard-active aside.fixed.left-0 [style*="background-color: #292956"] {
   background: var(--navy) !important;
 }
 /* Logo text — navy on cream is correct */

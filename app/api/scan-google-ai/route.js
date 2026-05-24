@@ -1,6 +1,7 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { upsertVisibilityHistoryRow } from '@/lib/visibility-history'
+import { extractCompetitorsFromChatGPT, cleanCompetitorName, isValidCompetitorName, COMPETITOR_EXCLUDE_LIST } from '@/lib/competitor-extract'
 
 export const maxDuration = 60;
 
@@ -193,45 +194,42 @@ function analyzeAIModeResponse(data, companyName, websiteDomain = '') {
       } else if (title.includes(' | ')) {
         companyFromTitle = title.split(' | ').pop().trim()
       }
-      
+
       let companyFromDomain = (domain || '')
         .replace(/^www\./, '')
         .replace(/^https?:\/\//, '')
         .replace(/\/.*$/, '')
         .trim()
-      
-      const nameCandidate = companyFromTitle && 
-        companyFromTitle.length > 2 && 
+
+      const nameCandidate = companyFromTitle &&
+        companyFromTitle.length > 2 &&
         companyFromTitle.length < 40 &&
         !/[?:€•]/.test(companyFromTitle) &&
         !/^\d/.test(companyFromTitle)
-          ? companyFromTitle 
+          ? companyFromTitle
           : companyFromDomain
-      
-      if (nameCandidate && nameCandidate.length > 2 && nameCandidate.length < 50) {
-        competitorsMentioned.push(nameCandidate)
+
+      // Filter via dezelfde lib zodat slogans/blog-titels ("Voor maximale
+      // zichtbaarheid", "Cited in ChatGPT in 90 Days") niet als bedrijf
+      // doorglippen. Domain-namen die door cleanCompetitorName te kort
+      // worden gemaakt, vallen automatisch af.
+      const cleaned = cleanCompetitorName(nameCandidate)
+      const companyLower = (companyName || '').toLowerCase()
+      if (cleaned && isValidCompetitorName(cleaned, companyLower, COMPETITOR_EXCLUDE_LIST, new Set())) {
+        competitorsMentioned.push(cleaned)
       }
     }
   })
 
-  // Extract competitor names from AI response text
+  // Extract competitor names from AI response text via gedeelde lib
+  // (zelfde filter + 5 patterns als ChatGPT/Perplexity in scan-selected-prompts).
+  // De oude niche-regex pakte alleen "Kliniek/Centrum/Praktijk"-achtige namen,
+  // miste alles in andere branches (SEO, marketing, juridisch, etc).
   if (aiResponse && companyName) {
-    const businessPatterns = [
-      /([A-Z][a-zA-Z\s]+(?:Kliniek|Clinic|Centrum|Center|Praktijk|Studio|Salon|Institut|Instituut|Medical|Medisch))/g,
-      /(?:The\s+)?([A-Z][a-zA-Z\s]+(?:Kliniek|Clinic))/gi
-    ]
-    
-    businessPatterns.forEach(pattern => {
-      const matches = aiResponse.match(pattern) || []
-      matches.forEach(match => {
-        const cleanMatch = match.trim()
-        if (!checkCompanyMention(cleanMatch, companyName, websiteDomain) && 
-            cleanMatch.length > 3 && 
-            cleanMatch.length < 50) {
-          competitorsMentioned.push(cleanMatch)
-        }
-      })
-    })
+    const textCompetitors = extractCompetitorsFromChatGPT(aiResponse, companyName)
+    for (const name of textCompetitors) {
+      competitorsMentioned.push(name)
+    }
   }
 
   // Check inline sources

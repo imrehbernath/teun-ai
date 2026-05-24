@@ -215,7 +215,16 @@ function processGoogleAiResults(scans, companyName) {
   if (!scans || scans.length === 0) return { found: 0, total: 0, pct: 0, prompts: [] }
 
   const latest = scans[0]
-  const prevMap = buildGoogleAiPrevMap(scans[1] || null)
+  // Kies als "vorige" scan een meting van minstens 12u eerder, niet zomaar
+  // scans[1] (kan een handmatige rescan van vandaag zijn, geeft dan altijd
+  // trend=stable). Fallback op scans[1] als er nog geen oude meting is.
+  const latestTime = new Date(latest.created_at).getTime()
+  const minPrevAgeMs = 12 * 60 * 60 * 1000
+  const prevScan = scans.slice(1).find(s => {
+    const t = new Date(s.created_at).getTime()
+    return Number.isFinite(t) && (latestTime - t) >= minPrevAgeMs
+  }) || scans[1] || null
+  const prevMap = buildGoogleAiPrevMap(prevScan)
   const scanResults = latest.results || []
   const scanPrompts = latest.prompts || []
 
