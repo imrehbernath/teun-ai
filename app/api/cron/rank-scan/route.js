@@ -111,37 +111,42 @@ export async function GET(request) {
   console.log(`[Cron] Day ${dayIndex}: ${usersProcessed} users, ${totalBatchesDispatched} batches dispatched`);
 
   // ─────────────────────────────────────────────────────────────
-  // AI Visibility weekly auto-scan (commerciële prompts uit tool_integrations).
-  // Zelfde Pro-users + zelfde dayIndex-spreiding als de Rank Tracker hierboven.
-  // Per user pakken we de meest recente tool_integrations rij met commercial_prompts
-  // en doen een fire-and-forget POST naar /api/scan-selected-prompts met
-  // writeHistory: true. Die endpoint schrijft 2 rijen naar visibility_history
-  // (chatgpt + perplexity) zodat de dashboard-grafiek wekelijks een datapoint krijgt.
+  // AI Visibility weekly auto-scan per BEDRIJF.
+  // Sinds tool_integrations.auto_scan_enabled per-integration werkt, scannen
+  // we elk bedrijf dat individueel aan staat. Pro-check via join op profiles,
+  // dag-spreiding nog steeds op user-id zodat alle bedrijven van 1 user op
+  // dezelfde dag draaien (consistent met de Rank Tracker hierboven).
   let visibilityIntegrationsDispatched = 0;
-  let visibilityUsersProcessed = 0;
+  const visibilityUsers = new Set();
 
-  for (const profile of todayUsers) {
-    const { data: integrations, error: intErr } = await supabase
-      .from('tool_integrations')
-      .select('id, company_name, website, company_category, commercial_prompts')
-      .eq('user_id', profile.id)
-      .not('commercial_prompts', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(1);
+  const { data: aivIntegrations, error: aivErr } = await supabase
+    .from('tool_integrations')
+    .select('id, user_id, company_name, website, company_category, commercial_prompts, profiles!inner(email, subscription_tier, subscription_status)')
+    .eq('auto_scan_enabled', true)
+    .not('commercial_prompts', 'is', null);
 
-    if (intErr) {
-      console.error(`[Cron AIV] Integrations query error for ${profile.id}:`, intErr.message);
-      continue;
-    }
+  if (aivErr) {
+    console.error('[Cron AIV] Integrations query error:', aivErr.message);
+  }
 
-    const integration = integrations?.[0];
-    const prompts = (integration?.commercial_prompts || [])
+  const todayIntegrations = (aivIntegrations || []).filter(it => {
+    const p = it.profiles;
+    if (!p) return false;
+    const isActive = ['active', 'canceling'].includes(p.subscription_status);
+    const isPro = isActive && (p.subscription_tier === 'pro' || p.subscription_tier == null || adminEmails.includes(p.email));
+    if (!isPro) return false;
+    if (force) return true;
+    return hashUserId(it.user_id) % 7 === dayIndex;
+  });
+
+  for (const integration of todayIntegrations) {
+    const prompts = (integration.commercial_prompts || [])
       .map(p => (typeof p === 'string' ? p : (p?.prompt || p?.text || p?.query || p?.ai_prompt || '')))
       .filter(Boolean);
 
-    if (!integration || prompts.length === 0) continue;
+    if (prompts.length === 0) continue;
 
-    visibilityUsersProcessed++;
+    visibilityUsers.add(integration.user_id);
 
     fetch(`${baseUrl}/api/scan-selected-prompts`, {
       method: 'POST',
@@ -159,7 +164,7 @@ export async function GET(request) {
         writeHistory: true,
       }),
       keepalive: true,
-    }).catch(err => console.error(`[Cron AIV] Dispatch error for ${profile.id}:`, err.message));
+    }).catch(err => console.error(`[Cron AIV] Dispatch error for ${integration.id}:`, err.message));
 
     // Google AI Mode (SerpAPI) — apart endpoint, fire-and-forget.
     fetch(`${baseUrl}/api/scan-google-ai`, {
@@ -169,7 +174,7 @@ export async function GET(request) {
         'Authorization': `Bearer ${process.env.CRON_SECRET}`,
       },
       body: JSON.stringify({
-        userId: profile.id,
+        userId: integration.user_id,
         integrationId: integration.id,
         companyName: integration.company_name,
         website: integration.website,
@@ -179,7 +184,7 @@ export async function GET(request) {
         writeHistory: true,
       }),
       keepalive: true,
-    }).catch(err => console.error(`[Cron AIM] Dispatch error for ${profile.id}:`, err.message));
+    }).catch(err => console.error(`[Cron AIM] Dispatch error for ${integration.id}:`, err.message));
 
     // Google AI Overviews (SerpAPI) — apart endpoint, fire-and-forget.
     fetch(`${baseUrl}/api/scan-google-ai-overview`, {
@@ -189,7 +194,7 @@ export async function GET(request) {
         'Authorization': `Bearer ${process.env.CRON_SECRET}`,
       },
       body: JSON.stringify({
-        userId: profile.id,
+        userId: integration.user_id,
         integrationId: integration.id,
         companyName: integration.company_name,
         website: integration.website,
@@ -198,11 +203,12 @@ export async function GET(request) {
         writeHistory: true,
       }),
       keepalive: true,
-    }).catch(err => console.error(`[Cron AIO] Dispatch error for ${profile.id}:`, err.message));
+    }).catch(err => console.error(`[Cron AIO] Dispatch error for ${integration.id}:`, err.message));
 
     visibilityIntegrationsDispatched++;
   }
 
+  const visibilityUsersProcessed = visibilityUsers.size;
   console.log(`[Cron AIV] Day ${dayIndex}: ${visibilityUsersProcessed} users, ${visibilityIntegrationsDispatched} integrations dispatched`);
 
   return NextResponse.json({

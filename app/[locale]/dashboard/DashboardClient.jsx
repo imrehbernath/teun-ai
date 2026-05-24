@@ -165,7 +165,7 @@ function PlatformBar({ name, found, total, color, pct, label, notScanned, notSca
   )
 }
 
-function AutoScanCard({ t, locale, isProTier }) {
+function AutoScanCard({ t, locale, isProTier, integrationId }) {
   // enabled = null while fetching so we don't flash "Uit" on remount (tab switch).
   const [enabled, setEnabled] = useState(null)
   const [nextAt, setNextAt] = useState(null)
@@ -174,9 +174,12 @@ function AutoScanCard({ t, locale, isProTier }) {
   const isNL = locale !== 'en'
 
   useEffect(() => {
-    if (!isProTier) { setEnabled(false); setLoaded(true); return }
+    if (!isProTier || !integrationId) { setEnabled(false); setLoaded(true); return }
+    // Reset state bij company-switch zodat we niet de vorige toggle flashen
+    setLoaded(false)
+    setEnabled(null)
     let cancelled = false
-    fetch('/api/auto-scan').then(r => r.json()).then(d => {
+    fetch(`/api/auto-scan?integrationId=${encodeURIComponent(integrationId)}`).then(r => r.json()).then(d => {
       if (cancelled) return
       setEnabled(typeof d?.enabled === 'boolean' ? d.enabled : false)
       setNextAt(d?.nextScanAt || null)
@@ -186,10 +189,10 @@ function AutoScanCard({ t, locale, isProTier }) {
       if (!cancelled) setLoaded(true)
     })
     return () => { cancelled = true }
-  }, [isProTier])
+  }, [isProTier, integrationId])
 
   const toggle = async () => {
-    if (saving || !isProTier) return
+    if (saving || !isProTier || !integrationId) return
     const next = !enabled
     setSaving(true)
     setEnabled(next)
@@ -197,7 +200,7 @@ function AutoScanCard({ t, locale, isProTier }) {
       const res = await fetch('/api/auto-scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: next }),
+        body: JSON.stringify({ integrationId, enabled: next }),
       })
       const d = await res.json()
       if (!res.ok) setEnabled(!next)
@@ -2100,7 +2103,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                 <GoogleAISection t={t} locale={locale} prompts={prompts} activeCompany={activeCompany} onScanComplete={() => { fetchData(); setActiveTab('prompts') }} googleAiMode={googleAiMode} googleAiOverview={googleAiOverview} isPro={isPro} />
               )}
 
-              <AutoScanCard t={t} locale={locale} isProTier={isProTier} />
+              <AutoScanCard t={t} locale={locale} isProTier={isProTier} integrationId={activeCompany?.id} />
 
               {/* Hero-banner: nog geen GEO Analyse gedaan voor dit bedrijf?
                   Hoog op de pagina prominent een CTA tonen, want de score is
