@@ -589,6 +589,10 @@
   .blogContent ol ol li::before {
     font-size: 13px;
   }
+  .onderwerp {
+  padding-left: 1.6em;
+  text-indent: -1.6em;
+  }
 
   /* CHECKLIST MOBILE */
   .blogContent ul:global(.wp-block-list):global(.checklist) li,
