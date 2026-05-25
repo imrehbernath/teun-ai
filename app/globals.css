@@ -10394,6 +10394,14 @@ html {
   margin: 0 0 18px;
   flex: 1;
 }
+.oo-team-links {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+  flex-wrap: wrap;
+}
 .oo-team-linkedin {
   display: inline-flex;
   align-items: center;
@@ -10402,11 +10410,32 @@ html {
   font-weight: 600;
   color: var(--ink-3);
   text-decoration: none;
-  margin-top: auto;
   transition: color 0.15s;
 }
 .oo-team-linkedin:hover {
   color: var(--spark);
+}
+.oo-team-name-link {
+  text-decoration: none;
+  color: inherit;
+  display: inline-block;
+  transition: color 0.15s;
+}
+.oo-team-name-link:hover .oo-team-name {
+  color: var(--spark);
+}
+.oo-team-profile-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--spark);
+  text-decoration: none;
+  transition: gap 0.15s;
+}
+.oo-team-profile-link:hover {
+  gap: 8px;
 }
 
 /* ============================================
