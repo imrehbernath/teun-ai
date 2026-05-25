@@ -590,8 +590,8 @@
     font-size: 13px;
   }
  :global(p.onderwerp.wp-block-paragraph) {
-  padding-left: 1.6em;
-  text-indent: -1.6em;
+  padding-left: 1.3em;
+  text-indent: -1.3em;
   }
 
   /* CHECKLIST MOBILE */
