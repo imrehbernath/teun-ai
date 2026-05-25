@@ -589,7 +589,7 @@
   .blogContent ol ol li::before {
     font-size: 13px;
   }
-  .onderwerp {
+ :global(p.onderwerp.wp-block-paragraph) {
   padding-left: 1.6em;
   text-indent: -1.6em;
   }
