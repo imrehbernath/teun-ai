@@ -60,34 +60,84 @@ function buildConfirmUrl(siteUrl, tokenHash, actionType, redirectTo) {
 // EMAIL TEMPLATES (NL + EN)
 // ═══════════════════════════════════════════════
 
+// Design tokens (mirror van app/globals.css)
+const COLORS = {
+  cream: '#FAF7F2',
+  cream2: '#F2ECDF',
+  navy: '#1A2B5E',
+  ink: '#0F1730',
+  ink2: '#3A4465',
+  ink3: '#6B7391',
+  spark: '#E8623A',
+  sparkSoft: '#F4C9B5',
+  line: 'rgba(15,23,48,0.08)',
+}
+
+const FONT_SANS = `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Poppins',sans-serif`
+const FONT_SERIF = `'Lora',Georgia,'Times New Roman',serif`
+
+function highlight(phrase) {
+  return `<em style="font-style:italic;background-image:linear-gradient(transparent 70%, ${COLORS.sparkSoft} 70%, ${COLORS.sparkSoft} 92%, transparent 92%);padding:0 2px;">${phrase}</em>`
+}
+
+function heading(html) {
+  return `<h1 style="margin:0 0 14px;color:${COLORS.ink};font-family:${FONT_SERIF};font-size:26px;font-weight:600;line-height:1.25;letter-spacing:-0.01em;">${html}</h1>`
+}
+
+function paragraph(html, bottom = 14) {
+  return `<p style="margin:0 0 ${bottom}px;color:${COLORS.ink2};font-size:15px;line-height:1.65;font-family:${FONT_SANS};">${html}</p>`
+}
+
+function fallbackLink(label, url) {
+  return `<p style="margin:24px 0 4px;color:${COLORS.ink3};font-size:12px;font-family:${FONT_SANS};">${label}</p>
+      <p style="margin:0 0 18px;color:${COLORS.navy};font-size:11px;word-break:break-all;font-family:${FONT_SANS};">${url}</p>`
+}
+
+function note(text) {
+  return `<p style="margin:8px 0 0;color:${COLORS.ink3};font-size:12px;line-height:1.6;font-family:${FONT_SANS};">${text}</p>`
+}
+
+function ctaButton(url, label) {
+  return `<table cellpadding="0" cellspacing="0" role="presentation" style="margin:24px 0 8px;">
+    <tr>
+      <td style="background:${COLORS.spark};border-radius:10px;">
+        <a href="${url}" style="display:inline-block;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 30px;font-family:${FONT_SANS};letter-spacing:0.2px;">${label}</a>
+      </td>
+    </tr>
+  </table>`
+}
+
 function emailWrapper(content) {
   return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light only">
+  <meta name="supported-color-schemes" content="light">
 </head>
-<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:40px 20px;">
+<body style="margin:0;padding:0;background:${COLORS.cream};font-family:${FONT_SANS};color:${COLORS.ink};">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:${COLORS.cream};padding:40px 20px;">
     <tr>
       <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;">
-          <!-- Header -->
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width:560px;background:#ffffff;border-radius:20px;border:1px solid ${COLORS.line};overflow:hidden;">
+          <!-- Header met mascotte -->
           <tr>
-            <td style="background:linear-gradient(135deg,#292956,#3d3d7a);padding:28px 32px;text-align:center;">
-              <span style="color:#ffffff!important;font-size:22px;font-weight:700;letter-spacing:0.5px;text-decoration:none;">TEUN<span style="color:#ffffff!important;">&#8203;.AI</span></span>
+            <td style="background:${COLORS.cream2};padding:36px 32px 24px;text-align:center;border-bottom:1px solid ${COLORS.line};">
+              <img src="https://teun.ai/teun-ai-mascotte-mail.png" alt="Teun" width="120" height="120" style="display:block;margin:0 auto 12px;border:0;outline:none;text-decoration:none;width:120px;max-width:120px;height:auto;">
+              <div style="font-family:${FONT_SERIF};font-size:20px;font-weight:600;color:${COLORS.navy};letter-spacing:0.2px;">Teun<span style="color:${COLORS.spark};font-style:italic;">.ai</span></div>
             </td>
           </tr>
           <!-- Content -->
           <tr>
-            <td style="padding:32px;">
+            <td style="padding:36px 36px 28px;">
               ${content}
             </td>
           </tr>
           <!-- Footer -->
           <tr>
-            <td style="padding:20px 32px;background:#f8fafc;border-top:1px solid #e2e8f0;text-align:center;">
-              <p style="margin:0;color:#94a3b8;font-size:12px;">
+            <td style="padding:20px 32px 24px;background:${COLORS.cream};border-top:1px solid ${COLORS.line};text-align:center;">
+              <p style="margin:0;color:${COLORS.ink3};font-size:12px;font-family:${FONT_SANS};">
                 Teun.ai, Herengracht 221, Amsterdam
               </p>
             </td>
@@ -100,47 +150,27 @@ function emailWrapper(content) {
 </html>`
 }
 
-function ctaButton(url, label) {
-  return `<table cellpadding="0" cellspacing="0" style="margin:28px 0;">
-    <tr>
-      <td style="background:linear-gradient(to right,#292956,#3d3d7a);border-radius:10px;padding:14px 28px;">
-        <a href="${url}" style="color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;display:inline-block;">${label}</a>
-      </td>
-    </tr>
-  </table>`
-}
-
 // ── SIGNUP CONFIRMATION ──
 
 const signupTemplates = {
   nl: (url) => ({
     subject: 'Bevestig je account bij Teun.ai',
     html: emailWrapper(`
-      <h2 style="margin:0 0 8px;color:#1e293b;font-size:20px;">Welkom bij Teun.ai!</h2>
-      <p style="color:#64748b;font-size:15px;line-height:1.6;margin:0 0 4px;">
-        Leuk dat je er bent. Klik op de knop hieronder om je emailadres te bevestigen en direct te starten met het meten van je AI-zichtbaarheid.
-      </p>
+      ${heading(`Welkom bij ${highlight('Teun.ai')}`)}
+      ${paragraph('Leuk dat je er bent. Bevestig hieronder je emailadres en start direct met het meten van je AI-zichtbaarheid.')}
       ${ctaButton(url, 'Bevestig emailadres &rarr;')}
-      <p style="color:#94a3b8;font-size:12px;margin:0 0 4px;">Of kopieer deze link naar je browser:</p>
-      <p style="color:#6366f1;font-size:11px;word-break:break-all;margin:0 0 20px;">${url}</p>
-      <p style="color:#94a3b8;font-size:12px;margin:0;">
-        Deze link is 24 uur geldig. Heb je dit niet aangevraagd? Dan kun je deze email negeren.
-      </p>
+      ${fallbackLink('Of kopieer deze link naar je browser:', url)}
+      ${note('Deze link is 24 uur geldig. Heb je dit niet aangevraagd? Dan kun je deze email negeren.')}
     `),
   }),
   en: (url) => ({
     subject: 'Confirm your Teun.ai account',
     html: emailWrapper(`
-      <h2 style="margin:0 0 8px;color:#1e293b;font-size:20px;">Welcome to Teun.ai!</h2>
-      <p style="color:#64748b;font-size:15px;line-height:1.6;margin:0 0 4px;">
-        Great to have you on board. Click the button below to confirm your email and start measuring your AI visibility.
-      </p>
+      ${heading(`Welcome to ${highlight('Teun.ai')}`)}
+      ${paragraph('Great to have you on board. Confirm your email below and start measuring your AI visibility right away.')}
       ${ctaButton(url, 'Confirm email &rarr;')}
-      <p style="color:#94a3b8;font-size:12px;margin:0 0 4px;">Or copy this link to your browser:</p>
-      <p style="color:#6366f1;font-size:11px;word-break:break-all;margin:0 0 20px;">${url}</p>
-      <p style="color:#94a3b8;font-size:12px;margin:0;">
-        This link is valid for 24 hours. If you didn't request this, you can safely ignore this email.
-      </p>
+      ${fallbackLink('Or copy this link to your browser:', url)}
+      ${note(`This link is valid for 24 hours. If you didn't request this, you can safely ignore this email.`)}
     `),
   }),
 }
@@ -151,27 +181,21 @@ const magicLinkTemplates = {
   nl: (url) => ({
     subject: 'Inloggen bij Teun.ai',
     html: emailWrapper(`
-      <h2 style="margin:0 0 8px;color:#1e293b;font-size:20px;">Inloggen bij Teun.ai</h2>
-      <p style="color:#64748b;font-size:15px;line-height:1.6;margin:0 0 4px;">
-        Welkom terug! Klik op de knop hieronder om veilig in te loggen.
-      </p>
+      ${heading(`Inloggen bij ${highlight('Teun.ai')}`)}
+      ${paragraph('Welkom terug. Klik op de knop hieronder om veilig in te loggen.')}
       ${ctaButton(url, 'Inloggen &rarr;')}
-      <p style="color:#94a3b8;font-size:12px;margin:0;">
-        Deze link is 1 uur geldig. Heb je dit niet aangevraagd? Dan kun je deze email negeren.
-      </p>
+      ${fallbackLink('Of kopieer deze link naar je browser:', url)}
+      ${note('Deze link is 1 uur geldig. Heb je dit niet aangevraagd? Dan kun je deze email negeren.')}
     `),
   }),
   en: (url) => ({
     subject: 'Log in to Teun.ai',
     html: emailWrapper(`
-      <h2 style="margin:0 0 8px;color:#1e293b;font-size:20px;">Log in to Teun.ai</h2>
-      <p style="color:#64748b;font-size:15px;line-height:1.6;margin:0 0 4px;">
-        Welcome back! Click the button below to securely log in.
-      </p>
+      ${heading(`Log in to ${highlight('Teun.ai')}`)}
+      ${paragraph('Welcome back. Click the button below to securely log in.')}
       ${ctaButton(url, 'Log in &rarr;')}
-      <p style="color:#94a3b8;font-size:12px;margin:0;">
-        This link is valid for 1 hour. If you didn't request this, you can safely ignore this email.
-      </p>
+      ${fallbackLink('Or copy this link to your browser:', url)}
+      ${note(`This link is valid for 1 hour. If you didn't request this, you can safely ignore this email.`)}
     `),
   }),
 }
@@ -182,27 +206,21 @@ const recoveryTemplates = {
   nl: (url) => ({
     subject: 'Wachtwoord resetten - Teun.ai',
     html: emailWrapper(`
-      <h2 style="margin:0 0 8px;color:#1e293b;font-size:20px;">Wachtwoord resetten</h2>
-      <p style="color:#64748b;font-size:15px;line-height:1.6;margin:0 0 4px;">
-        Je hebt een verzoek ingediend om je wachtwoord te resetten. Klik op de knop hieronder om een nieuw wachtwoord in te stellen.
-      </p>
+      ${heading(`Wachtwoord ${highlight('resetten')}`)}
+      ${paragraph('Je hebt een verzoek ingediend om je wachtwoord te resetten. Stel hieronder een nieuw wachtwoord in.')}
       ${ctaButton(url, 'Wachtwoord resetten &rarr;')}
-      <p style="color:#94a3b8;font-size:12px;margin:0;">
-        Deze link is 1 uur geldig. Heb je dit niet zelf aangevraagd? Dan kun je deze email negeren en blijft je wachtwoord ongewijzigd.
-      </p>
+      ${fallbackLink('Of kopieer deze link naar je browser:', url)}
+      ${note('Deze link is 1 uur geldig. Heb je dit niet zelf aangevraagd? Dan kun je deze email negeren en blijft je wachtwoord ongewijzigd.')}
     `),
   }),
   en: (url) => ({
     subject: 'Reset your password - Teun.ai',
     html: emailWrapper(`
-      <h2 style="margin:0 0 8px;color:#1e293b;font-size:20px;">Reset your password</h2>
-      <p style="color:#64748b;font-size:15px;line-height:1.6;margin:0 0 4px;">
-        You requested a password reset. Click the button below to set a new password.
-      </p>
+      ${heading(`${highlight('Reset')} your password`)}
+      ${paragraph('You requested a password reset. Set a new password below.')}
       ${ctaButton(url, 'Reset password &rarr;')}
-      <p style="color:#94a3b8;font-size:12px;margin:0;">
-        This link is valid for 1 hour. If you didn't request this, you can safely ignore this email and your password will remain unchanged.
-      </p>
+      ${fallbackLink('Or copy this link to your browser:', url)}
+      ${note(`This link is valid for 1 hour. If you didn't request this, you can safely ignore this email and your password will remain unchanged.`)}
     `),
   }),
 }
@@ -213,33 +231,23 @@ const emailChangeTemplates = {
   nl: (url, currentEmail, newEmail) => ({
     subject: 'Bevestig je nieuwe emailadres - Teun.ai',
     html: emailWrapper(`
-      <h2 style="margin:0 0 8px;color:#1e293b;font-size:20px;">Bevestig je nieuwe emailadres</h2>
-      <p style="color:#64748b;font-size:15px;line-height:1.6;margin:0 0 4px;">
-        Je hebt een verzoek ingediend om je emailadres te wijzigen${currentEmail ? ` van <strong>${currentEmail}</strong>` : ''}${newEmail ? ` naar <strong>${newEmail}</strong>` : ''}.
-      </p>
-      <p style="color:#64748b;font-size:15px;line-height:1.6;margin:0 0 4px;">
-        Klik op de knop hieronder om deze wijziging te bevestigen.
-      </p>
+      ${heading(`Bevestig je ${highlight('nieuwe')} emailadres`)}
+      ${paragraph(`Je hebt een verzoek ingediend om je emailadres te wijzigen${currentEmail ? ` van <strong style="color:${COLORS.ink};">${currentEmail}</strong>` : ''}${newEmail ? ` naar <strong style="color:${COLORS.ink};">${newEmail}</strong>` : ''}.`)}
+      ${paragraph('Klik op de knop hieronder om deze wijziging te bevestigen.')}
       ${ctaButton(url, 'Emailadres wijzigen &rarr;')}
-      <p style="color:#94a3b8;font-size:12px;margin:0;">
-        Deze link is 1 uur geldig. Heb je deze wijziging niet zelf aangevraagd? Neem dan direct contact met ons op.
-      </p>
+      ${fallbackLink('Of kopieer deze link naar je browser:', url)}
+      ${note('Deze link is 1 uur geldig. Heb je deze wijziging niet zelf aangevraagd? Neem dan direct contact met ons op.')}
     `),
   }),
   en: (url, currentEmail, newEmail) => ({
     subject: 'Confirm your new email - Teun.ai',
     html: emailWrapper(`
-      <h2 style="margin:0 0 8px;color:#1e293b;font-size:20px;">Confirm your new email address</h2>
-      <p style="color:#64748b;font-size:15px;line-height:1.6;margin:0 0 4px;">
-        You requested to change your email address${currentEmail ? ` from <strong>${currentEmail}</strong>` : ''}${newEmail ? ` to <strong>${newEmail}</strong>` : ''}.
-      </p>
-      <p style="color:#64748b;font-size:15px;line-height:1.6;margin:0 0 4px;">
-        Click the button below to confirm this change.
-      </p>
+      ${heading(`Confirm your ${highlight('new')} email address`)}
+      ${paragraph(`You requested to change your email address${currentEmail ? ` from <strong style="color:${COLORS.ink};">${currentEmail}</strong>` : ''}${newEmail ? ` to <strong style="color:${COLORS.ink};">${newEmail}</strong>` : ''}.`)}
+      ${paragraph('Click the button below to confirm this change.')}
       ${ctaButton(url, 'Confirm email change &rarr;')}
-      <p style="color:#94a3b8;font-size:12px;margin:0;">
-        This link is valid for 1 hour. If you didn't request this change, please contact us immediately.
-      </p>
+      ${fallbackLink('Or copy this link to your browser:', url)}
+      ${note(`This link is valid for 1 hour. If you didn't request this change, please contact us immediately.`)}
     `),
   }),
 }
