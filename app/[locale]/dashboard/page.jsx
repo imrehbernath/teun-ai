@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import DashboardClient from './DashboardClient'
 
-const translations = {
+export const translations = {
   nl: {
     title: 'Dashboard',
     subtitle: 'AI-zichtbaarheid op een plek',

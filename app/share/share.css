@@ -1,0 +1,325 @@
+/* ============================================
+   Dashboard Layout — hide site chrome
+   ============================================ */
+.teun-dashboard-layout {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* Hide parent nav/header — adjust selectors to match your actual header element */
+.teun-dashboard-layout ~ header,
+.teun-dashboard-layout ~ nav,
+.teun-dashboard-layout ~ footer,
+body:has(.teun-dashboard-layout) > header,
+body:has(.teun-dashboard-layout) > nav,
+body:has(.teun-dashboard-layout) > footer,
+body:has(.teun-dashboard-layout) header:not(.teun-dashboard-layout *),
+body:has(.teun-dashboard-layout) > div > header,
+body:has(.teun-dashboard-layout) > div > nav,
+body:has(.teun-dashboard-layout) > div > footer {
+  display: none !important;
+}
+
+/* Site header has class .teun-header in template.js — hide it explicitly */
+body:has(.teun-dashboard-layout) .teun-header,
+body.dashboard-active .teun-header {
+  display: none !important;
+}
+
+/* Also hide via the dashboard-active body class (added by DashboardClient) */
+body.dashboard-active > header,
+body.dashboard-active > nav,
+body.dashboard-active > footer,
+body.dashboard-active > div > header,
+body.dashboard-active > div > nav,
+body.dashboard-active > div > footer {
+  display: none !important;
+}
+
+/* ============================================
+   Dashboard cream/Lora refresh
+   Only targets body.dashboard-active scope
+   No JSX changes — pure visual override layer
+   ============================================ */
+
+body.dashboard-active {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* ── Root layout container ── */
+body.dashboard-active .min-h-screen.bg-slate-50 {
+  background: var(--bg) !important;
+}
+
+body.dashboard-active .bg-slate-50,
+body.dashboard-active .bg-slate-50\/80 {
+  background: var(--bg) !important;
+}
+body.dashboard-active .bg-slate-100 {
+  background: var(--bg-2) !important;
+}
+
+/* ── Sidebar ── */
+body.dashboard-active aside.fixed.left-0.top-0 {
+  background: #FCFAF5 !important;
+  border-right: 1px solid var(--line, rgba(15, 23, 48, 0.08)) !important;
+}
+/* The thin accent strip at top of sidebar */
+body.dashboard-active aside.fixed > div.h-1 {
+  background: var(--spark) !important;
+}
+
+/* Override hardcoded inline #fafaf8 sidebar bg */
+body.dashboard-active aside.fixed.left-0[style*="fafaf8"],
+body.dashboard-active aside.fixed.left-0[style*="#fafaf8"] {
+  background: #FCFAF5 !important;
+}
+
+/* Keep navy for logo and company avatar (inline background #292956). Specifiek
+   matchen op background, anders raakt deze regel ook actieve nav-buttons waar
+   #292956 alleen als color/border-color staat. */
+body.dashboard-active aside.fixed.left-0 [style*="background:#292956"],
+body.dashboard-active aside.fixed.left-0 [style*="background: #292956"],
+body.dashboard-active aside.fixed.left-0 [style*="background-color:#292956"],
+body.dashboard-active aside.fixed.left-0 [style*="background-color: #292956"] {
+  background: var(--navy) !important;
+}
+/* Logo text — navy on cream is correct */
+body.dashboard-active aside.fixed.left-0 a [style*="color: #292956"],
+body.dashboard-active aside.fixed.left-0 a [style*="color:#292956"] {
+  color: var(--navy) !important;
+  background: transparent !important;
+}
+
+/* Active sidebar nav item — blue/indigo → spark, stays on light bg */
+body.dashboard-active aside.fixed.left-0 .bg-blue-50,
+body.dashboard-active aside.fixed.left-0 .bg-indigo-50 {
+  background: rgba(232, 98, 58, 0.08) !important;
+}
+body.dashboard-active aside.fixed.left-0 .text-blue-600,
+body.dashboard-active aside.fixed.left-0 .text-blue-700,
+body.dashboard-active aside.fixed.left-0 .text-indigo-600,
+body.dashboard-active aside.fixed.left-0 .text-indigo-700 {
+  color: var(--spark) !important;
+}
+body.dashboard-active aside.fixed.left-0 .border-blue-200,
+body.dashboard-active aside.fixed.left-0 .border-indigo-200 {
+  border-color: rgba(232, 98, 58, 0.3) !important;
+}
+
+/* Sidebar hover */
+body.dashboard-active aside.fixed.left-0 .hover\:bg-slate-50:hover,
+body.dashboard-active aside.fixed.left-0 .hover\:bg-slate-100:hover {
+  background: rgba(15, 23, 48, 0.04) !important;
+}
+
+/* ── Card surfaces ── */
+body.dashboard-active .bg-white {
+  background: #fff !important;
+}
+body.dashboard-active .border-slate-200 {
+  border-color: var(--line, rgba(15, 23, 48, 0.08)) !important;
+}
+body.dashboard-active .border-slate-100 {
+  border-color: rgba(15, 23, 48, 0.05) !important;
+}
+body.dashboard-active .border-slate-50 {
+  border-color: rgba(15, 23, 48, 0.04) !important;
+}
+
+body.dashboard-active .divide-slate-50 > * + * {
+  border-color: rgba(15, 23, 48, 0.05) !important;
+}
+body.dashboard-active .divide-slate-100 > * + * {
+  border-color: rgba(15, 23, 48, 0.06) !important;
+}
+
+/* Slightly warmer shadow on dashboard cards */
+body.dashboard-active .shadow-sm {
+  box-shadow: 0 2px 6px -2px rgba(15, 23, 48, 0.06) !important;
+}
+body.dashboard-active .shadow,
+body.dashboard-active .shadow-md {
+  box-shadow: 0 8px 18px -8px rgba(15, 23, 48, 0.10) !important;
+}
+body.dashboard-active .shadow-lg,
+body.dashboard-active .shadow-xl {
+  box-shadow: 0 14px 30px -12px rgba(15, 23, 48, 0.16) !important;
+}
+
+/* Border radius — subtle warmth */
+body.dashboard-active .rounded-xl { border-radius: 14px !important; }
+body.dashboard-active .rounded-2xl { border-radius: 18px !important; }
+body.dashboard-active .rounded-lg { border-radius: 10px !important; }
+
+/* ── Text colors ── */
+body.dashboard-active .text-slate-900 {
+  color: var(--ink) !important;
+}
+body.dashboard-active .text-slate-800,
+body.dashboard-active .text-slate-700 {
+  color: var(--ink-2) !important;
+}
+body.dashboard-active .text-slate-600,
+body.dashboard-active .text-slate-500 {
+  color: var(--ink-2) !important;
+}
+body.dashboard-active .text-slate-400,
+body.dashboard-active .text-slate-300 {
+  color: var(--ink-3) !important;
+}
+
+/* ── Accent colors: blue/indigo → spark ── */
+body.dashboard-active .text-blue-600,
+body.dashboard-active .text-blue-700,
+body.dashboard-active .text-blue-800,
+body.dashboard-active .text-indigo-600,
+body.dashboard-active .text-indigo-700,
+body.dashboard-active .text-indigo-800 {
+  color: var(--spark) !important;
+}
+body.dashboard-active .hover\:text-blue-700:hover,
+body.dashboard-active .hover\:text-blue-800:hover,
+body.dashboard-active .hover\:text-indigo-700:hover,
+body.dashboard-active .hover\:text-indigo-800:hover {
+  color: var(--spark) !important;
+  filter: brightness(0.92);
+}
+
+body.dashboard-active .bg-blue-50,
+body.dashboard-active .bg-indigo-50 {
+  background: rgba(232, 98, 58, 0.06) !important;
+}
+body.dashboard-active .bg-blue-100,
+body.dashboard-active .bg-indigo-100 {
+  background: rgba(232, 98, 58, 0.12) !important;
+}
+body.dashboard-active .border-blue-200,
+body.dashboard-active .border-indigo-200 {
+  border-color: rgba(232, 98, 58, 0.25) !important;
+}
+
+/* Primary CTA buttons */
+body.dashboard-active .bg-blue-600,
+body.dashboard-active .bg-blue-700,
+body.dashboard-active .bg-indigo-600,
+body.dashboard-active .bg-indigo-700 {
+  background: var(--spark) !important;
+}
+body.dashboard-active .hover\:bg-blue-700:hover,
+body.dashboard-active .hover\:bg-blue-800:hover,
+body.dashboard-active .hover\:bg-indigo-700:hover,
+body.dashboard-active .hover\:bg-indigo-800:hover {
+  background: #d44a26 !important;
+}
+
+/* Gradients (most are blue→indigo) → soft cream-to-spark */
+body.dashboard-active .from-blue-50 { --tw-gradient-from: rgba(232, 98, 58, 0.08) !important; }
+body.dashboard-active .to-indigo-50 { --tw-gradient-to: rgba(232, 98, 58, 0.04) !important; }
+body.dashboard-active .from-indigo-50 { --tw-gradient-from: rgba(232, 98, 58, 0.06) !important; }
+body.dashboard-active .from-slate-50 { --tw-gradient-from: var(--bg) !important; }
+body.dashboard-active .to-slate-50 { --tw-gradient-to: var(--bg) !important; }
+body.dashboard-active .via-white { --tw-gradient-via: var(--bg) !important; }
+
+/* Status colors blijven semantisch — green/amber/red houden we functioneel,
+   wel een warmere tint zodat het bij de cream blijft passen */
+body.dashboard-active .bg-emerald-50 { background: rgba(16, 185, 129, 0.08) !important; }
+body.dashboard-active .border-emerald-200 { border-color: rgba(16, 185, 129, 0.3) !important; }
+body.dashboard-active .text-emerald-600,
+body.dashboard-active .text-emerald-700 { color: var(--success) !important; }
+
+body.dashboard-active .bg-amber-50 { background: rgba(245, 158, 11, 0.08) !important; }
+body.dashboard-active .bg-orange-50 { background: rgba(232, 98, 58, 0.08) !important; }
+body.dashboard-active .border-amber-200 { border-color: rgba(245, 158, 11, 0.3) !important; }
+
+body.dashboard-active .bg-red-50 { background: rgba(214, 69, 69, 0.06) !important; }
+body.dashboard-active .border-red-200 { border-color: rgba(214, 69, 69, 0.25) !important; }
+body.dashboard-active .text-red-600,
+body.dashboard-active .text-red-700 { color: var(--danger) !important; }
+
+/* ── Lora typography for major headers and big numbers ── */
+body.dashboard-active h1 {
+  font-family: var(--font-lora), serif !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+body.dashboard-active h2 {
+  font-family: var(--font-lora), serif !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+/* Big stat numbers — text-3xl, text-4xl, text-5xl typically used for KPIs */
+body.dashboard-active .text-3xl,
+body.dashboard-active .text-4xl,
+body.dashboard-active .text-5xl {
+  font-family: var(--font-lora), serif !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.015em !important;
+}
+
+/* Italic accents (Lora italic = spark color) inside dashboard headers */
+body.dashboard-active h1 em,
+body.dashboard-active h2 em,
+body.dashboard-active .text-3xl em,
+body.dashboard-active .text-4xl em,
+body.dashboard-active .text-5xl em {
+  font-style: italic;
+  color: var(--spark);
+}
+
+/* Body font: keep DM Sans (already set inline by component) — only override headers */
+
+/* ── Inputs and selects ── */
+body.dashboard-active input[type="text"],
+body.dashboard-active input[type="url"],
+body.dashboard-active input[type="email"],
+body.dashboard-active input[type="search"],
+body.dashboard-active select,
+body.dashboard-active textarea {
+  background: #fff !important;
+  border-color: var(--line, rgba(15, 23, 48, 0.10)) !important;
+  color: var(--ink);
+}
+body.dashboard-active input:focus,
+body.dashboard-active select:focus,
+body.dashboard-active textarea:focus {
+  border-color: var(--spark) !important;
+  box-shadow: 0 0 0 3px rgba(232, 98, 58, 0.12) !important;
+  outline: none !important;
+}
+
+/* Focus ring overrides (Tailwind ring colors) */
+body.dashboard-active .focus\:ring-blue-500:focus,
+body.dashboard-active .focus\:ring-indigo-500:focus {
+  --tw-ring-color: rgba(232, 98, 58, 0.35) !important;
+}
+body.dashboard-active .focus\:border-blue-500:focus,
+body.dashboard-active .focus\:border-indigo-500:focus {
+  border-color: var(--spark) !important;
+}
+
+/* ── Subtle scrollbar in cream tone ── */
+body.dashboard-active ::-webkit-scrollbar { width: 10px; height: 10px; }
+body.dashboard-active ::-webkit-scrollbar-track { background: var(--bg-2); }
+body.dashboard-active ::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 48, 0.18);
+  border-radius: 6px;
+  border: 2px solid var(--bg-2);
+}
+body.dashboard-active ::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 48, 0.28);
+}
+
+/* ── Charts: recharts uses inline SVG — softer grid lines ── */
+body.dashboard-active .recharts-cartesian-grid line {
+  stroke: rgba(15, 23, 48, 0.06) !important;
+}
+body.dashboard-active .recharts-text {
+  fill: var(--ink-3) !important;
+  font-size: 11px;
+}

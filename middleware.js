@@ -43,6 +43,7 @@ export default function middleware(request) {
     '/GEO-',
     '/og-image',
     '/Teun-ai-logo',
+    '/share/',
   ];
 
   if (skipPaths.some((path) => pathname.startsWith(path))) {

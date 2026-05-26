@@ -342,18 +342,61 @@ function processGoogleAiResults(scans, companyName) {
 export async function GET(request) {
   try {
     const supabase = await createClient()
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Niet ingelogd' }, { status: 401 })
-    }
-
     const { searchParams } = new URL(request.url)
-    const companyName = searchParams.get('company')
+    const shareToken = searchParams.get('share_token')
     const period = searchParams.get('period') || '30d'
 
-    // Service client for data queries (bypasses RLS — auth already verified above)
+    // Service client for data queries (bypasses RLS — auth check happens hieronder).
     const db = await createServiceClient()
+
+    // Twee toegangs-paden: ingelogde user OF publieke share-token (read-only,
+    // gefilterd op één company van de owner).
+    let user
+    let shareContext = null
+
+    if (shareToken) {
+      const { data: shareRow } = await db
+        .from('shared_access')
+        .select('id, owner_id, company_name, website, note, expires_at, is_active, view_count, created_at')
+        .eq('share_token', shareToken)
+        .maybeSingle()
+
+      if (!shareRow || shareRow.is_active === false) {
+        return NextResponse.json({ error: 'Share niet gevonden' }, { status: 404 })
+      }
+      if (shareRow.expires_at && new Date(shareRow.expires_at) < new Date()) {
+        return NextResponse.json({ error: 'Share verlopen' }, { status: 410 })
+      }
+
+      shareContext = {
+        id: shareRow.id,
+        ownerId: shareRow.owner_id,
+        companyName: shareRow.company_name,
+        website: shareRow.website,
+        note: shareRow.note,
+        expiresAt: shareRow.expires_at,
+        createdAt: shareRow.created_at,
+      }
+      user = { id: shareRow.owner_id, email: null }
+
+      // Bump view stats (fire-and-forget; logging error is genoeg).
+      db.from('shared_access')
+        .update({
+          last_viewed_at: new Date().toISOString(),
+          view_count: (shareRow.view_count || 0) + 1,
+        })
+        .eq('id', shareRow.id)
+        .then(({ error }) => { if (error) console.error('[Dashboard] share view bump error:', error?.message) })
+    } else {
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+      if (authError || !authUser) {
+        return NextResponse.json({ error: 'Niet ingelogd' }, { status: 401 })
+      }
+      user = authUser
+    }
+
+    // In share-mode forceren we company op de share-row, anders mag query-string sturen.
+    const companyName = shareContext?.companyName || searchParams.get('company')
 
     const now = new Date()
     const daysBack = period === '7d' ? 7 : period === '90d' ? 90 : 30
@@ -383,15 +426,20 @@ export async function GET(request) {
       .limit(5)
 
     // Deduplicate companies
-    const uniqueCompanies = []
+    const uniqueCompaniesAll = []
     const seenCompanies = new Set()
     for (const c of (allIntegrations || [])) {
       const key = c.company_name?.toLowerCase()
       if (key && !seenCompanies.has(key)) {
         seenCompanies.add(key)
-        uniqueCompanies.push({ company_name: c.company_name, website: c.website, company_category: c.company_category })
+        uniqueCompaniesAll.push({ company_name: c.company_name, website: c.website, company_category: c.company_category })
       }
     }
+
+    // In share-mode laat de switcher alléén de gedeelde company zien.
+    const uniqueCompanies = shareContext
+      ? uniqueCompaniesAll.filter(c => c.company_name?.toLowerCase() === shareContext.companyName?.toLowerCase())
+      : uniqueCompaniesAll
 
     const activeCompanyName = companyName || uniqueCompanies[0]?.company_name || null
     const integrations = activeCompanyName
@@ -754,7 +802,17 @@ export async function GET(request) {
     }
 
     return NextResponse.json({
-      user: { id: user.id, email: user.email, fullName: profile?.full_name || null, companyName: profile?.company_name || null },
+      shareMode: !!shareContext,
+      shareInfo: shareContext ? {
+        companyName: shareContext.companyName,
+        website: shareContext.website,
+        note: shareContext.note,
+        expiresAt: shareContext.expiresAt,
+        ownerName: profile?.full_name || profile?.company_name || null,
+      } : null,
+      user: shareContext
+        ? { id: null, email: null, fullName: null, companyName: profile?.company_name || null }
+        : { id: user.id, email: user.email, fullName: profile?.full_name || null, companyName: profile?.company_name || null },
       companies: uniqueCompanies,
       activeCompany: activeCompanyName ? { id: latestScan?.id || null, name: activeCompanyName, website: activeWebsite, category: latestScan?.company_category || null } : null,
       visibility: adjustedVisibility,

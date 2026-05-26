@@ -701,7 +701,8 @@ function GoogleAISection({ t, locale, prompts, activeCompany, onScanComplete, go
             website,
             prompts: promptTexts,
             aiModeResults,
-            aiOverviewResults
+            aiOverviewResults,
+            integrationId: activeCompany?.id || null
           })
         })
       } catch (e) {
@@ -1376,7 +1377,8 @@ function ScanInProgress({ locale, company, onRefresh }) {
 // ── Main Dashboard ──
 // ═══════════════════════════════════════════════
 
-export default function DashboardClient({ locale, t, userId, userEmail }) {
+export default function DashboardClient({ locale, t, userId, userEmail, shareToken = null }) {
+  const clientMode = !!shareToken
   const [activeTab, setActiveTab] = useState('overview')
   const period = '90d' // Always show all data — period tabs removed
   const [data, setData] = useState(null)
@@ -1450,6 +1452,14 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   useEffect(() => {
     if (claimDone.current) return
 
+    // In share-mode (publieke URL) is er geen auth → claim-session overslaan,
+    // gewoon direct de read-only data ophalen.
+    if (clientMode) {
+      claimDone.current = true
+      fetchData()
+      return
+    }
+
     let claimToken = null
     try {
       const urlParams = new URLSearchParams(window.location.search)
@@ -1486,6 +1496,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
 
   // Detect Chrome extension AND push auth token
   useEffect(() => {
+    if (clientMode) return // share-mode heeft geen auth, niets te pushen
     const supabase = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -1557,6 +1568,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
     try {
       const params = new URLSearchParams({ period })
       if (selectedCompany) params.set('company', selectedCompany)
+      if (shareToken) params.set('share_token', shareToken)
       const res = await fetch(`/api/dashboard?${params}&_t=${Date.now()}`)
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed to fetch')
       const json = await res.json()
@@ -1572,7 +1584,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
       setError(err.message)
     }
     finally { setLoading(false) }
-  }, [selectedCompany])
+  }, [selectedCompany, shareToken])
 
   // Initial fetchData is triggered by claim useEffect above (after claim completes)
   // Re-fetch when selectedCompany changes (after initial load)
@@ -1616,9 +1628,11 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   }, [])
 
   // Laad quota bij eerste mount en bij tab-wissel naar Prompts.
+  // In share-mode (publieke URL) is er geen auth → quota-check skippen.
   useEffect(() => {
+    if (clientMode) return
     if (activeTab === 'prompts') loadAiVisibilityQuota()
-  }, [activeTab, loadAiVisibilityQuota])
+  }, [activeTab, loadAiVisibilityQuota, clientMode])
 
   // Delete a single rank check
   const deleteRankCheck = useCallback(async (rankCheckId) => {
@@ -1757,8 +1771,9 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   useEffect(() => {
     // Ook op de Overview-tab laden zodat de GEO USP-card de huidige score
     // kan tonen i.p.v. de start-CTA wanneer er al een Analyse is gedaan.
+    if (clientMode) return // share-mode: geen auth, geen GEO Analyse fetch
     if ((activeTab === 'geo' || activeTab === 'overview') && isPro) loadGeoAnalyseResults()
-  }, [activeTab, isPro, loadGeoAnalyseResults, selectedCompany])
+  }, [activeTab, isPro, loadGeoAnalyseResults, selectedCompany, clientMode])
 
   const totalFound = visibility.found || 0
   const totalPrompts = visibility.totalPrompts || 0
@@ -1778,13 +1793,19 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
   const initials = data?.user?.fullName ? data.user.fullName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : userEmail?.slice(0, 2).toUpperCase() || '??'
   const companyInitials = activeCompany?.name ? activeCompany.name.split(/[\s-]+/).map(w => w[0]).join('').toUpperCase().slice(0, 2) : '?'
 
-  const tabs = [
-    { id: 'overview', label: t.tabs.overview, Icon: LayoutDashboard },
-    { id: 'prompts', label: t.tabs.prompts, Icon: Search },
-    { id: 'rank-tracker', label: t.tabs?.['rank-tracker'] || 'Rank Tracker', Icon: BarChart3 },
-    { id: 'competitors', label: t.tabs.competitors, Icon: Swords },
-    { id: 'geo', label: t.tabs.geo, Icon: Sparkles },
-  ]
+  const tabs = clientMode
+    ? [
+        { id: 'overview', label: t.tabs.overview, Icon: LayoutDashboard },
+        { id: 'prompts', label: t.tabs.prompts, Icon: Search },
+        { id: 'competitors', label: t.tabs.competitors, Icon: Swords },
+      ]
+    : [
+        { id: 'overview', label: t.tabs.overview, Icon: LayoutDashboard },
+        { id: 'prompts', label: t.tabs.prompts, Icon: Search },
+        { id: 'rank-tracker', label: t.tabs?.['rank-tracker'] || 'Rank Tracker', Icon: BarChart3 },
+        { id: 'competitors', label: t.tabs.competitors, Icon: Swords },
+        { id: 'geo', label: t.tabs.geo, Icon: Sparkles },
+      ]
   const toolLinks = [
     { label: t.sidebar.brandCheck, href: lp(locale, '/tools/brand-check') },
     { label: 'GEO Audit', onClick: () => setActiveTab('audit') },
@@ -1826,17 +1847,17 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
 
           {/* Company switcher */}
           <div className="mx-4 mb-3 relative" data-company-switcher>
-            <button onClick={() => companies.length > 0 && setShowCompanyDropdown(!showCompanyDropdown)} className="w-full p-2.5 rounded-lg bg-white hover:bg-white transition-colors cursor-pointer text-left border border-slate-200 shadow-sm">
+            <button onClick={() => !clientMode && companies.length > 0 && setShowCompanyDropdown(!showCompanyDropdown)} className={`w-full p-2.5 rounded-lg bg-white transition-colors text-left border border-slate-200 shadow-sm ${clientMode ? 'cursor-default' : 'hover:bg-white cursor-pointer'}`}>
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-md flex items-center justify-center text-white text-[11px] font-bold shrink-0" style={{ background: activeCompany ? '#292956' : '#94a3b8' }}>{activeCompany ? companyInitials : '?'}</div>
                 <div className="min-w-0 flex-1">
                   <div className="text-[12px] font-semibold text-slate-800 truncate">{activeCompany?.name || t.selectCompany}</div>
                   {activeCompany?.website && <div className="text-[10px] text-slate-400 truncate">{activeCompany.website}</div>}
                 </div>
-                {companies.length > 1 && <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform ${showCompanyDropdown ? 'rotate-180' : ''}`} />}
+                {!clientMode && companies.length > 1 && <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform ${showCompanyDropdown ? 'rotate-180' : ''}`} />}
               </div>
             </button>
-            {showCompanyDropdown && companies.length > 0 && (
+            {!clientMode && showCompanyDropdown && companies.length > 0 && (
               <div data-co-drop className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg border border-slate-200 py-1 shadow-xl z-[110] max-h-60 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
                 <style>{`[data-co-drop]::-webkit-scrollbar{display:none}`}</style>
                 {companies.map((c, i) => (
@@ -1915,9 +1936,9 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                 </button>
               )
             })}
-            <div className="h-px bg-slate-200 my-3" />
-            <div className="text-[10px] text-slate-400 px-3 mb-2 uppercase tracking-[0.08em] font-semibold">{t.sidebar.tools}</div>
-            {toolLinks.map(item => item.href ? (
+            {!clientMode && <div className="h-px bg-slate-200 my-3" />}
+            {!clientMode && <div className="text-[10px] text-slate-400 px-3 mb-2 uppercase tracking-[0.08em] font-semibold">{t.sidebar.tools}</div>}
+            {!clientMode && toolLinks.map(item => item.href ? (
               <Link key={item.label} href={item.href} className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-slate-500 hover:text-slate-700 hover:bg-white/60 rounded-lg transition-colors no-underline">
                 <ArrowRight className="w-3.5 h-3.5 shrink-0 text-slate-400" /><span className="flex-1">{item.label}</span>
                 {item.tag && <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${item.tag === 'PRO' ? 'text-white' : 'bg-slate-200 text-slate-500'}`} style={item.tag === 'PRO' ? { background: '#292956' } : {}}>{item.tag}</span>}
@@ -1954,6 +1975,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
           </nav>
 
           {/* ── Subscription ── */}
+          {!clientMode && (
           <div className="px-4 py-3 border-t border-slate-200">
             {isPro ? (
               <div>
@@ -2016,14 +2038,28 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
               </Link>
             )}
           </div>
+          )}
 
           {/* User */}
+          {!clientMode && (
           <div className="px-4 py-3 border-t border-slate-200">
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0 text-white" style={{ background: '#292956' }}>{initials}</div>
               <div className="text-[12px] text-slate-600 truncate min-w-0">{userEmail}</div>
             </div>
           </div>
+          )}
+
+          {/* Share-mode footer */}
+          {clientMode && (
+            <div className="px-4 py-3 border-t border-slate-200">
+              <div className="text-[10px] text-slate-400 uppercase tracking-[0.08em] font-semibold mb-1">Gedeeld door</div>
+              <div className="text-[12px] font-semibold text-slate-700">OnlineLabs</div>
+              <a href="https://teun.ai" target="_blank" rel="noopener noreferrer" className="text-[10px] text-slate-400 hover:text-slate-600 no-underline">
+                Powered by Teun.ai
+              </a>
+            </div>
+          )}
         </aside>
 
         {/* ── MAIN ── */}
@@ -2088,6 +2124,27 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
           {/* ════════════ OVERVIEW ════════════ */}
           {activeTab === 'overview' && data && totalPrompts > 0 && ((visibility.chatgptTotal || 0) > 0 || (visibility.perplexityTotal || 0) > 0) && (
             <>
+              {clientMode && data?.shareInfo && (
+                <div className="mb-6 rounded-xl px-5 py-4 border" style={{ background: 'linear-gradient(135deg, #EDE9FE 0%, #DBEAFE 100%)', borderColor: '#C4B5FD60' }}>
+                  <div className="flex items-start gap-3">
+                    <Eye className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#4F46E5' }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] font-semibold text-slate-800">
+                        AI-zichtbaarheidsrapport van {data.shareInfo.companyName}
+                      </div>
+                      <div className="text-[12px] text-slate-600 mt-0.5">
+                        Read-only rapport, gedeeld door {data.shareInfo.ownerName || 'OnlineLabs'} via Teun.ai.
+                        {data.shareInfo.expiresAt && (
+                          <> Geldig tot {new Date(data.shareInfo.expiresAt).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })}.</>
+                        )}
+                      </div>
+                      {data.shareInfo.note && (
+                        <div className="text-[11px] text-slate-500 italic mt-1.5">"{data.shareInfo.note}"</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="flex gap-4 mb-6">
                 <StatCard label={t.stats.visibility} value={`${visibilityPct}%`} sub={`${totalFound}/${totalPrompts} ${t.stats.promptsFound}`} accent="#059669" delta={visibilityDelta} deltaLabel={locale === 'nl' ? 'geen verandering' : 'no change'} />
                 <StatCard label={locale === 'nl' ? 'Platformvermeldingen' : 'Platform hits'} value={totalPlatformHits} sub={`ChatGPT ${chatgptFoundCount}/${totalPrompts} · Perplexity ${perplexityFoundCount}/${totalPrompts}${(googleAiMode.total || 0) > 0 ? ` · AI Mode ${googleAiMode.found || 0}/${googleAiMode.total}` : ''}${(googleAiOverview.total || 0) > 0 ? ` · AI Overview ${googleAiOverview.found || 0}/${googleAiOverview.total}` : ''}`} />
@@ -2099,16 +2156,16 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                   voor deze company, loopt Google AI mee in de prompt-rescan
                   (zie het regeltje "scant ChatGPT, Perplexity en Google AI"
                   bij de Prompts-tab). */}
-              {(googleAiMode.total || 0) === 0 && (googleAiOverview.total || 0) === 0 && (
+              {!clientMode && (googleAiMode.total || 0) === 0 && (googleAiOverview.total || 0) === 0 && (
                 <GoogleAISection t={t} locale={locale} prompts={prompts} activeCompany={activeCompany} onScanComplete={() => { fetchData(); setActiveTab('prompts') }} googleAiMode={googleAiMode} googleAiOverview={googleAiOverview} isPro={isPro} />
               )}
 
-              <AutoScanCard t={t} locale={locale} isProTier={isProTier} integrationId={activeCompany?.id} />
+              {!clientMode && <AutoScanCard t={t} locale={locale} isProTier={isProTier} integrationId={activeCompany?.id} />}
 
               {/* Hero-banner: nog geen GEO Analyse gedaan voor dit bedrijf?
                   Hoog op de pagina prominent een CTA tonen, want de score is
                   de centrale "verbeter"-metric naast de visibility-percentages. */}
-              {!geoAnalyseResults && activeCompany && (
+              {!clientMode && !geoAnalyseResults && activeCompany && (
                 <div className="rounded-xl p-6 mb-6 border" style={{ background: 'linear-gradient(135deg, #EDE9FE 0%, #DBEAFE 100%)', borderColor: '#C4B5FD60' }}>
                   <div className="flex items-center justify-between gap-6 flex-wrap">
                     <div className="flex items-start gap-4 min-w-0 flex-1">
@@ -2204,7 +2261,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-6 items-start">
+              <div className={`grid gap-4 mb-6 items-start ${clientMode ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 {/* Quick Wins */}
                 <div className="bg-white rounded-xl border border-slate-200 p-6">
                   <div className="text-[15px] font-semibold text-slate-800 mb-1">{t.quickWins.title}</div>
@@ -2235,6 +2292,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                 {/* GEO Optimalisatie USP-card — rechtsonder, niet uitgerekt
                     (items-start op de grid hierboven zorgt dat deze zijn natuurlijke
                     hoogte houdt, ongeacht hoe lang Quick Wins is). */}
+                {!clientMode && (
                 <div className="rounded-xl p-6 border flex flex-col" style={{ background: 'linear-gradient(135deg, #EDE9FE, #F5F3FF)', borderColor: '#C4B5FD40' }}>
                   {geoAnalyseResults ? (
                     <>
@@ -2304,6 +2362,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                     </>
                   )}
                 </div>
+                )}
               </div>
             </>
           )}
@@ -2564,7 +2623,7 @@ export default function DashboardClient({ locale, t, userId, userEmail }) {
                 })()}
 
                 {/* Rescan-balk bovenaan, direct zichtbaar zodra er prompts zijn */}
-                {hasPrompts && !rescanning && (
+                {!clientMode && hasPrompts && !rescanning && (
                   <div className="bg-white rounded-xl border border-slate-200 p-4">
                     <div className="flex items-center justify-between gap-3 flex-wrap">
                       <div className="flex flex-col gap-1">
