@@ -247,7 +247,7 @@ export default function PromptExplorer() {
     eyebrow: 'AI PROMPT EXPLORER',
     h1Pre: 'Which prompts do your',
     h1Em: 'potential customers',
-    h1Post: 'use?',
+    h1Post: ' use?',
     subtitle: 'See in 60 seconds what people ask ChatGPT, Perplexity and Google AI Mode about your industry.',
     dataLine: 'Based on 25+ years of Google search data and real-time AI platform monitoring',
     tabKeyword: 'Keyword', tabUrl: 'Website URL',

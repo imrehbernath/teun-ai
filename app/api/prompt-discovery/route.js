@@ -78,48 +78,93 @@ function isGarbagePage(html) {
   return text.length < 300 && !/<h1[^>]*>/i.test(html)
 }
 
-async function scrapeWebsite(url) {
+async function scrapeWebsite(url, lang = 'nl') {
   let norm = url.trim()
   if (!/^https?:\/\//i.test(norm)) norm = 'https://' + norm
   const obj = new URL(norm)
   const www = obj.hostname.startsWith('www.') ? norm : norm.replace('://', '://www.')
 
+  // Geo + Accept-Language stemmen we af op de scan-locale.
+  // NL scan via NL-IP, EN scan via US-IP (anders blokkeren US-WAFs op non-target geo).
+  const countryCode = lang === 'nl' ? 'nl' : 'us'
+  const acceptLanguage = lang === 'nl'
+    ? 'nl-NL,nl;q=0.9,en;q=0.8'
+    : 'en-US,en;q=0.9'
+
+  // ── Tier 1: direct fetch ──
   for (const u of [norm, www]) {
     try {
       const r = await fetch(u, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
           'Accept': 'text/html,application/xhtml+xml',
-          'Accept-Language': 'nl-NL,nl;q=0.9,en;q=0.8',
+          'Accept-Language': acceptLanguage,
         },
         redirect: 'follow',
-        signal: AbortSignal.timeout(10000)
+        signal: AbortSignal.timeout(8000)
       })
       if (r.ok) {
         const html = await r.text()
         if (!isGarbagePage(html) && html.length > 500)
           return { success: true, html, method: 'direct' }
+        console.log(`[scrape] direct ${u}: ok but garbage/short (status ${r.status}, ${html.length} bytes)`)
+      } else {
+        console.log(`[scrape] direct ${u}: HTTP ${r.status}`)
       }
-    } catch (_) {}
+    } catch (e) {
+      console.log(`[scrape] direct ${u}: ${e.name === 'TimeoutError' ? 'timeout' : e.message}`)
+    }
   }
 
   if (!SCRAPER_API_KEY) {
-    console.log('SCRAPER_API_KEY not configured - skipping ScraperAPI')
+    console.log('[scrape] SCRAPER_API_KEY not configured — skipping ScraperAPI')
     return { success: false }
   }
 
-  for (const u of [norm, www]) {
-    try {
-      const r = await fetch(
-        `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(u)}&render=true&premium=true&country_code=nl`,
-        { headers: { 'Accept': 'text/html' }, signal: AbortSignal.timeout(30000) }
-      )
-      if (r.ok) {
-        const html = await r.text()
-        if (!isGarbagePage(html))
-          return { success: true, html, method: 'scraperapi-premium' }
+  // ── Tier 2: ScraperAPI premium (15s). Geen www-retry binnen tier:
+  // bij timeout zou www-variant exact hetzelfde doen.
+  let premiumBlocked = false
+  try {
+    const r = await fetch(
+      `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(norm)}&render=true&premium=true&country_code=${countryCode}`,
+      { headers: { 'Accept': 'text/html' }, signal: AbortSignal.timeout(15000) }
+    )
+    if (r.ok) {
+      const html = await r.text()
+      if (!isGarbagePage(html)) {
+        console.log(`[scrape] scraperapi-premium ${norm}: success (${html.length} bytes)`)
+        return { success: true, html, method: 'scraperapi-premium' }
       }
-    } catch (_) {}
+      // 200 OK + garbage = echte bot-challenge. Ultra heeft kans.
+      premiumBlocked = true
+      console.log(`[scrape] scraperapi-premium ${norm}: ok but garbage (${html.length} bytes) — site blocking, will try ultra`)
+    } else {
+      console.log(`[scrape] scraperapi-premium ${norm}: HTTP ${r.status}`)
+    }
+  } catch (e) {
+    console.log(`[scrape] scraperapi-premium ${norm}: ${e.name === 'TimeoutError' ? 'timeout' : e.message}`)
+  }
+
+  // ── Tier 3: ultra_premium, alleen bij bevestigde challenge-page ──
+  if (!premiumBlocked) return { success: false }
+
+  try {
+    const r = await fetch(
+      `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(norm)}&render=true&ultra_premium=true&country_code=${countryCode}`,
+      { headers: { 'Accept': 'text/html' }, signal: AbortSignal.timeout(20000) }
+    )
+    if (r.ok) {
+      const html = await r.text()
+      if (!isGarbagePage(html)) {
+        console.log(`[scrape] scraperapi-ultra ${norm}: success (${html.length} bytes)`)
+        return { success: true, html, method: 'scraperapi-ultra' }
+      }
+      console.log(`[scrape] scraperapi-ultra ${norm}: ok but garbage (${html.length} bytes)`)
+    } else {
+      console.log(`[scrape] scraperapi-ultra ${norm}: HTTP ${r.status}`)
+    }
+  } catch (e) {
+    console.log(`[scrape] scraperapi-ultra ${norm}: ${e.name === 'TimeoutError' ? 'timeout' : e.message}`)
   }
 
   return { success: false }
@@ -484,7 +529,7 @@ ONLY the JSON array, no extra text.`
     max_tokens: 8000,
     system: systemPrompt,
     messages: [{ role: 'user', content: userPrompt }]
-  })
+  }, { timeout: 45000, maxRetries: 0 })
 
   const text = msg.content[0].text.trim().replace(/^```json?\n?/, '').replace(/\n?```$/, '')
   return JSON.parse(text).map((p, i) => {
@@ -608,7 +653,7 @@ export async function POST(request) {
     // Step 1: Keywords from URL
     if (url) {
       console.log(`Scraping ${url} (output lang: ${lang})`)
-      const scrape = await scrapeWebsite(url)
+      const scrape = await scrapeWebsite(url, lang)
       if (scrape.success) {
         const parsed = parseHtml(scrape.html)
         source = { title: parsed.title, metaDesc: parsed.metaDesc, h1: parsed.h1s[0], method: scrape.method }
@@ -706,6 +751,24 @@ export async function POST(request) {
 
   } catch (err) {
     console.error('Prompt discovery error:', err)
-    return NextResponse.json({ error: 'Er ging iets mis. Probeer het opnieuw.' }, { status: 500, headers: CORS })
+
+    // Frontend locale ophalen uit body (kan undefined zijn bij JSON-parse failure)
+    let lang = 'nl'
+    try { lang = (await request.clone().json()).locale === 'en' ? 'en' : 'nl' } catch (_) {}
+
+    // Anthropic timeout - AI service traag of overbelast
+    const isAnthropicTimeout = err?.name === 'APIConnectionTimeoutError'
+      || /request timed out/i.test(err?.message || '')
+    if (isAnthropicTimeout) {
+      return NextResponse.json({
+        error: lang === 'nl'
+          ? 'Onze AI heeft het even druk. Probeer het over een paar minuten opnieuw.'
+          : 'Our AI is busy right now. Please try again in a few minutes.',
+      }, { status: 504, headers: CORS })
+    }
+
+    return NextResponse.json({
+      error: lang === 'nl' ? 'Er ging iets mis. Probeer het opnieuw.' : 'Something went wrong. Please try again.',
+    }, { status: 500, headers: CORS })
   }
 }
