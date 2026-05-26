@@ -18,13 +18,11 @@ export async function POST(request) {
     await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'noreply@teun.ai',
       to: process.env.RESEND_TO_EMAIL,
-      subject: '🎉 Nieuwe Teun.ai Early Access Aanmelding',
+      subject: 'Nieuwe nieuwsbrief aanmelding',
       html: `
-        <h2>Nieuwe aanmelding voor Early Access!</h2>
+        <h2>Nieuwe nieuwsbrief aanmelding</h2>
         <p><strong>Email:</strong> ${email}</p>
         <p><strong>Datum:</strong> ${new Date().toLocaleString('nl-NL')}</p>
-        <hr>
-        <p><em>Via Teun.ai Coming Soon pagina</em></p>
       `,
     });
 
@@ -32,17 +30,15 @@ export async function POST(request) {
     await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'noreply@teun.ai',
       to: email,
-      subject: 'Welkom bij Teun.ai Early Access 🚀',
+      subject: 'Welkom bij de Teun.ai nieuwsbrief',
       html: `
-        <h2>Bedankt voor je aanmelding!</h2>
-        <p>Hoi daar! 👋</p>
-        <p>Je bent aangemeld voor early access tot <strong>Teun.ai</strong> - het eerste GEO optimalisatie platform van Nederland.</p>
-        <p>We houden je op de hoogte van:</p>
+        <h2>Welkom bij de Teun.ai nieuwsbrief</h2>
+        <p>Hoi daar!</p>
+        <p>Je ontvangt vanaf nu onze nieuwsbrief over AI-zichtbaarheid en GEO. We delen regelmatig:</p>
         <ul>
-          <li>De officiële lancering op 1 januari 2026</li>
-          <li>Exclusieve early access mogelijkheden</li>
-          <li>GEO tips & best practices</li>
-          <li>Nieuwe features en updates</li>
+          <li>GEO tips en best practices</li>
+          <li>Inzichten over AI-zichtbaarheid in ChatGPT, Perplexity en Google AI</li>
+          <li>Updates en nieuwe features van Teun.ai</li>
         </ul>
         <p>Tot snel!</p>
         <p><strong>Team Teun.ai</strong></p>
