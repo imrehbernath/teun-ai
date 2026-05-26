@@ -2,6 +2,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { upsertVisibilityHistoryRow } from '@/lib/visibility-history'
 import { extractCompetitorsFromChatGPT, cleanCompetitorName, isValidCompetitorName, COMPETITOR_EXCLUDE_LIST } from '@/lib/competitor-extract'
+import { stripLegalSuffix } from '@/lib/branche-detect'
 
 export const maxDuration = 60;
 
@@ -51,13 +52,19 @@ function checkCompanyMention(text, companyName, websiteDomain = '') {
   if (!text || !companyName) return false
   const normalizedText = text.toLowerCase()
   const normalizedCompany = companyName.toLowerCase().trim()
-  
+  const strippedCompany = stripLegalSuffix(companyName).toLowerCase().trim()
+
   const variations = [
     normalizedCompany,
     normalizedCompany.replace(/\s+/g, ''),
     normalizedCompany.replace(/[.-]/g, ' '),
   ]
-  
+
+  // "Rkassa B.V." -> match ook gewoon "Rkassa" in tekst.
+  if (strippedCompany && strippedCompany !== normalizedCompany) {
+    variations.push(strippedCompany)
+  }
+
   const firstWord = normalizedCompany.split(' ')[0]
   if (firstWord.length >= 5) {
     variations.push(firstWord)
@@ -155,9 +162,19 @@ function analyzeAIModeResponse(data, companyName, websiteDomain = '') {
     const regex = new RegExp(companyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
     const matches = aiResponse.match(regex)
     if (matches) mentionCount = matches.length
-    
+
+    // Bij "Rkassa B.V.": probeer "Rkassa" als origineel niet matcht.
+    if (!matches) {
+      const stripped = stripLegalSuffix(companyName)
+      if (stripped && stripped !== companyName) {
+        const strippedRegex = new RegExp(`\\b${stripped.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi')
+        const strippedMatches = aiResponse.match(strippedRegex)
+        if (strippedMatches) mentionCount = strippedMatches.length
+      }
+    }
+
     const firstName = companyName.split(' ')[0]
-    if (firstName.length >= 5 && !matches) {
+    if (firstName.length >= 5 && !mentionCount) {
       const firstNameRegex = new RegExp(`\\b${firstName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi')
       const firstNameMatches = aiResponse.match(firstNameRegex)
       if (firstNameMatches) mentionCount = firstNameMatches.length
@@ -214,7 +231,8 @@ function analyzeAIModeResponse(data, companyName, websiteDomain = '') {
       // doorglippen. Domain-namen die door cleanCompetitorName te kort
       // worden gemaakt, vallen automatisch af.
       const cleaned = cleanCompetitorName(nameCandidate)
-      const companyLower = (companyName || '').toLowerCase()
+      // Gestripte naam zodat "Rkassa B.V." als userName ook competitor "Rkassa" uitsluit.
+      const companyLower = (stripLegalSuffix(companyName) || companyName || '').toLowerCase()
       if (cleaned && isValidCompetitorName(cleaned, companyLower, COMPETITOR_EXCLUDE_LIST, new Set())) {
         competitorsMentioned.push(cleaned)
       }

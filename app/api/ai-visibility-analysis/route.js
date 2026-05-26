@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { canUserScan, trackScan, BETA_CONFIG } from '@/lib/beta-config'
 import { getOrCreateSessionToken } from '@/lib/session-token'
 import { isBlockedUrl, hasNonLatinText, getLanguageBlockError } from '@/lib/language-guard'
+import { stripLegalSuffix } from '@/lib/branche-detect'
 
 // Vercel function timeout — 10 prompts × 2s delay = needs 300s
 export const maxDuration = 300
@@ -2035,9 +2036,12 @@ async function analyzeWithGoogleAI(prompt, companyName, serviceArea = null, isNL
 // ============================================
 function parsePerplexityOutput(rawOutput, companyName, isNL = true) {
   try {
-    const companyLower = companyName.toLowerCase()
-    const escapedCompany = companyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const mentionsCount = (rawOutput.match(new RegExp(escapedCompany, 'gi')) || []).length
+    // Gestripte naam voor brand-matching (zie parseWithJS comment).
+    const companyStripped = stripLegalSuffix(companyName)
+    const searchName = companyStripped && companyStripped !== companyName ? companyStripped : companyName
+    const companyLower = (companyStripped || companyName).toLowerCase()
+    const escapedCompany = searchName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const mentionsCount = (rawOutput.match(new RegExp(`\\b${escapedCompany}\\b`, 'gi')) || []).length
     const isCompanyMentioned = mentionsCount > 0
 
     const competitors = []
@@ -2067,7 +2071,10 @@ function parsePerplexityOutput(rawOutput, companyName, isNL = true) {
 
       if (banned.has(lower)) return
       if (seen.has(lower)) return
+      // Sluit eigen bedrijf uit, ook varianten met legal suffix.
       if (lower === companyLower) return
+      const lowerStripped = stripLegalSuffix(name).toLowerCase()
+      if (lowerStripped && lowerStripped === companyLower) return
       if (!/[a-zA-ZÀ-ÿ]/.test(name)) return
 
       seen.add(lower)
@@ -2273,7 +2280,14 @@ function isValidCompetitorName(name, companyLower, excludeList, seen) {
 
 function parseWithJS(rawOutput, companyName, isNL = true) {
   try {
-    const mentionsCount = (rawOutput.match(new RegExp(companyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')) || []).length
+    // "Rkassa B.V." matchen tegen "Rkassa" in tekst: zoek op gestripte naam als die
+    // verschilt, anders op originele. companyLower (voor competitor-exclude) ook
+    // gebaseerd op gestripte naam, zodat "Rkassa" niet als concurrent verschijnt
+    // wanneer userName "Rkassa B.V." is.
+    const companyStripped = stripLegalSuffix(companyName)
+    const searchName = companyStripped && companyStripped !== companyName ? companyStripped : companyName
+    const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const mentionsCount = (rawOutput.match(new RegExp(`\\b${escape(searchName)}\\b`, 'gi')) || []).length
     const isCompanyMentioned = mentionsCount > 0
 
     // Pre-clean: resolve markdown links in the raw output for pattern matching
@@ -2284,7 +2298,7 @@ function parseWithJS(rawOutput, companyName, isNL = true) {
     // Extract competitor names from bold text and numbered lists
     const competitors = []
     const seen = new Set()
-    const companyLower = companyName.toLowerCase()
+    const companyLower = (companyStripped || companyName).toLowerCase()
     
     // Bekende merken/platforms om uit te sluiten
     const excludeList = new Set([

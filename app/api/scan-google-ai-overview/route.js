@@ -2,6 +2,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { upsertVisibilityHistoryRow } from '@/lib/visibility-history'
+import { stripLegalSuffix } from '@/lib/branche-detect'
 
 const SERPAPI_KEY = process.env.SERPAPI_KEY
 const anthropic = new Anthropic({
@@ -135,6 +136,8 @@ function extractReferences(aiOverview, companyName) {
   const sources = []
   const competitors = []
   const companyLower = (companyName || '').toLowerCase()
+  // "Rkassa B.V." -> match ook gewoon "Rkassa" in titel/domein.
+  const companyLowerStripped = stripLegalSuffix(companyName || '').toLowerCase()
 
   const refArrays = [
     aiOverview?.references || [],
@@ -149,9 +152,11 @@ function extractReferences(aiOverview, companyName) {
       const snippet = ref.snippet || ''
       const domain = ref.source || ref.displayed_link || ''
 
-      const isCompany = companyLower && [title, link, domain].some(t =>
-        t.toLowerCase().includes(companyLower)
-      )
+      const isCompany = (companyLower || companyLowerStripped) && [title, link, domain].some(t => {
+        const lower = t.toLowerCase()
+        return (companyLower && lower.includes(companyLower))
+          || (companyLowerStripped && companyLowerStripped !== companyLower && lower.includes(companyLowerStripped))
+      })
 
       sources.push({ title, link, snippet, domain, isCompany })
 
@@ -206,14 +211,21 @@ function detectCompanyMention({ companyName, website, aiText, sources }) {
 
   const company = normalizeText(companyName)
   const companyNoSpaces = company.replace(/\s+/g, '')
+  const companyStripped = normalizeText(stripLegalSuffix(companyName || ''))
   const domainVariants = getDomainVariants(website)
 
-  const matchedByName = company && (haystack.includes(company) || haystack.includes(companyNoSpaces))
+  // Bouw variants-set: origineel + zonder spaces + gestript (zodat "Rkassa B.V."
+  // matcht op "Rkassa" in de AI-tekst).
+  const nameVariants = [company, companyNoSpaces]
+  if (companyStripped && companyStripped !== company) nameVariants.push(companyStripped)
+  const uniqueNameVariants = [...new Set(nameVariants.filter(Boolean))]
+
+  const matchedByName = uniqueNameVariants.some(v => haystack.includes(v))
   const matchedByDomain = domainVariants.some(d => haystack.includes(d))
 
   let mentionCount = 0
   if (matchedByName) {
-    for (const variant of [company, companyNoSpaces]) {
+    for (const variant of uniqueNameVariants) {
       const escaped = variant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       const matches = haystack.match(new RegExp(escaped, 'g'))
       mentionCount += matches?.length || 0
