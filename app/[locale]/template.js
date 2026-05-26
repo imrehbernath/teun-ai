@@ -486,12 +486,29 @@ function Footer() {
       setCurrentYear(new Date().getFullYear());
     }, []);
   const [email, setEmail] = useState('');
+  const [subscribeStatus, setSubscribeStatus] = useState('idle');
 
-  const handleSubscribe = (e) => {
+  const handleSubscribe = async (e) => {
     e.preventDefault();
-    // TODO: koppel aan Brevo API endpoint
-    if (email) {
-      window.location.href = `/blog?subscribe=${encodeURIComponent(email)}`;
+    if (!email || subscribeStatus === 'loading') return;
+    setSubscribeStatus('loading');
+    try {
+      const response = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      if (response.ok) {
+        setSubscribeStatus('success');
+        setEmail('');
+        setTimeout(() => setSubscribeStatus('idle'), 5000);
+      } else {
+        setSubscribeStatus('error');
+        setTimeout(() => setSubscribeStatus('idle'), 5000);
+      }
+    } catch (_) {
+      setSubscribeStatus('error');
+      setTimeout(() => setSubscribeStatus('idle'), 5000);
     }
   };
 
@@ -583,6 +600,16 @@ function Footer() {
           flex-shrink: 0;
         }
         .teun-footer-news button:hover { background: #d65530; }
+        .teun-footer-news button:disabled { opacity: 0.65; cursor: default; }
+        .teun-footer-news input:disabled { opacity: 0.65; }
+        .teun-footer-news-msg {
+          margin: 10px 0 0;
+          font-size: 12px;
+          line-height: 1.5;
+          max-width: 320px;
+        }
+        .teun-footer-news-msg-success { color: var(--success); }
+        .teun-footer-news-msg-error { color: var(--spark-soft); }
         .teun-footer-bottom {
           padding-top: 24px;
           display: flex; justify-content: space-between; align-items: center;
@@ -657,9 +684,24 @@ function Footer() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={subscribeStatus === 'loading'}
                 />
-                <button type="submit">{isEn ? 'Subscribe' : 'Abonneer'}</button>
+                <button type="submit" disabled={subscribeStatus === 'loading'}>
+                  {subscribeStatus === 'loading'
+                    ? (isEn ? 'Sending...' : 'Bezig...')
+                    : (isEn ? 'Subscribe' : 'Abonneer')}
+                </button>
               </form>
+              {subscribeStatus === 'success' && (
+                <p className="teun-footer-news-msg teun-footer-news-msg-success">
+                  {isEn ? 'Thanks! Check your inbox.' : 'Bedankt! Check je inbox.'}
+                </p>
+              )}
+              {subscribeStatus === 'error' && (
+                <p className="teun-footer-news-msg teun-footer-news-msg-error">
+                  {isEn ? 'Something went wrong. Try again.' : 'Er ging iets mis. Probeer het opnieuw.'}
+                </p>
+              )}
             </div>
 
             {/* Gratis tools */}
