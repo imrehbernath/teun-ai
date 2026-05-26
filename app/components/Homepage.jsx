@@ -31,6 +31,8 @@ export default function Homepage() {
   const [showUrlWarning, setShowUrlWarning] = useState(false);
   const [extractingKeywords, setExtractingKeywords] = useState(false);
   const [extractionMessage, setExtractionMessage] = useState(null);
+  const [extractionFailed, setExtractionFailed] = useState(false);
+  const [extractionAttempted, setExtractionAttempted] = useState(false);
   const [keywordTags, setKeywordTags] = useState([]);
   const [newKeywordInput, setNewKeywordInput] = useState('');
   const [toolFilter, setToolFilter] = useState('all');
@@ -121,6 +123,7 @@ export default function Homepage() {
 
     setExtractingKeywords(true);
     setExtractionMessage(null);
+    setExtractionFailed(false);
 
     try {
       const response = await fetch('/api/extract-keywords', {
@@ -137,6 +140,8 @@ export default function Homepage() {
 
       if (!response.ok || data.blocked) {
         setExtractionMessage(t('form.extractionFailed'));
+        setExtractionFailed(true);
+        setExtractionAttempted(true);
         return;
       }
 
@@ -147,9 +152,15 @@ export default function Homepage() {
           bedrijfsnaam: prev.bedrijfsnaam || data.companyName || '',
           branche: prev.branche || data.category || '',
         }));
+        setExtractionAttempted(true);
+      } else {
+        setExtractionFailed(true);
+        setExtractionAttempted(true);
       }
     } catch (err) {
       console.error('Extract error:', err);
+      setExtractionFailed(true);
+      setExtractionAttempted(true);
     } finally {
       setExtractingKeywords(false);
     }
@@ -247,6 +258,7 @@ export default function Homepage() {
     }
     if (!formData.bedrijfsnaam || !formData.branche) return;
     if (extractingKeywords) return;
+    if (extractionFailed && keywordTags.length < 3) return;
 
     proceedToScan();
   };
@@ -421,13 +433,31 @@ export default function Homepage() {
                 </div>
 
                 {/* Keyword panel */}
-                {(keywordTags.length > 0 || extractingKeywords) && (
+                {(keywordTags.length > 0 || extractingKeywords || extractionFailed) && (
                   <div className="teun-scan-keywords">
+                    {extractionFailed && (
+                      <div style={{
+                        background: '#FFF4E6',
+                        border: '1.5px solid #FFB66B',
+                        borderRadius: 10,
+                        padding: '12px 14px',
+                        marginBottom: 14,
+                        color: '#7A4A1A',
+                        fontSize: 14,
+                        lineHeight: 1.5
+                      }}>
+                        <strong>⚠️ {t('form.extractFailedTitle')}</strong>
+                        <p style={{ margin: '6px 0 0 0' }}>{t('form.extractFailedHint')}</p>
+                      </div>
+                    )}
+
                     <div className="teun-scan-keywords-head">
                       <span>
                         {extractingKeywords
                           ? t('form.analyzing')
-                          : t('form.keywordsCount', { count: keywordTags.length })}
+                          : extractionFailed && keywordTags.length < 3
+                            ? t('form.minKeywordsCount', { count: keywordTags.length })
+                            : t('form.keywordsCount', { count: keywordTags.length })}
                       </span>
                       {keywordTags.length > 0 && (
                         <button type="button" className="teun-kw-clear" onClick={() => syncKeywordsToForm([])}>
@@ -460,6 +490,7 @@ export default function Homepage() {
                           }
                         }}
                         placeholder={t('form.keywordPlaceholder')}
+                        autoFocus={extractionFailed && keywordTags.length === 0}
                       />
                       <button
                         type="button"
@@ -476,8 +507,16 @@ export default function Homepage() {
                   </div>
                 )}
 
-                <button type="submit" className="teun-scan-btn" disabled={extractingKeywords}>
-                  {extractingKeywords ? t('form.extracting') : t('form.submit')}
+                <button
+                  type="submit"
+                  className="teun-scan-btn"
+                  disabled={extractingKeywords || (extractionFailed && keywordTags.length < 3)}
+                >
+                  {extractingKeywords
+                    ? t('form.extracting')
+                    : (extractionFailed && keywordTags.length < 3)
+                      ? t('form.submitDisabledMin')
+                      : t('form.submit')}
                 </button>
 
                 <p className="teun-scan-info">{t('form.submitInfo')}</p>
@@ -1266,7 +1305,7 @@ export default function Homepage() {
               />
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex">
               <button
                 onClick={() => {
                   if (formData.website && formData.website.trim()) proceedToScan();
@@ -1276,13 +1315,6 @@ export default function Homepage() {
                 style={{ background: 'var(--navy)', color: '#fff' }}
               >
                 {t('urlModal.scanWithAnalysis')}
-              </button>
-              <button
-                onClick={proceedToScan}
-                className="flex-1 px-4 py-3 rounded-xl font-medium text-sm"
-                style={{ background: 'var(--bg-2)', color: 'var(--ink-2)' }}
-              >
-                {t('urlModal.continueWithout')}
               </button>
             </div>
           </div>

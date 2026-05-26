@@ -328,12 +328,21 @@ function AIVisibilityToolContent() {
   const [resultPlatform, setResultPlatform] = useState('chatgpt');
   const [extractingKeywords, setExtractingKeywords] = useState(false);
   const [extractionResult, setExtractionResult] = useState(null);
+  const [showKeywordsInput, setShowKeywordsInput] = useState(false);
+  const [extractionFailed, setExtractionFailed] = useState(false);
 
   // Cream theme on body
   useEffect(() => {
     document.body.classList.add('theme-cream');
     return () => document.body.classList.remove('theme-cream');
   }, []);
+
+  // Auto-open keyword-input als queries al gevuld zijn (via URL-param of sessionStorage)
+  useEffect(() => {
+    if (formData.queries?.trim()?.length > 0) {
+      setShowKeywordsInput(true);
+    }
+  }, [formData.queries]);
 
   // Close tooltip on outside tap
   useEffect(() => {
@@ -614,23 +623,38 @@ function AIVisibilityToolContent() {
       const data = await response.json();
 
       if (data.keywords && data.keywords.length > 0) {
-        setFormData(prev => ({
-          ...prev,
-          queries: data.keywords.join(', '),
-          companyName: prev.companyName || data.companyName || '',
-          companyCategory: prev.companyCategory || data.category || '',
-        }));
+        setFormData(prev => {
+          const userKeywords = prev.queries?.trim()
+            ? prev.queries.split(/[,\n]/).map(k => k.trim()).filter(k => k)
+            : [];
+          const userLowerSet = new Set(userKeywords.map(k => k.toLowerCase()));
+          const newKeywords = data.keywords.filter(k => !userLowerSet.has(k.toLowerCase()));
+          const merged = [...userKeywords, ...newKeywords];
+          return {
+            ...prev,
+            queries: merged.join(', '),
+            companyName: prev.companyName || data.companyName || '',
+            companyCategory: prev.companyCategory || data.category || '',
+          };
+        });
         setExtractionResult({
           count: data.keywords.length,
           source: data.source,
           companyName: data.companyName,
           category: data.category,
+          fallback: data.fallback === true,
         });
+        setShowKeywordsInput(true);
+        setExtractionFailed(false);
       } else {
         setError(t('step1.extractNone'));
+        setShowKeywordsInput(true);
+        setExtractionFailed(true);
       }
     } catch (err) {
       setError(err.message);
+      setShowKeywordsInput(true);
+      setExtractionFailed(true);
     } finally {
       setExtractingKeywords(false);
     }
@@ -733,13 +757,15 @@ function AIVisibilityToolContent() {
       clearInterval(progressInterval);
       clearInterval(stepInterval);
 
+      const dataWithMeta = { ...data, _scanStartedWithoutKeywords: queriesArray.length === 0 };
+
       setProgress(100);
       setCurrentStep(t('step3.completed'));
-      setResults(data);
+      setResults(dataWithMeta);
       setCustomPrompts(null);
 
       try {
-        sessionStorage.setItem('teun_scan_results', JSON.stringify(data));
+        sessionStorage.setItem('teun_scan_results', JSON.stringify(dataWithMeta));
         sessionStorage.setItem('teun_scan_formData', JSON.stringify(formData));
       } catch (_) {}
 
@@ -955,7 +981,7 @@ function AIVisibilityToolContent() {
                     </button>
                   </div>
 
-                  {extractionResult && (
+                  {extractionResult && !extractionResult.fallback && (
                     <div className="tool-extract-success">
                       <strong>✓ {t('step1.extractSuccess', { count: extractionResult.count })}</strong>
                       {(extractionResult.companyName || extractionResult.category) && (
@@ -967,37 +993,82 @@ function AIVisibilityToolContent() {
                       )}
                     </div>
                   )}
+
+                  {extractionResult && extractionResult.fallback && (
+                    <div style={{
+                      background: '#FFF4E6',
+                      border: '1.5px solid #FFB66B',
+                      borderRadius: 10,
+                      padding: '12px 14px',
+                      marginTop: 12,
+                      color: '#7A4A1A',
+                      fontSize: 14,
+                      lineHeight: 1.5
+                    }}>
+                      <strong>⚠️ {t('step1.extractFallbackTitle', { count: extractionResult.count })}</strong>
+                      <p style={{ margin: '6px 0 0 0' }}>{t('step1.extractFallbackHint')}</p>
+                    </div>
+                  )}
                 </div>
 
-                <div className="tool-divider">
-                  <span>{t('step1.orManual')}</span>
-                </div>
-
-                {/* Tip box (desktop) */}
-                <div className="tool-tip" style={{ display: 'flex' }}>
-                  <svg className="tool-tip-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 16v-4M12 8h.01" />
-                  </svg>
-                  <div>
-                    <strong>{t('step1.tipTitle')}</strong>
-                    <p>{t('step1.tipText')}</p>
+                {!showKeywordsInput ? (
+                  <div style={{ marginTop: 18, marginBottom: 22 }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowKeywordsInput(true)}
+                      className="tool-advanced-toggle"
+                    >
+                      <div className="tool-advanced-toggle-info">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="12" r="10" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v8M8 12h8" />
+                        </svg>
+                        <div className="tool-advanced-toggle-text">
+                          <strong>{t('step1.addKeywordsToggle')}</strong>
+                          <span>{t('step1.addKeywordsSubtitle')}</span>
+                        </div>
+                      </div>
+                      <svg className="chevron" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <div className="tool-divider">
+                      <span>{t('step1.orManual')}</span>
+                    </div>
 
-                <div style={{ marginBottom: 22 }}>
-                  <label htmlFor="aiv-queries" className="tool-label">
-                    {t('step1.keywordsLabel')} <span className="req">*</span>
-                  </label>
-                  <p className="tool-hint" style={{ marginBottom: 8 }}>{t('step1.keywordsHint')}</p>
-                  <textarea
-                    id="aiv-queries"
-                    value={formData.queries}
-                    onChange={(e) => setFormData({ ...formData, queries: e.target.value })}
-                    placeholder={t('step1.keywordsPlaceholder')}
-                    className="tool-input"
-                  />
-                </div>
+                    {extractionFailed && (
+                      <div style={{
+                        background: '#FFF4E6',
+                        border: '1.5px solid #FFB66B',
+                        borderRadius: 10,
+                        padding: '14px 16px',
+                        marginBottom: 16,
+                        color: '#7A4A1A',
+                        fontSize: 14,
+                        lineHeight: 1.5
+                      }}>
+                        {t('step1.extractFailedFallback')}
+                      </div>
+                    )}
+
+                    <div style={{ marginBottom: 22 }}>
+                      <label htmlFor="aiv-queries" className="tool-label">
+                        {t('step1.keywordsLabel')} <span className="opt">{t('step1.keywordsOptional')}</span>
+                      </label>
+                      <p className="tool-hint" style={{ marginBottom: 8 }}>{t('step1.keywordsHint')}</p>
+                      <textarea
+                        id="aiv-queries"
+                        value={formData.queries}
+                        onChange={(e) => setFormData({ ...formData, queries: e.target.value })}
+                        placeholder={t('step1.keywordsPlaceholder')}
+                        className="tool-input"
+                      />
+                    </div>
+                  </>
+                )}
 
                 {/* Advanced Settings */}
                 <div className="tool-advanced">
@@ -1162,8 +1233,14 @@ function AIVisibilityToolContent() {
                       onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                       placeholder={t('step2.companyPlaceholder')}
                       className="tool-input"
+                      minLength={3}
                       required
                     />
+                    {formData.companyName.trim().length > 0 && formData.companyName.trim().length < 3 && (
+                      <p style={{ color: '#C0392B', fontSize: 13, marginTop: 6 }}>
+                        {t('step2.companyMinLength')}
+                      </p>
+                    )}
                   </div>
 
                   {/* Branche */}
@@ -1284,7 +1361,11 @@ function AIVisibilityToolContent() {
                     {t('step2.back')}
                   </button>
                   <button onClick={() => {
-                    if (!formData.companyName || !formData.companyCategory) {
+                    if (formData.companyName.trim().length < 3) {
+                      setError(t('step2.companyMinLength'));
+                      return;
+                    }
+                    if (!formData.companyCategory) {
                       setError(t('step2.requiredError'));
                       return;
                     }
@@ -1470,6 +1551,42 @@ function AIVisibilityToolContent() {
                   </div>
                 </div>
 
+                {results._scanStartedWithoutKeywords && (
+                  <div style={{
+                    background: '#FFF4E6',
+                    border: '1.5px solid #FFB66B',
+                    borderRadius: 10,
+                    padding: '14px 16px',
+                    marginBottom: 16,
+                    color: '#7A4A1A',
+                    fontSize: 14,
+                    lineHeight: 1.55
+                  }}>
+                    <strong>💡 {t('step4.noKeywordsBannerTitle')}</strong>
+                    <p style={{ margin: '6px 0 10px 0' }}>{t('step4.noKeywordsBannerHint')}</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResults(null);
+                        setStep(1);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      style={{
+                        background: '#7A4A1A',
+                        color: '#fff',
+                        border: 'none',
+                        padding: '8px 14px',
+                        borderRadius: 6,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {t('step4.noKeywordsBannerCta')}
+                    </button>
+                  </div>
+                )}
+
                 {nameMismatch && (
                   <div className="tool-mismatch">
                     <p className="tool-mismatch-title">🔍 {t('step4.nameMismatchTitle', { name: nameMismatch.name })}</p>
@@ -1568,6 +1685,70 @@ function AIVisibilityToolContent() {
                       <p className="small">
                         {locale === 'nl' ? 'Geheel gratis · Geen creditcard nodig' : 'Completely free · No credit card needed'}
                       </p>
+                    </div>
+                  );
+                })()}
+
+                {(() => {
+                  const totalMentions = (results.total_company_mentions || 0) + (results.chatgpt_company_mentions || 0);
+                  if (totalMentions !== 0) return null;
+                  const geoAuditHref = locale === 'en' ? '/en/tools/geo-audit' : '/tools/geo-audit';
+                  return (
+                    <div style={{
+                      background: 'var(--bg-2, #FAF6F0)',
+                      border: '1px solid var(--line, #E8E0D2)',
+                      borderRadius: 12,
+                      padding: '18px 20px',
+                      marginTop: 16,
+                      marginBottom: 16
+                    }}>
+                      <h3 style={{ margin: '0 0 12px 0', fontSize: 16, fontWeight: 700 }}>
+                        💡 {t('step4.whatNowTitle')}
+                      </h3>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                        <Link href={geoAuditHref} style={{
+                          flex: '1 1 220px',
+                          background: '#fff',
+                          border: '1px solid var(--line, #E8E0D2)',
+                          borderRadius: 10,
+                          padding: '14px 16px',
+                          textDecoration: 'none',
+                          color: 'inherit',
+                          display: 'block'
+                        }}>
+                          <strong style={{ display: 'block', marginBottom: 4, fontSize: 14 }}>
+                            {t('step4.whatNowAction1Title')} →
+                          </strong>
+                          <span style={{ fontSize: 13, color: 'var(--ink-2, #555)', lineHeight: 1.45 }}>
+                            {t('step4.whatNowAction1Desc')}
+                          </span>
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setResults(null);
+                            setStep(1);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          style={{
+                            flex: '1 1 220px',
+                            background: '#fff',
+                            border: '1px solid var(--line, #E8E0D2)',
+                            borderRadius: 10,
+                            padding: '14px 16px',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            fontFamily: 'inherit'
+                          }}
+                        >
+                          <strong style={{ display: 'block', marginBottom: 4, fontSize: 14 }}>
+                            {t('step4.whatNowAction2Title')} →
+                          </strong>
+                          <span style={{ fontSize: 13, color: 'var(--ink-2, #555)', lineHeight: 1.45 }}>
+                            {t('step4.whatNowAction2Desc')}
+                          </span>
+                        </button>
+                      </div>
                     </div>
                   );
                 })()}

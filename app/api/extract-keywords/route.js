@@ -173,7 +173,7 @@ async function fetchViaScraperApi(url, { ultra = false } = {}) {
 
 // ============================================================
 // SCRAPE WEBSITE
-// Tiered: 1) Direct fetch (free) → 2) ScraperAPI basic → 3) ScraperAPI ultra (75 credits)
+// Tiered: 1) Direct fetch (free, snel) → 2) ScraperAPI ultra (75 credits, max betrouwbaarheid)
 // ============================================================
 async function scrapeWebsite(url) {
   let normalizedUrl = url.trim()
@@ -217,27 +217,12 @@ async function scrapeWebsite(url) {
     }
   }
 
-  // ── Attempt 2: ScraperAPI basic (premium + render) ──
+  // ── Attempt 2: ScraperAPI ultra (75 credits) — max betrouwbaarheid ──
   if (!SCRAPER_API_KEY) {
     console.log(`⚠️ SCRAPER_API_KEY not configured — skipping ScraperAPI`)
     return { success: false, error: 'Website kon niet gescraped worden (ScraperAPI niet geconfigureerd)' }
   }
 
-  for (const tryUrl of [normalizedUrl, wwwUrl]) {
-    try {
-      console.log(`🔗 ScraperAPI basic: ${tryUrl}`)
-      const html = await fetchViaScraperApi(tryUrl, { ultra: false })
-      if (!isGarbagePage(html) && html.length > 500) {
-        console.log(`✅ ScraperAPI basic OK: ${tryUrl} (${html.length} chars)`)
-        return { success: true, html, method: 'scraperapi-basic', finalUrl: tryUrl }
-      }
-      console.log(`⚠️ ScraperAPI basic got garbage/thin page for ${tryUrl}`)
-    } catch (error) {
-      console.log(`⚠️ ScraperAPI basic failed for ${tryUrl}: ${error.message}`)
-    }
-  }
-
-  // ── Attempt 3: ScraperAPI ultra (75 credits) — laatste redmiddel ──
   for (const tryUrl of [normalizedUrl, wwwUrl]) {
     try {
       console.log(`🚀 ScraperAPI ultra: ${tryUrl}`)
