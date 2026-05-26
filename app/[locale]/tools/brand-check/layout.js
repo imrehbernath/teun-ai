@@ -32,7 +32,7 @@ export async function generateMetadata() {
     twitter: { card: 'summary_large_image', title, description, images: ['https://teun.ai/images/og-brand-check.png'] },
     alternates: {
       canonical: url,
-      languages: { nl: 'https://teun.ai/tools/brand-check', en: 'https://teun.ai/en/tools/brand-check' },
+      languages: { nl: 'https://teun.ai/tools/brand-check', en: 'https://teun.ai/en/tools/brand-check', 'x-default': 'https://teun.ai/tools/brand-check' },
     },
     robots: { index: true, follow: true },
   };

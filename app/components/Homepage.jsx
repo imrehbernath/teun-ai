@@ -33,6 +33,7 @@ export default function Homepage() {
   const [extractionMessage, setExtractionMessage] = useState(null);
   const [extractionFailed, setExtractionFailed] = useState(false);
   const [extractionAttempted, setExtractionAttempted] = useState(false);
+  const [languageMismatch, setLanguageMismatch] = useState(null);
   const [keywordTags, setKeywordTags] = useState([]);
   const [newKeywordInput, setNewKeywordInput] = useState('');
   const [toolFilter, setToolFilter] = useState('all');
@@ -153,6 +154,11 @@ export default function Homepage() {
           branche: prev.branche || data.category || '',
         }));
         setExtractionAttempted(true);
+        if (data.detectedLanguage && data.detectedLanguage !== locale) {
+          setLanguageMismatch(data.detectedLanguage);
+        } else {
+          setLanguageMismatch(null);
+        }
       } else {
         setExtractionFailed(true);
         setExtractionAttempted(true);
@@ -431,6 +437,64 @@ export default function Homepage() {
                     />
                   </div>
                 </div>
+
+                {languageMismatch && (
+                  <div style={{
+                    background: '#E8F0FE',
+                    border: '1.5px solid #4285F4',
+                    borderRadius: 10,
+                    padding: '14px 16px',
+                    marginBottom: 14,
+                    color: '#1A3C7A',
+                    fontSize: 14,
+                    lineHeight: 1.5
+                  }}>
+                    <strong>🌐 {t('form.languageMismatchTitle')}</strong>
+                    <p style={{ margin: '6px 0 10px 0' }}>{t('form.languageMismatchHint')}</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const otherLocale = locale === 'nl' ? 'en' : 'nl';
+                          const params = new URLSearchParams();
+                          if (formData.bedrijfsnaam) params.set('company', formData.bedrijfsnaam);
+                          if (formData.branche) params.set('category', formData.branche);
+                          if (formData.website) params.set('website', formData.website);
+                          if (formData.zoekwoorden) params.set('keywords', formData.zoekwoorden);
+                          const prefix = otherLocale === 'en' ? '/en' : '';
+                          window.location.href = `${prefix}/tools/ai-visibility?${params.toString()}`;
+                        }}
+                        style={{
+                          background: '#1A3C7A',
+                          color: '#fff',
+                          border: 'none',
+                          padding: '8px 14px',
+                          borderRadius: 6,
+                          fontSize: 13,
+                          fontWeight: 600,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {t('form.languageMismatchSwitch')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLanguageMismatch(null)}
+                        style={{
+                          background: 'transparent',
+                          color: '#1A3C7A',
+                          border: 'none',
+                          padding: '8px 4px',
+                          fontSize: 13,
+                          cursor: 'pointer',
+                          textDecoration: 'underline'
+                        }}
+                      >
+                        {t('form.languageMismatchDismiss')}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Keyword panel */}
                 {(keywordTags.length > 0 || extractingKeywords || extractionFailed) && (

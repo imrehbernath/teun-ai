@@ -49,6 +49,7 @@ export async function generateMetadata() {
       languages: {
         nl: 'https://teun.ai/tools/geo-audit',
         en: 'https://teun.ai/en/tools/geo-audit',
+        'x-default': 'https://teun.ai/tools/geo-audit',
       },
     },
     robots: { index: true, follow: true },

@@ -34,7 +34,7 @@ export async function generateMetadata() {
     twitter: { card: 'summary_large_image', title, description, images: ['https://teun.ai/images/og-prompt-discovery.png'] },
     alternates: {
       canonical: url,
-      languages: { nl: 'https://teun.ai/tools/ai-prompt-discovery', en: 'https://teun.ai/en/tools/ai-prompt-discovery' },
+      languages: { nl: 'https://teun.ai/tools/ai-prompt-discovery', en: 'https://teun.ai/en/tools/ai-prompt-discovery', 'x-default': 'https://teun.ai/tools/ai-prompt-discovery' },
     },
     robots: { index: true, follow: true },
   };

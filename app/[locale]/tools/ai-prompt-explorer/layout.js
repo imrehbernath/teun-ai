@@ -47,6 +47,7 @@ export async function generateMetadata() {
       languages: {
         nl: 'https://teun.ai/tools/ai-prompt-explorer',
         en: 'https://teun.ai/en/tools/ai-prompt-explorer',
+        'x-default': 'https://teun.ai/tools/ai-prompt-explorer',
       },
     },
   };

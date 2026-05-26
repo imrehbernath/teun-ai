@@ -330,6 +330,7 @@ function AIVisibilityToolContent() {
   const [extractionResult, setExtractionResult] = useState(null);
   const [showKeywordsInput, setShowKeywordsInput] = useState(false);
   const [extractionFailed, setExtractionFailed] = useState(false);
+  const [languageMismatch, setLanguageMismatch] = useState(null);
 
   // Cream theme on body
   useEffect(() => {
@@ -646,6 +647,11 @@ function AIVisibilityToolContent() {
         });
         setShowKeywordsInput(true);
         setExtractionFailed(false);
+        if (data.detectedLanguage && data.detectedLanguage !== locale) {
+          setLanguageMismatch(data.detectedLanguage);
+        } else {
+          setLanguageMismatch(null);
+        }
       } else {
         setError(t('step1.extractNone'));
         setShowKeywordsInput(true);
@@ -980,6 +986,64 @@ function AIVisibilityToolContent() {
                       )}
                     </button>
                   </div>
+
+                  {languageMismatch && (
+                    <div style={{
+                      background: '#E8F0FE',
+                      border: '1.5px solid #4285F4',
+                      borderRadius: 10,
+                      padding: '14px 16px',
+                      marginTop: 12,
+                      color: '#1A3C7A',
+                      fontSize: 14,
+                      lineHeight: 1.5
+                    }}>
+                      <strong>🌐 {t('step1.languageMismatchTitle')}</strong>
+                      <p style={{ margin: '6px 0 10px 0' }}>{t('step1.languageMismatchHint')}</p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const otherLocale = locale === 'nl' ? 'en' : 'nl';
+                            const params = new URLSearchParams();
+                            if (formData.companyName) params.set('company', formData.companyName);
+                            if (formData.companyCategory) params.set('category', formData.companyCategory);
+                            if (formData.website) params.set('website', formData.website);
+                            if (formData.queries) params.set('keywords', formData.queries);
+                            const prefix = otherLocale === 'en' ? '/en' : '';
+                            window.location.href = `${prefix}/tools/ai-visibility?${params.toString()}`;
+                          }}
+                          style={{
+                            background: '#1A3C7A',
+                            color: '#fff',
+                            border: 'none',
+                            padding: '8px 14px',
+                            borderRadius: 6,
+                            fontSize: 13,
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {t('step1.languageMismatchSwitch')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setLanguageMismatch(null)}
+                          style={{
+                            background: 'transparent',
+                            color: '#1A3C7A',
+                            border: 'none',
+                            padding: '8px 4px',
+                            fontSize: 13,
+                            cursor: 'pointer',
+                            textDecoration: 'underline'
+                          }}
+                        >
+                          {t('step1.languageMismatchDismiss')}
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {extractionResult && !extractionResult.fallback && (
                     <div className="tool-extract-success">

@@ -47,6 +47,7 @@ export async function generateMetadata() {
       languages: {
         nl: 'https://teun.ai/tools/ai-rank-tracker',
         en: 'https://teun.ai/en/tools/ai-rank-tracker',
+        'x-default': 'https://teun.ai/tools/ai-rank-tracker',
       },
     },
   };
