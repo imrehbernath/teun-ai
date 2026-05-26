@@ -3,12 +3,13 @@
 // Functionaliteit identiek aan SESSION 11 — alleen visuele laag vervangen
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Link } from '@/i18n/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import Image from 'next/image';
+import { trackScanComplete } from '@/lib/gtm';
 
 // ============================================
 // BRANCHE TAALDETECTIE (EN → NL)
@@ -331,6 +332,7 @@ function AIVisibilityToolContent() {
   const [showKeywordsInput, setShowKeywordsInput] = useState(false);
   const [extractionFailed, setExtractionFailed] = useState(false);
   const [languageMismatch, setLanguageMismatch] = useState(null);
+  const scanCompleteFiredRef = useRef(true);
 
   // Cream theme on body
   useEffect(() => {
@@ -666,6 +668,13 @@ function AIVisibilityToolContent() {
     }
   };
 
+  useEffect(() => {
+    if (results && !scanCompleteFiredRef.current) {
+      scanCompleteFiredRef.current = true;
+      trackScanComplete({ tool: 'ai-visibility', locale });
+    }
+  }, [results, locale]);
+
   // ============================================
   // HANDLE ANALYZE — kern scan flow
   // ============================================
@@ -676,6 +685,7 @@ function AIVisibilityToolContent() {
     setProgress(0);
     setError(null);
     setCurrentStep(t('step3.preparing'));
+    scanCompleteFiredRef.current = false;
 
     try {
       const queriesArray = formData.queries
