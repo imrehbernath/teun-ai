@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { generateKeywordPrompt } from '@/lib/keyword-prompt-generator';
 import { scanChatGPT, scanPerplexity, scanGoogleAI } from '@/lib/rank-scanner';
+import { getUserBadge } from '@/lib/slack-badge';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -176,14 +177,35 @@ export async function POST(request) {
     if (process.env.SLACK_WEBHOOK_URL) {
       try {
         const positions = Object.entries(results)
-          .map(([p, r]) => `${p}: ${r.position ? `#${r.position}` : '—'}`)
+          .map(([p, r]) => `${p}: ${r.position ? `#${r.position}` : 'n.v.t.'}`)
           .join(' | ');
+        const userBadge = await getUserBadge(supabase, userId);
 
         await fetch(process.env.SLACK_WEBHOOK_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            text: `🏆 Rank Check: ${brandName} | ${keyword}${locationSuffix}\n🌐 ${domain}\n📊 ${positions}\n⏱️ ${(duration / 1000).toFixed(1)}s`
+            blocks: [
+              {
+                type: 'header',
+                text: { type: 'plain_text', text: '🏆 Rank Tracker Tool Scan', emoji: true }
+              },
+              {
+                type: 'section',
+                fields: [
+                  { type: 'mrkdwn', text: `*Bedrijf:*\n${brandName}` },
+                  { type: 'mrkdwn', text: `*Keyword:*\n${keyword}${locationSuffix}` },
+                  { type: 'mrkdwn', text: `*Domain:*\n${domain}` },
+                  { type: 'mrkdwn', text: `*Account:*\n${userBadge}` },
+                  { type: 'mrkdwn', text: `*Posities:*\n${positions}` },
+                  { type: 'mrkdwn', text: `*Duur:*\n${(duration / 1000).toFixed(1)}s` },
+                ]
+              },
+              {
+                type: 'context',
+                elements: [{ type: 'mrkdwn', text: `${new Date().toLocaleString('nl-NL')} · Rank Tracker Tool` }]
+              }
+            ]
           })
         });
       } catch (e) { /* ignore */ }

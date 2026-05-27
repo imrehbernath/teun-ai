@@ -8,6 +8,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { getOrCreateSessionToken } from '@/lib/session-token'
 import { isBlockedUrl, hasNonLatinText, getLanguageBlockError } from '@/lib/language-guard'
 import { checkLanguageGate, checkLocationGate } from '@/lib/language-gate'
+import { getUserBadge } from '@/lib/slack-badge'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
@@ -32,24 +33,39 @@ const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL
 // SLACK NOTIFICATION
 // ===============================================
 
-async function notifySlack({ url, keyword, brandName, branche, serviceArea, promptCount, clusterCount, source, lang }) {
+async function notifySlack({ url, keyword, brandName, branche, serviceArea, promptCount, clusterCount, source, lang, userBadge }) {
   if (!SLACK_WEBHOOK_URL) return
   try {
-    const input = url ? `URL: ${url}` : `Keyword: ${keyword}`
-    const extra = [brandName && brandName, branche && branche, serviceArea && serviceArea].filter(Boolean).join(' | ')
-    const text = [
-      `Prompt Explorer scan (${lang})`,
-      input,
-      extra && extra,
-      `${promptCount} prompts in ${clusterCount} clusters`,
-      source?.title && source.title,
-      source?.method === 'failed' ? `Scrape failed (firewall/bot protection)` : source?.method && source.method,
-    ].filter(Boolean).join('\n')
-
+    const input = url ? url : `Keyword: ${keyword}`
+    const extra = [brandName, branche, serviceArea].filter(Boolean).join(' | ')
     await fetch(SLACK_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({
+        blocks: [
+          {
+            type: 'header',
+            text: { type: 'plain_text', text: '🧭 Prompt Explorer Scan', emoji: true }
+          },
+          {
+            type: 'section',
+            fields: [
+              { type: 'mrkdwn', text: `*${url ? 'URL' : 'Input'}:*\n${input}` },
+              { type: 'mrkdwn', text: `*Account:*\n${userBadge || '👤 Anoniem'}` },
+              extra ? { type: 'mrkdwn', text: `*Context:*\n${extra}` } : null,
+              { type: 'mrkdwn', text: `*Resultaat:*\n${promptCount} prompts in ${clusterCount} clusters` },
+              source?.title ? { type: 'mrkdwn', text: `*Bron:*\n${source.title}` } : null,
+              source?.method === 'failed'
+                ? { type: 'mrkdwn', text: `*Scrape:*\nFailed (firewall/bot)` }
+                : (source?.method ? { type: 'mrkdwn', text: `*Scrape:*\n${source.method}` } : null),
+            ].filter(Boolean)
+          },
+          {
+            type: 'context',
+            elements: [{ type: 'mrkdwn', text: `${new Date().toLocaleString('nl-NL')} · Prompt Explorer (${lang})` }]
+          }
+        ]
+      }),
     })
   } catch (e) {
     console.error('Slack notification failed:', e.message)
@@ -713,10 +729,18 @@ export async function POST(request) {
     scanned.forEach(p => (p.topCompetitors || []).forEach(c => { compCounts[c] = (compCounts[c] || 0) + 1 }))
     const topCompetitors = Object.entries(compCounts).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, count]) => ({ name, count }))
 
-    // Slack notification (fire and forget)
+    // Slack notification (fire and forget) - tier-badge via auth-cookies
+    let userIdForBadge = null
+    try {
+      const { createClient } = await import('@/lib/supabase/server')
+      const userSupabase = await createClient()
+      const { data: { user } } = await userSupabase.auth.getUser()
+      userIdForBadge = user?.id || null
+    } catch (_) {}
+    const userBadge = await getUserBadge(supabase, userIdForBadge)
     notifySlack({
       url, keyword, brandName, branche, serviceArea,
-      promptCount: limited.length, clusterCount: clusters.length, source, lang,
+      promptCount: limited.length, clusterCount: clusters.length, source, lang, userBadge,
     })
 
     // Save resultaten in Supabase (ook voor anonieme gebruikers)

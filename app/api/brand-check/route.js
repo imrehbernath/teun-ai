@@ -11,6 +11,7 @@ import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { hasNonLatinText, getLanguageBlockError } from '@/lib/language-guard'
 import { checkLocationGate } from '@/lib/language-gate'
+import { getUserBadge } from '@/lib/slack-badge'
 
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -179,7 +180,27 @@ async function sendSlackNotification(data) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        text: `🏷️ Brand Check: *${data.brandName}*${data.location ? ` (${data.location})` : ''} | ${data.category}\n${emoji} ${data.sentiment} | PX: ${data.pxMentioned ? '✅' : '❌'} | CG: ${data.cgMentioned ? '✅' : '❌'}`
+        blocks: [
+          {
+            type: 'header',
+            text: { type: 'plain_text', text: '🏷️ Brand Check Scan', emoji: true }
+          },
+          {
+            type: 'section',
+            fields: [
+              { type: 'mrkdwn', text: `*Bedrijf:*\n${data.brandName}` },
+              { type: 'mrkdwn', text: `*Categorie:*\n${data.category}` },
+              { type: 'mrkdwn', text: `*Locatie:*\n${data.location || 'Niet opgegeven'}` },
+              { type: 'mrkdwn', text: `*Account:*\n${data.userBadge || '👤 Anoniem'}` },
+              { type: 'mrkdwn', text: `*Sentiment:*\n${emoji} ${data.sentiment}` },
+              { type: 'mrkdwn', text: `*Vermeldingen:*\nPerplexity ${data.pxMentioned ? '✅' : '❌'} · ChatGPT ${data.cgMentioned ? '✅' : '❌'}` },
+            ]
+          },
+          {
+            type: 'context',
+            elements: [{ type: 'mrkdwn', text: `${new Date().toLocaleString('nl-NL')} · Brand Check` }]
+          }
+        ]
       })
     })
     if (!res.ok) console.error(`[Brand Check] Slack webhook returned ${res.status}`)
@@ -248,9 +269,19 @@ export async function POST(request) {
       }),
     ])
 
-    // Slack on final query
+    // Slack on final query — tier-badge via auth-cookies + service-client lookup
     if (queryType === 'service') {
-      await sendSlackNotification({ brandName: brand, location: loc, category: cat, sentiment: pxResult.sentiment, pxMentioned: pxResult.mentioned, cgMentioned: cgResult.mentioned }).catch(e => console.error('[Brand Check] Slack failed:', e.message))
+      let userBadge = '👤 Anoniem'
+      try {
+        const { createClient, createServiceClient } = await import('@/lib/supabase/server')
+        const userSupabase = await createClient()
+        const { data: { user } } = await userSupabase.auth.getUser()
+        if (user?.id) {
+          const adminSupabase = await createServiceClient()
+          userBadge = await getUserBadge(adminSupabase, user.id)
+        }
+      } catch (_) {}
+      await sendSlackNotification({ brandName: brand, location: loc, category: cat, sentiment: pxResult.sentiment, pxMentioned: pxResult.mentioned, cgMentioned: cgResult.mentioned, userBadge }).catch(e => console.error('[Brand Check] Slack failed:', e.message))
     }
 
     return NextResponse.json({

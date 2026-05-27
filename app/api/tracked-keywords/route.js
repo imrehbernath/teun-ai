@@ -8,6 +8,7 @@ import { RANK_TRACKER_TIERS } from '@/lib/rank-tracker-tiers';
 import { runLiveScan } from '@/lib/rank-scanner';
 import { generateKeywordPrompt } from '@/lib/keyword-prompt-generator';
 import { checkLocationGate } from '@/lib/language-gate';
+import { getUserBadge } from '@/lib/slack-badge';
 
 export const maxDuration = 120;
 
@@ -89,7 +90,43 @@ export async function POST(request) {
     // Live scan
     let scanResults = null;
     try { scanResults = await runLiveScan(supabase, data, locale); } catch (e) { console.error('Live scan error:', e); }
-    if (process.env.SLACK_WEBHOOK_URL) { try { const pos = scanResults ? Object.entries(scanResults).map(([p, r]) => `${p}: ${r.position ? `#${r.position}` : '—'}`).join(' | ') : 'pending'; await fetch(process.env.SLACK_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: `📊 Tracked: ${brandName} | ${keyword}${serviceArea ? ` (${serviceArea})` : ''}\n💬 "${generatedPrompt}"\n📈 ${pos}` }) }); } catch {} }
+    if (process.env.SLACK_WEBHOOK_URL) {
+      try {
+        const pos = scanResults
+          ? Object.entries(scanResults).map(([p, r]) => `${p}: ${r.position ? `#${r.position}` : 'n.v.t.'}`).join(' | ')
+          : 'pending'
+        const userBadge = await getUserBadge(supabase, userId)
+        await fetch(process.env.SLACK_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            blocks: [
+              {
+                type: 'header',
+                text: { type: 'plain_text', text: '📊 Rank Tracker Keyword Toegevoegd', emoji: true }
+              },
+              {
+                type: 'section',
+                fields: [
+                  { type: 'mrkdwn', text: `*Bedrijf:*\n${brandName}` },
+                  { type: 'mrkdwn', text: `*Keyword:*\n${keyword}${serviceArea ? ` (${serviceArea})` : ''}` },
+                  { type: 'mrkdwn', text: `*Account:*\n${userBadge}` },
+                  { type: 'mrkdwn', text: `*Posities:*\n${pos}` },
+                ]
+              },
+              {
+                type: 'section',
+                text: { type: 'mrkdwn', text: `*Prompt:*\n_"${generatedPrompt}"_` }
+              },
+              {
+                type: 'context',
+                elements: [{ type: 'mrkdwn', text: `${new Date().toLocaleString('nl-NL')} · Rank Tracker` }]
+              }
+            ]
+          })
+        })
+      } catch {}
+    }
     return NextResponse.json({ keyword: data, scanResults });
   } catch (error) { console.error('POST error:', error); return NextResponse.json({ error: 'Toevoegen mislukt' }, { status: 500 }); }
 }

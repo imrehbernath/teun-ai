@@ -7,6 +7,7 @@ import { getOrCreateSessionToken } from '@/lib/session-token'
 import { isBlockedUrl, hasNonLatinText, getLanguageBlockError } from '@/lib/language-guard'
 import { checkLanguageGate } from '@/lib/language-gate'
 import { stripLegalSuffix } from '@/lib/branche-detect'
+import { getUserBadge } from '@/lib/slack-badge'
 
 // Vercel function timeout — 10 prompts × 2s delay = needs 300s
 export const maxDuration = 300
@@ -15,14 +16,14 @@ import Anthropic from '@anthropic-ai/sdk'
 // ✅ Slack notificatie functie
 async function sendSlackNotification(scanData) {
   const webhookUrl = process.env.SLACK_WEBHOOK_URL;
-  
+
   if (!webhookUrl) {
     console.log('⚠️ Slack webhook URL niet geconfigureerd');
     return;
   }
 
   try {
-    const { companyName, companyCategory, primaryKeyword, totalMentions, websiteUrl } = scanData;
+    const { companyName, companyCategory, primaryKeyword, totalMentions, websiteUrl, userBadge } = scanData;
 
     const message = {
       blocks: [
@@ -48,6 +49,10 @@ async function sendSlackNotification(scanData) {
             {
               type: "mrkdwn",
               text: `*Website:*\n${websiteUrl || 'Niet opgegeven'}`
+            },
+            {
+              type: "mrkdwn",
+              text: `*Account:*\n${userBadge || '👤 Anoniem'}`
             },
             {
               type: "mrkdwn",
@@ -957,12 +962,14 @@ export async function POST(request) {
 
     // Skip Slack voor eigen OnlineLabs demo scans
     if (normalizedDomain !== 'onlinelabs.nl' && !normalizedDomain.startsWith('onlinelabs.nl/')) {
+      const userBadge = await getUserBadge(supabase, userId)
       sendSlackNotification({
         companyName,
         companyCategory,
         websiteUrl,
         primaryKeyword: identifiedQueriesSummary?.[0] || null,
-        totalMentions: totalCompanyMentions
+        totalMentions: totalCompanyMentions,
+        userBadge,
       }).catch(err => console.error('Slack notificatie fout:', err));
     }
 

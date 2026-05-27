@@ -13,6 +13,7 @@ import {
   getPerplexityCompetitorSystemPrompt,
   stripCompetitorBlock,
 } from '@/lib/competitor-extract'
+import { getUserBadge } from '@/lib/slack-badge'
 
 // Vercel function timeout — 10 prompts × 2 platforms = needs time
 export const maxDuration = 300
@@ -369,32 +370,18 @@ export async function POST(request) {
       }
     }
 
-    // Slack notification with PRO badge (fire-and-forget)
+    // Slack notification met tier-badge (fire-and-forget)
     if (process.env.SLACK_WEBHOOK_URL) {
-      // Look up user subscription status
-      let userBadge = '🆓 Gratis'
+      let userId = null
       try {
         const { data: integration } = await supabase
           .from('tool_integrations')
           .select('user_id')
           .eq('id', integrationId)
           .single()
-
-        if (integration?.user_id) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('email, subscription_status')
-            .eq('id', integration.user_id)
-            .single()
-
-          const adminEmails = ['imre@onlinelabs.nl', 'hallo@onlinelabs.nl']
-          if (adminEmails.includes(profile?.email)) {
-            userBadge = '🔧 Admin'
-          } else if (['active', 'canceling'].includes(profile?.subscription_status)) {
-            userBadge = '⭐ PRO'
-          }
-        }
-      } catch (e) {}
+        userId = integration?.user_id || null
+      } catch (_) {}
+      const userBadge = await getUserBadge(supabase, userId)
 
       fetch(process.env.SLACK_WEBHOOK_URL, {
         method: 'POST',
@@ -403,7 +390,7 @@ export async function POST(request) {
           blocks: [
             {
               type: 'header',
-              text: { type: 'plain_text', text: '🎯 GEO Analyse Scan', emoji: true }
+              text: { type: 'plain_text', text: '🎯 AI Visibility Scan', emoji: true }
             },
             {
               type: 'section',
@@ -418,7 +405,7 @@ export async function POST(request) {
             },
             {
               type: 'context',
-              elements: [{ type: 'mrkdwn', text: `${new Date().toLocaleString('nl-NL')} · GEO Analyse · ${(scanDuration / 1000).toFixed(0)}s` }]
+              elements: [{ type: 'mrkdwn', text: `${new Date().toLocaleString('nl-NL')} · AI Visibility · ${(scanDuration / 1000).toFixed(0)}s` }]
             }
           ]
         })

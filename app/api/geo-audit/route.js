@@ -11,6 +11,7 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { checkLanguageGate } from '@/lib/language-gate'
+import { getUserBadge } from '@/lib/slack-badge'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -365,7 +366,7 @@ async function scrapePage(url) {
 
 
 // ✅ Slack lead notificatie
-async function sendSlackLeadNotification({ url, companyName, score, mentioned }) {
+async function sendSlackLeadNotification({ url, companyName, score, mentioned, userBadge }) {
   const webhookUrl = process.env.SLACK_WEBHOOK_URL
   if (!webhookUrl) return
 
@@ -384,6 +385,7 @@ async function sendSlackLeadNotification({ url, companyName, score, mentioned })
             fields: [
               { type: 'mrkdwn', text: `*URL:*\n${url}` },
               { type: 'mrkdwn', text: `*Bedrijf:*\n${companyName || 'Onbekend'}` },
+              { type: 'mrkdwn', text: `*Account:*\n${userBadge || '👤 Anoniem'}` },
               { type: 'mrkdwn', text: `*GEO Score:*\n${score}/100` },
               { type: 'mrkdwn', text: `*Perplexity:*\n${mentioned ? '✅ Gevonden' : '❌ Niet gevonden'}` }
             ]
@@ -794,7 +796,8 @@ export async function POST(request) {
       }
     }
 
-    sendSlackLeadNotification({ url: normalizedUrl, companyName: aiAnalysis.companyName || resolvedHostname, score: overallScore, mentioned: liveTest?.mentioned || false }).catch(() => {})
+    const userBadge = await getUserBadge(supabaseAdmin, user?.id)
+    sendSlackLeadNotification({ url: normalizedUrl, companyName: aiAnalysis.companyName || resolvedHostname, score: overallScore, mentioned: liveTest?.mentioned || false, userBadge }).catch(() => {})
 
     return NextResponse.json({
       success: true,
