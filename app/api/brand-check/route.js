@@ -10,6 +10,7 @@ export const maxDuration = 60
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { hasNonLatinText, getLanguageBlockError } from '@/lib/language-guard'
+import { checkLocationGate } from '@/lib/language-gate'
 
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -212,6 +213,15 @@ export async function POST(request) {
 
     if (!['experiences', 'reviews', 'service'].includes(queryType)) {
       return NextResponse.json({ error: 'Invalid queryType' }, { status: 400 })
+    }
+
+    // Locatiegate: blokkeer evident buitenlandse vestigingsplaatsen voor we
+    // Perplexity/ChatGPT aanroepen of een Slack-notificatie versturen.
+    if (location) {
+      const locGate = checkLocationGate(location, locale)
+      if (!locGate.allowed) {
+        return NextResponse.json({ error: locGate.message }, { status: 400 })
+      }
     }
 
     const brand = brandName.trim()
