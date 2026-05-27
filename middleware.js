@@ -11,6 +11,15 @@ const intlMiddleware = createMiddleware(routing, {
 // BLOCKED_COUNTRIES — ISO 3166-1 alpha-2 landcodes. Uitbreidbaar.
 const BLOCKED_COUNTRIES = ['IN'];
 
+// EXCLUDED_IPS — eigen IP's, niet meetellen in GTM. Uitbreidbaar.
+const EXCLUDED_IPS = ['62.163.105.43', '209.198.140.10'];
+
+function getClientIp(request) {
+  const fwd = request.headers.get('x-forwarded-for');
+  if (fwd) return fwd.split(',')[0].trim();
+  return request.headers.get('x-real-ip') || null;
+}
+
 // Cream/Lora design conform signup- en nieuwsbrief-mails. Noindex/nofollow
 // zodat zoekmachines deze geo-block respons niet indexeren als ze toevallig
 // vanuit een geblokkeerd land crawlen.
@@ -119,6 +128,11 @@ export default function middleware(request) {
     });
   }
 
+  // IP-check voor GTM-opt-out. Cookie wordt onderaan op de uiteindelijke
+  // response gezet zodat hij meeg gaat in dezelfde response cycle.
+  const clientIp = getClientIp(request);
+  const skipGtm = clientIp && EXCLUDED_IPS.includes(clientIp);
+
   // ============================================
   // NL-ONLY PAGINA'S: REDIRECT EN → NL
   // ============================================
@@ -181,6 +195,17 @@ export default function middleware(request) {
   // Strip alle hreflang Link headers
   if (response?.headers) {
     response.headers.delete('link');
+  }
+
+  // GTM-opt-out cookie voor eigen IP's. Lazy-loaded GTM-script leest deze
+  // cookie en skipt zichzelf. Geen impact op normale bezoekers want zonder
+  // match wordt er geen Set-Cookie header gestuurd.
+  if (skipGtm && response?.cookies) {
+    response.cookies.set('gtm_optout', '1', {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: 'lax',
+    });
   }
 
   return response;
