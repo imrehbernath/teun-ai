@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 import { RANK_TRACKER_TIERS } from '@/lib/rank-tracker-tiers';
 import { runLiveScan } from '@/lib/rank-scanner';
 import { generateKeywordPrompt } from '@/lib/keyword-prompt-generator';
+import { checkLocationGate } from '@/lib/language-gate';
 
 export const maxDuration = 120;
 
@@ -70,6 +71,14 @@ export async function POST(request) {
     const body = await request.json();
     const { userId, keyword, serviceArea, domain, brandName, competitors, locale = 'nl', customPrompt } = body;
     if (!userId || !keyword || !domain || !brandName) return NextResponse.json({ error: 'userId, keyword, domain en brandName zijn verplicht' }, { status: 400 });
+    // Locatiegate: blokkeer evident buitenlandse service-areas voor we Claude
+    // aanroepen, DB schrijven of een live scan starten.
+    if (serviceArea) {
+      const locGate = checkLocationGate(serviceArea, locale);
+      if (!locGate.allowed) {
+        return NextResponse.json({ error: locGate.message }, { status: 400 });
+      }
+    }
     const tier = await getUserTier(userId);
     const { count } = await supabase.from('tracked_keywords').select('*', { count: 'exact', head: true }).eq('user_id', userId);
     if (count >= tier.maxKeywords) return NextResponse.json({ error: `Maximum ${tier.maxKeywords} keywords bereikt`, limitReached: true }, { status: 403 });
