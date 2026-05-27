@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { canUserScan, trackScan, BETA_CONFIG } from '@/lib/beta-config'
 import { getOrCreateSessionToken } from '@/lib/session-token'
 import { isBlockedUrl, hasNonLatinText, getLanguageBlockError } from '@/lib/language-guard'
+import { checkLanguageGate } from '@/lib/language-gate'
 import { stripLegalSuffix } from '@/lib/branche-detect'
 
 // Vercel function timeout — 10 prompts × 2s delay = needs 300s
@@ -367,10 +368,17 @@ async function analyzeWebsiteForKeywords(websiteUrl, companyName, companyCategor
     if (!scrapeResult.success) {
       return { success: false, error: scrapeResult.error }
     }
-    
+
+    // Taalgate: blokkeer duidelijk niet-NL/EN sites voor we Claude aanroepen.
+    const gate = checkLanguageGate(scrapeResult.html, isNL ? 'nl' : 'en')
+    if (!gate.allowed) {
+      console.log(`[language-gate] blocked: ${gate.reason}`)
+      return { success: false, blocked: true, blockMessage: gate.message }
+    }
+
     // Step 2: Parse HTML
     const parsed = parseHtmlContent(scrapeResult.html)
-    
+
     // Step 3: Analyze with Claude (now with nav items, H3s, service links)
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
@@ -744,6 +752,9 @@ export async function POST(request) {
       console.log('🌐 Website URL provided, starting smart analysis...')
       try {
         websiteAnalysis = await analyzeWebsiteForKeywords(websiteUrl, companyName, companyCategory, isNL)
+        if (websiteAnalysis?.blocked) {
+          return NextResponse.json({ error: websiteAnalysis.blockMessage }, { status: 400 })
+        }
         if (websiteAnalysis.success) {
           console.log(`✅ Website analysis complete: ${websiteAnalysis.keywords.length} keywords extracted`)
           

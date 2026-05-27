@@ -10,6 +10,7 @@ export const maxDuration = 120
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
+import { checkLanguageGate } from '@/lib/language-gate'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -689,6 +690,13 @@ export async function POST(request) {
 
     const html = scrape.html
     console.log(`[GEO Audit] scraped via ${scrape.method} (${scrape.length} chars)`)
+
+    // Taalgate: blokkeer duidelijk niet-NL/EN sites voor we Claude/Perplexity aanroepen.
+    const gate = checkLanguageGate(html, locale)
+    if (!gate.allowed) {
+      console.log(`[language-gate] blocked: ${gate.reason}`)
+      return NextResponse.json({ error: gate.message }, { status: 400 })
+    }
 
     // DETECT PAGE LANGUAGE — use for analysis, not UI locale
     const pageLang = detectPageLanguage(html, normalizedUrl)

@@ -7,6 +7,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getOrCreateSessionToken } from '@/lib/session-token'
 import { isBlockedUrl, hasNonLatinText, getLanguageBlockError } from '@/lib/language-guard'
+import { checkLanguageGate, checkLocationGate } from '@/lib/language-gate'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
@@ -650,11 +651,26 @@ export async function POST(request) {
 
     let extracted = null, source = null
 
+    // Locatiegate: bij scan zonder URL met branche + locatie eerst checken of
+    // de locatie binnen de NL/BE-scope past, voor we Claude aanslingeren.
+    if (!url && serviceArea) {
+      const locGate = checkLocationGate(serviceArea, lang)
+      if (!locGate.allowed) {
+        return NextResponse.json({ error: locGate.message }, { status: 400, headers: CORS })
+      }
+    }
+
     // Step 1: Keywords from URL
     if (url) {
       console.log(`Scraping ${url} (output lang: ${lang})`)
       const scrape = await scrapeWebsite(url, lang)
       if (scrape.success) {
+        // Taalgate: blokkeer duidelijk niet-NL/EN sites voor we Claude aanroepen.
+        const gate = checkLanguageGate(scrape.html, lang)
+        if (!gate.allowed) {
+          console.log(`[language-gate] blocked: ${gate.reason}`)
+          return NextResponse.json({ error: gate.message }, { status: 400, headers: CORS })
+        }
         const parsed = parseHtml(scrape.html)
         source = { title: parsed.title, metaDesc: parsed.metaDesc, h1: parsed.h1s[0], method: scrape.method }
         extracted = await extractKeywords(parsed, lang)
