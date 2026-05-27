@@ -108,6 +108,13 @@ async function scrapeWebsite(url, lang = 'nl') {
     ? 'nl-NL,nl;q=0.9,en;q=0.8'
     : 'en-US,en;q=0.9'
 
+  // lastHtml: eerste niet-error HTML die we kregen, ook als garbage. Wordt
+  // gebruikt voor taalgate detectie als geen enkele tier "schoon" content kreeg.
+  let lastHtml = null
+  const rememberHtml = (html) => {
+    if (html && html.length > 100 && !lastHtml) lastHtml = html
+  }
+
   // ── Tier 1: direct fetch ──
   for (const u of [norm, www]) {
     try {
@@ -124,6 +131,7 @@ async function scrapeWebsite(url, lang = 'nl') {
         const html = await r.text()
         if (!isGarbagePage(html) && html.length > 500)
           return { success: true, html, method: 'direct' }
+        rememberHtml(html)
         console.log(`[scrape] direct ${u}: ok but garbage/short (status ${r.status}, ${html.length} bytes)`)
       } else {
         console.log(`[scrape] direct ${u}: HTTP ${r.status}`)
@@ -135,7 +143,7 @@ async function scrapeWebsite(url, lang = 'nl') {
 
   if (!SCRAPER_API_KEY) {
     console.log('[scrape] SCRAPER_API_KEY not configured — skipping ScraperAPI')
-    return { success: false }
+    return { success: false, lastHtml }
   }
 
   // ── Tier 2: ScraperAPI premium (15s). Geen www-retry binnen tier:
@@ -152,6 +160,7 @@ async function scrapeWebsite(url, lang = 'nl') {
         console.log(`[scrape] scraperapi-premium ${norm}: success (${html.length} bytes)`)
         return { success: true, html, method: 'scraperapi-premium' }
       }
+      rememberHtml(html)
       // 200 OK + garbage = echte bot-challenge. Ultra heeft kans.
       premiumBlocked = true
       console.log(`[scrape] scraperapi-premium ${norm}: ok but garbage (${html.length} bytes) — site blocking, will try ultra`)
@@ -163,7 +172,7 @@ async function scrapeWebsite(url, lang = 'nl') {
   }
 
   // ── Tier 3: ultra_premium, alleen bij bevestigde challenge-page ──
-  if (!premiumBlocked) return { success: false }
+  if (!premiumBlocked) return { success: false, lastHtml }
 
   try {
     const r = await fetch(
@@ -176,6 +185,7 @@ async function scrapeWebsite(url, lang = 'nl') {
         console.log(`[scrape] scraperapi-ultra ${norm}: success (${html.length} bytes)`)
         return { success: true, html, method: 'scraperapi-ultra' }
       }
+      rememberHtml(html)
       console.log(`[scrape] scraperapi-ultra ${norm}: ok but garbage (${html.length} bytes)`)
     } else {
       console.log(`[scrape] scraperapi-ultra ${norm}: HTTP ${r.status}`)
@@ -184,7 +194,7 @@ async function scrapeWebsite(url, lang = 'nl') {
     console.log(`[scrape] scraperapi-ultra ${norm}: ${e.name === 'TimeoutError' ? 'timeout' : e.message}`)
   }
 
-  return { success: false }
+  return { success: false, lastHtml }
 }
 
 function parseHtml(html) {
@@ -692,6 +702,26 @@ export async function POST(request) {
         extracted = await extractKeywords(parsed, lang)
         console.log(`Keywords (${lang}): ${extracted.keywords?.join(', ')}`)
       } else {
+        // Scrape mislukt. Eerst: als we ergens HTML hebben opgevangen (ook al
+        // was die garbage), check de taal. Duitse/Spaanse/etc sites die niet
+        // scrape-baar zijn moeten we niet met "AI druk" 504-en maar netjes
+        // blokkeren met taal-melding.
+        if (scrape.lastHtml) {
+          const gate = checkLanguageGate(scrape.lastHtml, lang)
+          if (!gate.allowed) {
+            console.log(`[language-gate] blocked op fallback HTML: ${gate.reason}`)
+            return NextResponse.json({ error: gate.message }, { status: 400, headers: CORS })
+          }
+        }
+        // Dan: zonder keyword/branche/brandName als context heeft Anthropic
+        // niets om mee te werken. Snel falen in plaats van 60s Claude-timeout.
+        if (!keyword && !branche && !brandName) {
+          return NextResponse.json({
+            error: lang === 'nl'
+              ? 'We konden de website niet bereiken. Voer een keyword in en probeer het opnieuw.'
+              : 'We could not reach the website. Please enter a keyword and try again.',
+          }, { status: 400, headers: CORS })
+        }
         console.log(`Scrape failed for ${url} -- using domain as fallback`)
         try {
           const domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname.replace(/^www\./, '')
