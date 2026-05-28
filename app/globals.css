@@ -4558,53 +4558,243 @@ html {
         .tool-summary-row .lbl { color: var(--ink-3); flex-shrink: 0; }
         .tool-summary-row .val { color: var(--ink); font-weight: 500; text-align: right; }
 
-        /* Custom prompts list (in Step 3) */
+        /* Custom prompts panel (Step 3, funnel-context) */
         .tool-custom-prompts {
           background: rgba(232, 98, 58, 0.05);
           border: 1px solid rgba(232, 98, 58, 0.2);
           border-radius: 12px;
-          padding: 16px 18px;
+          padding: 18px 18px 16px;
           margin-bottom: 18px;
         }
-        .tool-custom-prompts-title {
-          font-family: var(--font-mono), monospace;
-          font-size: 11px;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: var(--spark);
-          font-weight: 600;
-          margin-bottom: 10px;
+        .tool-custom-prompts-banner {
+          margin-bottom: 14px;
+          padding-bottom: 14px;
+          border-bottom: 1px solid rgba(232, 98, 58, 0.18);
+        }
+        .tool-custom-prompts-banner .title {
+          font-family: var(--font-lora), serif;
+          font-size: 15.5px;
+          font-weight: 500;
+          color: var(--ink);
+          line-height: 1.3;
+          letter-spacing: -0.01em;
+          margin: 0 0 4px;
+        }
+        .tool-custom-prompts-banner .desc {
+          font-size: 12.5px;
+          color: var(--ink-2);
+          margin: 0;
+          line-height: 1.45;
         }
         .tool-custom-prompts-list {
-          max-height: 180px;
-          overflow-y: auto;
-          padding-right: 6px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
         }
         .tool-custom-prompts-list .item {
           display: flex;
+          align-items: center;
           gap: 8px;
-          padding: 4px 0;
+          padding: 8px 10px;
           font-size: 13px;
           color: var(--ink-2);
+          background: #fff;
+          border: 1px solid rgba(232, 98, 58, 0.15);
+          border-radius: 8px;
+          transition: border-color 0.15s, background 0.15s;
+        }
+        .tool-custom-prompts-list .item:hover {
+          border-color: rgba(232, 98, 58, 0.35);
+        }
+        .tool-custom-prompts-list .item.editing {
+          background: rgba(232, 98, 58, 0.04);
+          border-color: var(--spark);
         }
         .tool-custom-prompts-list .num {
           color: var(--spark);
           font-weight: 600;
           flex-shrink: 0;
           width: 22px;
+          font-family: var(--font-mono), monospace;
+          font-size: 12px;
         }
-        .tool-cancel-custom {
-          margin-top: 10px;
-          background: none;
-          border: none;
-          font-size: 11px;
-          color: var(--ink-3);
-          text-decoration: underline;
-          cursor: pointer;
-          padding: 0;
+        .tool-custom-prompts-list .item .text {
+          flex: 1;
+          min-width: 0;
+          line-height: 1.45;
+          word-break: break-word;
+        }
+        .tool-custom-prompts-list .item .edit-input {
+          flex: 1;
+          min-width: 0;
+          padding: 6px 10px;
+          border: 1px solid var(--spark);
+          border-radius: 6px;
           font-family: inherit;
+          font-size: 13px;
+          color: var(--ink);
+          background: #fff;
+          outline: none;
         }
-        .tool-cancel-custom:hover { color: var(--ink); }
+        .tool-custom-prompts-list .item .edit-input:focus {
+          box-shadow: 0 0 0 3px rgba(232, 98, 58, 0.12);
+        }
+        .tool-custom-prompts-list .icon-btn {
+          width: 28px;
+          height: 28px;
+          flex-shrink: 0;
+          background: transparent;
+          border: 1px solid transparent;
+          border-radius: 6px;
+          color: var(--ink-3);
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.15s, color 0.15s, border-color 0.15s;
+          padding: 0;
+        }
+        .tool-custom-prompts-list .icon-btn:hover {
+          background: rgba(15, 23, 48, 0.05);
+        }
+        .tool-custom-prompts-list .icon-btn.edit:hover {
+          color: var(--spark);
+          background: rgba(232, 98, 58, 0.08);
+        }
+        .tool-custom-prompts-list .icon-btn.delete:hover {
+          color: var(--danger);
+          background: rgba(214, 69, 69, 0.08);
+        }
+        .tool-custom-prompts-list .icon-btn.save {
+          color: var(--success);
+        }
+        .tool-custom-prompts-list .icon-btn.save:hover {
+          background: rgba(16, 185, 129, 0.12);
+        }
+        .tool-custom-prompts-list .icon-btn.cancel:hover {
+          color: var(--ink-2);
+        }
+        .tool-custom-prompts-add {
+          display: flex;
+          gap: 8px;
+          margin-top: 10px;
+          padding-top: 12px;
+          border-top: 1px dashed rgba(232, 98, 58, 0.25);
+        }
+        .tool-custom-prompts-add .add-input {
+          flex: 1;
+          min-width: 0;
+          padding: 8px 12px;
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          font-family: inherit;
+          font-size: 13px;
+          color: var(--ink);
+          background: #fff;
+          outline: none;
+          transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .tool-custom-prompts-add .add-input:focus {
+          border-color: var(--spark);
+          box-shadow: 0 0 0 3px rgba(232, 98, 58, 0.12);
+        }
+        .tool-custom-prompts-add .add-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 14px;
+          background: var(--spark);
+          color: #fff;
+          border: none;
+          border-radius: 8px;
+          font-family: inherit;
+          font-size: 12.5px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.15s, opacity 0.15s;
+          flex-shrink: 0;
+        }
+        .tool-custom-prompts-add .add-btn:hover:not(:disabled) {
+          background: #d0522e;
+        }
+        .tool-custom-prompts-add .add-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .tool-custom-prompts-max {
+          margin: 10px 0 0;
+          padding-top: 10px;
+          border-top: 1px dashed rgba(232, 98, 58, 0.25);
+          font-size: 12px;
+          color: var(--ink-3);
+          text-align: center;
+          font-style: italic;
+        }
+        @media (max-width: 600px) {
+          .tool-custom-prompts-add {
+            flex-direction: column;
+          }
+          .tool-custom-prompts-add .add-btn {
+            justify-content: center;
+          }
+        }
+
+        /* Fallback error banner (Step 3) */
+        .tool-fallback-error {
+          background: rgba(214, 69, 69, 0.06);
+          border: 1px solid rgba(214, 69, 69, 0.25);
+          border-radius: 12px;
+          padding: 14px 16px;
+          margin-bottom: 16px;
+          display: flex;
+          gap: 12px;
+          align-items: flex-start;
+          color: var(--danger);
+        }
+        .tool-fallback-error > svg { flex-shrink: 0; margin-top: 2px; }
+        .tool-fallback-error .content { flex: 1; min-width: 0; }
+        .tool-fallback-error .title {
+          font-size: 13.5px;
+          font-weight: 600;
+          color: var(--danger);
+          margin: 0 0 4px;
+        }
+        .tool-fallback-error .desc {
+          font-size: 12.5px;
+          color: var(--ink-2);
+          margin: 0 0 10px;
+          line-height: 1.5;
+        }
+        .tool-fallback-error .cta {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--spark);
+          text-decoration: none;
+          transition: gap 0.15s;
+        }
+        .tool-fallback-error .cta:hover { gap: 10px; }
+
+        /* Bedrijfsnaam tijdens scan (Step 3 progress) */
+        .tool-scan-progress .tool-scan-for {
+          font-family: var(--font-mono), monospace;
+          font-size: 11px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: var(--ink-3);
+          margin: 0 0 12px;
+          text-align: center;
+        }
+        .tool-scan-progress .tool-scan-for strong {
+          color: var(--ink);
+          font-weight: 700;
+          font-family: var(--font-poppins), sans-serif;
+          font-size: 13px;
+          text-transform: none;
+          letter-spacing: 0;
+        }
 
         /* Step 4: results */
         .tool-result-success {

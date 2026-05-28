@@ -334,6 +334,13 @@ function AIVisibilityToolContent() {
   const [languageMismatch, setLanguageMismatch] = useState(null);
   const scanCompleteFiredRef = useRef(true);
 
+  // Stap B: edit-state voor customPrompts (inline editing van zoekvragen)
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [editingText, setEditingText] = useState('');
+  const [newPromptText, setNewPromptText] = useState('');
+  const [fallbackError, setFallbackError] = useState(false);
+  const fallbackTriedRef = useRef(false);
+
   // Cream theme on body
   useEffect(() => {
     document.body.classList.add('theme-cream');
@@ -457,6 +464,41 @@ function AIVisibilityToolContent() {
             setPendingAutoStart(true);
           }
           setInitializing(false);
+          return;
+        }
+
+        // Drielaagse fallback: sessionStorage leeg, probeer DB-fetch (latest discovery
+        // voor deze sessie). Bij geen rij of fout: foutbanner met alternatieve flow.
+        if (!fallbackTriedRef.current) {
+          fallbackTriedRef.current = true;
+          setFormData(prev => ({
+            ...prev,
+            companyName: company || prev.companyName,
+            companyCategory: category || prev.companyCategory,
+            website: websiteParam || prev.website
+          }));
+          setStep(3);
+
+          fetch('/api/prompt-discovery/latest')
+            .then(r => r.json())
+            .then(data => {
+              if (data?.found && Array.isArray(data.prompts) && data.prompts.length > 0) {
+                console.log('📝 Custom prompts via DB-fallback:', data.prompts.length);
+                setCustomPrompts(data.prompts);
+                setFormData(prev => ({
+                  ...prev,
+                  companyName: company || data.companyName || prev.companyName,
+                  website: websiteParam || data.website || prev.website,
+                }));
+              } else {
+                setFallbackError(true);
+              }
+            })
+            .catch(err => {
+              console.error('Fallback fetch failed:', err);
+              setFallbackError(true);
+            })
+            .finally(() => setInitializing(false));
           return;
         }
       } catch (e) {
@@ -694,6 +736,57 @@ function AIVisibilityToolContent() {
       trackScanComplete({ tool: 'ai-visibility', locale });
     }
   }, [results, locale]);
+
+  // ============================================
+  // STAP B: inline edit + add/remove voor customPrompts
+  // ============================================
+  const startEditPrompt = (index) => {
+    if (!customPrompts) return;
+    setEditingIndex(index);
+    setEditingText(customPrompts[index] || '');
+  };
+  const saveEditPrompt = () => {
+    const txt = editingText.trim();
+    if (!txt || editingIndex === null) {
+      cancelEditPrompt();
+      return;
+    }
+    setCustomPrompts(prev => {
+      if (!prev) return prev;
+      const next = [...prev];
+      next[editingIndex] = txt;
+      return next;
+    });
+    cancelEditPrompt();
+  };
+  const cancelEditPrompt = () => {
+    setEditingIndex(null);
+    setEditingText('');
+  };
+  const removePromptAt = (index) => {
+    setCustomPrompts(prev => {
+      if (!prev) return prev;
+      return prev.filter((_, i) => i !== index);
+    });
+    if (editingIndex === index) cancelEditPrompt();
+  };
+  const addNewPrompt = () => {
+    const txt = newPromptText.trim();
+    if (!txt) return;
+    if ((customPrompts?.length || 0) >= 10) return;
+    setCustomPrompts(prev => (prev ? [...prev, txt] : [txt]));
+    setNewPromptText('');
+  };
+
+  // Dynamische tab-title tijdens scan: 'Scannen [bedrijf]... | Teun.ai'
+  useEffect(() => {
+    if (!analyzing) return;
+    const company = (formData.companyName || '').trim();
+    if (!company) return;
+    const prevTitle = document.title;
+    document.title = t('step3.tabTitleScanning', { company });
+    return () => { document.title = prevTitle; };
+  }, [analyzing, formData.companyName, t]);
 
   // ============================================
   // HANDLE ANALYZE — kern scan flow
@@ -1533,6 +1626,11 @@ function AIVisibilityToolContent() {
                     </div>
 
                     <div className="tool-scan-progress">
+                      {formData.companyName && (
+                        <p className="tool-scan-for">
+                          {t('step3.scanningFor')} <strong>{formData.companyName}</strong>
+                        </p>
+                      )}
                       <div className="tool-scan-spinner"></div>
                       <h3>{t('step3.analyzing')}</h3>
                       <p className="current">{currentStep}</p>
@@ -1562,6 +1660,24 @@ function AIVisibilityToolContent() {
                   </div>
                 ) : (
                   <>
+                    {fallbackError && (
+                      <div className="tool-fallback-error">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <circle cx="12" cy="12" r="10"/>
+                          <line x1="12" y1="8" x2="12" y2="12"/>
+                          <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <div className="content">
+                          <div className="title">{t('step3.fallbackErrorTitle')}</div>
+                          <p className="desc">{t('step3.fallbackErrorDesc')}</p>
+                          <Link href="/tools/ai-prompt-explorer" className="cta">
+                            {t('step3.fallbackErrorCta')}
+                            <span aria-hidden="true">→</span>
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="tool-summary">
                       <div className="tool-summary-row">
                         <span className="lbl">{t('step3.summaryCompany')}</span>
@@ -1579,32 +1695,126 @@ function AIVisibilityToolContent() {
                       )}
                       <div className="tool-summary-row">
                         <span className="lbl">{t('step3.summaryPrompts')}</span>
-                        <span className="val">{customPrompts ? `${customPrompts.length} ${locale === 'nl' ? 'aangepast' : 'custom'}` : `${user ? '10' : '5'} AI-prompts`}</span>
+                        <span className="val">{customPrompts ? `${customPrompts.length} ${locale === 'nl' ? 'zoekvragen' : 'queries'}` : `${user ? '10' : '5'} AI-prompts`}</span>
                       </div>
                       {referralSource && (
                         <div className="tool-summary-row">
-                          <span className="lbl">Bron:</span>
+                          <span className="lbl">{locale === 'nl' ? 'Bron:' : 'Source:'}</span>
                           <span className="val" style={{ color: 'var(--spark)', textTransform: 'capitalize' }}>{referralSource}</span>
                         </div>
                       )}
                     </div>
 
-                    {customPrompts && customPrompts.length > 0 && (
+                    {Array.isArray(customPrompts) && (
                       <div className="tool-custom-prompts">
-                        <div className="tool-custom-prompts-title">
-                          📝 {t('step3.customPromptsTitle', { count: customPrompts.length })}
+                        <div className="tool-custom-prompts-banner">
+                          <div className="title">
+                            {t('step3.funnelBannerTitle', { count: customPrompts.length })}
+                          </div>
+                          <p className="desc">{t('step3.funnelBannerDesc')}</p>
                         </div>
+
                         <div className="tool-custom-prompts-list">
                           {customPrompts.map((prompt, idx) => (
-                            <div key={idx} className="item">
+                            <div key={idx} className={`item ${editingIndex === idx ? 'editing' : ''}`}>
                               <span className="num">{idx + 1}.</span>
-                              <span>{prompt}</span>
+                              {editingIndex === idx ? (
+                                <>
+                                  <input
+                                    type="text"
+                                    value={editingText}
+                                    onChange={(e) => setEditingText(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') { e.preventDefault(); saveEditPrompt(); }
+                                      if (e.key === 'Escape') { e.preventDefault(); cancelEditPrompt(); }
+                                    }}
+                                    autoFocus
+                                    className="edit-input"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={saveEditPrompt}
+                                    className="icon-btn save"
+                                    aria-label={t('step3.savePrompt')}
+                                    title={t('step3.savePrompt')}
+                                  >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                      <polyline points="20 6 9 17 4 12"/>
+                                    </svg>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={cancelEditPrompt}
+                                    className="icon-btn cancel"
+                                    aria-label={t('step3.cancelEdit')}
+                                    title={t('step3.cancelEdit')}
+                                  >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                      <line x1="18" y1="6" x2="6" y2="18"/>
+                                      <line x1="6" y1="6" x2="18" y2="18"/>
+                                    </svg>
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="text">{prompt}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => startEditPrompt(idx)}
+                                    className="icon-btn edit"
+                                    aria-label={t('step3.editPrompt')}
+                                    title={t('step3.editPrompt')}
+                                  >
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                      <path d="M12 20h9"/>
+                                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                                    </svg>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => removePromptAt(idx)}
+                                    className="icon-btn delete"
+                                    aria-label={t('step3.deletePrompt')}
+                                    title={t('step3.deletePrompt')}
+                                  >
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                      <line x1="18" y1="6" x2="6" y2="18"/>
+                                      <line x1="6" y1="6" x2="18" y2="18"/>
+                                    </svg>
+                                  </button>
+                                </>
+                              )}
                             </div>
                           ))}
                         </div>
-                        <button onClick={() => setCustomPrompts(null)} className="tool-cancel-custom">
-                          {t('step3.cancelCustom')}
-                        </button>
+
+                        {customPrompts.length < 10 ? (
+                          <div className="tool-custom-prompts-add">
+                            <input
+                              type="text"
+                              value={newPromptText}
+                              onChange={(e) => setNewPromptText(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addNewPrompt(); } }}
+                              placeholder={t('step3.addPromptPlaceholder')}
+                              className="add-input"
+                              maxLength={200}
+                            />
+                            <button
+                              type="button"
+                              onClick={addNewPrompt}
+                              disabled={!newPromptText.trim()}
+                              className="add-btn"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <line x1="12" y1="5" x2="12" y2="19"/>
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                              </svg>
+                              <span>{t('step3.addPrompt')}</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="tool-custom-prompts-max">{t('step3.maxPromptsReached')}</p>
+                        )}
                       </div>
                     )}
 
@@ -1617,14 +1827,18 @@ function AIVisibilityToolContent() {
                       </div>
                     )}
 
-                    <div className="tool-actions">
-                      <button onClick={() => { setStep(2); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="tool-btn-secondary">
-                        {t('step3.back')}
-                      </button>
-                      <button onClick={() => { setFromHomepage(false); handleAnalyze(); }} className="tool-btn-success" style={{ flex: 1 }}>
-                        {t('step3.startAnalysis')}
-                      </button>
-                    </div>
+                    {!fallbackError && (
+                      <div className="tool-actions">
+                        {referralSource !== 'prompt-explorer' && (
+                          <button onClick={() => { setStep(2); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="tool-btn-secondary">
+                            {t('step3.back')}
+                          </button>
+                        )}
+                        <button onClick={() => { setFromHomepage(false); handleAnalyze(); }} className="tool-btn-success" style={{ flex: 1 }}>
+                          {t('step3.startAnalysis')}
+                        </button>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
