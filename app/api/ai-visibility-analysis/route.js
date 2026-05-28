@@ -474,6 +474,7 @@ export async function POST(request) {
     console.log(`✅ Analysis complete. Perplexity: ${totalCompanyMentions}x | ChatGPT: ${chatgptCompanyMentions}x mentioned.`)
 
     const scanDuration = Date.now() - startTime
+    let savedIntegrationId = null
 
     await trackScan(
       supabase,
@@ -522,6 +523,9 @@ export async function POST(request) {
       } else {
         console.log('✅ Successfully saved to tool_integrations!', userId ? '(authenticated)' : '(anonymous, session_token)')
         console.log('Inserted data:', integrationData)
+        // Sla integration_id op zodat we hem in de response kunnen meesturen voor
+        // sessionStorage-tracking aan de frontend (selective claim na signup).
+        savedIntegrationId = integrationData?.[0]?.id || null
       }
     }
 
@@ -563,6 +567,7 @@ export async function POST(request) {
       chatgpt_company_mentions: chatgptCompanyMentions,
       websiteAnalyzed: websiteAnalysis?.success || false,
       enhancedKeywords: enhancedKeywords,
+      integrationId: savedIntegrationId,
       meta: {
         scansRemaining: updatedCheck.scansRemaining,
         isAuthenticated: !!userId,

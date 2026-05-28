@@ -1445,14 +1445,16 @@ export default function DashboardClient({ locale, t, userId, userEmail, shareTok
     else localStorage.removeItem('teun-ai:lastCompany')
   }, [selectedCompany])
 
- // ✨ Claim anonieme scan data bij eerste dashboard load
-  // Runs BEFORE initial fetchData to prevent empty state flash
+ // ✨ Claim eigen anonieme scans bij eerste dashboard load.
+  // Selective: alleen scan-ids uit sessionStorage (per browser-tab) +
+  // user_metadata.my_scan_ids (cross-browser fallback gezet bij signup).
+  // Voorkomt cross-contamination van scans van een vorige browser-gebruiker.
   const claimDone = useRef(false)
 
   useEffect(() => {
     if (claimDone.current) return
 
-    // In share-mode (publieke URL) is er geen auth → claim-session overslaan,
+    // In share-mode (publieke URL) is er geen auth → claim overslaan,
     // gewoon direct de read-only data ophalen.
     if (clientMode) {
       claimDone.current = true
@@ -1473,19 +1475,33 @@ export default function DashboardClient({ locale, t, userId, userEmail, shareTok
       }
     } catch {}
 
+    // Lees eigen scan-ids uit sessionStorage (per-tab). Server merget deze met
+    // user_metadata.my_scan_ids als fallback voor cross-browser email-confirm.
+    let scanIds = []
+    let discoveryIds = []
+    try {
+      const raw = sessionStorage.getItem('teun_my_scans')
+      if (raw) {
+        const store = JSON.parse(raw)
+        if (Array.isArray(store.integrationIds)) scanIds = store.integrationIds.filter(Boolean)
+        if (Array.isArray(store.discoveryIds)) discoveryIds = store.discoveryIds.filter(Boolean)
+      }
+    } catch {}
+
     claimDone.current = true
 
     fetch('/api/auth/claim-session', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionToken: claimToken }),
+      body: JSON.stringify({ sessionToken: claimToken, scanIds, discoveryIds }),
     })
       .then(r => r.json())
       .then(data => {
         if (data.claimed?.total > 0) {
-          console.log(`✅ ${data.claimed.total} eerdere scan(s) gekoppeld aan account`)
+          console.log(`✅ ${data.claimed.total} eigen scan(s) gekoppeld aan account`)
           try { localStorage.removeItem('teun_claim_token') } catch {}
+          try { sessionStorage.removeItem('teun_my_scans') } catch {}
         }
         fetchData()
       })

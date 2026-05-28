@@ -64,6 +64,20 @@ function SignupContent() {
       return
     }
 
+    // Lees eigen-scans uit sessionStorage (per browser-tab). Zo claimen we straks
+    // alleen DEZE gebruikers scans, niet die van een vorige browser-gebruiker met
+    // dezelfde cookie.
+    let myIntegrationIds = []
+    let myDiscoveryIds = []
+    try {
+      const raw = sessionStorage.getItem('teun_my_scans')
+      if (raw) {
+        const store = JSON.parse(raw)
+        if (Array.isArray(store.integrationIds)) myIntegrationIds = store.integrationIds.filter(Boolean)
+        if (Array.isArray(store.discoveryIds)) myDiscoveryIds = store.discoveryIds.filter(Boolean)
+      }
+    } catch {}
+
     const supabase = createClient()
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -72,7 +86,9 @@ function SignupContent() {
         emailRedirectTo: `${window.location.origin}/auth/callback?next=${redirectUrl || (isNL ? '/dashboard' : '/en/dashboard')}`,
         data: {
           locale,
-          ...(sessionToken ? { session_token: sessionToken } : {})
+          ...(sessionToken ? { session_token: sessionToken } : {}),
+          ...(myIntegrationIds.length > 0 ? { my_scan_ids: myIntegrationIds } : {}),
+          ...(myDiscoveryIds.length > 0 ? { my_discovery_ids: myDiscoveryIds } : {}),
         }
       },
     })

@@ -199,8 +199,9 @@ export async function POST(request) {
     }))
 
     // ── Step 6: save in prompt_discovery_results ──
+    let discoveryId = null
     try {
-      const { error: saveError } = await supabase
+      const { data: savedRow, error: saveError } = await supabase
         .from('prompt_discovery_results')
         .insert({
           session_token: sessionToken,
@@ -226,10 +227,13 @@ export async function POST(request) {
             lang: locale,
           }
         })
+        .select('id')
+        .single()
       if (saveError) {
         console.error('[prompt-explorer] save error:', saveError.message)
       } else {
-        console.log(`[prompt-explorer] saved (session: ${sessionToken.slice(0, 8)}...)`)
+        discoveryId = savedRow?.id || null
+        console.log(`[prompt-explorer] saved (session: ${sessionToken.slice(0, 8)}..., id: ${discoveryId})`)
       }
     } catch (saveErr) {
       console.error('[prompt-explorer] save exception:', saveErr.message)
@@ -257,6 +261,7 @@ export async function POST(request) {
       companyName: brandName,
       detectedLanguage: locale,
       sessionToken,
+      discoveryId,
       websiteAnalysis: {
         services: websiteAnalysis.services,
         usps: websiteAnalysis.usps,

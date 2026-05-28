@@ -602,6 +602,21 @@ export default function PromptExplorer() {
       if (data.sessionToken) {
         try { localStorage.setItem('teun_claim_token', data.sessionToken) } catch {}
       }
+      // Sla scan-id op in sessionStorage (per browser-tab) zodat we bij signup
+      // alleen DEZE scan kunnen claimen. Voorkomt cross-contamination wanneer
+      // een eerdere browser-gebruiker scans heeft achtergelaten.
+      if (data.discoveryId) {
+        try {
+          const raw = sessionStorage.getItem('teun_my_scans')
+          const store = raw ? JSON.parse(raw) : { integrationIds: [], discoveryIds: [] }
+          if (!Array.isArray(store.discoveryIds)) store.discoveryIds = []
+          if (!store.discoveryIds.includes(data.discoveryId)) {
+            store.discoveryIds.push(data.discoveryId)
+          }
+          if (!Array.isArray(store.integrationIds)) store.integrationIds = []
+          sessionStorage.setItem('teun_my_scans', JSON.stringify(store))
+        } catch {}
+      }
 
     } catch (err) {
       setError(isEn ? 'Connection error. Check your internet and try again.' : 'Verbindingsfout. Controleer je internetverbinding en probeer opnieuw.')

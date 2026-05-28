@@ -805,6 +805,22 @@ function AIVisibilityToolContent() {
         sessionStorage.setItem('teun_scan_formData', JSON.stringify(formData));
       } catch (_) {}
 
+      // Sla integration-id op in sessionStorage (per browser-tab) zodat we bij
+      // signup alleen DEZE scan kunnen claimen. Voorkomt cross-contamination
+      // wanneer een eerdere browser-gebruiker scans heeft achtergelaten.
+      if (data?.integrationId) {
+        try {
+          const raw = sessionStorage.getItem('teun_my_scans');
+          const store = raw ? JSON.parse(raw) : { integrationIds: [], discoveryIds: [] };
+          if (!Array.isArray(store.integrationIds)) store.integrationIds = [];
+          if (!Array.isArray(store.discoveryIds)) store.discoveryIds = [];
+          if (!store.integrationIds.includes(data.integrationId)) {
+            store.integrationIds.push(data.integrationId);
+          }
+          sessionStorage.setItem('teun_my_scans', JSON.stringify(store));
+        } catch (_) {}
+      }
+
       const allResults = [...(data.analysis_results || []), ...(data.chatgpt_results || [])];
       if (data.total_company_mentions === 0 && data.chatgpt_company_mentions === 0 && allResults.length > 0) {
         const mismatch = findNameInCompetitors(formData.companyName, allResults);

@@ -12,24 +12,38 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    // Cross-browser fallback: read session token from request body
-    let fallbackToken = null
+    // Body parsing voor selective-claim params + cross-browser fallback token
+    let body = {}
     try {
-      const body = await request.json()
-      fallbackToken = body.sessionToken || null
+      body = await request.json()
     } catch {
-      // No body or invalid JSON — that's fine, cookie will be used
+      // No body or invalid JSON, prima -- legacy flow gebruikt cookie alleen
     }
 
-    // Second fallback: read from user_metadata (set during signup with ?st= param)
+    let fallbackToken = body.sessionToken || null
+    const scanIds = Array.isArray(body.scanIds) ? body.scanIds : []
+    const discoveryIds = Array.isArray(body.discoveryIds) ? body.discoveryIds : []
+
+    // Second fallback: read from user_metadata (set during signUp with ?st= param)
     if (!fallbackToken && user.user_metadata?.session_token) {
       fallbackToken = user.user_metadata.session_token
       console.log(`📋 Using session token from user_metadata: ${fallbackToken.slice(0, 8)}...`)
     }
 
+    // Pull scan-ids uit user_metadata (gezet bij signup) als de frontend ze niet
+    // in de body heeft meegestuurd. Cross-browser scenario: user opent confirm-mail
+    // in andere browser, daar staat sessionStorage niet.
+    const metaScanIds = Array.isArray(user.user_metadata?.my_scan_ids) ? user.user_metadata.my_scan_ids : []
+    const metaDiscoveryIds = Array.isArray(user.user_metadata?.my_discovery_ids) ? user.user_metadata.my_discovery_ids : []
+    const mergedScanIds = [...new Set([...scanIds, ...metaScanIds])]
+    const mergedDiscoveryIds = [...new Set([...discoveryIds, ...metaDiscoveryIds])]
+
     // Claim via service role (bypasses RLS)
     const supabaseAdmin = await createServiceClient()
-    const result = await claimSessionData(supabaseAdmin, user.id, fallbackToken)
+    const result = await claimSessionData(supabaseAdmin, user.id, fallbackToken, {
+      scanIds: mergedScanIds,
+      discoveryIds: mergedDiscoveryIds,
+    })
 
     const total = (result.tool_integrations || 0) + (result.prompt_discovery_results || 0)
 
