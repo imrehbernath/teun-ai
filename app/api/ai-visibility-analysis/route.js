@@ -7,6 +7,7 @@ import { getOrCreateSessionToken } from '@/lib/session-token'
 import { isBlockedUrl, hasNonLatinText, getLanguageBlockError } from '@/lib/language-guard'
 import { checkLanguageGate } from '@/lib/language-gate'
 import { stripLegalSuffix } from '@/lib/branche-detect'
+import { matchesBrand, textMentionsBrand } from '@/lib/rank-scanner'
 import { getUserBadge } from '@/lib/slack-badge'
 import {
   scrapeWebsite,
@@ -423,8 +424,8 @@ export async function POST(request) {
       }
       
       const [perplexityResult, chatgptResult] = await Promise.all([
-        analyzeWithPerplexity(prompt, companyName, isNL),
-        analyzeWithChatGPT(chatgptPrompt, companyName, serviceArea, isNL)
+        analyzeWithPerplexity(prompt, companyName, isNL, websiteUrl),
+        analyzeWithChatGPT(chatgptPrompt, companyName, serviceArea, isNL, websiteUrl)
       ])
       
       // Perplexity result (backwards compatible)
@@ -609,7 +610,7 @@ export async function POST(request) {
 // ============================================
 // ✨ ULTIMATE PERPLEXITY - "AI Overview Simulator"
 // ============================================
-async function analyzeWithPerplexity(prompt, companyName, isNL = true) {
+async function analyzeWithPerplexity(prompt, companyName, isNL = true, websiteUrl = null) {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 20000)
   
@@ -734,7 +735,7 @@ RULES FOR THIS BLOCK:
       throw new Error('Perplexity returned empty response')
     }
 
-    const parsed = parsePerplexityOutput(rawOutput, companyName, isNL)
+    const parsed = parsePerplexityOutput(rawOutput, companyName, isNL, websiteUrl)
 
     return { success: true, data: parsed }
   } catch (error) {
@@ -770,7 +771,7 @@ RULES FOR THIS BLOCK:
 // ============================================
 // ✨ CHATGPT SEARCH - Real Web Search Results
 // ============================================
-async function analyzeWithChatGPT(prompt, companyName, serviceArea = null, isNL = true) {
+async function analyzeWithChatGPT(prompt, companyName, serviceArea = null, isNL = true, websiteUrl = null) {
   if (!OPENAI_API_KEY) {
     console.log('⚠️ OpenAI API key niet geconfigureerd, skip ChatGPT')
     return { 
@@ -814,26 +815,62 @@ async function analyzeWithChatGPT(prompt, companyName, serviceArea = null, isNL 
           messages: [
             {
               role: 'system',
-              content: isNL 
+              content: isNL
                 ? `Je bent een behulpzame AI-assistent die zoekvragen beantwoordt in het Nederlands voor gebruikers in Nederland.
 De gebruiker bevindt zich in Nederland${serviceArea ? `, regio ${serviceArea}` : ''}. Geef antwoorden specifiek gericht op de Nederlandse markt.
 Zoek op het web en geef een beknopt, informatief antwoord met concrete bedrijfsnamen en aanbevelingen die in Nederland actief zijn.
 Antwoord ALTIJD in het Nederlands. Focus op het noemen van specifieke Nederlandse bedrijven, dienstverleners of specialisten.
 Als je webwinkels, dienstverleners of specialisten noemt, geef dan bij voorkeur Nederlandse bedrijven of bedrijven die actief zijn op de Nederlandse markt.
-Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.), tech-platforms (Google, Facebook), en SEO-tools (Semrush, Ahrefs).`
+Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.), tech-platforms (Google, Facebook), en SEO-tools (Semrush, Ahrefs).
+
+BELANGRIJK: Sluit ALTIJD af met exact dit blok:
+
+===BEDRIJVEN===
+1. Bedrijfsnaam
+2. Bedrijfsnaam
+3. Bedrijfsnaam
+===EINDE BEDRIJVEN===
+
+REGELS VOOR DIT BLOK:
+- Zet in dit blok ALLEEN bedrijfsnamen
+- Geen uitleg
+- Geen criteria
+- Geen urls
+- Geen bullets met kosten, voorwaarden, branche of adviespunten
+- Minimaal 3 bedrijven als er bedrijven genoemd worden
+- Maximaal 10 bedrijven
+- Noem alleen concrete bedrijven die in het antwoord voorkomen`
                 : `You are a helpful AI assistant answering search queries in English.
 The user is looking for businesses${serviceArea ? ` in the ${serviceArea} area` : ''}. Provide answers specifically focused on the relevant market.
 Search the web and give a concise, informative answer with concrete business names and recommendations.
 ALWAYS respond in English, even if the query contains non-English terms. Translate any non-English terms.
 Focus on mentioning specific businesses, service providers or specialists.
-Avoid very well-known global consumer brands (Coca-Cola, Nike, Apple, etc.), tech platforms (Google, Facebook), and SEO tools (Semrush, Ahrefs).`
+Avoid very well-known global consumer brands (Coca-Cola, Nike, Apple, etc.), tech platforms (Google, Facebook), and SEO tools (Semrush, Ahrefs).
+
+IMPORTANT: ALWAYS end with exactly this block:
+
+===COMPANIES===
+1. Company Name
+2. Company Name
+3. Company Name
+===END COMPANIES===
+
+RULES FOR THIS BLOCK:
+- Include ONLY company names
+- No explanations
+- No criteria
+- No URLs
+- No bullets with costs, conditions, industry or advice points
+- Minimum 3 companies if companies are mentioned
+- Maximum 10 companies
+- Only mention concrete businesses that appear in the answer`
             },
             {
               role: 'user',
               content: prompt
             }
           ],
-          max_completion_tokens: 250
+          max_completion_tokens: 600
         })
       }
     )
@@ -887,7 +924,7 @@ Avoid very well-known global consumer brands (Coca-Cola, Nike, Apple, etc.), tec
       throw new Error('ChatGPT returned empty response')
     }
 
-    const parsed = parseWithJS(rawOutput, companyName, isNL)
+    const parsed = parseWithJS(rawOutput, companyName, isNL, websiteUrl)
 
     return { success: true, data: parsed }
   } catch (error) {
@@ -1019,15 +1056,19 @@ async function analyzeWithGoogleAI(prompt, companyName, serviceArea = null, isNL
 // ============================================
 // ✨ PERPLEXITY PARSER - Structured block + fallback
 // ============================================
-function parsePerplexityOutput(rawOutput, companyName, isNL = true) {
+function parsePerplexityOutput(rawOutput, companyName, isNL = true, companyDomain = null) {
   try {
     // Gestripte naam voor brand-matching (zie parseWithJS comment).
     const companyStripped = stripLegalSuffix(companyName)
     const searchName = companyStripped && companyStripped !== companyName ? companyStripped : companyName
     const companyLower = (companyStripped || companyName).toLowerCase()
     const escapedCompany = searchName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const mentionsCount = (rawOutput.match(new RegExp(`\\b${escapedCompany}\\b`, 'gi')) || []).length
-    const isCompanyMentioned = mentionsCount > 0
+    let mentionsCount = (rawOutput.match(new RegExp(`\\b${escapedCompany}\\b`, 'gi')) || []).length
+    let isCompanyMentioned = mentionsCount > 0
+    if (!isCompanyMentioned && textMentionsBrand(rawOutput, searchName, companyDomain)) {
+      isCompanyMentioned = true
+      mentionsCount = 1
+    }
 
     const competitors = []
     const seen = new Set()
@@ -1135,10 +1176,14 @@ function parsePerplexityOutput(rawOutput, companyName, isNL = true) {
         : `The company "${companyName}" is not mentioned in this AI response. ${snippet}`
     }
 
+    const filteredCompetitors = competitors.filter(
+      c => !matchesBrand(c, searchName, companyDomain)
+    )
+
     return {
       company_mentioned: isCompanyMentioned,
       mentions_count: mentionsCount,
-      competitors_mentioned: competitors.slice(0, 10),
+      competitors_mentioned: filteredCompetitors.slice(0, 10),
       simulated_ai_response_snippet: snippet.substring(0, 600)
     }
   } catch (error) {
@@ -1263,7 +1308,7 @@ function isValidCompetitorName(name, companyLower, excludeList, seen) {
   )
 }
 
-function parseWithJS(rawOutput, companyName, isNL = true) {
+function parseWithJS(rawOutput, companyName, isNL = true, companyDomain = null) {
   try {
     // "Rkassa B.V." matchen tegen "Rkassa" in tekst: zoek op gestripte naam als die
     // verschilt, anders op originele. companyLower (voor competitor-exclude) ook
@@ -1272,8 +1317,16 @@ function parseWithJS(rawOutput, companyName, isNL = true) {
     const companyStripped = stripLegalSuffix(companyName)
     const searchName = companyStripped && companyStripped !== companyName ? companyStripped : companyName
     const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const mentionsCount = (rawOutput.match(new RegExp(`\\b${escape(searchName)}\\b`, 'gi')) || []).length
-    const isCompanyMentioned = mentionsCount > 0
+    // Mention detection: eerst harde word-boundary count (voor mentions_count),
+    // dan textMentionsBrand voor word-order varianten ("Easydriving Rijschool"
+    // i.p.v. "Rijschool Easydriving"). Bij brand-match maar geen exact-count
+    // forceren we count = 1.
+    let mentionsCount = (rawOutput.match(new RegExp(`\\b${escape(searchName)}\\b`, 'gi')) || []).length
+    let isCompanyMentioned = mentionsCount > 0
+    if (!isCompanyMentioned && textMentionsBrand(rawOutput, searchName, companyDomain)) {
+      isCompanyMentioned = true
+      mentionsCount = 1
+    }
 
     // Pre-clean: resolve markdown links in the raw output for pattern matching
     const cleanedOutput = rawOutput.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
@@ -1314,84 +1367,132 @@ function parseWithJS(rawOutput, companyName, isNL = true) {
       'past goed als', 'waarom interessant voor jou',
     ])
 
-    // Pattern 1: **Bold names** (on cleaned output without markdown links)
-    const boldPattern = /\*\*([^*]{3,60})\*\*/g
     let match
-    while ((match = boldPattern.exec(cleanedOutput)) !== null) {
-      const name = cleanCompetitorName(match[1])
-        .replace(/\s*[-–—:].*/g, '')  // Remove description after dash/colon
-        .replace(/^\d+[\.\)]\s*/, '')  // Remove leading number
-        .replace(/\s*\([^)]*\)\s*$/, '') // Remove trailing parenthetical like "(OMA)"
+
+    // Helper: clean + validate + push (gebruikt door block-parser en patterns)
+    const addCompetitor = (raw) => {
+      const name = cleanCompetitorName(raw)
+        .replace(/^\d+[\.\)]\s*/, '')
+        .replace(/\s*[-–—:].*/g, '')
+        .replace(/\s*\([^)]*\)\s*$/, '')
         .trim()
-      
+
       if (isValidCompetitorName(name, companyLower, excludeList, seen)) {
         seen.add(name.toLowerCase())
         competitors.push(name)
       }
     }
 
-    // Pattern 2: Numbered list items (1. Name - description) — on plain text
-    const numberedPattern = /^\s*(\d+)[\.\)\-]\s*([^*\n]{2,80})/gm
-    while ((match = numberedPattern.exec(plainOutput)) !== null) {
-      let name = cleanCompetitorName(match[2])
-        .replace(/\s*[-–—:].*/g, '')  // Remove description after dash
-        .trim()
-      
-      if (isValidCompetitorName(name, companyLower, excludeList, seen)) {
-        seen.add(name.toLowerCase())
-        competitors.push(name)
+    // Pattern 0: gestructureerd ===BEDRIJVEN===-blok (afgedwongen via system prompt).
+    // Als het blok 1+ namen oplevert, vertrouwen we het en slaan de regex-fallback
+    // over zodat criteria-bullets zoals "**Kosten:**" niet als bedrijven verschijnen.
+    const blockMatch = rawOutput.match(
+      /===BEDRIJVEN===([\s\S]*?)===EINDE BEDRIJVEN===|===COMPANIES===([\s\S]*?)===END COMPANIES===/i
+    )
+
+    if (blockMatch) {
+      const block = (blockMatch[1] || blockMatch[2] || '').trim()
+      block
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean)
+        .forEach(addCompetitor)
+    }
+
+    // Fallback: alleen draaien als het gestructureerde blok niets opleverde.
+    if (competitors.length === 0) {
+      // Pattern 1: **Bold names** (on cleaned output without markdown links)
+      const boldPattern = /\*\*([^*]{3,60})\*\*/g
+      while ((match = boldPattern.exec(cleanedOutput)) !== null) {
+        // Skip criteria-bullets: "**Kosten:** uitleg" of "**Kosten** : uitleg"
+        const afterBold = cleanedOutput.slice(match.index + match[0].length, match.index + match[0].length + 5)
+        if (/^\s*:/.test(afterBold) || /:\s*$/.test(match[1])) {
+          continue
+        }
+        const name = cleanCompetitorName(match[1])
+          .replace(/\s*[-–—:].*/g, '')  // Remove description after dash/colon
+          .replace(/^\d+[\.\)]\s*/, '')  // Remove leading number
+          .replace(/\s*\([^)]*\)\s*$/, '') // Remove trailing parenthetical like "(OMA)"
+          .trim()
+
+        if (isValidCompetitorName(name, companyLower, excludeList, seen)) {
+          seen.add(name.toLowerCase())
+          competitors.push(name)
+        }
+      }
+
+      // Pattern 2: Numbered list items (1. Name - description) — on plain text
+      const numberedPattern = /^\s*(\d+)[\.\)\-]\s*([^*\n]{2,80})/gm
+      while ((match = numberedPattern.exec(plainOutput)) !== null) {
+        let name = cleanCompetitorName(match[2])
+          .replace(/\s*[-–—:].*/g, '')  // Remove description after dash
+          .trim()
+
+        if (isValidCompetitorName(name, companyLower, excludeList, seen)) {
+          seen.add(name.toLowerCase())
+          competitors.push(name)
+        }
+      }
+
+      // Pattern 3: Bullet items with bold name + colon (Perplexity style)
+      // Matches: "- **CompanyName:** description" or "• **CompanyName**: description"
+      const bulletBoldPattern = /^[\s]*[•\-\*]\s+\*\*([^*]{2,60}?)\*\*\s*:?\s/gm
+      while ((match = bulletBoldPattern.exec(rawOutput)) !== null) {
+        // Skip criteria-bullets: "- **Kosten:** uitleg" of "- **Kosten** : uitleg"
+        const afterBold = rawOutput.slice(match.index + match[0].length, match.index + match[0].length + 5)
+        if (/^\s*:/.test(afterBold) || /:\s*$/.test(match[1])) {
+          continue
+        }
+        const name = match[1].replace(/\s*:$/, '').trim()
+        if (isValidCompetitorName(name, companyLower, excludeList, seen)) {
+          seen.add(name.toLowerCase())
+          competitors.push(name)
+        }
+      }
+
+      // Pattern 4: Bullet items without bold: "- CompanyName: description" (starts with Capital)
+      const bulletPlainPattern = /^[\s]*[•\-\*]\s+([A-ZÀ-Ÿ][A-Za-zÀ-ÿ0-9&'.\-\s]{1,50}?)\s*:\s+\S/gm
+      while ((match = bulletPlainPattern.exec(plainOutput)) !== null) {
+        const name = match[1].trim()
+        if (isValidCompetitorName(name, companyLower, excludeList, seen)) {
+          seen.add(name.toLowerCase())
+          competitors.push(name)
+        }
+      }
+
+      // Pattern 5: "CompanyName: description" at start of line (no bullet, starts with Capital)
+      const colonPattern = /^([A-ZÀ-Ÿ][A-Za-zÀ-ÿ0-9&'.\-\s]{2,50}?)\s*:\s+[a-z]/gm
+      while ((match = colonPattern.exec(plainOutput)) !== null) {
+        const name = match[1].trim()
+        // Extra check: skip section headers (usually longer and more generic)
+        if (name.split(/\s+/).length <= 5 && isValidCompetitorName(name, companyLower, excludeList, seen)) {
+          seen.add(name.toLowerCase())
+          competitors.push(name)
+        }
       }
     }
 
-    // Pattern 3: Bullet items with bold name + colon (Perplexity style)
-    // Matches: "- **CompanyName:** description" or "• **CompanyName**: description"
-    const bulletBoldPattern = /^[\s]*[•\-\*]\s+\*\*([^*]{2,60}?)\*\*\s*:?\s/gm
-    while ((match = bulletBoldPattern.exec(rawOutput)) !== null) {
-      const name = match[1].replace(/\s*:$/, '').trim()
-      if (isValidCompetitorName(name, companyLower, excludeList, seen)) {
-        seen.add(name.toLowerCase())
-        competitors.push(name)
-      }
-    }
-
-    // Pattern 4: Bullet items without bold: "- CompanyName: description" (starts with Capital)
-    const bulletPlainPattern = /^[\s]*[•\-\*]\s+([A-ZÀ-Ÿ][A-Za-zÀ-ÿ0-9&'.\-\s]{1,50}?)\s*:\s+\S/gm
-    while ((match = bulletPlainPattern.exec(plainOutput)) !== null) {
-      const name = match[1].trim()
-      if (isValidCompetitorName(name, companyLower, excludeList, seen)) {
-        seen.add(name.toLowerCase())
-        competitors.push(name)
-      }
-    }
-
-    // Pattern 5: "CompanyName: description" at start of line (no bullet, starts with Capital)
-    const colonPattern = /^([A-ZÀ-Ÿ][A-Za-zÀ-ÿ0-9&'.\-\s]{2,50}?)\s*:\s+[a-z]/gm
-    while ((match = colonPattern.exec(plainOutput)) !== null) {
-      const name = match[1].trim()
-      // Extra check: skip section headers (usually longer and more generic)
-      if (name.split(/\s+/).length <= 5 && isValidCompetitorName(name, companyLower, excludeList, seen)) {
-        seen.add(name.toLowerCase())
-        competitors.push(name)
-      }
-    }
-
-    // Snippet: eerste 300 tekens van de response, of context rond bedrijfsnaam
+    // Snippet: eerste 300 tekens van de response, of context rond bedrijfsnaam.
+    // Strip eerst het ===BEDRIJVEN===-blok zodat het niet in de UI-snippet komt.
+    const snippetSource = rawOutput
+      .replace(/===(?:BEDRIJVEN|COMPANIES)===[\s\S]*?===(?:EINDE BEDRIJVEN|END COMPANIES)===/gi, '')
+      .trim()
     let snippet = ''
     if (isCompanyMentioned) {
-      const textLower = rawOutput.toLowerCase()
+      const textLower = snippetSource.toLowerCase()
       const idx = textLower.indexOf(companyLower)
       if (idx >= 0) {
         const start = Math.max(0, idx - 100)
-        const end = Math.min(rawOutput.length, idx + companyName.length + 200)
-        snippet = (start > 0 ? '...' : '') + rawOutput.substring(start, end).trim() + (end < rawOutput.length ? '...' : '')
+        const end = Math.min(snippetSource.length, idx + companyName.length + 200)
+        snippet = (start > 0 ? '...' : '') + snippetSource.substring(start, end).trim() + (end < snippetSource.length ? '...' : '')
       }
     }
-    
+
     if (!snippet) {
       // Neem eerste zinvolle tekst (skip headers/bullets)
-      const lines = rawOutput.split('\n').filter(l => l.trim().length > 30)
+      const lines = snippetSource.split('\n').filter(l => l.trim().length > 30)
       snippet = lines.slice(0, 3).join(' ').substring(0, 400)
-      if (rawOutput.length > 400) snippet += '...'
+      if (snippetSource.length > 400) snippet += '...'
     }
 
     // Clean markdown uit snippet
@@ -1407,10 +1508,18 @@ function parseWithJS(rawOutput, companyName, isNL = true) {
       snippet = isNL ? `Het bedrijf "${companyName}" wordt niet genoemd in dit AI-antwoord. ${snippet}` : `The company "${companyName}" is not mentioned in this AI response. ${snippet}`
     }
 
+    // Filter eigen merk uit de concurrenten via gedeelde matchesBrand
+    // (handelt word-order, normalisatie en word-overlap af zodat varianten
+    // als "Easydriving Rijschool Den Haag" niet als concurrent verschijnen
+    // wanneer brand "Rijschool Easydriving" is).
+    const filteredCompetitors = competitors.filter(
+      c => !matchesBrand(c, searchName, companyDomain)
+    )
+
     return {
       company_mentioned: isCompanyMentioned,
       mentions_count: mentionsCount,
-      competitors_mentioned: competitors.slice(0, 10),
+      competitors_mentioned: filteredCompetitors.slice(0, 10),
       simulated_ai_response_snippet: snippet.substring(0, 600)
     }
   } catch (error) {

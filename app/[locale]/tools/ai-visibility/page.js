@@ -191,74 +191,6 @@ function cleanDisplayName(name) {
 }
 
 // ============================================
-// BEDRIJFSNAAM FUZZY MATCHING
-// ============================================
-function findNameInCompetitors(companyName, analysisResults) {
-  if (!companyName || !analysisResults?.length) return null;
-
-  const nameLower = companyName.toLowerCase().trim();
-  const nameWords = nameLower.split(/\s+/).filter(w => w.length > 2);
-
-  const allCompetitors = {};
-  analysisResults.forEach(result => {
-    (result.competitors_mentioned || []).forEach(comp => {
-      const clean = cleanDisplayName(comp);
-      if (clean && clean.length >= 3) {
-        allCompetitors[clean] = (allCompetitors[clean] || 0) + 1;
-      }
-    });
-  });
-
-  const matches = [];
-
-  for (const [comp, count] of Object.entries(allCompetitors)) {
-    const compLower = comp.toLowerCase().trim();
-
-    if (compLower === nameLower) continue;
-
-    if (compLower.includes(nameLower) || nameLower.includes(compLower)) {
-      matches.push({ name: comp, count, confidence: 'high', reason: 'substring' });
-      continue;
-    }
-
-    const compWords = compLower.split(/\s+/).filter(w => w.length > 2);
-    const sharedWords = nameWords.filter(w => compWords.some(cw =>
-      cw.includes(w) || w.includes(cw) || levenshteinDistance(w, cw) <= 2
-    ));
-
-    if (sharedWords.length > 0 && (sharedWords.length / Math.max(nameWords.length, 1)) >= 0.5) {
-      matches.push({ name: comp, count, confidence: 'medium', reason: 'word_overlap' });
-      continue;
-    }
-
-    const distance = levenshteinDistance(nameLower, compLower);
-    const maxLen = Math.max(nameLower.length, compLower.length);
-    if (distance <= 3 && (distance / maxLen) < 0.3) {
-      matches.push({ name: comp, count, confidence: 'high', reason: 'typo' });
-    }
-  }
-
-  return matches.sort((a, b) => {
-    if (a.confidence !== b.confidence) return a.confidence === 'high' ? -1 : 1;
-    return b.count - a.count;
-  })[0] || null;
-}
-
-function levenshteinDistance(a, b) {
-  const matrix = Array.from({ length: a.length + 1 }, (_, i) =>
-    Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
-  );
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      matrix[i][j] = a[i-1] === b[j-1]
-        ? matrix[i-1][j-1]
-        : 1 + Math.min(matrix[i-1][j], matrix[i][j-1], matrix[i-1][j-1]);
-    }
-  }
-  return matrix[a.length][b.length];
-}
-
-// ============================================
 // FAQ ACCORDION — cream/Lora style (matcht homepage)
 // ============================================
 function FAQAccordion({ items }) {
@@ -325,7 +257,6 @@ function AIVisibilityToolContent() {
   const [locationTermsInput, setLocationTermsInput] = useState('');
   const [activeTooltip, setActiveTooltip] = useState(null);
   const [brancheSuggestion, setBrancheSuggestion] = useState(null);
-  const [nameMismatch, setNameMismatch] = useState(null);
   const [resultPlatform, setResultPlatform] = useState('chatgpt');
   const [extractingKeywords, setExtractingKeywords] = useState(false);
   const [extractionResult, setExtractionResult] = useState(null);
@@ -444,6 +375,12 @@ function AIVisibilityToolContent() {
         if (storedPrompts) {
           const parsedPrompts = JSON.parse(storedPrompts);
           console.log('📝 Custom prompts loaded:', parsedPrompts.length);
+
+          // Wis stale scan-state uit een eerdere sessie, anders kan de
+          // back-nav useEffect (of StrictMode-double-render) die per ongeluk
+          // restoren bovenop deze nieuwe flow.
+          sessionStorage.removeItem('teun_scan_results');
+          sessionStorage.removeItem('teun_scan_formData');
 
           setFormData(prev => ({
             ...prev,
@@ -912,14 +849,6 @@ function AIVisibilityToolContent() {
           }
           sessionStorage.setItem('teun_my_scans', JSON.stringify(store));
         } catch (_) {}
-      }
-
-      const allResults = [...(data.analysis_results || []), ...(data.chatgpt_results || [])];
-      if (data.total_company_mentions === 0 && data.chatgpt_company_mentions === 0 && allResults.length > 0) {
-        const mismatch = findNameInCompetitors(formData.companyName, allResults);
-        setNameMismatch(mismatch);
-      } else {
-        setNameMismatch(null);
       }
 
       setTimeout(() => {
@@ -1875,26 +1804,6 @@ function AIVisibilityToolContent() {
                   </div>
                 </div>
 
-                {nameMismatch && (
-                  <div className="tool-mismatch">
-                    <p className="tool-mismatch-title">🔍 {t('step4.nameMismatchTitle', { name: nameMismatch.name })}</p>
-                    <p className="tool-mismatch-desc">
-                      {t('step4.nameMismatchDesc', { company: formData.companyName, match: nameMismatch.name, count: nameMismatch.count })}
-                      {nameMismatch.reason === 'typo' && ` ${t('step4.nameMismatchTypo')}`}
-                      {nameMismatch.reason === 'substring' && ` ${t('step4.nameMismatchSubstring')}`}
-                    </p>
-                    <button onClick={() => {
-                      setFormData(prev => ({ ...prev, companyName: nameMismatch.name }));
-                      setNameMismatch(null);
-                      setResults(null);
-                      setStep(3);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }} className="tool-mismatch-btn">
-                      {t('step4.rescanAs', { name: nameMismatch.name })}
-                    </button>
-                  </div>
-                )}
-
                 {/* Platform tabs */}
                 <div className="tool-platform-tabs">
                   <button onClick={() => setResultPlatform('chatgpt')} className={`tool-platform-tab ${resultPlatform === 'chatgpt' ? 'active' : ''}`}>
@@ -2123,7 +2032,7 @@ function AIVisibilityToolContent() {
                       setStep(1);
                       setFormData({ companyName: '', companyCategory: '', queries: '', website: '', serviceArea: '' });
                       setExcludeTermsInput(''); setIncludeTermsInput(''); setLocationTermsInput('');
-                      setResults(null); setReferralSource(null); setFromHomepage(false); setNameMismatch(null); setBrancheSuggestion(null);
+                      setResults(null); setReferralSource(null); setFromHomepage(false); setBrancheSuggestion(null);
                       try { sessionStorage.removeItem('teun_scan_results'); sessionStorage.removeItem('teun_scan_formData'); } catch (_) {}
                     }} className="tool-btn-secondary" style={{ flex: 1 }}>
                       {t('step4.newAnalysis')}

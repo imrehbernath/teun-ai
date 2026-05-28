@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { upsertVisibilityHistoryRow } from '@/lib/visibility-history'
 import { stripLegalSuffix } from '@/lib/branche-detect'
+import { matchesBrand } from '@/lib/rank-scanner'
 
 const SERPAPI_KEY = process.env.SERPAPI_KEY
 const anthropic = new Anthropic({
@@ -132,7 +133,7 @@ function extractAioText(aiOverview) {
 // HELPERS: Sources & Competitors
 // ══════════════════════════════════════════════════════
 
-function extractReferences(aiOverview, companyName) {
+function extractReferences(aiOverview, companyName, websiteDomain = null) {
   const sources = []
   const competitors = []
   const companyLower = (companyName || '').toLowerCase()
@@ -186,7 +187,10 @@ function extractReferences(aiOverview, companyName) {
     })
   })
 
-  return { sources, competitors: [...new Set(competitors)].slice(0, 10) }
+  // Filter eigen merk uit via gedeelde matchesBrand (word-overlap, normalisatie).
+  const dedup = [...new Set(competitors)]
+  const filtered = dedup.filter(c => !matchesBrand(c, companyName, websiteDomain))
+  return { sources, competitors: filtered.slice(0, 10) }
 }
 
 // ══════════════════════════════════════════════════════
@@ -334,7 +338,7 @@ async function runGoogleAioSearch({ searchQuery, companyName, website, lang, fre
 
     // Extract text + AIO references
     const aiText = extractAioText(aiOverview)
-    const refData = extractReferences(aiOverview, companyName)
+    const refData = extractReferences(aiOverview, companyName, website)
 
     // Fallback op organic_results wanneer de expanded AIO faalt: SerpAPI levert
     // wel een ai_overview-stub maar geen text_blocks/references. De gewone SERP-

@@ -2,6 +2,7 @@
 // ✅ Standalone ChatGPT Search scan - voor dashboard rescan
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { matchesBrand, textMentionsBrand } from '@/lib/rank-scanner'
 
 // Vercel function timeout — 10 prompts × 2s delay + API calls
 export const maxDuration = 300
@@ -16,7 +17,7 @@ const supabase = createClient(
 // ============================================
 // ✨ CHATGPT SEARCH - gpt-4o-search-preview
 // ============================================
-async function analyzeWithChatGPT(prompt, companyName, serviceArea = null) {
+async function analyzeWithChatGPT(prompt, companyName, serviceArea = null, website = null) {
   if (!OPENAI_API_KEY) {
     return { 
       success: false, 
@@ -94,7 +95,7 @@ Vermijd zeer bekende wereldwijde consumentenmerken (Coca-Cola, Nike, Apple, etc.
       throw new Error('ChatGPT returned empty response')
     }
 
-    const parsed = parseWithJS(rawOutput, companyName)
+    const parsed = parseWithJS(rawOutput, companyName, website)
     return { success: true, data: parsed }
   } catch (error) {
     console.error('❌ ChatGPT Error:', error.message)
@@ -156,10 +157,14 @@ function isValidCompetitorName(name, companyLower, excludeList, seen) {
   )
 }
 
-function parseWithJS(rawOutput, companyName) {
+function parseWithJS(rawOutput, companyName, website = null) {
   try {
-    const mentionsCount = (rawOutput.match(new RegExp(companyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')) || []).length
-    const isCompanyMentioned = mentionsCount > 0
+    let mentionsCount = (rawOutput.match(new RegExp(companyName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')) || []).length
+    let isCompanyMentioned = mentionsCount > 0
+    if (!isCompanyMentioned && textMentionsBrand(rawOutput, companyName, website)) {
+      isCompanyMentioned = true
+      mentionsCount = 1
+    }
     
     // Pre-clean: resolve markdown links
     const cleanedOutput = rawOutput.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
@@ -212,7 +217,8 @@ function parseWithJS(rawOutput, companyName) {
     snippet = snippet.replace(/\*\*/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/#{1,4}\s/g, '').replace(/https?:\/\/\S+/g, '').replace(/\s+/g, ' ').trim()
     if (!isCompanyMentioned) snippet = `Het bedrijf "${companyName}" wordt niet genoemd in dit AI-antwoord. ${snippet}`
 
-    return { company_mentioned: isCompanyMentioned, mentions_count: mentionsCount, competitors_mentioned: competitors.slice(0, 10), simulated_ai_response_snippet: snippet.substring(0, 600) }
+    const filteredCompetitors = competitors.filter(c => !matchesBrand(c, companyName, website))
+    return { company_mentioned: isCompanyMentioned, mentions_count: mentionsCount, competitors_mentioned: filteredCompetitors.slice(0, 10), simulated_ai_response_snippet: snippet.substring(0, 600) }
   } catch (error) {
     console.error('❌ JS Parser Error:', error)
     return { company_mentioned: false, mentions_count: 0, competitors_mentioned: [], simulated_ai_response_snippet: 'Fout bij het analyseren' }
@@ -245,7 +251,7 @@ export async function POST(request) {
     for (let i = 0; i < prompts.length; i++) {
       console.log(`   ChatGPT prompt ${i + 1}/${prompts.length}...`)
       
-      const result = await analyzeWithChatGPT(prompts[i], companyName, serviceArea)
+      const result = await analyzeWithChatGPT(prompts[i], companyName, serviceArea, website)
       
       results.push({
         ai_prompt: prompts[i],

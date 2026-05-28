@@ -2,6 +2,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { upsertVisibilityHistoryRow } from '@/lib/visibility-history'
 import { extractCompetitorsFromChatGPT, cleanCompetitorName, isValidCompetitorName, COMPETITOR_EXCLUDE_LIST } from '@/lib/competitor-extract'
+import { matchesBrand, textMentionsBrand } from '@/lib/rank-scanner'
 import { stripLegalSuffix } from '@/lib/branche-detect'
 
 export const maxDuration = 60;
@@ -250,6 +251,13 @@ function analyzeAIModeResponse(data, companyName, websiteDomain = '') {
     }
   }
 
+  // Filter eigen merk uit via matchesBrand (word-overlap, normalisatie).
+  const ownBrandFiltered = competitorsMentioned.filter(
+    c => !matchesBrand(c, companyName, websiteDomain)
+  )
+  competitorsMentioned.length = 0
+  competitorsMentioned.push(...ownBrandFiltered)
+
   // Check inline sources
   if (data.inline_sources) {
     data.inline_sources.forEach(source => {
@@ -259,7 +267,11 @@ function analyzeAIModeResponse(data, companyName, websiteDomain = '') {
     })
   }
 
-  const companyMentioned = mentionCount > 0 || sources.some(s => s.isCompany)
+  // Fallback: word-order variant in de AI-respons via textMentionsBrand
+  // (lost bv. "Easydriving Rijschool" voor brand "Rijschool Easydriving" op).
+  const responseHasBrand = aiResponse && textMentionsBrand(aiResponse, companyName, websiteDomain)
+  const companyMentioned = mentionCount > 0 || sources.some(s => s.isCompany) || responseHasBrand
+  if (responseHasBrand && mentionCount === 0) mentionCount = 1
 
   return {
     hasAiResponse: aiResponse.length > 0,

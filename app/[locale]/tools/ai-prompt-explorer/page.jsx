@@ -652,6 +652,11 @@ export default function PromptExplorer() {
     if (!top10.length) return
     const promptTexts = top10.map(p => p.text).filter(Boolean)
     try {
+      // Wis stale scan-state uit eventuele eerdere Visibility-sessies in deze tab,
+      // anders restoreert de Visibility-pagina die per ongeluk (back-nav of
+      // StrictMode-double-render zou ze als "huidige resultaten" lezen).
+      sessionStorage.removeItem('teun_scan_results')
+      sessionStorage.removeItem('teun_scan_formData')
       sessionStorage.setItem('teun_custom_prompts', JSON.stringify(promptTexts))
     } catch (_) {}
 

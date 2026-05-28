@@ -13,6 +13,7 @@ import {
   getPerplexityCompetitorSystemPrompt,
   stripCompetitorBlock,
 } from '@/lib/competitor-extract'
+import { matchesBrand, textMentionsBrand } from '@/lib/rank-scanner'
 import { getUserBadge } from '@/lib/slack-badge'
 
 // Vercel function timeout — 10 prompts × 2 platforms = needs time
@@ -47,9 +48,15 @@ BELANGRIJK: Sluit ALTIJD af met exact dit blok:
 ===EINDE BEDRIJVEN===
 
 REGELS VOOR DIT BLOK:
-- ALLEEN bedrijfsnamen. Geen uitleg, geen urls, geen reviews, geen section-headers.
-- Maximaal 10 bedrijven.
-- Noem alle concrete bedrijven die in het antwoord hierboven voorkomen, ook als je er meerdere noemt.`
+- Zet in dit blok ALLEEN bedrijfsnamen
+- Geen uitleg
+- Geen criteria
+- Geen urls
+- Geen reviews of section-headers
+- Geen bullets met kosten, voorwaarden, branche of adviespunten
+- Minimaal 3 bedrijven als er bedrijven genoemd worden
+- Maximaal 10 bedrijven
+- Noem alleen concrete bedrijven die in het antwoord hierboven voorkomen`
         },
         { role: 'user', content: prompt }
       ]
@@ -67,7 +74,7 @@ REGELS VOOR DIT BLOK:
       companyLower.replace(/\s+/g, '-'),
     ].filter((v, i, a) => a.indexOf(v) === i) : []
 
-    const mentioned = variants.some(v => textLower.includes(v)) ||
+    let mentioned = variants.some(v => textLower.includes(v)) ||
       (websiteDomain && textLower.includes(websiteDomain))
 
     // Count mentions
@@ -81,8 +88,15 @@ REGELS VOOR DIT BLOK:
       if (mentionCount === 0) mentionCount = 1
     }
 
-    // Extract competitors via gedeelde lib (zelfde filter als ai-visibility-analysis)
-    const competitors = extractCompetitorsFromChatGPT(text, companyName)
+    // Fallback: word-order variant detectie ("Easydriving Rijschool" i.p.v. "Rijschool Easydriving")
+    if (!mentioned && textMentionsBrand(text, companyName, website)) {
+      mentioned = true
+      mentionCount = 1
+    }
+
+    // Extract competitors via gedeelde lib + filter eigen merk via matchesBrand
+    const rawCompetitors = extractCompetitorsFromChatGPT(text, companyName)
+    const competitors = rawCompetitors.filter(c => !matchesBrand(c, companyName, website))
 
     // Extract sources/citations from search results
     const sources = []
@@ -152,7 +166,7 @@ async function scanPerplexity(prompt, companyName, website, location) {
       companyLower.replace(/\s+/g, '-'),
     ].filter((v, i, a) => a.indexOf(v) === i) : []
 
-    const mentioned = variants.some(v => textLower.includes(v)) ||
+    let mentioned = variants.some(v => textLower.includes(v)) ||
       (websiteDomain && textLower.includes(websiteDomain))
 
     let mentionCount = 0
@@ -165,9 +179,14 @@ async function scanPerplexity(prompt, companyName, website, location) {
       if (mentionCount === 0) mentionCount = 1
     }
 
-    // Extract competitors via gedeelde lib: eerst het ===BEDRIJVEN===-blok,
-    // fallback met de uitgebreide isValidCompetitorName-filter uit ai-visibility-analysis.
-    const competitors = extractCompetitorsFromPerplexity(text, companyName)
+    if (!mentioned && textMentionsBrand(text, companyName, website)) {
+      mentioned = true
+      mentionCount = 1
+    }
+
+    // Extract competitors via gedeelde lib + filter eigen merk via matchesBrand
+    const rawCompetitors = extractCompetitorsFromPerplexity(text, companyName)
+    const competitors = rawCompetitors.filter(c => !matchesBrand(c, companyName, website))
 
     // Strip het ===BEDRIJVEN===-blok uit de snippet die we naar de UI sturen
     const cleanText = stripCompetitorBlock(text)
