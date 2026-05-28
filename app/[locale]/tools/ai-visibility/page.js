@@ -368,6 +368,26 @@ function AIVisibilityToolContent() {
   useEffect(() => {
     if (!searchParams) { setInitializing(false); return; }
 
+    // Back-nav vanuit signup/login OF refresh op resultatenpagina:
+    // Als er geen nieuwe pre-fill van Explorer in sessionStorage staat (= niet net aangekomen)
+    // maar er WEL saved scan-resultaten zijn, herstel die direct naar step 4.
+    // Dit is betrouwbaarder dan performance.navigation of document.referrer (browser-afhankelijk).
+    try {
+      const hasNewPrefill = !!sessionStorage.getItem('teun_custom_prompts');
+      if (!hasNewPrefill) {
+        const saved = sessionStorage.getItem('teun_scan_results');
+        const savedForm = sessionStorage.getItem('teun_scan_formData');
+        if (saved && savedForm) {
+          setResults(JSON.parse(saved));
+          setFormData(JSON.parse(savedForm));
+          setStep(4);
+          setInitializing(false);
+          console.log('📋 Scan resultaten hersteld (geen nieuwe pre-fill aanwezig)');
+          return;
+        }
+      }
+    } catch (_) {}
+
     const pendingScan = sessionStorage.getItem('pendingScan');
     if (pendingScan) {
       try {
@@ -773,7 +793,7 @@ function AIVisibilityToolContent() {
       clearInterval(progressInterval);
       clearInterval(stepInterval);
 
-      const dataWithMeta = { ...data, _scanStartedWithoutKeywords: queriesArray.length === 0 };
+      const dataWithMeta = { ...data };
 
       setProgress(100);
       setCurrentStep(t('step3.completed'));
@@ -1624,42 +1644,6 @@ function AIVisibilityToolContent() {
                     <p>{t.rich('step4.reportReady', { company: formData.companyName, strong: (chunks) => <strong>{chunks}</strong> })}</p>
                   </div>
                 </div>
-
-                {results._scanStartedWithoutKeywords && (
-                  <div style={{
-                    background: '#FFF4E6',
-                    border: '1.5px solid #FFB66B',
-                    borderRadius: 10,
-                    padding: '14px 16px',
-                    marginBottom: 16,
-                    color: '#7A4A1A',
-                    fontSize: 14,
-                    lineHeight: 1.55
-                  }}>
-                    <strong>💡 {t('step4.noKeywordsBannerTitle')}</strong>
-                    <p style={{ margin: '6px 0 10px 0' }}>{t('step4.noKeywordsBannerHint')}</p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setResults(null);
-                        setStep(1);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      style={{
-                        background: '#7A4A1A',
-                        color: '#fff',
-                        border: 'none',
-                        padding: '8px 14px',
-                        borderRadius: 6,
-                        fontSize: 13,
-                        fontWeight: 600,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {t('step4.noKeywordsBannerCta')}
-                    </button>
-                  </div>
-                )}
 
                 {nameMismatch && (
                   <div className="tool-mismatch">

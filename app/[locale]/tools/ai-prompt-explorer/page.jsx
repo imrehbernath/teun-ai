@@ -5,8 +5,8 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useLocale } from 'next-intl'
+import { Link, useRouter } from '@/i18n/navigation'
 import Image from 'next/image'
-import ToolsCrossSell from '@/app/components/ToolsCrossSell'
 
 // ═══════════════════════════════════════════════
 // HELPERS
@@ -241,6 +241,7 @@ function ClusterCard({ cluster, isOpen, onToggle, maxClusterVol, globalMaxVol, t
 // ═══════════════════════════════════════════════
 export default function PromptExplorer() {
   const locale = useLocale()
+  const router = useRouter()
   const isEn = locale === 'en'
 
   const T = isEn ? {
@@ -255,12 +256,18 @@ export default function PromptExplorer() {
     phBrand: 'Your company name', phPlace: 'City', phBranche: 'Your industry',
     ctaKeyword: 'Find AI prompts', ctaUrl: 'Analyse website & generate prompts', ctaLoading: 'Generating prompts...',
     belowCta: 'All prompts free in BETA. Takes about 60 seconds.',
-    belowCtaUrl: 'We analyse your website, extract keywords, and generate 50+ targeted prompts.',
+    belowCtaUrl: 'We analyse your website and generate 10 commercial AI search queries.',
     rateLimitAnon: 'You\'ve used 2 free scans. Create a free account for more scans, optimisation tools and AI visibility analyses.',
     rateLimitUser: 'You\'ve already scanned today. You can scan again tomorrow, or upgrade for unlimited scans.',
     freeAccount: 'Create free account',
     errorTitle: 'Something went wrong', tryAgain: 'Try again',
     extractedKw: 'Extracted keywords', extractedUsed: (n) => `These keywords were used to generate ${n}+ targeted AI prompts`,
+    introBox: 'These are the 10 commercial AI search queries your potential customers use in ChatGPT, Perplexity and Google AI.',
+    promptListTitle: 'Top 10 commercial AI search queries',
+    primaryCtaTitle: 'On which of these 10 queries are you found?',
+    primaryCtaBtn: 'Start free AI Visibility Scan',
+    secondaryCtaPrefix: 'Or pick one query to track weekly',
+    secondaryCtaLink: 'Free Rank Tracker',
     sClusters: 'Clusters', sPrompts: 'Prompts', sHighOpp: 'High chance', sRising: 'Rising', sFound: 'Found', sVolTotal: 'AI vol. total',
     fClusters: 'Clusters', fList: 'List', fAll: 'All', fCommercial: 'Commercial', fInfo: 'Informational', fRising: 'Rising', fStable: 'Stable', fDeclining: 'Declining',
     prompts_label: 'prompts', variations: 'variations', avgDiff: 'avg. difficulty',
@@ -350,12 +357,18 @@ export default function PromptExplorer() {
     phBrand: 'Je bedrijfsnaam', phPlace: 'Vestigingsplaats', phBranche: 'Jouw branche',
     ctaKeyword: 'Vind AI-prompts', ctaUrl: 'Analyseer website & genereer prompts', ctaLoading: 'Prompts genereren...',
     belowCta: 'Alle prompts gratis in BETA. Duurt circa 60 seconden.',
-    belowCtaUrl: 'We analyseren je website, extraheren keywords, en genereren 50+ gerichte prompts.',
+    belowCtaUrl: 'We analyseren je website en genereren 10 commerciële AI zoekvragen.',
     rateLimitAnon: 'Je hebt 2 gratis scans gebruikt. Maak een gratis account aan voor meer scans, optimalisatie tools en AI-zichtbaarheidsanalyses.',
     rateLimitUser: 'Je hebt vandaag al een scan gedaan. Morgen kun je opnieuw scannen, of upgrade voor onbeperkte scans.',
     freeAccount: 'Gratis account aanmaken',
     errorTitle: 'Er ging iets mis', tryAgain: 'Probeer opnieuw',
     extractedKw: 'Geëxtraheerde keywords', extractedUsed: (n) => `Deze keywords zijn gebruikt om ${n}+ gerichte AI-prompts te genereren`,
+    introBox: 'Dit zijn de 10 commerciële AI zoekvragen die jouw potentiële klanten gebruiken in ChatGPT, Perplexity en Google AI.',
+    promptListTitle: 'Top 10 commerciële AI zoekvragen',
+    primaryCtaTitle: 'Op welke van deze 10 zoekvragen word jij gevonden?',
+    primaryCtaBtn: 'Start gratis AI Visibility Scan',
+    secondaryCtaPrefix: 'Of pak één zoekvraag op om wekelijks te volgen',
+    secondaryCtaLink: 'Gratis Rank Tracker',
     sClusters: 'Clusters', sPrompts: 'Prompts', sHighOpp: 'Hoge kans', sRising: 'Stijgend', sFound: 'Gevonden', sVolTotal: 'AI vol. totaal',
     fClusters: 'Clusters', fList: 'Lijst', fAll: 'Alle', fCommercial: 'Commercieel', fInfo: 'Informationeel', fRising: 'Stijgend', fStable: 'Stabiel', fDeclining: 'Dalend',
     prompts_label: 'prompts', variations: 'variaties', avgDiff: 'gem. moeilijkheid',
@@ -436,12 +449,12 @@ export default function PromptExplorer() {
   }
 
   // ─── State ───
-  const [keyword, setKeyword] = useState('')
+  // Prompt Explorer is URL-only. Bedrijfsnaam verplicht voor specifieke prompts.
   const [websiteUrl, setWebsiteUrl] = useState('')
   const [bedrijfsnaam, setBedrijfsnaam] = useState('')
   const [place, setPlace] = useState('')
   const [branche, setBranche] = useState('')
-  const [inputMode, setInputMode] = useState('keyword')
+  const inputMode = 'url'
   const [loading, setLoading] = useState(false)
   const [prompts, setPrompts] = useState([])
   const [extractedKeywords, setExtractedKeywords] = useState([])
@@ -506,7 +519,7 @@ export default function PromptExplorer() {
   const clusters = useMemo(() => buildClusters(prompts), [prompts])
   const maxClusterVol = useMemo(() => clusters.length ? Math.max(...clusters.map(c => c.totalVolume)) : 0, [clusters])
   const maxVol = useMemo(() => prompts.length ? Math.max(...prompts.map(p => p.estimatedAiVolume)) : 0, [prompts])
-  const hasInput = inputMode === 'url' ? websiteUrl.trim() : keyword.trim()
+  const hasInput = websiteUrl.trim().length > 0 && bedrijfsnaam.trim().length >= 3
 
   const checkRateLimit = () => {
     if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].some(h => window.location.hostname.includes(h))) return true
@@ -547,11 +560,15 @@ export default function PromptExplorer() {
     setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
 
     try {
-      const body = inputMode === 'url'
-        ? { url: websiteUrl.trim(), brandName: bedrijfsnaam.trim() || null, location: place.trim() || null, industry: branche.trim() || null, locale }
-        : { keyword: keyword.trim(), brandName: bedrijfsnaam.trim() || null, location: place.trim() || null, industry: branche.trim() || null, locale }
+      const body = {
+        websiteUrl: websiteUrl.trim(),
+        brandName: bedrijfsnaam.trim(),
+        location: place.trim() || null,
+        industry: branche.trim() || null,
+        locale,
+      }
 
-      const res = await fetch('/api/prompt-discovery', {
+      const res = await fetch('/api/prompt-explorer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -565,17 +582,18 @@ export default function PromptExplorer() {
         return
       }
 
+      // Backend levert al 10 commerciële prompts uit de motor.
       const mapped = (data.prompts || []).map((p, i) => ({
         id: i,
         text: p.text,
-        intent: p.intent || 'informational',
-        intentCluster: p.intentCluster || 'Overig',
+        intent: p.intent || 'commercial',
+        intentCluster: p.intentCluster || (isEn ? 'Commercial' : 'Commercieel'),
         trendSignal: p.trendSignal || 'stable',
         estimatedAiVolume: p.estimatedAiVolume || 0,
         difficulty: p.difficulty || 'medium',
         difficultyScore: p.difficultyScore || 50,
-        yourStatus: p.mentioned ? 'found' : p.competitors?.length ? 'not_found' : 'not_scanned',
-        topCompetitors: p.competitors || [],
+        yourStatus: 'not_scanned',
+        topCompetitors: [],
       }))
 
       setPrompts(mapped)
@@ -584,9 +602,6 @@ export default function PromptExplorer() {
       if (data.sessionToken) {
         try { localStorage.setItem('teun_claim_token', data.sessionToken) } catch {}
       }
-
-      const cls = buildClusters(mapped)
-      setOpenClusters(new Set(cls.slice(0, 2).map(c => c.name)))
 
     } catch (err) {
       setError(isEn ? 'Connection error. Check your internet and try again.' : 'Verbindingsfout. Controleer je internetverbinding en probeer opnieuw.')
@@ -613,6 +628,29 @@ export default function PromptExplorer() {
   const opportunities = useMemo(() =>
     prompts.filter(p => p.difficulty === 'easy' && p.yourStatus !== 'found').sort((a, b) => b.estimatedAiVolume - a.estimatedAiVolume).slice(0, 5),
     [prompts])
+
+  // Backend (/api/prompt-explorer) levert al 10 commerciële prompts via de motor.
+  // Top 10 is dus simpelweg de eerste 10, sortering volgt de backend-volgorde.
+  const top10 = useMemo(() => prompts.slice(0, 10), [prompts])
+
+  const goToVisibilityScan = () => {
+    if (!top10.length) return
+    const promptTexts = top10.map(p => p.text).filter(Boolean)
+    try {
+      sessionStorage.setItem('teun_custom_prompts', JSON.stringify(promptTexts))
+    } catch (_) {}
+
+    const params = new URLSearchParams()
+    params.set('customPrompts', 'true')
+    const resolvedCompany = companyName || bedrijfsnaam
+    if (resolvedCompany) params.set('company', resolvedCompany)
+    if (branche) params.set('category', branche)
+    if (inputMode === 'url' && websiteUrl) params.set('website', websiteUrl)
+    if (place) params.set('location', place)
+    params.set('ref', 'prompt-explorer')
+
+    router.push(`/tools/ai-visibility?${params.toString()}`)
+  }
 
   const topCompetitors = useMemo(() => {
     const c = {}
@@ -658,39 +696,33 @@ export default function PromptExplorer() {
 
         {/* Form card */}
         <div className="ape-form" id="ape-form">
-          {/* Mode toggle */}
-          <div className="ape-mode-toggle">
-            <button
-              onClick={() => setInputMode('keyword')}
-              className={inputMode === 'keyword' ? 'active' : ''}
-            >
-              <SearchIcon className="w-3.5 h-3.5" /> {T.tabKeyword}
-            </button>
-            <button
-              onClick={() => setInputMode('url')}
-              className={inputMode === 'url' ? 'active' : ''}
-            >
-              <GlobeIcon className="w-3.5 h-3.5" /> {T.tabUrl}
-            </button>
-          </div>
-
-          {/* Main input */}
+          {/* Main input: website URL (verplicht) */}
           <div className="ape-input-row ape-input-main">
-            {inputMode === 'keyword' ? <SearchIcon className="ape-input-icon" /> : <GlobeIcon className="ape-input-icon" />}
+            <GlobeIcon className="ape-input-icon" />
             <input
-              value={inputMode === 'url' ? websiteUrl : keyword}
-              onChange={e => inputMode === 'url' ? setWebsiteUrl(e.target.value) : setKeyword(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && discover()}
-              placeholder={inputMode === 'url' ? T.phUrl : T.phKeyword}
+              value={websiteUrl}
+              onChange={e => setWebsiteUrl(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && hasInput && discover()}
+              placeholder={T.phUrl}
               className="ape-input"
+              type="url"
+              autoComplete="url"
+              required
             />
           </div>
 
-          {/* Secondary inputs */}
+          {/* Bedrijfsnaam (verplicht) + plaats/branche (optioneel) */}
           <div className="ape-form-grid">
-            <div className="ape-input-row">
+            <div className="ape-input-row ape-input-required">
               <BuildingIcon className="ape-input-icon" />
-              <input value={bedrijfsnaam} onChange={e => setBedrijfsnaam(e.target.value)} placeholder={T.phBrand} className="ape-input" />
+              <input
+                value={bedrijfsnaam}
+                onChange={e => setBedrijfsnaam(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && hasInput && discover()}
+                placeholder={T.phBrand}
+                className="ape-input"
+                required
+              />
             </div>
             <div className="ape-input-row">
               <MapPinIcon className="ape-input-icon" />
@@ -702,15 +734,15 @@ export default function PromptExplorer() {
             </div>
           </div>
 
-          <button onClick={discover} disabled={loading} className="teun-scan-btn ape-submit">
+          <button onClick={discover} disabled={loading || !hasInput} className="teun-scan-btn ape-submit">
             {loading ? (
               <><Loader2Icon className="w-5 h-5 ape-spin" /> {T.ctaLoading}</>
             ) : (
-              <><SparklesIcon className="w-5 h-5" /> {inputMode === 'url' ? T.ctaUrl : T.ctaKeyword}</>
+              <><SparklesIcon className="w-5 h-5" /> {T.ctaUrl}</>
             )}
           </button>
 
-          <p className="ape-form-hint">{inputMode === 'url' ? T.belowCtaUrl : T.belowCta}</p>
+          <p className="ape-form-hint">{T.belowCtaUrl}</p>
         </div>
 
         {/* Rate limit */}
@@ -733,9 +765,9 @@ export default function PromptExplorer() {
         {/* Loader */}
         {loading && (
           <Loader
-            keyword={inputMode === 'url' ? websiteUrl : keyword}
+            keyword={websiteUrl}
             mode={inputMode}
-            steps={inputMode === 'url' ? T.loaderUrlSteps(websiteUrl) : T.loaderKwSteps(keyword)}
+            steps={T.loaderUrlSteps(websiteUrl)}
             preparingText={T.loaderPreparing}
           />
         )}
@@ -792,141 +824,37 @@ export default function PromptExplorer() {
               </div>
             )}
 
-            {/* Quick wins */}
-            {opportunities.length > 0 && (
-              <div className="ape-quickwins">
-                <div className="ape-quickwins-head">
-                  <div className="ape-quickwins-icon"><TargetIcon className="w-4 h-4" /></div>
-                  <p className="ape-quickwins-title">{T.qwTitle}</p>
-                </div>
-                <p className="ape-quickwins-desc">{T.qwDesc}</p>
-                <div className="ape-quickwins-list">
-                  {opportunities.map((p, i) => (
-                    <div key={i} className="ape-quickwin">
-                      <span className="ape-quickwin-num">{i + 1}</span>
-                      <p className="ape-quickwin-text">{p.text}</p>
+            {/* Intro + Top 10 commercial AI search queries */}
+            {top10.length > 0 && (
+              <div className="ape-top10">
+                <p className="ape-top10-intro">{T.introBox}</p>
+                <div className="ape-top10-list" aria-label={T.promptListTitle}>
+                  {top10.map((p, i) => (
+                    <div key={p.id} className="ape-top10-item">
+                      <span className="ape-top10-num">{String(i + 1).padStart(2, '0')}</span>
+                      <p className="ape-top10-text">{p.text}</p>
+                      <span className="ape-top10-vol">~{fmtVol(p.estimatedAiVolume)}{isEn ? '/mo' : '/mnd'}</span>
                       <MiniTrend trend={p.trendSignal} />
-                      <span className="ape-quickwin-vol">~{fmtVol(p.estimatedAiVolume)}{isEn ? '/mo' : '/mnd'}</span>
-                      <DiffBadge d="easy" labels={{ easy: T.diffEasy, medium: T.diffMedium, hard: T.diffHard }} />
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
 
-            {/* Filters */}
-            <div className="ape-filters">
-              <div className="ape-view-toggle">
-                {[['clusters', T.fClusters], ['list', T.fList]].map(([v, l]) => (
-                  <button key={v} onClick={() => setViewMode(v)} className={viewMode === v ? 'active' : ''}>{l}</button>
-                ))}
-              </div>
-              <div className="ape-filter-group">
-                {[['all', T.fAll], ['commercial', T.fCommercial], ['informational', T.fInfo]].map(([v, l]) => (
-                  <FilterBtn key={v} active={intentF === v} onClick={() => setIntentF(v)}>{l}</FilterBtn>
-                ))}
-              </div>
-              <div className="ape-filter-group">
-                {[['all', T.fAll], ['rising', `↑ ${T.fRising}`], ['stable', `→ ${T.fStable}`], ['declining', `↓ ${T.fDeclining}`]].map(([v, l]) => (
-                  <FilterBtn key={v} active={trendF === v} onClick={() => setTrendF(v)}>{l}</FilterBtn>
-                ))}
-              </div>
-            </div>
-
-            {/* Cluster view */}
-            {viewMode === 'clusters' && (
-              <div className="ape-clusters">
-                {clusters.filter(c => (intentF === 'all' || c.dominantIntent === intentF) && (trendF === 'all' || c.dominantTrend === trendF)).map(c => (
-                  <ClusterCard
-                    key={c.name}
-                    cluster={c}
-                    isOpen={openClusters.has(c.name)}
-                    onToggle={() => toggleCluster(c.name)}
-                    maxClusterVol={maxClusterVol}
-                    globalMaxVol={maxVol}
-                    t={{
-                      prompts_label: T.prompts_label,
-                      variations: T.variations,
-                      avgDiff: T.avgDiff,
-                      perMonth: isEn ? '/mo' : '/mnd',
-                      diffLabels: { easy: T.diffEasy, medium: T.diffMedium, hard: T.diffHard }
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* List view */}
-            {viewMode === 'list' && (
-              <div className="ape-list">
-                <div className="ape-list-head">
-                  <span>AI-prompt</span>
-                  <span>Tr</span>
-                  <span>St</span>
-                  <span>AI vol.</span>
-                  <span>{isEn ? 'Chance' : 'Kans'}</span>
-                  <span>{T.posCol}</span>
-                </div>
-                {prompts.filter(p => (intentF === 'all' || p.intent === intentF) && (trendF === 'all' || p.trendSignal === trendF)).map(p => (
-                  <div key={p.id} className="ape-list-row">
-                    <div className="ape-list-prompt">
-                      <p className="ape-list-prompt-text">{p.text}</p>
-                      <p className="ape-list-prompt-cluster">{p.intentCluster}</p>
-                    </div>
-                    <div><MiniTrend trend={p.trendSignal} /></div>
-                    <div><StatusDot s={p.yourStatus} /></div>
-                    <div><VolBar vol={p.estimatedAiVolume} maxVol={maxVol} blurred={false} /></div>
-                    <div><DiffBadge d={p.difficulty} labels={{ easy: T.diffEasy, medium: T.diffMedium, hard: T.diffHard }} /></div>
-                    <div className="ape-list-pos">
-                      <span className="ape-list-pos-pill"><LockIcon className="w-2.5 h-2.5" />—</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* FOMO CTA — volume-driven */}
-            {!user ? (
-              <div className="ape-fomo">
-                <div className="ape-fomo-mascot">
-                  <Image src="/teun-ai-mascotte.png" alt="Teun.ai mascotte" width={120} height={150} />
-                </div>
-                <div className="ape-fomo-body">
-                  <p className="ape-fomo-headline">
-                    {isEn
-                      ? <>~{fmtVol(stats?.totalVol || 0)} times a month, customers ask AI these questions. <em>Are you in the answer?</em></>
-                      : <>~{fmtVol(stats?.totalVol || 0)} keer per maand stellen klanten deze vragen aan AI. <em>Sta jij in het antwoord?</em></>}
+                {/* Primaire CTA + secundaire tekstlink */}
+                <div className="ape-funnel-cta">
+                  <p className="ape-funnel-cta-title">{T.primaryCtaTitle}</p>
+                  <button
+                    type="button"
+                    onClick={goToVisibilityScan}
+                    className="teun-scan-btn ape-funnel-cta-btn"
+                  >
+                    {T.primaryCtaBtn} <ArrowRightIcon className="w-4 h-4" />
+                  </button>
+                  <p className="ape-funnel-cta-secondary">
+                    {T.secondaryCtaPrefix}{' '}
+                    <Link href="/tools/ai-rank-tracker" className="ape-funnel-cta-secondary-link">
+                      {T.secondaryCtaLink} <ArrowRightIcon className="w-3 h-3" />
+                    </Link>
                   </p>
-                  <p className="ape-fomo-sub">
-                    {isEn
-                      ? `You now know which ${stats?.total || 0} prompts your customers use. But does ChatGPT, Perplexity or Google AI actually recommend ${companyName || 'you'}? Create a free account and scan your position on all 4 platforms.`
-                      : `Je weet nu welke ${stats?.total || 0} prompts jouw klanten gebruiken. Maar beveelt ChatGPT, Perplexity of Google AI ook daadwerkelijk ${companyName || 'jou'} aan? Maak een gratis account aan en scan je positie op alle 4 platforms.`}
-                  </p>
-                  <a href={`/signup${claimSuffix()}`} className="teun-scan-btn ape-fomo-btn">
-                    {isEn ? 'Check my AI positions' : 'Check mijn AI-posities'} <ArrowRightIcon className="w-4 h-4" />
-                  </a>
-                  <p className="ape-fomo-hint">{isEn ? 'Free · No credit card · Takes 2 minutes' : 'Gratis · Geen creditcard · Duurt 2 minuten'}</p>
-                </div>
-              </div>
-            ) : (
-              <div className="ape-fomo">
-                <div className="ape-fomo-mascot">
-                  <Image src="/teun-ai-mascotte.png" alt="Teun.ai mascotte" width={120} height={150} />
-                </div>
-                <div className="ape-fomo-body">
-                  <p className="ape-fomo-headline">
-                    {isEn
-                      ? <>~{fmtVol(stats?.totalVol || 0)} times a month — does AI recommend <em>{companyName || 'you'}</em>?</>
-                      : <>~{fmtVol(stats?.totalVol || 0)} keer per maand — beveelt AI <em>{companyName || 'jou'}</em> aan?</>}
-                  </p>
-                  <p className="ape-fomo-sub">
-                    {isEn
-                      ? 'Go to your dashboard to select prompts and scan your AI visibility on ChatGPT, Perplexity and Google AI.'
-                      : 'Ga naar je dashboard om prompts te selecteren en je AI-zichtbaarheid te scannen op ChatGPT, Perplexity en Google AI.'}
-                  </p>
-                  <a href={isEn ? '/en/dashboard' : '/dashboard'} className="teun-scan-btn ape-fomo-btn">
-                    {isEn ? 'Go to dashboard' : 'Ga naar dashboard'} <ArrowRightIcon className="w-4 h-4" />
-                  </a>
                 </div>
               </div>
             )}
@@ -951,27 +879,29 @@ export default function PromptExplorer() {
             )}
 
             <Methodology t={T} />
-
-            <ToolsCrossSell currentTool="ai-prompt-explorer" locale={locale} />
           </div>
         )}
       </div>
 
       {/* Sticky bar */}
-      {showStickyBar && !user && prompts.length > 0 && (
+      {showStickyBar && top10.length > 0 && (
         <div className="ape-sticky">
           <div className="ape-sticky-inner">
             <div className="ape-sticky-text">
               <Image src="/teun-ai-mascotte.png" alt="Teun" width={32} height={40} className="ape-sticky-mascot" />
               <p>
                 {isEn
-                  ? <>~{fmtVol(stats?.totalVol || 0)}× per month — is <em>{companyName || 'your business'}</em> in the AI answer?</>
-                  : <>~{fmtVol(stats?.totalVol || 0)}× per maand — staat <em>{companyName || 'jouw bedrijf'}</em> in het AI-antwoord?</>}
+                  ? <>~{fmtVol(stats?.totalVol || 0)}× per month, is <em>{companyName || 'your business'}</em> in the AI answer?</>
+                  : <>~{fmtVol(stats?.totalVol || 0)}× per maand, staat <em>{companyName || 'jouw bedrijf'}</em> in het AI-antwoord?</>}
               </p>
             </div>
-            <a href={`/signup${claimSuffix()}`} className="teun-scan-btn ape-sticky-btn">
-              {isEn ? 'Check now' : 'Nu checken'} <ArrowRightIcon className="w-3.5 h-3.5" />
-            </a>
+            <button
+              type="button"
+              onClick={goToVisibilityScan}
+              className="teun-scan-btn ape-sticky-btn"
+            >
+              {isEn ? 'Start free scan' : 'Start gratis scan'} <ArrowRightIcon className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       )}

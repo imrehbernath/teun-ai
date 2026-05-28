@@ -141,8 +141,7 @@ function Header() {
     {
       href: '/tools/ai-prompt-explorer',
       title: 'AI Prompt Explorer',
-      desc: isEn ? '50+ prompts with volumes' : '50+ prompts met volumes',
-      tag: 'Beta',
+      desc: isEn ? '10 commercial AI search queries' : '10 commerciële AI zoekvragen',
     },
   ];
 

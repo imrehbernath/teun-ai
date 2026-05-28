@@ -8371,6 +8371,114 @@ html {
   font-family: var(--font-mono), monospace;
 }
 
+/* Top 10 commercial AI search queries + funnel CTA */
+.ape-top10 {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px 22px;
+}
+@media (min-width: 640px) {
+  .ape-top10 { padding: 32px; }
+}
+.ape-top10-intro {
+  font-family: var(--font-lora), serif;
+  font-size: clamp(16px, 1.8vw, 18px);
+  line-height: 1.5;
+  color: var(--ink);
+  margin: 0 0 18px;
+  letter-spacing: -0.005em;
+}
+.ape-top10-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.ape-top10-item {
+  display: grid;
+  grid-template-columns: 32px 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.ape-top10-num {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-3);
+  letter-spacing: 0.05em;
+}
+.ape-top10-text {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--ink);
+  margin: 0;
+}
+.ape-top10-vol {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+@media (max-width: 520px) {
+  .ape-top10-item {
+    grid-template-columns: 28px 1fr;
+    grid-template-rows: auto auto;
+    gap: 4px 10px;
+  }
+  .ape-top10-text { grid-column: 2; }
+  .ape-top10-vol { grid-column: 2; grid-row: 2; justify-self: start; }
+  .ape-top10-item .ape-trend { grid-column: 2; grid-row: 2; justify-self: end; }
+  .ape-top10-num { grid-row: 1 / span 2; }
+}
+
+.ape-funnel-cta {
+  border-top: 1px solid var(--line);
+  padding-top: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+}
+.ape-funnel-cta-title {
+  font-family: var(--font-lora), serif;
+  font-size: clamp(18px, 2.2vw, 22px);
+  line-height: 1.25;
+  color: var(--ink);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.ape-funnel-cta-btn {
+  width: auto !important;
+  margin: 0 !important;
+  padding: 14px 26px !important;
+  font-size: 15px !important;
+  display: inline-flex !important;
+}
+.ape-funnel-cta-secondary {
+  font-size: 13px;
+  color: var(--ink-2);
+  margin: 4px 0 0;
+}
+.ape-funnel-cta-secondary-link {
+  color: var(--spark);
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s ease;
+}
+.ape-funnel-cta-secondary-link:hover {
+  border-bottom-color: var(--spark);
+}
+
 /* Competitors */
 .ape-competitors {
   background: #fff;
