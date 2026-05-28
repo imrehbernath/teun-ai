@@ -68,10 +68,12 @@ Je werkt op de Teun.ai codebase voor Imre Bernáth (OnlineLabs). Lees eerst de v
 ## Belangrijke shared libs
 
 - **`lib/rank-scanner.js`** — Scanners (scanChatGPT/Perplexity/GoogleAI) + brand matching helpers (matchesBrand, textMentionsBrand, findBrandSnippet) + runLiveScan. **Gedeeld door** `/tools/ai-rank-tracker` (tool-page), `/api/tracked-keywords` (dashboard) en `/api/cron/scan-user` (auto-scan worker). Wijzigingen hier raken alle drie consumers.
+- **`lib/prompt-engine.js`** — Motor-functies geëxtraheerd uit `/api/ai-visibility-analysis`: `scrapeWebsite` (3-staps ScraperAPI Ultra fallback), `parseHtmlContent`, `analyzeWebsiteForKeywords` (Claude website-analyse), `generatePromptsWithClaude` (10 commerciële prompts met 14 strenge regels), en nieuwe `estimatePromptVolumes` (per prompt AI-volume + trend + difficulty). 1:1 uit motor, geen logica-wijziging. **Gedeeld door** `/api/ai-visibility-analysis` (motor) en `/api/prompt-explorer` (nieuwe Prompt Explorer-backend).
 - **`lib/keyword-prompt-generator.js`** — `generateKeywordPrompt({ keyword, serviceArea, locale })` async. Claude Sonnet 4.6 met rule-based fallback. Wordt 1x aangeroepen bij keyword add/edit en bij elke tool-page scan.
 - **`lib/beta-config.js`** — Rate limits voor AI Visibility + GEO Optimalisatie. Free/Lite/Pro bypass-logica met admin email override.
 - **`lib/rank-tracker-tiers.js`** — `RANK_TRACKER_TIERS.{free,starter,pro}` met `maxKeywords`, `maxCompetitors`, `cronEnabled`.
 - **`lib/competitor-extract.js`** — Gedeelde competitor-extractie voor LLM-output (ChatGPT, Perplexity, AI Mode). Exports: `cleanCompetitorName`, `isValidCompetitorName`, `COMPETITOR_EXCLUDE_LIST`, `extractCompetitorsFromChatGPT`, `extractCompetitorsFromPerplexity`, `getPerplexityCompetitorSystemPrompt`, `stripCompetitorBlock`. Filtert section-headers/labels/blog-titels en bevat brede excludeList (platforms, steden, service-termen). Gedeeld door `/api/scan-selected-prompts` (ChatGPT+Perplexity) en `/api/scan-google-ai` (text-based extractie). `/api/ai-visibility-analysis` heeft eigen inline-versie en wordt nog niet via deze lib gerouteerd (motor-clausule).
+- **`lib/session-token.js`** — `getOrCreateSessionToken()` zet httpOnly cookie `teun_session_token` (30 dagen). `claimSessionData(supabase, userId, fallbackToken, opts)` claimt scans bij signup: bij `opts.scanIds` / `opts.discoveryIds` selective claim (alleen specifieke rows), anders legacy mode (alles met matching cookie). Zie sectie "Selective claim".
 
 ## Brand matching conventies (rank-scanner)
 
@@ -161,7 +163,58 @@ SerpAPI's AIO retrieval werkt structureel niet voor NL queries (`gl=nl/hl=nl` ge
 
 ## Claude API motor (de "motor")
 
-[app/api/ai-visibility-analysis/route.js](app/api/ai-visibility-analysis/route.js) bevat `generatePromptsWithClaude` met een uitgebreide regelset (variatie, vakjargon, anti-marketing-jargon, B2B/B2C, locatie-logica, verboden vraagtypen). Dit is de motor voor commerciële prompts en wordt door Imre apart geoptimaliseerd. **Niet zelf wijzigen tenzij Imre input geeft.** De Rank Tracker gebruikt een afgeleide subset via `lib/keyword-prompt-generator.js`.
+[app/api/ai-visibility-analysis/route.js](app/api/ai-visibility-analysis/route.js) is de motor voor commerciële prompts. Sinds mei 2026 zijn de helpers (`scrapeWebsite`, `parseHtmlContent`, `analyzeWebsiteForKeywords`, `generatePromptsWithClaude`) verplaatst naar `lib/prompt-engine.js` (1:1 refactor, geen logica-wijziging). De motor importeert ze daar nu vandaan. **Logica van de motor niet zelf wijzigen tenzij Imre input geeft.** De Rank Tracker gebruikt een afgeleide subset via `lib/keyword-prompt-generator.js`. De Prompt Explorer (`/api/prompt-explorer`) gebruikt nu dezelfde motor-functies via de lib.
+
+Motor-respons bevat `integrationId` (= row id van de zojuist aangemaakte `tool_integrations`-row), zodat frontend dat in sessionStorage kan opslaan voor selective claim na signup.
+
+## Prompt Explorer architectuur (sinds mei 2026)
+
+De Prompt Explorer is omgebouwd naar een **motor-driven funnel-instap**:
+
+- **`/tools/ai-prompt-explorer`**: URL + bedrijfsnaam verplicht (geen keyword-mode meer, mode-toggle weg). Output: 10 commerciële AI zoekvragen met volumes via de motor.
+- **`/api/prompt-explorer/route.js`** (NIEUW, niet beschermd): Pipeline `scrapeWebsite → analyzeWebsiteForKeywords → generatePromptsWithClaude → estimatePromptVolumes`, save in `prompt_discovery_results` met `source='prompt-explorer'` en `meta.engine='motor-v1'`. Returnt `discoveryId` voor sessionStorage-tracking.
+- **`/api/prompt-discovery/route.js`** blijft bestaan voor de oude Prompt Discovery-tool, maar wordt vanuit Prompt Explorer niet meer aangeroepen. Nog steeds beschermd.
+
+Funnel: Explorer toont 10 prompts → primaire CTA **"Start gratis AI Visibility Scan"** schrijft 10 prompts naar `sessionStorage['teun_custom_prompts']` + `router.push('/tools/ai-visibility?customPrompts=true&company=...&website=...&ref=prompt-explorer')` → Visibility-pagina detecteert customPrompts URL-flag, vult formData uit URL-params, leest prompts uit sessionStorage, springt naar step 3.
+
+Secundaire CTA in Explorer: tekstlink naar Rank Tracker.
+
+## Selective claim van anonieme scans (sinds mei 2026)
+
+**Probleem dat we hebben opgelost:** `teun_session_token` cookie leeft 30 dagen en is gedeeld over alle anonieme gebruikers in dezelfde browser. Autoclaim met alleen-cookie-match liet test2's signup test1's eerdere anonieme scans onbedoeld claimen.
+
+**Oplossing:** scan-id tracking via `sessionStorage['teun_my_scans']` (per browser-tab, niet gedeeld).
+
+Format:
+```js
+{ integrationIds: ['uuid', ...], discoveryIds: ['uuid', ...] }
+```
+
+Flow:
+1. Na elke scan (Explorer + Visibility) schrijft frontend de zojuist gemaakte `integrationId` / `discoveryId` naar sessionStorage.
+2. Signup-pagina ([app/[locale]/signup/page.jsx](app/[locale]/signup/page.jsx)) leest sessionStorage en geeft `my_scan_ids` + `my_discovery_ids` mee in `user_metadata` (voor cross-browser fallback).
+3. `/auth/confirm` doet GEEN claim meer (alleen email-verify + redirect).
+4. Dashboard-load roept `/api/auth/claim-session` aan met body `{ scanIds, discoveryIds, sessionToken }` uit sessionStorage. Server merget met `user_metadata.my_scan_ids` / `my_discovery_ids`.
+5. `claimSessionData` updateet alleen rows met `WHERE id IN (scanIds) AND session_token = cookie/fallback AND user_id IS NULL`.
+6. Na succesvolle claim wordt sessionStorage gewist (voorkomt dubbele claims bij refresh).
+
+**Cross-contamination is voorkomen** voor verschillende browser-sessies (verschillende tabs of incognito-vensters). Edge case "zelfde tab, twee mensen achter elkaar zonder logout" wordt niet 100% geblokt maar komt in productie niet voor.
+
+**Backwards-compat:** als `scanIds` en `discoveryIds` beide leeg zijn valt `claimSessionData` terug naar legacy mode (alle rows met matching cookie). Dat kan in een edge-case cross-contaminatie opleveren (zie hierboven), dus alleen aanroepen vanuit het dashboard waar we expliciet de scan-ids meegeven.
+
+## Funnel-werk status (open items, mei 2026)
+
+**Klaar en live:**
+- Stap A: Prompt Explorer motor-driven, mega-menu copy, "scan zonder zoekwoorden"-banner weg, back-nav-restore Visibility-resultaten, cross-sell weg uit Explorer (commit `87c1116`).
+- Selective claim fix met sessionStorage scan-ids (commit `19e9c57`).
+
+**Open (in volgorde):**
+- **Stap B** (Visibility-pagina UX): pre-fill banner *"Dit zijn jouw 10 zoekvragen uit de Prompt Explorer"*, prompts bewerkbaar (edit + verwijder + toevoegen max 10), drielaagse fallback (sessionStorage → DB-fetch via nieuw `GET /api/prompt-discovery/latest` → foutbanner met alternatieve flow), tab-title dynamisch (`Scannen [bedrijf]...`), bedrijfsnaam in-page tijdens scan, `noKeywordsBanner` onderdrukken bij funnel-context. **`cancelCustom`-knop** in step 3 herzien (verwijderen of hernoemen).
+- **Stap C**: Visibility resultatenpagina copy aanpassen *"Bewaar je scan en maak een gratis account aan..."* (geen Pro-pitch, geen herontwerp).
+- **Stap D**: D1+D2 GEO optimalisatie DIY herpositioneren (Search Console + per-pagina advies + ChatGPT-prompt), D3 alle 8 Prompt Discovery-belofteplekken weghalen (mega-menu, schema, pricing-tabel, homepage tools-grid, /tools/-landing card, EN FAQ-referentie). Tool-page `/tools/ai-prompt-discovery` blijft live.
+- **Firewall-fallback Prompt Explorer**: bij scrape-fail tonen we manuele keyword-input + motor zonder website-data ("Site niet bereikbaar — vul je belangrijkste keywords in").
+- **Mini-fix Dashboard render**: wacht expliciet op claim+fetch voordat eerste render plaatsvindt (voorkomt stale state na signup).
+- **Follow-up**: admin-bypass in claim-session voor `imre@onlinelabs.nl` / `hallo@onlinelabs.nl` (geen autoclaim voor admin-accounts).
 
 ## Admin
 
