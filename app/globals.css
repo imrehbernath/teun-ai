@@ -4677,6 +4677,7 @@ html {
           padding: 12px 18px;
           display: inline-flex;
           align-items: center;
+          justify-content: center;
           gap: 10px;
           cursor: pointer;
           font-family: inherit;
@@ -4687,6 +4688,7 @@ html {
           position: relative;
           border-bottom: 2px solid transparent;
           margin-bottom: -1px;
+          min-width: 0;
         }
         .tool-platform-tab:hover { color: var(--ink); }
         .tool-platform-tab.active {
@@ -4702,6 +4704,7 @@ html {
           color: #fff;
           font-family: var(--font-mono), monospace;
           letter-spacing: 0.02em;
+          flex-shrink: 0;
         }
         .tool-platform-tab.active .pill {
           background: var(--spark);
@@ -4718,6 +4721,23 @@ html {
           flex-shrink: 0;
         }
         .tool-platform-tab .ai-logo svg { width: 14px; height: 14px; }
+        @media (max-width: 760px) {
+          .tool-platform-tab {
+            flex: 1 1 0;
+            padding: 10px 6px;
+            gap: 6px;
+            font-size: 13px;
+          }
+          .tool-platform-tab .pill {
+            padding: 2px 7px;
+            font-size: 11px;
+          }
+          .tool-platform-tab .ai-logo {
+            width: 18px;
+            height: 18px;
+          }
+          .tool-platform-tab .ai-logo svg { width: 12px; height: 12px; }
+        }
         .tool-platform-desc {
           font-size: 12px;
           color: var(--ink-3);
@@ -12058,6 +12078,7 @@ html {
    ============================================ */
 .sgn-right {
   width: 100%;
+  min-width: 0;
   max-width: 460px;
   margin: 0 auto;
 }
@@ -12081,12 +12102,13 @@ html {
 .sgn-h1 {
   font-family: var(--font-lora), serif;
   font-weight: 400;
-  font-size: clamp(28px, 4vw, 38px);
+  font-size: clamp(24px, 6vw, 38px);
   line-height: 1.1;
   letter-spacing: -0.02em;
   color: var(--ink);
   margin: 0 0 10px;
   text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 .sgn-h1 em {
   font-style: italic;
@@ -13523,12 +13545,13 @@ html {
 .lgn-h1 {
   font-family: var(--font-lora), serif;
   font-weight: 400;
-  font-size: clamp(28px, 4vw, 38px);
+  font-size: clamp(24px, 6vw, 38px);
   line-height: 1.1;
   letter-spacing: -0.02em;
   color: var(--ink);
   margin: 0 0 10px;
   text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 .lgn-h1 em {
   font-style: italic;
@@ -13800,12 +13823,13 @@ html {
 .fpw-h1 {
   font-family: var(--font-lora), serif;
   font-weight: 400;
-  font-size: clamp(28px, 4vw, 38px);
+  font-size: clamp(24px, 6vw, 38px);
   line-height: 1.1;
   letter-spacing: -0.02em;
   color: var(--ink);
   margin: 0 0 10px;
   text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 .fpw-h1 em {
   font-style: italic;
