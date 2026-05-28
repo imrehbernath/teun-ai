@@ -119,9 +119,12 @@ export async function GET(request) {
   let visibilityIntegrationsDispatched = 0;
   const visibilityUsers = new Set();
 
+  // PostgREST embed (profiles!inner) werkt alleen als er een FK relatie is
+  // tussen tool_integrations.user_id en profiles.id. Die ontbreekt in het
+  // schema, dus we doen twee aparte queries en mappen client-side.
   const { data: aivIntegrations, error: aivErr } = await supabase
     .from('tool_integrations')
-    .select('id, user_id, company_name, website, company_category, commercial_prompts, profiles!inner(email, subscription_tier, subscription_status)')
+    .select('id, user_id, company_name, website, company_category, commercial_prompts')
     .eq('auto_scan_enabled', true)
     .not('commercial_prompts', 'is', null);
 
@@ -129,8 +132,22 @@ export async function GET(request) {
     console.error('[Cron AIV] Integrations query error:', aivErr.message);
   }
 
+  // Profiles ophalen voor unieke user_ids, daarna mappen.
+  const aivUserIds = [...new Set((aivIntegrations || []).map(i => i.user_id).filter(Boolean))];
+  let profileMap = {};
+  if (aivUserIds.length > 0) {
+    const { data: aivProfiles, error: profErr } = await supabase
+      .from('profiles')
+      .select('id, email, subscription_tier, subscription_status')
+      .in('id', aivUserIds);
+    if (profErr) {
+      console.error('[Cron AIV] Profiles query error:', profErr.message);
+    }
+    profileMap = Object.fromEntries((aivProfiles || []).map(p => [p.id, p]));
+  }
+
   const todayIntegrations = (aivIntegrations || []).filter(it => {
-    const p = it.profiles;
+    const p = profileMap[it.user_id];
     if (!p) return false;
     const isActive = ['active', 'canceling'].includes(p.subscription_status);
     const isPro = isActive && (p.subscription_tier === 'pro' || p.subscription_tier == null || adminEmails.includes(p.email));
