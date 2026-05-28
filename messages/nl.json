@@ -253,15 +253,6 @@
           "stat": "4 platformen · ≤60 sec",
           "cta": "Start gratis scan"
         },
-        "promptDiscovery": {
-          "badge1": "Nieuw",
-          "badge2": "Gratis",
-          "title": "AI Prompt Discovery",
-          "lede": "Welke AI-prompts leiden al naar jouw site?",
-          "body": "Koppel Search Console en zie automatisch op welke AI-queries je al zichtbaar bent.",
-          "stat": "Search Console · auto",
-          "cta": "Koppel Search Console"
-        },
         "rankTracker": {
           "badge1": "Live",
           "badge2": "Gratis",
@@ -538,11 +529,11 @@
       "noKeywordsBannerTitle": "Deze scan liep zonder eigen zoekwoorden",
       "noKeywordsBannerHint": "Met 3 tot 5 eigen zoekwoorden uit je branche krijg je preciezere prompts en een accurater resultaat.",
       "noKeywordsBannerCta": "Opnieuw scannen met zoekwoorden",
-      "whatNowTitle": "Wat kun je nu doen?",
-      "whatNowAction1Title": "Doe de GEO Audit",
-      "whatNowAction1Desc": "Check je website op technische punten die je zichtbaarheid blokkeren.",
+      "whatNowTitle": "Wat ga je doen?",
+      "whatNowAction1Title": "Start met de GEO Audit",
+      "whatNowAction1Desc": "Check direct welke technische punten op je website je AI-zichtbaarheid blokkeren.",
       "whatNowAction2Title": "Probeer andere zoekwoorden",
-      "whatNowAction2Desc": "Specifiekere zoekwoorden geven andere prompts. Misschien zoeken jouw klanten anders dan je dacht.",
+      "whatNowAction2Desc": "Specifiekere zoekwoorden geven andere prompts. Test of jouw klanten misschien anders zoeken dan je denkt.",
       "mentions": "Vermeldingen",
       "mentionsMobile": "Vermeld",
       "prompts": "AI Prompts",
@@ -728,12 +719,13 @@
       "description": "Dit rapport is voor u klaargezet door <strong>OnlineLabs</strong>. U bekijkt de huidige AI-zichtbaarheid van {company} op ChatGPT, Perplexity, Google AI Modus en AI Overviews."
     },
     "geoCta": {
-      "title": "GEO Pro Analyse",
-      "description": "Volledige AI-zichtbaarheid analyse met Search Console data, pagina scanner, GEO checklist en professioneel rapport.",
-      "featureCsv": "CSV Upload",
-      "featureAi": "AI Analyse",
-      "featureReport": "Word Rapport",
-      "button": "Start Analyse"
+      "title": "GEO optimalisatie DIY",
+      "description": "Verbeter je AI visibility zelf. Pro koppelt je AI zoekvragen aan de juiste pagina's via Search Console, en geeft je per pagina een uitgebreide analyse, advies op maat en een kant-en-klare prompt voor ChatGPT of Claude.",
+      "featureCsv": "Search Console koppeling",
+      "featureAi": "Per-pagina advies",
+      "featureReport": "ChatGPT/Claude prompt",
+      "tagline": "Geen andere tool combineert dit",
+      "button": "Start GEO optimalisatie"
     },
     "cta": {
       "title": "Verbeter je AI-zichtbaarheid",

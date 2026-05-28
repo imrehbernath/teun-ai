@@ -253,15 +253,6 @@
           "stat": "4 platforms · ≤60 sec",
           "cta": "Start free scan"
         },
-        "promptDiscovery": {
-          "badge1": "New",
-          "badge2": "Free",
-          "title": "AI Prompt Discovery",
-          "lede": "Which AI prompts already lead to your site?",
-          "body": "Connect Search Console and see which AI queries you already rank for, automatically.",
-          "stat": "Search Console · auto",
-          "cta": "Connect Search Console"
-        },
         "rankTracker": {
           "badge1": "Live",
           "badge2": "Free",
@@ -538,11 +529,11 @@
       "noKeywordsBannerTitle": "This scan ran without your own keywords",
       "noKeywordsBannerHint": "With 3 to 5 keywords from your industry you get more precise prompts and a more accurate result.",
       "noKeywordsBannerCta": "Scan again with keywords",
-      "whatNowTitle": "What can you do now?",
-      "whatNowAction1Title": "Run a GEO Audit",
-      "whatNowAction1Desc": "Check your website for technical issues that block your visibility.",
+      "whatNowTitle": "What's your next step?",
+      "whatNowAction1Title": "Start with the GEO Audit",
+      "whatNowAction1Desc": "Check right away which technical issues on your website are blocking your AI visibility.",
       "whatNowAction2Title": "Try different keywords",
-      "whatNowAction2Desc": "More specific keywords give different prompts. Maybe your customers search differently than you think.",
+      "whatNowAction2Desc": "More specific keywords give different prompts. Test whether your customers search differently than you think.",
       "mentions": "Mentions",
       "mentionsMobile": "Mentioned",
       "prompts": "AI Prompts",
@@ -728,12 +719,13 @@
       "description": "This report has been prepared for you by <strong>OnlineLabs</strong>. You are viewing the current AI visibility of {company} on ChatGPT, Perplexity, Google AI Mode and AI Overviews."
     },
     "geoCta": {
-      "title": "GEO Pro Analysis",
-      "description": "Complete AI visibility analysis with Search Console data, page scanner, GEO checklist and professional report.",
-      "featureCsv": "CSV Upload",
-      "featureAi": "AI Analysis",
-      "featureReport": "Word Report",
-      "button": "Start Analysis"
+      "title": "GEO optimisation DIY",
+      "description": "Improve your AI visibility yourself. Pro links your AI search queries to the right pages via Search Console, and gives you a detailed analysis per page, tailored advice and a ready-to-use prompt for ChatGPT or Claude.",
+      "featureCsv": "Search Console link",
+      "featureAi": "Per-page advice",
+      "featureReport": "ChatGPT/Claude prompt",
+      "tagline": "No other tool combines this",
+      "button": "Start GEO optimisation"
     },
     "cta": {
       "title": "Improve your AI visibility",

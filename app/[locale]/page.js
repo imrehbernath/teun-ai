@@ -95,14 +95,12 @@ export default async function HomePage({ params }) {
     },
     "featureList": isNl ? [
       "AI Zichtbaarheid Scan op 4 platformen",
-      "AI Prompt Discovery via Search Console",
       "AI Rank Tracker",
       "AI Brand Check met sentiment-analyse",
       "GEO Audit met 42 checks",
       "AI Prompt Explorer met zoekvolumes"
     ] : [
       "AI Visibility Scan across 4 platforms",
-      "AI Prompt Discovery via Search Console",
       "AI Rank Tracker",
       "AI Brand Check with sentiment analysis",
       "GEO Audit with 42 checks",

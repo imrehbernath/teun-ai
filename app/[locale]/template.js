@@ -123,7 +123,6 @@ function Header() {
       href: '/tools/brand-check',
       title: 'AI Brand Check',
       desc: isEn ? 'What does AI say about you?' : 'Wat zegt AI over jou?',
-      tag: isEn ? 'New' : 'Nieuw',
     },
     {
       href: '/tools/ai-rank-tracker',
@@ -133,11 +132,6 @@ function Header() {
   ];
 
   const discoverTools = [
-    {
-      href: '/tools/ai-prompt-discovery',
-      title: 'AI Prompt Discovery',
-      desc: isEn ? 'Your prompts via GSC' : 'Je prompts via GSC',
-    },
     {
       href: '/tools/ai-prompt-explorer',
       title: 'AI Prompt Explorer',
@@ -331,24 +325,24 @@ function Header() {
                 >
                   <div className="teun-mega-grid">
                     <div>
-                      <div className="teun-mega-col-title">{isEn ? 'Measure' : 'Meten'}</div>
-                      {measureTools.map((tool) => (
-                        <Link key={tool.href} href={tool.href} className="teun-mega-item">
-                          <div className="t">
-                            {tool.title}
-                            {tool.tag && <span className="tag">{tool.tag}</span>}
-                          </div>
-                          <div className="d">{tool.desc}</div>
-                        </Link>
-                      ))}
-                    </div>
-                    <div>
                       <div className="teun-mega-col-title">{isEn ? 'Discover' : 'Ontdekken'}</div>
                       {discoverTools.map((tool) => (
                         <Link key={tool.href} href={tool.href} className="teun-mega-item">
                           <div className="t">
                             {tool.title}
                             {tool.tag && <span className={`tag ${tool.tag === 'Beta' ? 'beta' : ''}`}>{tool.tag}</span>}
+                          </div>
+                          <div className="d">{tool.desc}</div>
+                        </Link>
+                      ))}
+                    </div>
+                    <div>
+                      <div className="teun-mega-col-title">{isEn ? 'Measure' : 'Meten'}</div>
+                      {measureTools.map((tool) => (
+                        <Link key={tool.href} href={tool.href} className="teun-mega-item">
+                          <div className="t">
+                            {tool.title}
+                            {tool.tag && <span className="tag">{tool.tag}</span>}
                           </div>
                           <div className="d">{tool.desc}</div>
                         </Link>
@@ -430,12 +424,12 @@ function Header() {
 
       {/* Mobile drawer — BUITEN header voor correcte z-index */}
       <div className={`teun-drawer ${mobileMenuOpen ? 'open' : ''}`} aria-hidden={!mobileMenuOpen}>
-        <div className="section-title">{isEn ? 'Measure' : 'Meten'}</div>
-        {measureTools.map((tool) => (
-          <Link key={tool.href} href={tool.href} className="indent">{tool.title}</Link>
-        ))}
         <div className="section-title">{isEn ? 'Discover' : 'Ontdekken'}</div>
         {discoverTools.map((tool) => (
+          <Link key={tool.href} href={tool.href} className="indent">{tool.title}</Link>
+        ))}
+        <div className="section-title">{isEn ? 'Measure' : 'Meten'}</div>
+        {measureTools.map((tool) => (
           <Link key={tool.href} href={tool.href} className="indent">{tool.title}</Link>
         ))}
         <div className="section-title">{isEn ? 'Optimize' : 'Optimaliseren'}</div>
@@ -707,16 +701,12 @@ function Footer() {
             <div>
               <h3 className="col-title">{isEn ? 'Free tools' : 'Gratis tools'}</h3>
               <ul>
-                <li><Link href="/tools/ai-visibility">{isEn ? 'AI Visibility Scan' : 'AI Zichtbaarheid Scan'}</Link></li>
-                <li><Link href="/tools/ai-prompt-discovery">AI Prompt Discovery</Link></li>
-                <li><Link href="/tools/ai-rank-tracker">AI Rank Tracker</Link></li>
-                <li>
-                  <Link href="/tools/brand-check">
-                    AI Brand Check <span className="new-tag">{isEn ? 'New' : 'Nieuw'}</span>
-                  </Link>
-                </li>
-                <li><Link href="/tools/geo-audit">GEO Audit</Link></li>
                 <li><Link href="/tools/ai-prompt-explorer">AI Prompt Explorer</Link></li>
+                <li><Link href="/tools/ai-visibility">{isEn ? 'AI Visibility Scan' : 'AI Zichtbaarheid Scan'}</Link></li>
+                <li><Link href="/tools/ai-rank-tracker">AI Rank Tracker</Link></li>
+                <li><Link href="/tools/brand-check">AI Brand Check</Link></li>
+                <li><Link href="/tools/geo-audit">GEO Audit</Link></li>
+                <li><Link href="/tools/ai-prompt-discovery">AI Prompt Discovery</Link></li>
                 <li>
                   <Link href="/tools" className="footer-spark-link">
                     {isEn ? 'View all tools →' : 'Alle tools bekijken →'}

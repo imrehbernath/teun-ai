@@ -45,18 +45,6 @@ export default async function ToolsPage() {
       tagVariant: 'success',
     },
     {
-      title: 'AI Prompt Discovery',
-      subtitle: isNL ? 'Welke AI-prompts leiden al naar jouw site?' : 'Which AI prompts already lead to your site?',
-      description: isNL
-        ? 'Koppel je Google Search Console en ontdek automatisch op welke conversatie-achtige zoekopdrachten je al zichtbaar bent. We categoriseren ze in commerciele prompts, Google AI Overview queries en overige. Geen account nodig.'
-        : 'Connect your Google Search Console and discover which conversational queries already find you. We categorize them into commercial prompts, AI Overview queries, and other. No account needed.',
-      href: '/tools/ai-prompt-discovery',
-      cta: isNL ? 'Koppel Search Console' : 'Connect Search Console',
-      video: null, poster: null,
-      tag: isNL ? 'Nieuw' : 'New',
-      tagVariant: 'spark',
-    },
-    {
       title: 'AI Rank Tracker',
       subtitle: isNL ? 'Waar sta je in ChatGPT en Perplexity?' : 'Where do you rank in ChatGPT and Perplexity?',
       description: isNL
@@ -116,13 +104,13 @@ export default async function ToolsPage() {
   const faqItems = isNL ? [
     { cat: 'pricing', q: 'Zijn de tools echt gratis?', a: 'Ja, 6 van de 7 tools zijn volledig gratis te gebruiken, voor de meeste heb je niet eens een account nodig. Met Pro (€49,95/maand) kun je zelf je pagina\'s optimaliseren via GEO Optimalisatie DIY en gebruik je alle tools onbeperkt.' },
     { cat: 'product', q: 'Welke AI-platformen worden gescand?', a: 'We scannen ChatGPT (via de officiële Search API), Perplexity (via sonar-pro), Google AI Mode en Google AI Overviews. Niet elke tool scant alle platformen.' },
-    { cat: 'product', q: 'Heb ik een account nodig?', a: 'Voor de AI Visibility Scan, Brand Check en Prompt Discovery niet. Voor het opslaan van resultaten en GEO Optimalisatie DIY is een gratis account nodig.' },
+    { cat: 'product', q: 'Heb ik een account nodig?', a: 'Voor de AI Visibility Scan, Brand Check en AI Prompt Explorer niet. Voor het opslaan van resultaten en GEO Optimalisatie DIY is een gratis account nodig.' },
     { cat: 'product', q: 'Wat is het verschil met Otterly.ai of Peec?', a: 'Bij Teun.ai kun je echt GEO-optimaliseren: niet alleen meten, maar ook verbeteren met concrete adviezen per pagina. We bieden 6 gratis tools waar concurrenten vaak direct betaald zijn. Plus een WordPress plugin en Chrome extensie die andere platforms niet hebben.' },
     { cat: 'pricing', q: 'Wat kost Pro?', a: 'Pro kost €49,95 per maand (maandelijks opzegbaar) of €39,95 per maand bij jaarabonnement. Je krijgt GEO Optimalisatie DIY om zelf je pagina\'s te optimaliseren, onbeperkte scans op alle tools, en Search Console integratie.' },
   ] : [
     { cat: 'pricing', q: 'Are the tools really free?', a: 'Yes, 6 of 7 tools are completely free, most don\'t even require an account. With Pro (€49.95/month) you can optimize your pages yourself via GEO Optimization DIY and use all tools unlimited.' },
     { cat: 'product', q: 'Which AI platforms are scanned?', a: 'We scan ChatGPT (official Search API), Perplexity (sonar-pro), Google AI Mode and AI Overviews. Not every tool scans all platforms.' },
-    { cat: 'product', q: 'Do I need an account?', a: 'Not for AI Visibility Scan, Brand Check or Prompt Discovery. For saving results and GEO Optimization DIY, a free account is needed.' },
+    { cat: 'product', q: 'Do I need an account?', a: 'Not for AI Visibility Scan, Brand Check or AI Prompt Explorer. For saving results and GEO Optimization DIY, a free account is needed.' },
     { cat: 'product', q: 'How does this compare to Otterly.ai or Peec?', a: 'Teun.ai lets you actually optimize for GEO: not just measure, but improve with concrete advice per page. We offer 6 free tools where competitors are often paid from the start. Plus a WordPress plugin and Chrome extension other platforms don\'t have.' },
     { cat: 'pricing', q: 'What does Pro cost?', a: 'Pro costs €49.95/month (cancel anytime) or €39.95/month annual. You get GEO Optimization DIY to optimize your pages yourself, unlimited scans on all tools, and Search Console integration.' },
   ]

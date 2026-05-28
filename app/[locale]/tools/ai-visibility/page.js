@@ -1836,15 +1836,6 @@ function AIVisibilityToolContent() {
                   const chatgptCount = results.chatgpt_results?.length || 10;
                   const totalPrompts = perplexityCount + chatgptCount;
 
-                  const competitorSet = new Set();
-                  [...(results.analysis_results || []), ...(results.chatgpt_results || [])].forEach(r => {
-                    (r.competitors_mentioned || []).forEach(c => {
-                      const clean = cleanDisplayName(c);
-                      if (clean && clean.length >= 3) competitorSet.add(clean);
-                    });
-                  });
-                  const competitorCount = competitorSet.size;
-
                   const isInvisible = totalMentions === 0;
                   const isWeak = totalMentions > 0 && totalMentions <= 3;
                   const isPerfect = totalMentions >= totalPrompts;
@@ -1858,17 +1849,13 @@ function AIVisibilityToolContent() {
                         ? (locale === 'nl' ? 'Sterk! Je wordt overal genoemd' : 'Strong! You are mentioned everywhere')
                         : (locale === 'nl' ? `Goed bezig, maar je mist nog ${missing} prompts` : `Looking good, but you're missing ${missing} prompts`);
 
-                  const description = isInvisible
-                    ? (locale === 'nl' ? `${competitorCount} concurrenten worden wél genoemd. Maak een gratis account en zie waarom jij niet zichtbaar bent.` : `${competitorCount} competitors are being mentioned. Create a free account to find out why you're not visible.`)
-                    : isWeak
-                      ? (locale === 'nl' ? `${competitorCount} concurrenten scoren beter. Maak een gratis account en track je positie over tijd.` : `${competitorCount} competitors are scoring higher. Create a free account to track your position over time.`)
-                      : isPerfect
-                        ? (locale === 'nl' ? 'Maak een gratis account en monitor je positie over tijd voordat een concurrent je voorbij gaat.' : 'Create a free account and monitor your position over time before a competitor overtakes you.')
-                        : (locale === 'nl' ? 'Maak een gratis account en gebruik al onze 6 AI-tools om je voorsprong te behouden.' : 'Create a free account and use all 6 of our AI tools to maintain your lead.');
+                  const description = locale === 'nl'
+                    ? 'Maak gratis een account aan om je scan te bewaren en scan meteen Google AI Modus + AI Overviews erbij. Standaard in elk gratis account.'
+                    : 'Create a free account to save your scan and instantly add Google AI Mode + AI Overviews scans. Standard in every free account.';
 
                   const bonus = locale === 'nl'
-                    ? 'Met een gratis account scan je ook Google AI Modus en AI Overviews.'
-                    : 'With a free account you can also scan Google AI Mode and AI Overviews.';
+                    ? 'Met Pro track je je positie automatisch wekelijks.'
+                    : 'With Pro, your position is tracked automatically every week.';
 
                   return (
                     <div className="tool-account-cta">
@@ -1900,7 +1887,7 @@ function AIVisibilityToolContent() {
                       marginBottom: 16
                     }}>
                       <h3 style={{ margin: '0 0 12px 0', fontSize: 16, fontWeight: 700 }}>
-                        💡 {t('step4.whatNowTitle')}
+                        {t('step4.whatNowTitle')}
                       </h3>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
                         <Link href={geoAuditHref} style={{

@@ -288,7 +288,6 @@ export default function Homepage() {
   // ============================================
   const toolKeys = [
     { id: 'aiVisibility', cat: 'measure', href: '/tools/ai-visibility', badge1Class: 'hot' },
-    { id: 'promptDiscovery', cat: 'discover', href: '/tools/ai-prompt-discovery', badge1Class: 'nieuw' },
     { id: 'rankTracker', cat: 'measure', href: '/tools/ai-rank-tracker', badge1Class: 'live' },
     { id: 'brandCheck', cat: 'measure', href: '/tools/brand-check', badge1Class: 'hot' },
     { id: 'geoAudit', cat: 'optimize', href: '/tools/geo-audit', badge1Class: 'checks' },
