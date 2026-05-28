@@ -77,15 +77,13 @@ export default async function ToolsPage() {
     },
     {
       title: 'AI Prompt Explorer',
-      subtitle: isNL ? 'Ontdek 50+ prompts met zoekvolumes' : 'Discover 50+ prompts with search volumes',
+      subtitle: isNL ? '10 commerciële AI zoekvragen met volumes' : '10 commercial AI search queries with volumes',
       description: isNL
-        ? 'Voer je website of zoekwoorden in en krijg 50+ natuurlijke zoekvragen die echte mensen typen in AI-platformen. Inclusief geschat maandelijks zoekvolume per prompt. Selecteer de beste en scan ze direct.'
-        : 'Enter your website or keywords and get 50+ natural queries that real people type into AI platforms. Including estimated monthly search volume per prompt. Select the best and scan them directly.',
+        ? 'Voer je website in en krijg 10 commerciële AI zoekvragen die jouw potentiële klanten gebruiken in ChatGPT, Perplexity en Google AI. Inclusief geschat zoekvolume en trend per zoekvraag.'
+        : 'Enter your website and get 10 commercial AI search queries your potential customers use in ChatGPT, Perplexity and Google AI. Including estimated search volume and trend per query.',
       href: '/tools/ai-prompt-explorer',
-      cta: isNL ? 'Ontdek prompts' : 'Discover prompts',
+      cta: isNL ? 'Toon mijn AI zoekvragen' : 'Show my AI queries',
       video: null, poster: null,
-      tag: 'BETA',
-      tagVariant: 'spark',
     },
     {
       title: isNL ? 'GEO Optimalisatie DIY' : 'GEO Optimization DIY',

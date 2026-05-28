@@ -22,7 +22,7 @@
     "aiRankTracker": {
       "name": "AI Rank Tracker",
       "description": "Check your ranking on ChatGPT & Perplexity",
-      "badge": "NEW"
+      "badge": "FREE"
     },
     "geoAudit": {
       "name": "GEO Audit",
@@ -41,12 +41,12 @@
     "brandCheck": {
       "name": "AI Brand Check",
       "description": "Check what AI says about your brand",
-      "badge": "NEW"
+      "badge": "FREE"
     },
     "promptExplorer": {
       "name": "AI Prompt Explorer",
       "description": "See which prompts your customers use",
-      "badge": "BETA"
+      "badge": "FREE"
     }
   },
   "footer": {
@@ -76,7 +76,6 @@
   },
   "common": {
     "free": "FREE",
-    "new": "NEW",
     "earlyAccess": "early access",
     "comingSoon": "coming soon"
   },
@@ -281,13 +280,12 @@
           "cta": "Audit your page"
         },
         "promptExplorer": {
-          "badge1": "Beta",
           "badge2": "Free",
           "title": "AI Prompt Explorer",
-          "lede": "Discover 50+ prompts with search volumes.",
-          "body": "50+ natural search questions people type into AI, including monthly volume per prompt.",
-          "stat": "50+ prompts · volumes",
-          "cta": "Explore prompts"
+          "lede": "10 commercial AI search queries with volumes.",
+          "body": "10 commercial AI search queries your potential customers use in ChatGPT, Perplexity and Google AI.",
+          "stat": "10 queries · volumes",
+          "cta": "Start free"
         }
       }
     },
@@ -789,7 +787,6 @@
       "deleteErrorMessage": "Something went wrong while deleting: {error}",
       "teunAlt": "Teun helps you!",
       "geoAnalyse": "GEO Analysis",
-      "new": "NEW",
       "sharedViewBanner": "This dashboard has been shared with you. You are viewing results in read-only mode.",
       "extensionInstallTitle": "Install Chrome Extension",
       "extensionStep1": "Step 1: Open Extensions",
@@ -1182,7 +1179,7 @@
       "pageScanner": "Page scanner",
       "urlPlaceholder": "https://yoursite.com/page",
       "analyze": "Analyze",
-      "alreadyScanned": "✓ Already scanned today. Come back tomorrow for a new scan (BETA).",
+      "alreadyScanned": "✓ Already scanned today. Come back tomorrow for a new scan.",
       "scanDuration": "Scan takes ~1 minute · Includes Core Web Vitals and live Perplexity test",
       "scannedPages": "Scanned pages",
       "scans": "scans",

@@ -35,7 +35,7 @@ export const translations = {
       upgradeBody: '1x per week ChatGPT, Perplexity, Google AI Mode en AI Overviews automatisch checken',
       upgradeCta: 'Bekijk plannen',
     },
-    promptTracker: { prompt: 'Prompt', trend: 'Trend', found: 'gevonden', editPrompts: 'Prompts aanpassen', maxPrompts: 'Max {max} prompts in BETA' },
+    promptTracker: { prompt: 'Prompt', trend: 'Trend', found: 'gevonden', editPrompts: 'Prompts aanpassen', maxPrompts: 'Max {max} prompts' },
     competitors: {
       title: 'Concurrenten in AI-antwoorden', add: '+ Toevoegen',
       vsTitle: 'Jij vs. topconcurrent', vsSubtitle: 'Vergelijking per prompt',
@@ -130,7 +130,7 @@ export const translations = {
       upgradeBody: 'Auto-check ChatGPT, Perplexity, Google AI Mode and AI Overviews once a week',
       upgradeCta: 'View plans',
     },
-    promptTracker: { prompt: 'Prompt', trend: 'Trend', found: 'found', editPrompts: 'Edit prompts', maxPrompts: 'Max {max} prompts in BETA' },
+    promptTracker: { prompt: 'Prompt', trend: 'Trend', found: 'found', editPrompts: 'Edit prompts', maxPrompts: 'Max {max} prompts' },
     competitors: {
       title: 'Competitors in AI responses', add: '+ Add',
       vsTitle: 'You vs. top competitor', vsSubtitle: 'Comparison per prompt',

@@ -255,8 +255,15 @@ export default function PromptExplorer() {
     phKeyword: 'Your keyword or niche', phUrl: 'https://yourwebsite.com',
     phBrand: 'Your company name', phPlace: 'City', phBranche: 'Your industry',
     ctaKeyword: 'Find AI prompts', ctaUrl: 'Show my AI queries', ctaLoading: 'Generating prompts...',
-    belowCta: 'All prompts free in BETA. Takes about 60 seconds.',
+    ctaManual: 'Generate from my keywords',
+    belowCta: '100% free. Takes about 60 seconds.',
     belowCtaUrl: 'We analyse your website and generate 10 commercial AI search queries.',
+    scrapeFailedTitle: 'Website not reachable',
+    scrapeFailedFallback: "Enter 3 to 5 of your most important keywords below and we'll generate the queries from those.",
+    manualKwLabel: 'Your most important keywords',
+    manualKwPlaceholder: 'For example: driving school Amsterdam, driving lessons, exam training',
+    manualKwHint: 'Enter 3 to 5 keywords, separated by commas or new lines.',
+    tryUrlAgain: 'Try a different URL',
     rateLimitAnon: 'You\'ve used 2 free scans. Create a free account for more scans, optimisation tools and AI visibility analyses.',
     rateLimitUser: 'You\'ve already scanned today. You can scan again tomorrow, or upgrade for unlimited scans.',
     freeAccount: 'Create free account',
@@ -356,8 +363,15 @@ export default function PromptExplorer() {
     phKeyword: 'Je zoekwoord of niche', phUrl: 'https://jouwwebsite.nl',
     phBrand: 'Je bedrijfsnaam', phPlace: 'Vestigingsplaats', phBranche: 'Jouw branche',
     ctaKeyword: 'Vind AI-prompts', ctaUrl: 'Toon mijn AI zoekvragen', ctaLoading: 'Prompts genereren...',
-    belowCta: 'Alle prompts gratis in BETA. Duurt circa 60 seconden.',
+    ctaManual: 'Genereer met deze keywords',
+    belowCta: '100% gratis. Duurt circa 60 seconden.',
     belowCtaUrl: 'We analyseren je website en genereren 10 commerciële AI zoekvragen.',
+    scrapeFailedTitle: 'Je website is niet bereikbaar',
+    scrapeFailedFallback: 'Vul hieronder 3 tot 5 van je belangrijkste keywords in, dan genereren we de zoekvragen op basis daarvan.',
+    manualKwLabel: 'Jouw belangrijkste keywords',
+    manualKwPlaceholder: 'Bijvoorbeeld: rijschool Amsterdam, autorijles, examentraining',
+    manualKwHint: 'Vul 3 tot 5 keywords in, gescheiden door komma\'s of regels.',
+    tryUrlAgain: 'Probeer een andere URL',
     rateLimitAnon: 'Je hebt 2 gratis scans gebruikt. Maak een gratis account aan voor meer scans, optimalisatie tools en AI-zichtbaarheidsanalyses.',
     rateLimitUser: 'Je hebt vandaag al een scan gedaan. Morgen kun je opnieuw scannen, of upgrade voor onbeperkte scans.',
     freeAccount: 'Gratis account aanmaken',
@@ -461,6 +475,10 @@ export default function PromptExplorer() {
   const [companyName, setCompanyName] = useState('')
   const [hasSearched, setHasSearched] = useState(false)
   const [error, setError] = useState(null)
+  // Firewall-fallback: scrape mislukt -> user vult zelf 3-5 keywords in
+  const [scrapeFailed, setScrapeFailed] = useState(false)
+  const [scrapeFailedMsg, setScrapeFailedMsg] = useState('')
+  const [manualKeywordsInput, setManualKeywordsInput] = useState('')
   const [viewMode, setViewMode] = useState('clusters')
   const [openClusters, setOpenClusters] = useState(new Set())
   const [intentF, setIntentF] = useState('all')
@@ -519,7 +537,13 @@ export default function PromptExplorer() {
   const clusters = useMemo(() => buildClusters(prompts), [prompts])
   const maxClusterVol = useMemo(() => clusters.length ? Math.max(...clusters.map(c => c.totalVolume)) : 0, [clusters])
   const maxVol = useMemo(() => prompts.length ? Math.max(...prompts.map(p => p.estimatedAiVolume)) : 0, [prompts])
-  const hasInput = websiteUrl.trim().length > 0 && bedrijfsnaam.trim().length >= 3
+  const parsedManualKeywords = useMemo(
+    () => manualKeywordsInput.split(/[,\n]/).map(k => k.trim()).filter(Boolean).slice(0, 10),
+    [manualKeywordsInput]
+  )
+  const hasInput = scrapeFailed
+    ? bedrijfsnaam.trim().length >= 3 && parsedManualKeywords.length >= 1
+    : websiteUrl.trim().length > 0 && bedrijfsnaam.trim().length >= 3
 
   const checkRateLimit = () => {
     if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].some(h => window.location.hostname.includes(h))) return true
@@ -567,6 +591,9 @@ export default function PromptExplorer() {
         industry: branche.trim() || null,
         locale,
       }
+      if (scrapeFailed && parsedManualKeywords.length > 0) {
+        body.manualKeywords = parsedManualKeywords
+      }
 
       const res = await fetch('/api/prompt-explorer', {
         method: 'POST',
@@ -576,10 +603,29 @@ export default function PromptExplorer() {
 
       const data = await res.json()
 
+      // Firewall-fallback: backend kon site niet bereiken, toon manuele
+      // keyword-input. Niet behandelen als hard-error.
+      if (res.ok && data?.fallback === 'manual_keywords') {
+        setScrapeFailed(true)
+        setScrapeFailedMsg(data.message || (isEn
+          ? "We couldn't reach your website. Enter 3 to 5 of your most important keywords."
+          : 'We konden je website niet bereiken. Vul 3 tot 5 van je belangrijkste keywords in.'))
+        setHasSearched(false)
+        setLoading(false)
+        return
+      }
+
       if (!res.ok) {
         setError(data.error || (isEn ? 'Something went wrong. Please try again.' : 'Er ging iets mis. Probeer het opnieuw.'))
         setLoading(false)
         return
+      }
+
+      // Success: clear scrape-fail state zodat een nieuwe poging weer vers begint.
+      if (scrapeFailed) {
+        setScrapeFailed(false)
+        setScrapeFailedMsg('')
+        setManualKeywordsInput('')
       }
 
       // Backend levert al 10 commerciële prompts uit de motor.
@@ -716,12 +762,34 @@ export default function PromptExplorer() {
 
         {/* Form card */}
         <div className="ape-form" id="ape-form">
+          {/* Firewall-fallback warning */}
+          {scrapeFailed && (
+            <div className="ape-scrape-fail">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <div className="content">
+                <div className="title">{T.scrapeFailedTitle}</div>
+                <p className="desc">{scrapeFailedMsg || T.scrapeFailedFallback}</p>
+              </div>
+            </div>
+          )}
+
           {/* Main input: website URL (verplicht) */}
           <div className="ape-input-row ape-input-main">
             <GlobeIcon className="ape-input-icon" />
             <input
               value={websiteUrl}
-              onChange={e => setWebsiteUrl(e.target.value)}
+              onChange={e => {
+                setWebsiteUrl(e.target.value)
+                if (scrapeFailed) {
+                  setScrapeFailed(false)
+                  setScrapeFailedMsg('')
+                  setManualKeywordsInput('')
+                }
+              }}
               onKeyDown={e => e.key === 'Enter' && hasInput && discover()}
               placeholder={T.phUrl}
               className="ape-input"
@@ -754,11 +822,28 @@ export default function PromptExplorer() {
             </div>
           </div>
 
+          {/* Manuele keywords-input (alleen zichtbaar bij scrape-fail) */}
+          {scrapeFailed && (
+            <div className="ape-manual-kw">
+              <label className="ape-manual-kw-label" htmlFor="ape-manual-kw">{T.manualKwLabel}</label>
+              <textarea
+                id="ape-manual-kw"
+                value={manualKeywordsInput}
+                onChange={e => setManualKeywordsInput(e.target.value)}
+                placeholder={T.manualKwPlaceholder}
+                className="ape-manual-kw-input"
+                rows={3}
+                autoFocus
+              />
+              <p className="ape-manual-kw-hint">{T.manualKwHint}</p>
+            </div>
+          )}
+
           <button onClick={discover} disabled={loading || !hasInput} className="teun-scan-btn ape-submit">
             {loading ? (
               <><Loader2Icon className="w-5 h-5 ape-spin" /> {T.ctaLoading}</>
             ) : (
-              <><SparklesIcon className="w-5 h-5" /> {T.ctaUrl}</>
+              <><SparklesIcon className="w-5 h-5" /> {scrapeFailed ? T.ctaManual : T.ctaUrl}</>
             )}
           </button>
 

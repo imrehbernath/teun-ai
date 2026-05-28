@@ -104,6 +104,15 @@ export async function POST(request) {
     const locale = body.locale === 'en' ? 'en' : 'nl'
     const isNL = locale === 'nl'
 
+    // Firewall-fallback: als de site niet scrapebaar is, kan de user 3-5 keywords
+    // meegeven en draaien we de motor zonder website-analyse.
+    const manualKeywords = Array.isArray(body.manualKeywords)
+      ? body.manualKeywords
+          .filter(k => typeof k === 'string' && k.trim().length > 0)
+          .map(k => k.trim())
+          .slice(0, 10)
+      : []
+
     // ── Validatie ──
     if (!websiteUrl) {
       return NextResponse.json({ error: isNL ? 'Website URL is verplicht' : 'Website URL is required' }, { status: 400, headers: CORS })
@@ -129,18 +138,41 @@ export async function POST(request) {
     const { sessionToken } = await getOrCreateSessionToken()
 
     // ── Step 1+2+3: scrape + parse + Claude website-analyse ──
-    console.log(`[prompt-explorer] analyzing ${websiteUrl} for ${brandName}`)
-    const websiteAnalysis = await analyzeWebsiteForKeywords(websiteUrl, brandName, industry || 'algemeen', isNL)
+    // Skip wanneer de user manuele keywords meegeeft (firewall-fallback flow).
+    let websiteAnalysis
+    if (manualKeywords.length > 0) {
+      console.log(`[prompt-explorer] manual-keywords mode (${manualKeywords.length} keywords) for ${brandName}`)
+      websiteAnalysis = {
+        success: true,
+        keywords: manualKeywords,
+        services: [],
+        usps: [],
+        targetAudience: industry || (isNL ? 'algemeen publiek' : 'general audience'),
+        businessType: industry || (isNL ? 'algemeen' : 'general'),
+        audienceType: 'both',
+        coreActivity: industry || brandName,
+        location: location || null,
+        locationExclusive: !!location,
+        rawParsed: false,
+      }
+    } else {
+      console.log(`[prompt-explorer] analyzing ${websiteUrl} for ${brandName}`)
+      websiteAnalysis = await analyzeWebsiteForKeywords(websiteUrl, brandName, industry || 'algemeen', isNL)
 
-    if (websiteAnalysis?.blocked) {
-      return NextResponse.json({ error: websiteAnalysis.blockMessage }, { status: 400, headers: CORS })
-    }
-    if (!websiteAnalysis?.success) {
-      return NextResponse.json({
-        error: isNL
-          ? 'We konden de website niet bereiken of analyseren. Controleer de URL en probeer opnieuw.'
-          : 'We could not reach or analyse the website. Check the URL and try again.'
-      }, { status: 502, headers: CORS })
+      if (websiteAnalysis?.blocked) {
+        return NextResponse.json({ error: websiteAnalysis.blockMessage }, { status: 400, headers: CORS })
+      }
+      if (!websiteAnalysis?.success) {
+        // Scrape mislukt (firewall, bot-blokkade, JS-only site). Geen 502 maar
+        // een 200 met fallback-flag zodat de frontend manuele keyword-input toont.
+        return NextResponse.json({
+          success: false,
+          fallback: 'manual_keywords',
+          message: isNL
+            ? 'We konden je website niet bereiken (firewall of bot-blokkade). Vul je 3 tot 5 belangrijkste keywords in, dan genereren we de zoekvragen op basis daarvan.'
+            : "We couldn't reach your website (firewall or bot block). Enter your 3 to 5 most important keywords and we'll generate the search queries from those."
+        }, { status: 200, headers: CORS })
+      }
     }
 
     // Build keyword-pool: website-keywords zijn de basis, user-input vult aan
@@ -218,7 +250,7 @@ export async function POST(request) {
           source: 'prompt-explorer',
           meta: {
             engine: 'motor-v1',
-            scrapeMethod: websiteAnalysis.rawParsed ? 'unknown' : null,
+            scrapeMethod: manualKeywords.length > 0 ? 'manual_keywords' : (websiteAnalysis.rawParsed ? 'unknown' : null),
             audienceType: websiteAnalysis.audienceType,
             businessType: websiteAnalysis.businessType,
             coreActivity: websiteAnalysis.coreActivity,

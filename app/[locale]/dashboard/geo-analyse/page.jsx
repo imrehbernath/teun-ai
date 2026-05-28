@@ -2057,7 +2057,6 @@ function GEOAnalyseContent() {
               <div>
                 <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
                   GEO Analyse
-                  <span className="px-2 py-0.5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-xs rounded-full font-medium">BETA</span>
                 </h1>
                 <p className="text-sm text-slate-500">{t('subtitle')}</p>
               </div>

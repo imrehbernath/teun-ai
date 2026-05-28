@@ -22,7 +22,7 @@
     "aiRankTracker": {
       "name": "AI Rank Tracker",
       "description": "Check je ranking op ChatGPT & Perplexity",
-      "badge": "NIEUW"
+      "badge": "GRATIS"
     },
     "geoAudit": {
       "name": "GEO Audit",
@@ -41,12 +41,12 @@
     "brandCheck": {
       "name": "AI Brand Check",
       "description": "Check wat AI over jouw merk zegt",
-      "badge": "NIEUW"
+      "badge": "GRATIS"
     },
     "promptExplorer": {
       "name": "AI Prompt Explorer",
       "description": "Bekijk welke prompts jouw klanten gebruiken",
-      "badge": "BETA"
+      "badge": "GRATIS"
     }
   },
   "footer": {
@@ -76,7 +76,6 @@
   },
   "common": {
     "free": "GRATIS",
-    "new": "NIEUW",
     "earlyAccess": "early access",
     "comingSoon": "binnenkort"
   },
@@ -281,13 +280,12 @@
           "cta": "Audit je pagina"
         },
         "promptExplorer": {
-          "badge1": "Beta",
           "badge2": "Gratis",
           "title": "AI Prompt Explorer",
-          "lede": "Ontdek 50+ prompts met zoekvolumes.",
-          "body": "50+ natuurlijke zoekvragen die mensen typen in AI, inclusief maandelijks volume per prompt.",
-          "stat": "50+ prompts · volumes",
-          "cta": "Ontdek prompts"
+          "lede": "10 commerciële AI zoekvragen met volumes.",
+          "body": "10 commerciële AI zoekvragen die jouw potentiële klanten gebruiken in ChatGPT, Perplexity en Google AI.",
+          "stat": "10 zoekvragen · volumes",
+          "cta": "Start gratis"
         }
       }
     },
@@ -789,7 +787,6 @@
       "deleteErrorMessage": "Er ging iets mis bij het verwijderen: {error}",
       "teunAlt": "Teun helpt je!",
       "geoAnalyse": "GEO Analyse",
-      "new": "NIEUW",
       "sharedViewBanner": "Dit dashboard is met je gedeeld. Je bekijkt de resultaten in read-only modus.",
       "extensionInstallTitle": "Chrome Extensie Installeren",
       "extensionStep1": "Stap 1: Open Extensies",
@@ -1182,7 +1179,7 @@
       "pageScanner": "Pagina scanner",
       "urlPlaceholder": "https://jouwwebsite.nl/pagina",
       "analyze": "Analyseer",
-      "alreadyScanned": "✓ Vandaag al gescand. Kom morgen terug voor een nieuwe scan (BETA).",
+      "alreadyScanned": "✓ Vandaag al gescand. Kom morgen terug voor een nieuwe scan.",
       "scanDuration": "Scan duurt ±1 minuut · Inclusief Core Web Vitals meting en live Perplexity test",
       "scannedPages": "Gescande pagina's",
       "scans": "scans",

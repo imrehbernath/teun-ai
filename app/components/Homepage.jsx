@@ -291,7 +291,7 @@ export default function Homepage() {
     { id: 'rankTracker', cat: 'measure', href: '/tools/ai-rank-tracker', badge1Class: 'live' },
     { id: 'brandCheck', cat: 'measure', href: '/tools/brand-check', badge1Class: 'hot' },
     { id: 'geoAudit', cat: 'optimize', href: '/tools/geo-audit', badge1Class: 'checks' },
-    { id: 'promptExplorer', cat: 'discover', href: '/tools/ai-prompt-explorer', badge1Class: 'beta' },
+    { id: 'promptExplorer', cat: 'discover', href: '/tools/ai-prompt-explorer' },
   ];
 
   const filteredTools = toolFilter === 'all' || toolFilter === 'pro'
@@ -780,9 +780,11 @@ export default function Homepage() {
                 {filteredTools.map((tool) => (
                   <Link key={tool.href} href={tool.href} className="teun-tool">
                     <div className="teun-tool-head">
-                      <span className={`teun-tag-badge ${tool.badge1Class}`}>
-                        {t(`tools.items.${tool.id}.badge1`)}
-                      </span>
+                      {tool.badge1Class && (
+                        <span className={`teun-tag-badge ${tool.badge1Class}`}>
+                          {t(`tools.items.${tool.id}.badge1`)}
+                        </span>
+                      )}
                       <span className="teun-tag-badge gratis">
                         {t(`tools.items.${tool.id}.badge2`)}
                       </span>
