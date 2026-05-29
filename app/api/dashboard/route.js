@@ -801,6 +801,62 @@ export async function GET(request) {
       visibilityHistory = Array.from(byBucket.values())
     }
 
+    // Patch laatste bucket met current-scan-data om "—"-streepjes te
+    // voorkomen. De initiele wizard-scan (/api/ai-visibility-analysis)
+    // schrijft niet naar visibility_history, alleen naar tool_integrations.
+    // Daardoor kan het gebeuren dat de bucket van vandaag wel google_ai_mode/
+    // google_ai_overviews bevat (uit dashboard-rescans) maar geen ChatGPT/
+    // Perplexity-waarden (die zitten alleen in tool_integrations.results).
+    // De waarden komen alsnog terecht in visibility_history zodra de gebruiker
+    // op rescan klikt of de wekelijkse cron loopt.
+    const hasCurrentScanData =
+      (visibility?.chatgptTotal > 0) ||
+      (visibility?.perplexityTotal > 0) ||
+      (googleAiMode?.total > 0) ||
+      (googleAiOverview?.total > 0)
+
+    if (visibilityHistory.length === 0 && hasCurrentScanData) {
+      // Geen history (alleen wizard-scan gedaan) -> synthetiseer 1 bucket uit
+      // current data zodat de grafiek geen lege "Eerste meting"-state toont.
+      const stamp = latestScan?.created_at || new Date().toISOString()
+      visibilityHistory.push({
+        date: new Date(stamp).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }),
+        fullDate: stamp,
+        chatgpt: (visibility?.chatgptTotal > 0) ? visibility.chatgpt : null,
+        perplexity: (visibility?.perplexityTotal > 0) ? visibility.perplexity : null,
+        google_ai_mode: (googleAiMode?.total > 0) ? googleAiMode.pct : null,
+        google_ai_overviews: (googleAiOverview?.total > 0) ? googleAiOverview.pct : null,
+        total: null,
+        geoScore: null,
+        topCompetitor: null,
+        topCompetitorCount: null,
+      })
+    }
+
+    if (visibilityHistory.length > 0) {
+      const latest = visibilityHistory[visibilityHistory.length - 1]
+      if (latest.chatgpt == null && visibility?.chatgptTotal > 0) {
+        latest.chatgpt = visibility.chatgpt
+      }
+      if (latest.perplexity == null && visibility?.perplexityTotal > 0) {
+        latest.perplexity = visibility.perplexity
+      }
+      if (latest.google_ai_mode == null && googleAiMode?.total > 0) {
+        latest.google_ai_mode = googleAiMode.pct
+      }
+      if (latest.google_ai_overviews == null && googleAiOverview?.total > 0) {
+        latest.google_ai_overviews = googleAiOverview.pct
+      }
+      // Hercompute "total" als hoogste platform-percentage wanneer er nog
+      // geen waarde stond. Geeft een betrouwbare ondergrens (echte totaal
+      // is union van prompts, minstens zo hoog als het beste platform).
+      if (latest.total == null) {
+        const vals = [latest.chatgpt, latest.perplexity, latest.google_ai_mode, latest.google_ai_overviews]
+          .filter(v => v != null)
+        if (vals.length > 0) latest.total = Math.max(...vals)
+      }
+    }
+
     return NextResponse.json({
       shareMode: !!shareContext,
       shareInfo: shareContext ? {
