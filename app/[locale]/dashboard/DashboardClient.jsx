@@ -1380,6 +1380,15 @@ function ScanInProgress({ locale, company, onRefresh }) {
 export default function DashboardClient({ locale, t, userId, userEmail, shareToken = null }) {
   const clientMode = !!shareToken
   const [activeTab, setActiveTab] = useState('overview')
+  // Deep-link naar een tab via ?tab=... (bv. vanuit de GEO Optimalisatie DIY-sidebar).
+  useEffect(() => {
+    try {
+      const tab = new URLSearchParams(window.location.search).get('tab')
+      if (tab && ['overview', 'prompts', 'rank-tracker', 'competitors', 'geo', 'audit'].includes(tab)) {
+        setActiveTab(tab)
+      }
+    } catch {}
+  }, [])
   const period = '90d' // Always show all data — period tabs removed
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -2205,7 +2214,7 @@ export default function DashboardClient({ locale, t, userId, userEmail, shareTok
                       style={{ background: '#292956' }}
                     >
                       <Zap className="w-4 h-4" />
-                      {locale === 'nl' ? 'Start GEO Analyse' : 'Start GEO Analysis'}
+                      {locale === 'nl' ? 'Start GEO Optimalisatie DIY' : 'Start GEO Optimization DIY'}
                     </Link>
                   </div>
                 </div>
@@ -2373,7 +2382,7 @@ export default function DashboardClient({ locale, t, userId, userEmail, shareTok
                         style={{ background: '#292956' }}
                       >
                         <Zap className="w-3.5 h-3.5" />
-                        {locale === 'nl' ? 'Start GEO Analyse' : 'Start GEO Analysis'}
+                        {locale === 'nl' ? 'Start GEO Optimalisatie DIY' : 'Start GEO Optimization DIY'}
                       </Link>
                     </>
                   )}
@@ -3032,7 +3041,7 @@ export default function DashboardClient({ locale, t, userId, userEmail, shareTok
                               </div>
                               <Link href={lp(locale, '/dashboard/geo-analyse')} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-indigo-700 bg-white border border-indigo-200 rounded-lg px-3 py-1.5 hover:bg-indigo-50 transition no-underline">
                                 <Zap className="w-3 h-3" />
-                                GEO Analyse
+                                {locale === 'nl' ? 'GEO Optimalisatie DIY' : 'GEO Optimization DIY'}
                               </Link>
                             </div>
                           )}
@@ -3312,7 +3321,7 @@ export default function DashboardClient({ locale, t, userId, userEmail, shareTok
                           </div>
                           <Link href={lp(locale, '/dashboard/geo-analyse')} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-indigo-700 bg-white border border-indigo-200 rounded-lg px-3 py-1.5 hover:bg-indigo-50 transition no-underline">
                             <Zap className="w-3 h-3" />
-                            GEO Analyse
+                            {locale === 'nl' ? 'GEO Optimalisatie DIY' : 'GEO Optimization DIY'}
                           </Link>
                         </div>
                       </div>
@@ -3507,7 +3516,7 @@ export default function DashboardClient({ locale, t, userId, userEmail, shareTok
                       <div className="bg-white rounded-xl border border-slate-200 p-6">
                         <div className="flex items-center justify-between mb-4">
                           <div>
-                            <h2 className="text-lg font-bold text-slate-800">GEO Analyse Resultaten</h2>
+                            <h2 className="text-lg font-bold text-slate-800">{locale === 'nl' ? 'GEO Optimalisatie DIY Resultaten' : 'GEO Optimization DIY Results'}</h2>
                             <p className="text-xs text-slate-400 mt-0.5">
                               {locale === 'nl' ? 'Laatste scan:' : 'Last scan:'} {new Date(geoAnalyseResults.lastScan).toLocaleDateString(locale === 'nl' ? 'nl-NL' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
                             </p>

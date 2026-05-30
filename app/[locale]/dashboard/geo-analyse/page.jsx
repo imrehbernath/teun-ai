@@ -17,6 +17,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import Image from 'next/image'
 import useClientAccess from '../hooks/useClientAccess'
 import ClientBanner from '../components/ClientBanner'
+import DashboardSidebar from '../DashboardSidebar'
 import { generateOptimizationPrompt } from '@/lib/generateOptimizationPrompt'
 import { extractKeywordsFromPrompt } from '@/lib/extractKeywordsFromPrompt'
 
@@ -1396,6 +1397,16 @@ function GEOAnalyseContent() {
     setUnmatchedPrompts(prev => [...prev, prompt])
   }
 
+  // Verwijder een prompt-pagina-koppeling vanuit het rapport (stap 4/5) en
+  // persisteer direct, zodat de wijziging blijft staan na herladen. Blijft binnen
+  // het bestaande model van 1 matchedPrompt per pagina-row (geen datamodel-wijziging).
+  const removeReportMatch = (prompt, pageUrl) => {
+    const newMatches = matches.filter(m => !(m.prompt === prompt && m.page === pageUrl))
+    setMatches(newMatches)
+    setUnmatchedPrompts(prev => prev.includes(prompt) ? prev : [...prev, prompt])
+    savePageScoresToDB(geoResults, newMatches)
+  }
+
   const removePage = (pageUrl) => {
     // Remove page from scPages
     setScPages(prev => prev.filter(p => p.page !== pageUrl))
@@ -1726,7 +1737,7 @@ function GEOAnalyseContent() {
   }
 
   // Save page scores to Supabase for persistence + dashboard
-  const savePageScoresToDB = async (results) => {
+  const savePageScoresToDB = async (results, matchesArg = matches) => {
     try {
       const entries = Object.entries(results).filter(([, r]) => r.scanned)
       console.log('[GEO Save] Saving', entries.length, 'pages for company:', companyName)
@@ -1751,7 +1762,7 @@ function GEOAnalyseContent() {
               wordCount: result.wordCount || 0,
               score: result.score || 0,
               source: 'geo-analyse',
-              matchedPrompt: matches.find(m => m.page === pageUrl)?.prompt || null,
+              matchedPrompt: matchesArg.find(m => m.page === pageUrl)?.prompt || null,
               pageContent: result.pageContent || null,
               promptGscData: result.promptGscData || null,
             },
@@ -2045,7 +2056,7 @@ function GEOAnalyseContent() {
   // MAIN RENDER
   // ============================================
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 py-4">
@@ -2056,7 +2067,7 @@ function GEOAnalyseContent() {
               </button>
               <div>
                 <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                  GEO Analyse
+                  {locale === 'nl' ? 'GEO Optimalisatie DIY' : 'GEO Optimization DIY'}
                 </h1>
                 <p className="text-sm text-slate-500">{t('subtitle')}</p>
               </div>
@@ -3662,7 +3673,7 @@ function GEOAnalyseContent() {
                       .filter(([pageUrl]) => !expandedPage || expandedPage === pageUrl)
                       .map(([pageUrl, result]) => {
                       const isExpanded = expandedPage === pageUrl
-                      const matchedPrompt = matches.find(m => m.page === pageUrl)?.prompt
+                      const pagePromptMatches = matches.filter(m => m.page === pageUrl)
                       const passedCount = Object.values(result.checklist || {}).filter(v => v).length
                       const totalChecks = Object.keys(result.checklist || {}).length
                       const failedCount = totalChecks - passedCount
@@ -3687,8 +3698,21 @@ function GEOAnalyseContent() {
                               <p className="text-[15px] font-semibold text-slate-800 truncate">
                                 {pageUrl.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '') || '/'}
                               </p>
-                              {matchedPrompt && (
-                                <p className="text-[12px] text-slate-400 truncate mt-0.5">{matchedPrompt}</p>
+                              {pagePromptMatches.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {pagePromptMatches.map((m, mi) => (
+                                    <span key={mi} className="group/match inline-flex items-center gap-1 max-w-full bg-slate-100 text-slate-500 rounded px-1.5 py-0.5 text-[11px]">
+                                      <span className="truncate max-w-[260px]">{m.prompt}</span>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); removeReportMatch(m.prompt, pageUrl) }}
+                                        className="opacity-50 hover:opacity-100 hover:text-red-600 shrink-0 cursor-pointer"
+                                        title={locale === 'nl' ? 'Koppeling verwijderen' : 'Remove match'}
+                                      >
+                                        <XCircle className="w-3 h-3" />
+                                      </button>
+                                    </span>
+                                  ))}
+                                </div>
                               )}
                             </div>
                             <div className="flex items-center gap-3 flex-shrink-0">
@@ -4027,7 +4051,7 @@ function ProGateWrapper({ children }) {
       await fetch('/api/notify-pro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: notifyEmail, feature: 'GEO Analyse' }),
+        body: JSON.stringify({ email: notifyEmail, feature: 'GEO Optimalisatie DIY' }),
       }).catch(() => {})
     } catch {}
     setNotifySubmitted(true)
@@ -4052,18 +4076,18 @@ function ProGateWrapper({ children }) {
           </div>
 
           <h3 className="text-xl font-bold text-slate-900 mb-2">
-            {isNL ? 'GEO Analyse is een Pro functie' : 'GEO Analysis is a Pro feature'}
+            {isNL ? 'GEO Optimalisatie DIY is beschikbaar vanaf Lite' : 'GEO Optimization DIY is available from Lite'}
           </h3>
           <p className="text-slate-500 text-sm mb-6 leading-relaxed">
             {isNL
-              ? 'Optimaliseer je pagina\'s voor AI-zoekmachines met de complete GEO Analyse wizard. Beschikbaar voor Pro gebruikers.'
-              : 'Optimize your pages for AI search engines with the complete GEO Analysis wizard. Available for Pro users.'}
+              ? 'Optimaliseer je pagina\'s voor AI-zoekmachines met de complete GEO Optimalisatie DIY. Maak een Lite- of Pro-account aan om de tool te gebruiken.'
+              : 'Optimize your pages for AI search engines with the complete GEO Optimization DIY. Create a Lite or Pro account to use the tool.'}
           </p>
 
           <div className="space-y-2.5 text-left mb-6">
             {(isNL
-              ? ['4-stappen GEO analyse wizard', 'Automatische prompt generatie', 'Pagina-voor-pagina optimalisatie', 'Diepte-audit per pagina', 'Onbeperkte scans op alle tools']
-              : ['4-step GEO analysis wizard', 'Automatic prompt generation', 'Page-by-page optimization', 'Deep audit per page', 'Unlimited scans on all tools']
+              ? ['4-stappen wizard', 'Automatische prompt generatie', 'Pagina-voor-pagina optimalisatie', 'Diepte-audit per pagina', 'Onbeperkte scans op alle tools']
+              : ['4-step wizard', 'Automatic prompt generation', 'Page-by-page optimization', 'Deep audit per page', 'Unlimited scans on all tools']
             ).map((item, i) => (
               <div key={i} className="flex items-center gap-2.5 text-sm">
                 <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
@@ -4078,7 +4102,7 @@ function ProGateWrapper({ children }) {
               className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-[#1E1E3F] to-[#2D2D5F] text-white rounded-xl font-bold text-base hover:shadow-lg hover:scale-[1.01] transition-all cursor-pointer border-none no-underline"
             >
               <Sparkles className="w-4 h-4" />
-              {isNL ? 'Ontgrendel met Pro' : 'Unlock with Pro'}
+              {isNL ? 'Bekijk Lite en Pro' : 'View Lite and Pro'}
             </a>
           ) : null}
 
@@ -4094,16 +4118,21 @@ function ProGateWrapper({ children }) {
 export default function GEOAnalysePage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-slate-600">Loading...</p>
         </div>
       </div>
     }>
-      <ProGateWrapper>
-        <GEOAnalyseContent />
-      </ProGateWrapper>
+      <div className="min-h-screen bg-slate-50 flex">
+        <DashboardSidebar />
+        <main className="ml-[240px] flex-1 min-w-0">
+          <ProGateWrapper>
+            <GEOAnalyseContent />
+          </ProGateWrapper>
+        </main>
+      </div>
     </Suspense>
   )
 }
