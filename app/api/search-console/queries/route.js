@@ -166,17 +166,13 @@ export async function POST(request) {
   const start = startDate || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
   try {
-    // Query + Page combinaties (voor mapping van zoektermen naar landingspagina's)
-    const queryPageRows = await fetchAllRows({
-      accessToken,
-      siteUrl,
-      startDate: start,
-      endDate: end,
-      dimensions: ['query', 'page'],
-      maxRows: rowLimit
-    })
+    // Beide GSC-calls los van elkaar: een fout in de zwaardere query+page-call
+    // mag de pages-lijst niet blokkeren (en andersom). Eerder gooide de
+    // query+page-call de hele route op 500, waardoor de frontend stil geen
+    // pagina's toonde. We bewaren de eerste fout om die aan de UI te geven.
+    let scError = null
 
-    // Pure pages-call (voor de pagina-overzichtslijst — was hardcoded op 100)
+    // Pure pages-call (voor de pagina-overzichtslijst)
     let pageRows = []
     try {
       pageRows = await fetchAllRows({
@@ -188,8 +184,24 @@ export async function POST(request) {
         maxRows: maxPages || rowLimit
       })
     } catch (err) {
-      // Pages-call faalt soms terwijl query-call wel werkt; logging voor debug
       console.error('Search Console pages fetch error:', err.message)
+      scError = scError || err.message
+    }
+
+    // Query + Page combinaties (voor mapping van zoektermen naar landingspagina's)
+    let queryPageRows = []
+    try {
+      queryPageRows = await fetchAllRows({
+        accessToken,
+        siteUrl,
+        startDate: start,
+        endDate: end,
+        dimensions: ['query', 'page'],
+        maxRows: rowLimit
+      })
+    } catch (err) {
+      console.error('Search Console query+page fetch error:', err.message)
+      scError = scError || err.message
     }
 
     const queries = queryPageRows.map(row => ({
@@ -226,7 +238,8 @@ export async function POST(request) {
       pages,
       dateRange: { start, end },
       totalQueries: queries.length,
-      totalPages: pages.length
+      totalPages: pages.length,
+      scError
     })
 
   } catch (error) {

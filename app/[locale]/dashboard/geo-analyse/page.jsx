@@ -229,6 +229,7 @@ function GEOAnalyseContent() {
   const [selectedProperty, setSelectedProperty] = useState('')
   const [loadingScData, setLoadingScData] = useState(false)
   const [scPages, setScPages] = useState([]) // Pages from Search Console
+  const [scPagesError, setScPagesError] = useState('') // Foutmelding bij laden GSC-pagina's
   const [csvFileName, setCsvFileName] = useState('')
   const [csvParsing, setCsvParsing] = useState(false)
   const [csvError, setCsvError] = useState('')
@@ -956,22 +957,51 @@ function GEOAnalyseContent() {
 
   const loadSearchConsoleData = async (siteUrl) => {
     if (!siteUrl) return
-    
+
     setLoadingScData(true)
+    setScPagesError('')
     try {
       const response = await fetch('/api/search-console/queries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ siteUrl, rowLimit: 500 })
       })
+      const data = await response.json().catch(() => ({}))
 
-      if (response.ok) {
-        const data = await response.json()
-        // We only need pages for matching, not queries
-        setScPages(data.pages || [])
+      if (!response.ok) {
+        console.error('[GSC] queries failed', response.status, data)
+        setScPages([])
+        setScPagesError(
+          data?.code === 'NOT_CONNECTED'
+            ? (locale === 'en'
+                ? 'Google Search Console connection lost. Reconnect and try again.'
+                : 'Google Search Console-verbinding verbroken. Koppel opnieuw en probeer het nog eens.')
+            : (locale === 'en'
+                ? `Could not load pages from Search Console${data?.detail ? ': ' + data.detail : ''}. Try another property or upload manually.`
+                : `Kon geen pagina's laden uit Search Console${data?.detail ? ': ' + data.detail : ''}. Probeer een andere property of upload handmatig.`)
+        )
+        return
+      }
+
+      const pages = data.pages || []
+      setScPages(pages)
+      if (pages.length === 0) {
+        setScPagesError(
+          data.scError
+            ? (locale === 'en'
+                ? `Search Console returned no pages: ${data.scError}`
+                : `Search Console gaf geen pagina's terug: ${data.scError}`)
+            : (locale === 'en'
+                ? 'No pages found for this property in the last 90 days. Check if this is the right property or upload manually.'
+                : "Geen pagina's gevonden voor deze property in de afgelopen 90 dagen. Controleer of dit de juiste property is of upload handmatig.")
+        )
       }
     } catch (error) {
       console.error('Error loading SC data:', error)
+      setScPages([])
+      setScPagesError(locale === 'en'
+        ? 'Error loading Search Console data. Try again.'
+        : 'Fout bij laden van Search Console-data. Probeer opnieuw.')
     } finally {
       setLoadingScData(false)
     }
@@ -3070,6 +3100,17 @@ function GEOAnalyseContent() {
                     {loadingScData && (
                       <div className="flex items-center gap-2 text-blue-600 text-sm">
                         <Loader2 className="w-4 h-4 animate-spin" /> {t('loadingData')}
+                      </div>
+                    )}
+                    {!loadingScData && scPages.length > 0 && (
+                      <div className="flex items-center gap-2 text-green-700 text-sm">
+                        <CheckCircle2 className="w-4 h-4 shrink-0" /> {t('pagesLoaded', { count: scPages.length })}
+                      </div>
+                    )}
+                    {!loadingScData && scPagesError && (
+                      <div className="flex items-start gap-2 text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm">
+                        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                        <span>{scPagesError}</span>
                       </div>
                     )}
                   </div>
