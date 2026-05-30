@@ -976,6 +976,16 @@ function GEOAnalyseContent() {
     return () => document.removeEventListener('mousedown', onDocClick)
   }, [scPickerOpen])
 
+  // Waarschuw bij tab sluiten/verversen terwijl een scan loopt (anders breekt de
+  // browser-loop af). In-app wegklikken is veilig: voortgang wordt per pagina opgeslagen.
+  useEffect(() => {
+    const scanning = geoScanning || googleAiScanning || googleAiOverviewScanning
+    if (!scanning) return
+    const handler = (e) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [geoScanning, googleAiScanning, googleAiOverviewScanning])
+
   const loadSearchConsoleData = async (siteUrl) => {
     if (!siteUrl) return
 
@@ -1707,7 +1717,15 @@ function GEOAnalyseContent() {
       } catch (error) {
         results[pageUrl] = { checklist: {}, score: 0, issues: [error.message], scanned: false }
       }
-      
+
+      // Incrementeel opslaan + live tonen: voortgang blijft behouden als de
+      // gebruiker wegklikt in het dashboard. Alleen het tabblad sluiten/verversen
+      // breekt de browser-loop af (daarvoor de beforeunload-waarschuwing).
+      setGeoResults({ ...results })
+      if (results[pageUrl]?.scanned) {
+        savePageScoresToDB({ [pageUrl]: results[pageUrl] })
+      }
+
       setGeoScanProgress(Math.round(((i + 1) / uniquePages.length) * 100))
       
       if (i < uniquePages.length - 1) {
@@ -1723,7 +1741,6 @@ function GEOAnalyseContent() {
     setCurrentCheckItem(null)
     
     calculateOverallScore(results)
-    savePageScoresToDB(results)
   }
 
   // Rescan one page after the user has applied optimizations.
@@ -3571,6 +3588,30 @@ function GEOAnalyseContent() {
                   <p className="text-center text-sm text-slate-600">
                     {t('pageXOfY', { current: currentPageIndex, total: [...new Set(matches.map(m => m.page))].length })}
                   </p>
+
+                  {/* Geruststelling + tijdsindicatie tijdens de (lange) scan */}
+                  <div className="max-w-lg mx-auto bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
+                    <p className="text-sm font-semibold text-blue-900 flex items-center justify-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {locale === 'nl' ? 'Scan loopt, laat dit tabblad open staan' : 'Scan running, keep this tab open'}
+                    </p>
+                    <p className="text-xs text-blue-700 mt-1.5 leading-relaxed">
+                      {locale === 'nl'
+                        ? "Een volledige scan duurt ongeveer een halve minuut per pagina. Elke pagina wordt automatisch opgeslagen zodra die klaar is, dus je voortgang gaat niet verloren. Je mag rustig wachten of even iets anders doen in het dashboard."
+                        : 'A full scan takes about half a minute per page. Each page is saved automatically as soon as it finishes, so your progress is never lost. Feel free to wait or do something else in the dashboard.'}
+                    </p>
+                    {(() => {
+                      const total = [...new Set(matches.map(m => m.page))].length
+                      const remaining = Math.max(0, total - currentPageIndex)
+                      if (remaining <= 0) return null
+                      const mins = Math.max(1, Math.ceil((remaining * 30) / 60))
+                      return (
+                        <p className="text-xs text-blue-600 mt-2 font-semibold">
+                          {locale === 'nl' ? `Nog ongeveer ${mins} min` : `About ${mins} min remaining`}
+                        </p>
+                      )
+                    })()}
+                  </div>
 
                   <div className="grid lg:grid-cols-2 gap-6">
                     {/* Left: Page Preview with Scan Animation */}
