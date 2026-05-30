@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import AuditTab from './AuditTab'
 import RankTrackerTab from './RankTrackerTab'
+import ScanProgressBanner from './ScanProgressBanner'
 import { createBrowserClient } from '@supabase/ssr'
 
 // Locale-aware path: NL = root, EN = /en/
@@ -1848,6 +1849,7 @@ export default function DashboardClient({ locale, t, userId, userEmail, shareTok
 
   return (
     <>
+      {!clientMode && <ScanProgressBanner />}
       <style jsx global>{`
         body.dashboard-active > header, body.dashboard-active > nav, body.dashboard-active > footer,
         body.dashboard-active > div > header, body.dashboard-active > div > nav, body.dashboard-active > div > footer,

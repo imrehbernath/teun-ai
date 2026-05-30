@@ -18,6 +18,7 @@ import Image from 'next/image'
 import useClientAccess from '../hooks/useClientAccess'
 import ClientBanner from '../components/ClientBanner'
 import DashboardSidebar from '../DashboardSidebar'
+import ScanProgressBanner from '../ScanProgressBanner'
 import { generateOptimizationPrompt } from '@/lib/generateOptimizationPrompt'
 import { extractKeywordsFromPrompt } from '@/lib/extractKeywordsFromPrompt'
 
@@ -1656,6 +1657,18 @@ function GEOAnalyseContent() {
     setScanLog([])
     setScanPhase('loading')
     const results = {}
+
+    // Globale voortgang (localStorage + event) zodat een "scan loopt"-indicator
+    // overal in het dashboard meereist, ook als de gebruiker wegklikt.
+    const scanTotal = uniquePages.length
+    const writeScanProgress = (done, status) => {
+      try {
+        const payload = { company: companyName, website: companyWebsite, total: scanTotal, done, status, updatedAt: Date.now() }
+        localStorage.setItem('teun_geo_scan', JSON.stringify(payload))
+        window.dispatchEvent(new CustomEvent('teun-geo-scan', { detail: payload }))
+      } catch {}
+    }
+    writeScanProgress(0, 'running')
     
     for (let i = 0; i < uniquePages.length; i++) {
       const pageUrl = uniquePages[i]
@@ -1725,6 +1738,7 @@ function GEOAnalyseContent() {
       if (results[pageUrl]?.scanned) {
         savePageScoresToDB({ [pageUrl]: results[pageUrl] })
       }
+      writeScanProgress(i + 1, 'running')
 
       setGeoScanProgress(Math.round(((i + 1) / uniquePages.length) * 100))
       
@@ -1741,6 +1755,7 @@ function GEOAnalyseContent() {
     setCurrentCheckItem(null)
     
     calculateOverallScore(results)
+    writeScanProgress(scanTotal, 'done')
   }
 
   // Rescan one page after the user has applied optimizations.
@@ -4257,6 +4272,7 @@ export default function GEOAnalysePage() {
     }>
       <div className="min-h-screen bg-slate-50 flex">
         <DashboardSidebar />
+        <ScanProgressBanner />
         <main className="ml-[240px] flex-1 min-w-0">
           <ProGateWrapper>
             <GEOAnalyseContent />
