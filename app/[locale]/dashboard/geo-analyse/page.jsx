@@ -955,6 +955,17 @@ function GEOAnalyseContent() {
     loadResults()
   }, [searchParams, companyName, loading])
 
+  // GSC-permissieniveau leesbaar maken + sorteren (geverifieerde varianten eerst,
+  // niet-geverifieerde onderaan), zodat je niet per ongeluk een property kiest
+  // waar dit account geen data van mag opvragen (403).
+  const permLabel = (level) => {
+    const map = locale === 'en'
+      ? { siteOwner: 'owner', siteFullUser: 'full access', siteRestrictedUser: 'restricted', siteUnverifiedUser: 'not verified' }
+      : { siteOwner: 'eigenaar', siteFullUser: 'volledige toegang', siteRestrictedUser: 'beperkt', siteUnverifiedUser: 'niet geverifieerd' }
+    return map[level] || level
+  }
+  const permRank = (level) => ({ siteOwner: 0, siteFullUser: 0, siteRestrictedUser: 1, siteUnverifiedUser: 3 }[level] ?? 2)
+
   const loadSearchConsoleData = async (siteUrl) => {
     if (!siteUrl) return
 
@@ -986,14 +997,20 @@ function GEOAnalyseContent() {
       const pages = data.pages || []
       setScPages(pages)
       if (pages.length === 0) {
+        const raw = data.scError || ''
+        const isPermission = /403|permission|forbidden/i.test(raw)
         setScPagesError(
-          data.scError
+          isPermission
             ? (locale === 'en'
-                ? `Search Console returned no pages: ${data.scError}`
-                : `Search Console gaf geen pagina's terug: ${data.scError}`)
-            : (locale === 'en'
-                ? 'No pages found for this property in the last 90 days. Check if this is the right property or upload manually.'
-                : "Geen pagina's gevonden voor deze property in de afgelopen 90 dagen. Controleer of dit de juiste property is of upload handmatig.")
+                ? 'The connected Google account is not a verified user on this property. Pick another property above (e.g. the domain property, or the variant with/without www or http/https), or grant this account access in Search Console.'
+                : 'Het gekoppelde Google-account is geen geverifieerde gebruiker van deze property. Kies hierboven een andere variant (bv. de domein-property, of met/zonder www of http/https), of geef dit account toegang in Search Console.')
+            : raw
+              ? (locale === 'en'
+                  ? `Search Console returned no pages: ${raw}`
+                  : `Search Console gaf geen pagina's terug: ${raw}`)
+              : (locale === 'en'
+                  ? 'No pages found for this property in the last 90 days. Check if this is the right property or upload manually.'
+                  : "Geen pagina's gevonden voor deze property in de afgelopen 90 dagen. Controleer of dit de juiste property is of upload handmatig.")
         )
       }
     } catch (error) {
@@ -3093,8 +3110,8 @@ function GEOAnalyseContent() {
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white cursor-pointer"
                     >
                       <option value="">{t('selectWebsite')}</option>
-                      {scProperties.map((prop, i) => (
-                        <option key={i} value={prop.url}>{prop.url}</option>
+                      {[...scProperties].sort((a, b) => permRank(a.permissionLevel) - permRank(b.permissionLevel)).map((prop, i) => (
+                        <option key={i} value={prop.url}>{prop.url}{prop.permissionLevel ? ` — ${permLabel(prop.permissionLevel)}` : ''}</option>
                       ))}
                     </select>
                     {loadingScData && (
