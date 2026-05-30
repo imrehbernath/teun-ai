@@ -230,6 +230,8 @@ function GEOAnalyseContent() {
   const [loadingScData, setLoadingScData] = useState(false)
   const [scPages, setScPages] = useState([]) // Pages from Search Console
   const [scPagesError, setScPagesError] = useState('') // Foutmelding bij laden GSC-pagina's
+  const [scSearch, setScSearch] = useState('') // Zoekterm in de property-picker
+  const [scPickerOpen, setScPickerOpen] = useState(false) // Property-picker open/dicht
   const [csvFileName, setCsvFileName] = useState('')
   const [csvParsing, setCsvParsing] = useState(false)
   const [csvError, setCsvError] = useState('')
@@ -965,6 +967,14 @@ function GEOAnalyseContent() {
     return map[level] || level
   }
   const permRank = (level) => ({ siteOwner: 0, siteFullUser: 0, siteRestrictedUser: 1, siteUnverifiedUser: 3 }[level] ?? 2)
+
+  // Sluit de property-picker bij klik buiten het component.
+  useEffect(() => {
+    if (!scPickerOpen) return
+    const onDocClick = (e) => { if (!e.target.closest('[data-sc-picker]')) setScPickerOpen(false) }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [scPickerOpen])
 
   const loadSearchConsoleData = async (siteUrl) => {
     if (!siteUrl) return
@@ -3101,19 +3111,40 @@ function GEOAnalyseContent() {
                   </button>
                 ) : (
                   <div className="space-y-3">
-                    <select
-                      value={selectedProperty}
-                      onChange={(e) => {
-                        setSelectedProperty(e.target.value)
-                        if (e.target.value) loadSearchConsoleData(e.target.value)
-                      }}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white cursor-pointer"
-                    >
-                      <option value="">{t('selectWebsite')}</option>
-                      {[...scProperties].sort((a, b) => permRank(a.permissionLevel) - permRank(b.permissionLevel)).map((prop, i) => (
-                        <option key={i} value={prop.url}>{prop.url}{prop.permissionLevel ? ` — ${permLabel(prop.permissionLevel)}` : ''}</option>
-                      ))}
-                    </select>
+                    <div className="relative" data-sc-picker>
+                      <input
+                        type="text"
+                        value={scPickerOpen ? scSearch : (selectedProperty || '')}
+                        onChange={(e) => { setScSearch(e.target.value); if (!scPickerOpen) setScPickerOpen(true) }}
+                        onFocus={() => { setScPickerOpen(true); setScSearch('') }}
+                        placeholder={t('selectWebsite')}
+                        className="w-full px-4 py-3 pr-10 rounded-xl border border-slate-200 bg-white outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                      />
+                      <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none transition-transform ${scPickerOpen ? 'rotate-180' : ''}`} />
+                      {scPickerOpen && (
+                        <div className="absolute z-20 mt-1 left-0 right-0 max-h-64 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-lg py-1">
+                          {(() => {
+                            const filtered = [...scProperties]
+                              .sort((a, b) => permRank(a.permissionLevel) - permRank(b.permissionLevel))
+                              .filter(p => !scSearch || p.url.toLowerCase().includes(scSearch.toLowerCase()))
+                            if (filtered.length === 0) {
+                              return <div className="px-4 py-3 text-sm text-slate-400">{locale === 'en' ? 'No properties found' : 'Geen properties gevonden'}</div>
+                            }
+                            return filtered.map((prop, i) => (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => { setSelectedProperty(prop.url); setScPickerOpen(false); setScSearch(''); loadSearchConsoleData(prop.url) }}
+                                className={`w-full text-left px-4 py-2.5 text-sm flex items-center justify-between gap-3 border-none cursor-pointer hover:bg-slate-50 ${selectedProperty === prop.url ? 'bg-purple-50' : 'bg-transparent'}`}
+                              >
+                                <span className="truncate text-slate-700">{prop.url}</span>
+                                {prop.permissionLevel && <span className="text-[11px] text-slate-400 shrink-0">{permLabel(prop.permissionLevel)}</span>}
+                              </button>
+                            ))
+                          })()}
+                        </div>
+                      )}
+                    </div>
                     {loadingScData && (
                       <div className="flex items-center gap-2 text-blue-600 text-sm">
                         <Loader2 className="w-4 h-4 animate-spin" /> {t('loadingData')}
