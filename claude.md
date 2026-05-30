@@ -225,4 +225,22 @@ Admin emails: `imre@onlinelabs.nl`, `hallo@onlinelabs.nl`. Hard-coded check in m
 - **`api_usage_log` tabel + admin kosten-dashboard widget** voor SerpAPI/ScraperAPI/Anthropic/OpenAI/Perplexity. Plan: MVP self-tracking + live SerpAPI/ScraperAPI balance via `/account.json`. Geparkeerd voor later.
 - Legacy `tracked_keywords` hebben oude rule-based prompts. Pas bij keyword bewerken krijgen ze de Claude-versie. Optioneel: bulk-regenerate script wanneer Imre hier om vraagt.
 
+## GEO Optimalisatie DIY (juni 2026 update)
+
+De dashboard-wizard `/dashboard/geo-analyse` is omgedoopt en omgebouwd. Gebruikersgerichte naam overal: **GEO Optimalisatie DIY** (NL) / **GEO Optimization DIY** (EN). Let op: de dashboard-tab heet nog "GEO Optimalisatie" (de GEO-score-tab, ander ding dan de DIY-wizard).
+
+- **Naamgeving**: i18n + componenten hernoemd van "GEO Analyse" naar "GEO Optimalisatie DIY". Bewust gelaten: "GEO Analyse Dashboard" (dashboard-product), de bredere AI-Visibility geoCta (569), changelog, code-comments en interne admin-keys (`scan.tool === 'GEO Analyse'`).
+- **Toegang**: GEO DIY is **Lite + Pro** (niet Pro-only). Server-side gate op `/api/geo-scan-page` via `lib/geo-access.js` (`resolveGeoAccessTier`, `geoAccessAllowed`, `GEO_LITE_PROMPT_CAP=10`). Free/anoniem -> 403. Lite-promptcap (10) server-side afgedwongen in `/api/scan-google-ai` en `/api/scan-google-ai-overview` (alleen frontend-pad, tier `lite`; cron/anon ongemoeid). `ProGateWrapper` checkt alleen `subscription_status` (elke betaalde sub mag erin).
+- **Inbedding**: wizard zit in de dashboard-shell via `app/[locale]/dashboard/DashboardSidebar.jsx` (dedicated, navy/slate; DashboardClient-sidebar was te verweven om te delen). Tabs zijn deep-linkbaar via `?tab=` (DashboardClient leest dat op mount).
+- **Search Console**: periode = laatste **28 dagen** (`/api/search-console/queries`). Property-picker is doorzoekbaar met permissieniveau per property (geverifieerde bovenaan). 403 = account niet geverifieerd op die property-variant. Waarschuwing in stap 2 tegen oude/301-URLs (ScraperAPI volgt redirect niet -> score 0). Fouten worden nu zichtbaar getoond i.p.v. stil.
+- **Scan-UX**: incrementeel opslaan per pagina (upsert in `geo_audit_results`), `beforeunload`-waarschuwing tijdens scan, en een globale `ScanProgressBanner.jsx` (localStorage `teun_geo_scan` + event `teun-geo-scan`) die door het hele dashboard meereist.
+- **Koppelingen bewerkbaar**: in het rapport per pagina de gekoppelde prompt(s) volledig zichtbaar met verwijder-X (`removeReportMatch`).
+- **GSC-sectie in de optimalisatie-prompt** (`lib/generateOptimizationPrompt.js`) is conditioneel: `instructionBody` is nu een functie `(hasGsc) =>`, kop "Search Console signalen" alleen bij echte queries.
+
+### Perplexity-scan stabilisatie (af, juni 2026)
+In `app/api/ai-visibility-analysis/route.js` (`analyzeWithPerplexity`): partial-output bij abort wordt gered en geparsed, 1 retry + timeout 32s, en de per-prompt resultaten krijgen `scan_status: 'completed' | 'failed'` (+ `failure_reason`). Oude rijen zonder veld = completed; oude omgevallen scans herkenbaar aan snippet "Analyse timeout". UI toont een omgevallen Perplexity-scan met een **"Opnieuw scannen"-knop** die 1 prompt herscant via `/api/geo-analyse/rescan-prompt` (niet-destructief gemerged, hergebruikt `lib/competitor-extract`).
+
+### Concurrenten-extractie (OPEN, nog te doen: B0/B2/B3/A/B1/C)
+Zie `concurrenten-extractie-bevindingen.md`. De motor heeft een eigen, zwakkere inline-kopie van de extractie naast de gedeelde `lib/competitor-extract.js`. Drie defecten: criteria als concurrent (blocklist i.p.v. positieve check; Perplexity-`addName` valideert niet), afkapping op haakjes (onbalans in cleanup), HTML/unicode-entiteiten niet gedecodeerd. Besloten richting: B0 strikte/gelijke `===BEDRIJVEN===`-blokinstructie + vuldwang weg, B2 centrale `decodeEntities`, B3 haakjes balanceren, A motor door de gedeelde lib, B1 semantische extractie via Claude Haiku 4.5 (lege lijst geldig), C herscan bestaande data. Model-noot: ChatGPT-scan draait op `gpt-5-search-api` (niet `gpt-4o-search-preview`).
+
 ## Bevestig dat je dit hebt gelezen en wacht op mijn eerste taak.
