@@ -585,8 +585,8 @@ function GEOAnalyseContent() {
               mentioned: r.company_mentioned === true || r.companyMentioned === true || r.mentioned === true,
               snippet: r.simulated_ai_response_snippet || r.snippet || r.aiResponse || r.response_snippet || '',
               competitors: r.competitors_mentioned || r.competitors || [],
-              // Backward-compat: oude rijen zonder scan_status gelden als voltooid.
-              scan_status: r.scan_status || 'completed'
+              // null bij oude rijen; omgevallen oude scans herkennen we aan de snippet-marker.
+              scan_status: r.scan_status || null
             }))
             combinedResults.perplexity.total = perplexityData.length
             combinedResults.perplexity.mentioned = perplexityData.filter(r => 
@@ -4081,9 +4081,14 @@ function GEOAnalyseContent() {
                               {/* Niet-voltooide Perplexity-scans: eerlijk tonen + per-prompt herscan */}
                               {(() => {
                                 const pagePrompts = matches.filter(m => m.page === pageUrl).map(m => m.prompt)
+                                // Omgevallen scan: nieuw via scan_status, oud via de snippet-marker.
+                                const isFailedPx = (r) => r && (
+                                  r.scan_status === 'failed' ||
+                                  (!r.scan_status && /analyse timeout|analyse mislukt door api|analysis timeout|analysis failed due to api/i.test(r.snippet || ''))
+                                )
                                 const failed = pagePrompts
                                   .map(pt => existingAiResults.find(r => r.prompt === pt && r.platform === 'perplexity'))
-                                  .filter(r => r && r.scan_status === 'failed')
+                                  .filter(isFailedPx)
                                 if (failed.length === 0) return null
                                 return (
                                   <div className="space-y-2">
