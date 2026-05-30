@@ -62,11 +62,10 @@ export default function PricingPage() {
   const features = [
     // KEY DIFFERENCES (highlighted at top)
     { name: isNL ? 'Keyword tracking' : 'Keyword tracking', free: isNL ? '2 keywords proberen' : 'Try 2 keywords', lite: isNL ? '20 keywords handmatig' : '20 keywords manual', pro: isNL ? '50 keywords automatisch wekelijks' : '50 keywords automatic weekly', freeStatus: 'limited', liteStatus: 'check', proStatus: 'check', differ: true },
-    { name: isNL ? 'GEO Analyse (prompts)' : 'GEO Analysis (prompts)', free: null, lite: '10 prompts', pro: isNL ? 'Onbeperkt' : 'Unlimited', freeStatus: 'cross', liteStatus: 'check', proStatus: 'check', differ: true },
+    { name: isNL ? 'GEO Optimalisatie DIY' : 'GEO Optimization DIY', free: null, lite: '10 prompts', pro: isNL ? 'Onbeperkt' : 'Unlimited', freeStatus: 'cross', liteStatus: 'check', proStatus: 'check', differ: true },
     { name: isNL ? 'Support' : 'Support', free: null, lite: isNL ? 'E-mail' : 'Email', pro: isNL ? 'Telefonisch + e-mail' : 'Phone + email', freeStatus: 'cross', liteStatus: 'check', proStatus: 'check', differ: true },
 
     // GEO Platform features
-    { name: isNL ? 'GEO Optimalisatie DIY' : 'GEO Optimization DIY', free: null, lite: true, pro: true, freeStatus: 'cross', liteStatus: 'check', proStatus: 'check' },
     { name: isNL ? 'AI-advies per pagina' : 'AI advice per page', free: null, lite: true, pro: true, freeStatus: 'cross', liteStatus: 'check', proStatus: 'check' },
     { name: isNL ? 'Search Console integratie' : 'Search Console integration', free: null, lite: true, pro: true, freeStatus: 'cross', liteStatus: 'check', proStatus: 'check' },
 
