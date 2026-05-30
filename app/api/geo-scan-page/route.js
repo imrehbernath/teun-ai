@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { resolveGeoAccessTier, geoAccessAllowed } from '@/lib/geo-access'
 
 export const maxDuration = 120
 
@@ -790,11 +791,25 @@ export async function POST(request) {
     }
     
     const { url, locale = 'nl', companyName = '' } = await request.json()
-    
+
     if (!url) {
       return NextResponse.json({ error: 'URL required' }, { status: 400 })
     }
-    
+
+    // Toegangsgate: GEO Optimalisatie DIY is een Lite + Pro-feature.
+    // Toegestaan: admin, pro, lite en legacy (null-tier met actieve subscription).
+    // Free en anoniem krijgen 403 met upgrade-CTA naar /pricing.
+    const accessTier = await resolveGeoAccessTier(supabase, user)
+    if (!geoAccessAllowed(accessTier)) {
+      return NextResponse.json({
+        error: locale === 'en'
+          ? 'GEO Optimization DIY is a Lite and Pro feature. Upgrade your account to use it.'
+          : 'GEO Optimalisatie DIY is een Lite- en Pro-feature. Upgrade je account om hem te gebruiken.',
+        upgradeUrl: '/pricing',
+        tierRequired: 'lite',
+      }, { status: 403 })
+    }
+
     // Start both requests in parallel
     const [scrape, coreWebVitals] = await Promise.all([
       scrapeWebsite(url),

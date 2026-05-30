@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { upsertVisibilityHistoryRow } from '@/lib/visibility-history'
 import { stripLegalSuffix } from '@/lib/branche-detect'
 import { matchesBrand } from '@/lib/rank-scanner'
+import { resolveGeoAccessTier, GEO_LITE_PROMPT_CAP } from '@/lib/geo-access'
 
 const SERPAPI_KEY = process.env.SERPAPI_KEY
 const anthropic = new Anthropic({
@@ -635,6 +636,22 @@ export async function POST(request) {
         return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
       }
       user = authUser
+    }
+
+    // Lite-promptcap server-side. GEO Optimalisatie DIY is Lite + Pro; Lite mag
+    // max 10 prompts per GEO Analyse, Pro/legacy/admin onbeperkt. Alleen het
+    // frontend-pad wordt getoetst; cron (Pro auto-scan) en de Pro-chunking via
+    // appendToScanId blijven ongemoeid.
+    if (!isCronCall) {
+      const accessTier = await resolveGeoAccessTier(supabase, user)
+      if (accessTier === 'lite' && (appendToScanId || prompts.length > GEO_LITE_PROMPT_CAP)) {
+        return NextResponse.json({
+          error: 'Met Lite scan je maximaal 10 GEO Analyse prompts. Upgrade naar Pro voor onbeperkt.',
+          upgradeUrl: '/pricing',
+          tierRequired: 'pro',
+          promptCap: GEO_LITE_PROMPT_CAP,
+        }, { status: 403 })
+      }
     }
 
     // Frontend bepaalt batch-grootte op basis van tier (Lite cap 10, Pro chunkt onbeperkt in batches ≤ 10).

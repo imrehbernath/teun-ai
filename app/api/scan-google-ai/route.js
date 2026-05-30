@@ -4,6 +4,7 @@ import { upsertVisibilityHistoryRow } from '@/lib/visibility-history'
 import { extractCompetitorsFromChatGPT, cleanCompetitorName, isValidCompetitorName, COMPETITOR_EXCLUDE_LIST } from '@/lib/competitor-extract'
 import { matchesBrand, textMentionsBrand } from '@/lib/rank-scanner'
 import { stripLegalSuffix } from '@/lib/branche-detect'
+import { resolveGeoAccessTier, GEO_LITE_PROMPT_CAP } from '@/lib/geo-access'
 
 export const maxDuration = 60;
 
@@ -392,6 +393,23 @@ export async function POST(request) {
         return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
       }
       user = authUser
+    }
+
+    // Lite-promptcap server-side. GEO Optimalisatie DIY is Lite + Pro; Lite mag
+    // max 10 prompts per GEO Analyse, Pro/legacy/admin onbeperkt. Alleen het
+    // frontend-pad wordt getoetst; cron (Pro auto-scan) en de Pro-chunking via
+    // appendToScanId blijven ongemoeid. Een Lite-account scant nooit append,
+    // dus die afwijzen sluit het accumulatie-gat van losse batches.
+    if (!isCronCall) {
+      const accessTier = await resolveGeoAccessTier(supabase, user)
+      if (accessTier === 'lite' && (appendToScanId || prompts.length > GEO_LITE_PROMPT_CAP)) {
+        return NextResponse.json({
+          error: 'Met Lite scan je maximaal 10 GEO Analyse prompts. Upgrade naar Pro voor onbeperkt.',
+          upgradeUrl: '/pricing',
+          tierRequired: 'pro',
+          promptCap: GEO_LITE_PROMPT_CAP,
+        }, { status: 403 })
+      }
     }
 
     // Detect language from prompt content
