@@ -613,7 +613,10 @@ export async function POST(request) {
 async function analyzeWithPerplexity(prompt, companyName, isNL = true, websiteUrl = null) {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 20000)
-  
+
+  // Buiten de try zodat de catch de al-gestreamde output kan redden bij een abort.
+  let rawOutput = ''
+
   try {
     const response = await fetch(
       'https://api.perplexity.ai/chat/completions',
@@ -704,7 +707,6 @@ RULES FOR THIS BLOCK:
     // Parse SSE streaming response
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
-    let rawOutput = ''
     let buffer = ''
 
     while (true) {
@@ -739,8 +741,19 @@ RULES FOR THIS BLOCK:
 
     return { success: true, data: parsed }
   } catch (error) {
+    // Onderdeel 1: bij abort/fout is er vaak al een grotendeels compleet antwoord
+    // gestreamd. Parse dat alsnog via het normale pad voordat we opgeven.
+    if (rawOutput && rawOutput.trim().length > 20) {
+      try {
+        const parsed = parsePerplexityOutput(rawOutput, companyName, isNL, websiteUrl)
+        console.warn('⚠️ Perplexity afgebroken, partial output gered en geparsed')
+        return { success: true, data: parsed, partial: true }
+      } catch (parseErr) {
+        // val door naar het foutpad
+      }
+    }
     if (error.name === 'AbortError') {
-      console.error('❌ Perplexity timeout after 20s')
+      console.error('❌ Perplexity timeout')
       return {
         success: false,
         error: isNL ? 'Perplexity timeout' : 'Perplexity timeout',
