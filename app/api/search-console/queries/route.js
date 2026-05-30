@@ -163,7 +163,9 @@ export async function POST(request) {
   }
 
   const end = endDate || new Date().toISOString().split('T')[0]
-  const start = startDate || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  // Laatste 28 dagen: actuele pagina's, minder kans op oude/verwijderde URLs
+  // (die na een site-vernieuwing 301-redirecten en een lege scan opleveren).
+  const start = startDate || new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
   try {
     // Beide GSC-calls los van elkaar: een fout in de zwaardere query+page-call

@@ -3119,6 +3119,21 @@ function GEOAnalyseContent() {
                 </div>
               </div>
 
+              {/* Waarschuwing: vernieuwde site / oude URLs die 301-redirecten */}
+              <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-sm text-amber-800">
+                  <p className="font-semibold">
+                    {locale === 'nl' ? 'Recent je website vernieuwd? Koppel geen oude URLs.' : "Recently rebuilt your website? Don't use old URLs."}
+                  </p>
+                  <p className="text-amber-700 mt-0.5 leading-relaxed">
+                    {locale === 'nl'
+                      ? "Pagina's die nu doorverwijzen (301-redirect) leveren een score van 0 op, omdat de scan de redirect niet volgt. We tonen daarom de pagina's van de afgelopen 28 dagen, kies de actuele URLs."
+                      : 'Pages that now redirect (301) result in a score of 0, because the scan does not follow the redirect. We therefore show pages from the last 28 days, so pick the current URLs.'}
+                  </p>
+                </div>
+              </div>
+
               {/* Google SC Connection */}
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-3">
