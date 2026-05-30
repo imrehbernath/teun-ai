@@ -611,8 +611,14 @@ export async function POST(request) {
 // ✨ ULTIMATE PERPLEXITY - "AI Overview Simulator"
 // ============================================
 async function analyzeWithPerplexity(prompt, companyName, isNL = true, websiteUrl = null) {
+  // Onderdeel 2: matig verruimde timeout + 1 retry. sonar-pro met web search haalt
+  // 20s vaak niet; 32s laat de meeste calls slagen, 1 retry vangt de rest.
+  const MAX_ATTEMPTS = 2
+  const TIMEOUT_MS = 32000
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 20000)
+  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS)
 
   // Buiten de try zodat de catch de al-gestreamde output kan redden bij een abort.
   let rawOutput = ''
@@ -752,11 +758,17 @@ RULES FOR THIS BLOCK:
         // val door naar het foutpad
       }
     }
+    // Geen bruikbare output: retry, behalve op de laatste poging.
+    if (attempt < MAX_ATTEMPTS) {
+      console.warn(`⚠️ Perplexity poging ${attempt} mislukt (${error.name || 'error'}), retry...`)
+      await new Promise(r => setTimeout(r, 800))
+      continue
+    }
     if (error.name === 'AbortError') {
-      console.error('❌ Perplexity timeout')
+      console.error('❌ Perplexity timeout (na retry)')
       return {
         success: false,
-        error: isNL ? 'Perplexity timeout' : 'Perplexity timeout',
+        error: 'Perplexity timeout',
         data: {
           company_mentioned: false,
           mentions_count: 0,
@@ -766,8 +778,8 @@ RULES FOR THIS BLOCK:
       }
     }
     console.error('❌ Perplexity Error:', error.message || error)
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: error.message || (isNL ? 'Fout bij AI-analyse' : 'Error during AI analysis'),
       data: {
         company_mentioned: false,
@@ -778,6 +790,19 @@ RULES FOR THIS BLOCK:
     }
   } finally {
     clearTimeout(timeoutId)
+  }
+  }
+
+  // Vangnet (mag niet bereikt worden, maar voorkomt een undefined return).
+  return {
+    success: false,
+    error: 'Perplexity failed',
+    data: {
+      company_mentioned: false,
+      mentions_count: 0,
+      competitors_mentioned: [],
+      simulated_ai_response_snippet: isNL ? 'Analyse mislukt' : 'Analysis failed'
+    }
   }
 }
 
