@@ -432,12 +432,16 @@ export async function POST(request) {
       analysisResults.push({
         ai_prompt: prompt,
         platform: 'perplexity',
+        // Onderscheid "echt geen concurrenten" (completed) van "scan omgevallen" (failed).
+        // Bestaande rijen zonder dit veld worden door de consumers als completed gelezen.
+        scan_status: perplexityResult.success ? 'completed' : 'failed',
         ...(perplexityResult.success ? perplexityResult.data : {
           company_mentioned: false,
           mentions_count: 0,
           competitors_mentioned: [],
           simulated_ai_response_snippet: perplexityResult.error || (isNL ? 'Analyse mislukt' : 'Analysis failed'),
-          error: perplexityResult.error
+          error: perplexityResult.error,
+          failure_reason: /timeout/i.test(perplexityResult.error || '') ? 'timeout' : 'api_error'
         })
       })
       
@@ -449,12 +453,14 @@ export async function POST(request) {
       chatgptResults.push({
         ai_prompt: prompt,
         platform: 'chatgpt',
+        scan_status: chatgptResult.success ? 'completed' : 'failed',
         ...(chatgptResult.success ? chatgptResult.data : {
           company_mentioned: false,
           mentions_count: 0,
           competitors_mentioned: [],
           simulated_ai_response_snippet: chatgptResult.error || (isNL ? 'ChatGPT analyse mislukt' : 'ChatGPT analysis failed'),
-          error: chatgptResult.error
+          error: chatgptResult.error,
+          failure_reason: /timeout|429|rate/i.test(chatgptResult.error || '') ? 'timeout' : 'api_error'
         })
       })
 
