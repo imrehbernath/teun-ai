@@ -3859,18 +3859,23 @@ function GEOAnalyseContent() {
                                 {pageUrl.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '') || '/'}
                               </p>
                               {pagePromptMatches.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-1">
+                                <div className="mt-1.5 space-y-1" onClick={(e) => e.stopPropagation()}>
+                                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                                    {locale === 'nl'
+                                      ? (pagePromptMatches.length > 1 ? 'Gekoppelde zoekvragen' : 'Gekoppelde zoekvraag')
+                                      : (pagePromptMatches.length > 1 ? 'Linked search queries' : 'Linked search query')}
+                                  </p>
                                   {pagePromptMatches.map((m, mi) => (
-                                    <span key={mi} className="group/match inline-flex items-center gap-1 max-w-full bg-slate-100 text-slate-500 rounded px-1.5 py-0.5 text-[11px]">
-                                      <span className="truncate max-w-[260px]">{m.prompt}</span>
+                                    <div key={mi} className="flex items-start gap-2 bg-slate-100 text-slate-600 rounded-md px-2.5 py-1.5 text-[12px]">
+                                      <span className="flex-1 break-words leading-snug">{m.prompt}</span>
                                       <button
                                         onClick={(e) => { e.stopPropagation(); removeReportMatch(m.prompt, pageUrl) }}
-                                        className="opacity-50 hover:opacity-100 hover:text-red-600 shrink-0 cursor-pointer"
-                                        title={locale === 'nl' ? 'Koppeling verwijderen' : 'Remove match'}
+                                        className="text-slate-400 hover:text-red-600 shrink-0 mt-0.5 cursor-pointer"
+                                        title={locale === 'nl' ? 'Koppeling verwijderen' : 'Remove link'}
                                       >
-                                        <XCircle className="w-3 h-3" />
+                                        <XCircle className="w-4 h-4" />
                                       </button>
-                                    </span>
+                                    </div>
                                   ))}
                                 </div>
                               )}
