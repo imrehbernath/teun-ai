@@ -9,7 +9,7 @@ import path from 'path'
 const PDF_MESSAGES = {
   nl: {
     // Title page
-    reportTitle: 'GEO Analyse Rapport',
+    reportTitle: 'GEO Optimalisatie DIY Rapport',
     unknown: 'Onbekend',
     disclaimer: 'Dit rapport toont hoe zichtbaar uw bedrijf is in AI-gestuurde zoeksystemen.',
     scannedOn: (count, names) => `Gescand op ${count} platform${count === 1 ? '' : 's'}: ${names}.`,
@@ -73,7 +73,7 @@ const PDF_MESSAGES = {
     andWord: ' en ',
   },
   en: {
-    reportTitle: 'GEO Analysis Report',
+    reportTitle: 'GEO Optimization DIY Report',
     unknown: 'Unknown',
     disclaimer: 'This report shows how visible your business is in AI-powered search systems.',
     scannedOn: (count, names) => `Scanned on ${count} platform${count === 1 ? '' : 's'}: ${names}.`,

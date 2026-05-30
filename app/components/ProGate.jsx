@@ -55,8 +55,8 @@ export default function ProGate({ feature, children, isPro }) {
 
           <div className="space-y-3 text-left mb-6">
             {(isNL
-              ? ['Onbeperkte AI visibility scans', 'GEO Analyse & optimalisatie', 'Dagelijkse rank monitoring', 'Concurrentie tracking & alerts']
-              : ['Unlimited AI visibility scans', 'GEO Analysis & optimization', 'Daily rank monitoring', 'Competitor tracking & alerts']
+              ? ['Onbeperkte AI visibility scans', 'GEO Optimalisatie DIY', 'Dagelijkse rank monitoring', 'Concurrentie tracking & alerts']
+              : ['Unlimited AI visibility scans', 'GEO Optimization DIY', 'Daily rank monitoring', 'Competitor tracking & alerts']
             ).map((item, i) => (
               <div key={i} className="flex items-center gap-2.5 text-sm">
                 <Check className="w-4 h-4 text-green-500 shrink-0" />

@@ -30,7 +30,7 @@
       "badge": "FREE"
     },
     "geoAnalysis": {
-      "name": "GEO Analysis",
+      "name": "GEO Optimization DIY",
       "description": "Full analysis available in your dashboard"
     },
     "wpPlugin": {
@@ -57,7 +57,7 @@
     "company": "Company",
     "contact": "Contact",
     "privacy": "Privacy Policy",
-    "completeAnalysis": "Full GEO Analysis",
+    "completeAnalysis": "GEO Optimization DIY",
     "aiVisibility": "AI Visibility",
     "aiRankTracker": "AI Rank Tracker",
     "promptExplorer": "AI Prompt Explorer",
@@ -561,7 +561,7 @@
       "subtitle": "Create a free account - no credit card needed",
       "aiModeScans": "✓ AI Mode scans",
       "aiOverviewsScans": "✓ AI Overviews",
-      "geoAnalysis": "✓ GEO Analysis",
+      "geoAnalysis": "✓ GEO Optimization DIY",
       "dashboard": "✓ Dashboard",
       "createAccount": "Create free account →"
     },
@@ -717,13 +717,13 @@
       "description": "This report has been prepared for you by <strong>OnlineLabs</strong>. You are viewing the current AI visibility of {company} on ChatGPT, Perplexity, Google AI Mode and AI Overviews."
     },
     "geoCta": {
-      "title": "GEO optimisation DIY",
-      "description": "Improve your AI visibility yourself. Pro links your AI search queries to the right pages via Search Console, and gives you a detailed analysis per page, tailored advice and a ready-to-use prompt for ChatGPT or Claude.",
+      "title": "GEO Optimization DIY",
+      "description": "Improve your AI visibility yourself. GEO Optimization DIY links your AI search queries to the right pages via Search Console, and gives you a detailed analysis per page, tailored advice and a ready-to-use prompt for ChatGPT or Claude.",
       "featureCsv": "Search Console link",
       "featureAi": "Per-page advice",
       "featureReport": "ChatGPT/Claude prompt",
       "tagline": "No other tool combines this",
-      "button": "Start GEO optimisation"
+      "button": "Start GEO Optimization DIY"
     },
     "cta": {
       "title": "Improve your AI visibility",
@@ -751,7 +751,7 @@
       "heroTitle": "Start your first AI visibility scan",
       "heroDescription": "Discover how often your business is recommended in AI search engines like ChatGPT, Perplexity, AI Mode and AI Overviews. In 30 seconds you'll know where you stand.",
       "startScan": "Start Free Scan",
-      "geoAnalysis": "GEO Analysis",
+      "geoAnalysis": "GEO Optimization DIY",
       "featurePlatforms": "4 Platforms",
       "featurePlatformsDesc": "ChatGPT, Perplexity, AI Mode, AI Overviews",
       "featureSpeed": "30 Seconds",
@@ -774,7 +774,7 @@
       "loggedIn": "Logged in",
       "loggedInLimit": "1 free scan per day",
       "popupTitle": "Scan all platforms first",
-      "popupDesc": "For a complete GEO Analysis you need scans from all 4 AI platforms. Start an AI visibility scan first.",
+      "popupDesc": "For a complete GEO Optimization DIY you need scans from all 4 AI platforms. Start an AI visibility scan first.",
       "notScanned": "not yet scanned",
       "close": "Close",
       "startScanShort": "Start Scan"
@@ -786,7 +786,7 @@
       "deleteRlsError": "Deletion failed! Database permissions may be missing. Check your Supabase RLS policies for DELETE on tool_integrations.",
       "deleteErrorMessage": "Something went wrong while deleting: {error}",
       "teunAlt": "Teun helps you!",
-      "geoAnalyse": "GEO Analysis",
+      "geoAnalyse": "GEO Optimization DIY",
       "sharedViewBanner": "This dashboard has been shared with you. You are viewing results in read-only mode.",
       "extensionInstallTitle": "Install Chrome Extension",
       "extensionStep1": "Step 1: Open Extensions",
@@ -803,7 +803,7 @@
       "cancel": "Cancel",
       "yesDelete": "Yes, delete",
       "scanAllFirst": "Scan all platforms first",
-      "scanAllFirstDesc": "For a complete GEO Analysis you need scans from all AI platforms.",
+      "scanAllFirstDesc": "For a complete GEO Optimization DIY you need scans from all AI platforms.",
       "notYetScanned": "not yet scanned"
     },
     "modal": {
@@ -957,9 +957,9 @@
       "smartQueries": "Smart queries",
       "smartQueriesDesc": "Teun.ai automatically converts your prompts to informational queries that are more likely to trigger AI Overviews in Google.",
       "promptsSmartConversion": "Prompts are smartly converted to informational queries",
-      "geoAnalysis": "GEO Analysis",
+      "geoAnalysis": "GEO Optimization DIY",
       "scanAllFirst": "Scan all platforms first",
-      "scanAllFirstDesc": "For a complete GEO Analysis you need scans from all AI platforms.",
+      "scanAllFirstDesc": "For a complete GEO Optimization DIY you need scans from all AI platforms.",
       "understood": "Understood",
       "notYetScanned": "- not yet scanned",
       "confirmDeleteScan": "Delete scan?",
@@ -971,15 +971,15 @@
       "chatgptScanError": "ChatGPT scan error"
     },
     "geo": {
-      "title": "GEO Analysis",
+      "title": "GEO Optimization DIY",
       "subtitle": "Complete AI visibility & GEO optimization analysis",
-      "loading": "Loading GEO Analysis...",
+      "loading": "Loading GEO Optimization DIY...",
       "step1": "Company Info",
       "step2": "Pages",
       "step3": "Matching",
       "step4": "GEO Check",
       "step5": "Report",
-      "titleFor": "GEO Analysis — {name}",
+      "titleFor": "GEO Optimization DIY - {name}",
       "aiVisibilityScore": "AI Visibility Score",
       "mentionsAcrossPlatforms": "{mentioned} of {total} prompts mentioned across all platforms",
       "platformsScanned": "Platforms Scanned",
@@ -1059,7 +1059,7 @@
       "phaseProcessing": "Processing results...",
       "phaseNextPage": "Next page...",
       "authorityManual": "Authority (fill in manually)",
-      "geoResults": "GEO Analysis Results",
+      "geoResults": "GEO Optimization DIY Results",
       "geoOptimization": "GEO Optimization",
       "pagesAnalyzed": "{count} pages analyzed",
       "totalScore": "Total Score",
@@ -1173,9 +1173,9 @@
       "good": "Good",
       "moderate": "Average",
       "bad": "Poor",
-      "newGeoAnalysis": "Run new GEO Analysis",
-      "startWithGeoAnalysis": "Start with a GEO Analysis",
-      "startGeoAnalysis": "Start GEO Analysis",
+      "newGeoAnalysis": "Run new GEO Optimization DIY",
+      "startWithGeoAnalysis": "Start with GEO Optimization DIY",
+      "startGeoAnalysis": "Start GEO Optimization DIY",
       "pageScanner": "Page scanner",
       "urlPlaceholder": "https://yoursite.com/page",
       "analyze": "Analyze",
@@ -1287,8 +1287,8 @@
         "perplexity": "Running live Perplexity test",
         "score": "Calculating final scores"
       },
-      "pagesFromGeoAnalysis": "{count} pages from your GEO Analysis",
-      "geoAnalyseExplanation": "GEO Analysis matches your prompts to pages via Search Console and scans them for optimization points. Results appear here."
+      "pagesFromGeoAnalysis": "{count} pages from your GEO Optimization DIY",
+      "geoAnalyseExplanation": "GEO Optimization DIY matches your prompts to pages via Search Console and scans them for optimization points. Results appear here."
     }
   },
   "rankTracker": {
@@ -1418,7 +1418,7 @@
     "noLlmsTxt": "No llms.txt",
     "noRichSnippets": "No Rich Snippets",
     "ctaTitle": "Want to analyse more than one page?",
-    "ctaDesc": "In the dashboard you can create a comprehensive GEO Analysis: prompts matched to your pages, with targeted recommendations per page. Completely free.",
+    "ctaDesc": "In the dashboard you can create a comprehensive GEO Optimization DIY: prompts matched to your pages, with targeted recommendations per page. Completely free.",
     "steps": {
       "fetch": "Fetching and connecting to page",
       "html": "Extracting HTML content",

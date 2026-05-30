@@ -53,7 +53,7 @@ export const translations = {
     sidebar: {
       platform: 'GEO Platform', tools: 'Tools',
       brandCheck: 'Brand Check', rankTracker: 'Rank Tracker',
-      geoAnalyse: 'GEO Analyse', contentOptimizer: 'Content Optimizer',
+      geoAnalyse: 'GEO Optimalisatie DIY', contentOptimizer: 'Content Optimizer',
       free: 'gratis', soon: 'soon',
     },
     rescan: 'Heranalyse',
@@ -100,7 +100,7 @@ export const translations = {
       cta: 'Upgrade naar PRO',
       price: '\u20AC49 per maand \u00B7 maandelijks opzegbaar',
       activeDesc: 'Je hebt GEO Optimalisatie PRO. Start een analyse om je pagina\'s te optimaliseren.',
-      activeCta: 'GEO Analyse starten',
+      activeCta: 'GEO Optimalisatie DIY starten',
     },
   },
   en: {
@@ -148,7 +148,7 @@ export const translations = {
     sidebar: {
       platform: 'GEO Platform', tools: 'Tools',
       brandCheck: 'Brand Check', rankTracker: 'Rank Tracker',
-      geoAnalyse: 'GEO Analysis', contentOptimizer: 'Content Optimizer',
+      geoAnalyse: 'GEO Optimization DIY', contentOptimizer: 'Content Optimizer',
       free: 'free', soon: 'soon',
     },
     rescan: 'Re-analyze',
@@ -195,7 +195,7 @@ export const translations = {
       cta: 'Upgrade to PRO',
       price: '\u20AC49/month \u00B7 cancel anytime',
       activeDesc: 'You have GEO Optimization PRO. Start an analysis to optimize your pages.',
-      activeCta: 'Start GEO Analysis',
+      activeCta: 'Start GEO Optimization DIY',
     },
   },
 }

@@ -404,7 +404,7 @@ export async function POST(request) {
       const accessTier = await resolveGeoAccessTier(supabase, user)
       if (accessTier === 'lite' && (appendToScanId || prompts.length > GEO_LITE_PROMPT_CAP)) {
         return NextResponse.json({
-          error: 'Met Lite scan je maximaal 10 GEO Analyse prompts. Upgrade naar Pro voor onbeperkt.',
+          error: 'Met Lite scan je maximaal 10 GEO Optimalisatie DIY prompts. Upgrade naar Pro voor onbeperkt.',
           upgradeUrl: '/pricing',
           tierRequired: 'pro',
           promptCap: GEO_LITE_PROMPT_CAP,

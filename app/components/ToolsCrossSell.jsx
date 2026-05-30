@@ -67,8 +67,8 @@ const TOOLS = {
         <line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/>
       </svg>
     ),
-    nl: { name: 'GEO Analyse', desc: 'Compleet dashboard' },
-    en: { name: 'GEO Analyse', desc: 'Complete dashboard' },
+    nl: { name: 'GEO Optimalisatie DIY', desc: 'Compleet dashboard' },
+    en: { name: 'GEO Optimization DIY', desc: 'Complete dashboard' },
   },
 }
 

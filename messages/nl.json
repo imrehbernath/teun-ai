@@ -30,7 +30,7 @@
       "badge": "GRATIS"
     },
     "geoAnalysis": {
-      "name": "GEO Analyse",
+      "name": "GEO Optimalisatie DIY",
       "description": "Uitgebreide analyse beschikbaar in dashboard"
     },
     "wpPlugin": {
@@ -57,7 +57,7 @@
     "company": "Bedrijf",
     "contact": "Contact",
     "privacy": "Privacyverklaring",
-    "completeAnalysis": "Complete GEO Analyse",
+    "completeAnalysis": "GEO Optimalisatie DIY",
     "aiVisibility": "AI Zichtbaarheid",
     "aiRankTracker": "AI Rank Tracker",
     "promptExplorer": "AI Prompt Explorer",
@@ -561,7 +561,7 @@
       "subtitle": "Maak een gratis account - geen creditcard nodig",
       "aiModeScans": "✓ AI Modus scans",
       "aiOverviewsScans": "✓ AI Overviews",
-      "geoAnalysis": "✓ GEO Analyse",
+      "geoAnalysis": "✓ GEO Optimalisatie DIY",
       "dashboard": "✓ Dashboard",
       "createAccount": "Gratis account maken →"
     },
@@ -717,13 +717,13 @@
       "description": "Dit rapport is voor u klaargezet door <strong>OnlineLabs</strong>. U bekijkt de huidige AI-zichtbaarheid van {company} op ChatGPT, Perplexity, Google AI Modus en AI Overviews."
     },
     "geoCta": {
-      "title": "GEO optimalisatie DIY",
-      "description": "Verbeter je AI visibility zelf. Pro koppelt je AI zoekvragen aan de juiste pagina's via Search Console, en geeft je per pagina een uitgebreide analyse, advies op maat en een kant-en-klare prompt voor ChatGPT of Claude.",
+      "title": "GEO Optimalisatie DIY",
+      "description": "Verbeter je AI visibility zelf. GEO Optimalisatie DIY koppelt je AI zoekvragen aan de juiste pagina's via Search Console, en geeft je per pagina een uitgebreide analyse, advies op maat en een kant-en-klare prompt voor ChatGPT of Claude.",
       "featureCsv": "Search Console koppeling",
       "featureAi": "Per-pagina advies",
       "featureReport": "ChatGPT/Claude prompt",
       "tagline": "Geen andere tool combineert dit",
-      "button": "Start GEO optimalisatie"
+      "button": "Start GEO Optimalisatie DIY"
     },
     "cta": {
       "title": "Verbeter je AI-zichtbaarheid",
@@ -751,7 +751,7 @@
       "heroTitle": "Start je eerste AI-zichtbaarheidsscan",
       "heroDescription": "Ontdek hoe vaak jouw bedrijf wordt aanbevolen in AI-zoekmachines zoals ChatGPT, Perplexity, AI Modus en AI Overviews. Binnen 30 seconden weet je waar je staat.",
       "startScan": "Start Gratis Scan",
-      "geoAnalysis": "GEO Analyse",
+      "geoAnalysis": "GEO Optimalisatie DIY",
       "featurePlatforms": "4 Platforms",
       "featurePlatformsDesc": "ChatGPT, Perplexity, AI Modus, AI Overviews",
       "featureSpeed": "30 Seconden",
@@ -774,7 +774,7 @@
       "loggedIn": "Ingelogd",
       "loggedInLimit": "1 gratis scan per dag",
       "popupTitle": "Scan eerst alle platforms",
-      "popupDesc": "Voor een complete GEO Analyse heb je scans nodig van alle 4 AI-platforms. Start eerst een AI-zichtbaarheidsscan.",
+      "popupDesc": "Voor een complete GEO Optimalisatie DIY heb je scans nodig van alle 4 AI-platforms. Start eerst een AI-zichtbaarheidsscan.",
       "notScanned": "nog niet gescand",
       "close": "Sluiten",
       "startScanShort": "Start Scan"
@@ -786,7 +786,7 @@
       "deleteRlsError": "Verwijderen mislukt! Mogelijk ontbreken de juiste database rechten. Check je Supabase RLS policies voor DELETE op tool_integrations.",
       "deleteErrorMessage": "Er ging iets mis bij het verwijderen: {error}",
       "teunAlt": "Teun helpt je!",
-      "geoAnalyse": "GEO Analyse",
+      "geoAnalyse": "GEO Optimalisatie DIY",
       "sharedViewBanner": "Dit dashboard is met je gedeeld. Je bekijkt de resultaten in read-only modus.",
       "extensionInstallTitle": "Chrome Extensie Installeren",
       "extensionStep1": "Stap 1: Open Extensies",
@@ -803,7 +803,7 @@
       "cancel": "Annuleer",
       "yesDelete": "Ja, verwijder",
       "scanAllFirst": "Scan eerst alle platforms",
-      "scanAllFirstDesc": "Voor een complete GEO Analyse heb je scans nodig van alle AI platforms.",
+      "scanAllFirstDesc": "Voor een complete GEO Optimalisatie DIY heb je scans nodig van alle AI platforms.",
       "notYetScanned": "nog niet gescand"
     },
     "modal": {
@@ -957,9 +957,9 @@
       "smartQueries": "Slimme zoekopdrachten",
       "smartQueriesDesc": "Teun.ai past je prompts automatisch aan naar informatieve vragen die vaker AI Overviews triggeren in Google.",
       "promptsSmartConversion": "Prompts worden slim omgezet naar informatieve zoekopdrachten",
-      "geoAnalysis": "GEO Analyse",
+      "geoAnalysis": "GEO Optimalisatie DIY",
       "scanAllFirst": "Scan eerst alle platforms",
-      "scanAllFirstDesc": "Voor een complete GEO Analyse heb je scans nodig van alle AI platforms.",
+      "scanAllFirstDesc": "Voor een complete GEO Optimalisatie DIY heb je scans nodig van alle AI platforms.",
       "understood": "Begrepen",
       "notYetScanned": "- nog niet gescand",
       "confirmDeleteScan": "Scan verwijderen?",
@@ -971,15 +971,15 @@
       "chatgptScanError": "Fout bij ChatGPT scannen"
     },
     "geo": {
-      "title": "GEO Analyse",
+      "title": "GEO Optimalisatie DIY",
       "subtitle": "Complete AI zichtbaarheid & GEO optimalisatie analyse",
-      "loading": "GEO Analyse laden...",
+      "loading": "GEO Optimalisatie DIY laden...",
       "step1": "Bedrijfsinfo",
       "step2": "Pagina's",
       "step3": "Matching",
       "step4": "GEO Check",
       "step5": "Rapport",
-      "titleFor": "GEO Analyse — {name}",
+      "titleFor": "GEO Optimalisatie DIY - {name}",
       "aiVisibilityScore": "AI Visibility Score",
       "mentionsAcrossPlatforms": "{mentioned} van {total} prompts vermeld over alle platforms",
       "platformsScanned": "Platforms Gescand",
@@ -1059,7 +1059,7 @@
       "phaseProcessing": "Resultaten verwerken...",
       "phaseNextPage": "Volgende pagina...",
       "authorityManual": "Autoriteit (handmatig invullen)",
-      "geoResults": "GEO Analyse Resultaten",
+      "geoResults": "GEO Optimalisatie DIY Resultaten",
       "geoOptimization": "GEO Optimalisatie",
       "pagesAnalyzed": "{count} pagina's geanalyseerd",
       "totalScore": "Totaal Score",
@@ -1173,9 +1173,9 @@
       "good": "Goed",
       "moderate": "Gemiddeld",
       "bad": "Slecht",
-      "newGeoAnalysis": "Nieuwe GEO Analyse draaien",
-      "startWithGeoAnalysis": "Start met een GEO Analyse",
-      "startGeoAnalysis": "GEO Analyse starten",
+      "newGeoAnalysis": "Nieuwe GEO Optimalisatie DIY draaien",
+      "startWithGeoAnalysis": "Start met GEO Optimalisatie DIY",
+      "startGeoAnalysis": "GEO Optimalisatie DIY starten",
       "pageScanner": "Pagina scanner",
       "urlPlaceholder": "https://jouwwebsite.nl/pagina",
       "analyze": "Analyseer",
@@ -1287,8 +1287,8 @@
         "perplexity": "Live Perplexity test uitvoeren",
         "score": "Eindscores berekenen"
       },
-      "pagesFromGeoAnalysis": "{count} pagina's uit je GEO Analyse",
-      "geoAnalyseExplanation": "De GEO Analyse koppelt je prompts aan pagina's via Search Console en scant ze op optimalisatiepunten. Resultaten verschijnen hier."
+      "pagesFromGeoAnalysis": "{count} pagina's uit je GEO Optimalisatie DIY",
+      "geoAnalyseExplanation": "De GEO Optimalisatie DIY koppelt je prompts aan pagina's via Search Console en scant ze op optimalisatiepunten. Resultaten verschijnen hier."
     }
   },
   "rankTracker": {
@@ -1418,7 +1418,7 @@
     "noLlmsTxt": "Geen llms.txt",
     "noRichSnippets": "Geen Rich Snippets",
     "ctaTitle": "Wil je meer dan één pagina analyseren?",
-    "ctaDesc": "In het dashboard maak je een uitgebreide GEO Analyse: prompts die worden gematcht aan jouw pagina's, met gerichte aanbevelingen per pagina. Helemaal gratis.",
+    "ctaDesc": "In het dashboard maak je een uitgebreide GEO Optimalisatie DIY: prompts die worden gematcht aan jouw pagina's, met gerichte aanbevelingen per pagina. Helemaal gratis.",
     "steps": {
       "fetch": "Pagina ophalen en verbinden",
       "html": "HTML content extraheren",
