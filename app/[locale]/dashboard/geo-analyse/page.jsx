@@ -268,6 +268,7 @@ function GEOAnalyseContent() {
   const [expandedPage, setExpandedPage] = useState(null)
   const [copiedPromptPage, setCopiedPromptPage] = useState(null)
   const [rescanningPage, setRescanningPage] = useState(null)
+  const [rescanningPromptText, setRescanningPromptText] = useState(null) // per-prompt Perplexity herscan
   
   // Google AI Mode Scan
   const [googleAiScanning, setGoogleAiScanning] = useState(false)
@@ -583,7 +584,9 @@ function GEOAnalyseContent() {
               prompt: r.ai_prompt || r.query || r.prompt || '',
               mentioned: r.company_mentioned === true || r.companyMentioned === true || r.mentioned === true,
               snippet: r.simulated_ai_response_snippet || r.snippet || r.aiResponse || r.response_snippet || '',
-              competitors: r.competitors_mentioned || r.competitors || []
+              competitors: r.competitors_mentioned || r.competitors || [],
+              // Backward-compat: oude rijen zonder scan_status gelden als voltooid.
+              scan_status: r.scan_status || 'completed'
             }))
             combinedResults.perplexity.total = perplexityData.length
             combinedResults.perplexity.mentioned = perplexityData.filter(r => 
@@ -1473,6 +1476,45 @@ function GEOAnalyseContent() {
     setMatches(newMatches)
     setUnmatchedPrompts(prev => prev.includes(prompt) ? prev : [...prev, prompt])
     savePageScoresToDB(geoResults, newMatches)
+  }
+
+  // Herscan 1 prompt op Perplexity (na een omgevallen scan) en werk de state bij
+  // zonder full reload. Niet-destructief gemerged via /api/geo-analyse/rescan-prompt.
+  const rescanPromptPerplexity = async (promptText) => {
+    const integrationId = selectedExistingWebsite?.id
+    if (!integrationId) {
+      alert(locale === 'nl' ? 'Geen scan gevonden om te herscannen.' : 'No scan found to rescan.')
+      return
+    }
+    setRescanningPromptText(promptText)
+    try {
+      const res = await fetch('/api/geo-analyse/rescan-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ integrationId, prompt: promptText, companyName, website: companyWebsite, locale })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data && !data.error) {
+        setExistingAiResults(prev => {
+          const next = prev.filter(r => !(r.prompt === promptText && r.platform === 'perplexity'))
+          next.push({
+            prompt: promptText,
+            platform: 'perplexity',
+            mentioned: data.company_mentioned === true,
+            snippet: data.simulated_ai_response_snippet || '',
+            competitors: data.competitors_mentioned || [],
+            scan_status: data.scan_status || 'completed',
+          })
+          return next
+        })
+      } else {
+        alert((locale === 'nl' ? 'Herscan mislukt: ' : 'Rescan failed: ') + (data?.error || ''))
+      }
+    } catch (e) {
+      alert((locale === 'nl' ? 'Herscan mislukt: ' : 'Rescan failed: ') + e.message)
+    } finally {
+      setRescanningPromptText(null)
+    }
   }
 
   const removePage = (pageUrl) => {
@@ -4035,6 +4077,40 @@ function GEOAnalyseContent() {
                                   {result.wordCount || 0} {locale === 'nl' ? 'woorden' : 'words'}
                                 </span>
                               </div>
+
+                              {/* Niet-voltooide Perplexity-scans: eerlijk tonen + per-prompt herscan */}
+                              {(() => {
+                                const pagePrompts = matches.filter(m => m.page === pageUrl).map(m => m.prompt)
+                                const failed = pagePrompts
+                                  .map(pt => existingAiResults.find(r => r.prompt === pt && r.platform === 'perplexity'))
+                                  .filter(r => r && r.scan_status === 'failed')
+                                if (failed.length === 0) return null
+                                return (
+                                  <div className="space-y-2">
+                                    {failed.map((r, fi) => (
+                                      <div key={fi} className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-[13px] font-medium text-amber-800">
+                                            {locale === 'nl' ? 'Deze prompt kon niet volledig worden gescand in Perplexity' : 'This prompt could not be fully scanned in Perplexity'}
+                                          </p>
+                                          <p className="text-[11px] text-amber-700 truncate mt-0.5">{r.prompt}</p>
+                                        </div>
+                                        <button
+                                          onClick={() => rescanPromptPerplexity(r.prompt)}
+                                          disabled={rescanningPromptText === r.prompt}
+                                          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-[12px] font-semibold cursor-pointer disabled:opacity-60"
+                                          style={{ background: '#292956' }}
+                                        >
+                                          {rescanningPromptText === r.prompt
+                                            ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {locale === 'nl' ? 'Scannen...' : 'Scanning...'}</>
+                                            : <><RefreshCw className="w-3.5 h-3.5" /> {locale === 'nl' ? 'Opnieuw scannen' : 'Rescan'}</>}
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )
+                              })()}
 
                               {/* Copy Claude optimization prompt */}
                               {(() => {
